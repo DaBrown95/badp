@@ -34,9 +34,9 @@ independent source trees or treat one version's evidence as verifying the rest.
 simultaneous reconstruction. Keep progress and completion evidence per target.
 
 The v1.5 build now assembles and links to the exact reference, with 21,474 bytes
-of source code and 16,732 bytes of structured data across the physical PRG banks.
-It still includes 27,330 local PRG bytes and 65,536 local CHR bytes. A total of
-1,012 independent source-change controls verify every listed reconstructed region.
+of source code and 17,288 bytes of structured data across the physical PRG banks.
+It still includes 26,774 local PRG bytes and 65,536 local CHR bytes. A total of
+1,068 independent source-change controls verify every listed reconstructed region.
 Passing input audits or whole-ROM equality alone is not reconstruction
 completion. The developer identifies BOGUS as the
 state-machine engine in the [Vance Kozik interview](https://www.nesworld.com/kozik.php);
@@ -342,14 +342,22 @@ exploratory runs, not completion of any adventure. A subsequent reference/build
 comparison of the same 8,000-frame inputs matched seven sampled screenshots and
 state snapshots per adventure, mapper/NMI/APU/DMA activity counts, and the
 observed script and record access counts. Its proof remains in ignored
-`reports/us-v1.5/runtime-long/`. Newly encountered records observed only in
-other modes, or in multiple modes, remain local pending review. The probes,
-trace data and screenshots are ignored locally.
+`reports/us-v1.5/runtime-long/`. Other newly encountered records observed only
+in different modes, or whose interpretations need review, remain local. The
+probes, trace data and screenshots are ignored locally.
 
-One such record at bank 1 `$B936` was accessed in both zero and negative mode.
-The negative path interprets byte 2 as flags, while the zero path checks it as
-part of the script pointer. The same bytes can therefore have different uses;
-the record remains local until those uses and its neighbours are reviewed.
+The record at bank 1 `$B936` was accessed in both zero and negative mode and
+is now structured source. Byte 2 occupies the low script-pointer position in
+zero mode, but the `$FF` high byte skips its read there; negative mode reads
+byte 2 as flags. Both interpretations retain the same physical bytes.
+
+The long-run command pointers also seed a separate static walk: 1,322 distinct
+entries produce 2,016 candidate nodes with no internal byte overlaps or pending
+nodes. Another 109 commands are source in 38 groups after excluding candidate
+record and competing script overlaps. Six were observed in the long runs; the
+remaining successors are static candidates. Every command entry observed in
+those runs is now covered by a source region, without implying complete script
+or gameplay coverage.
 
 The slot-record loader was also observed reading 17 previously local records
 in nine contiguous groups. Compact negative-mode records and full zero-mode
@@ -391,7 +399,31 @@ Moses and David. Its one source mutation is checked against both bank copies.
 Additional connected bank-1 scripts at `$B6EE`, `$B89C`, `$B999`, `$BB69`,
 `$BDFF`, `$DC35` and `$DF0F` express their commands, branches and inline cases in source.
 They include slot updates, linked-slot checks, map reads and waits. Their exact
-gameplay roles remain unverified, and `$B999`'s indexed tables are still local.
+gameplay roles remain unverified. The three `$B999` indexed byte regions are
+now source; `$54` reads two bytes at each indexed address, and those reads can
+cross region boundaries. The emulator observed offsets 1, 5 and 11 in Noah,
+Moses and David respectively, including reads from the first region into the
+second. The handler does not establish an index bound.
+
+The three adjacent `$F435` indexed targets are source. Long-run probes observed
+indices 0, 1 and 2 and verified their mapped PRG bank and targets in MesenCE.
+The original handler does not bound the index, so other values may read beyond
+these three entries. A separate terminated lookup at `$D629` is also source.
+
+A further 12,000-frame reference-ROM exploration varied movement and pressed A
+and B periodically. It reached another 40 previously local command entries and
+five zero-mode records, now represented as source. Mapper checks paired every
+sampled command and record fetch with its physical bank in MesenCE: 110,168,
+94,256 and 110,353 command fetches, and 2,100, 1,388 and 2,071 record fetches,
+for Noah, Moses and David respectively; none disagreed with the predicted bank.
+The five added record addresses were directly checked. This is exploratory
+evidence, not completion of the adventures or physical hardware verification.
+The reference and matching build subsequently agreed on seven sampled frame
+screenshots and state snapshots per adventure, hardware activity counts, and
+script and record access counts for the same inputs. The local proof is in
+ignored `reports/us-v1.5/runtime-interaction/`. Every command byte observed in
+these inputs is covered by a source region; other gameplay inputs and later
+paths remain unverified. Logs and screenshots remain ignored locally.
 
 Three further connected state-machine regions at `$DE0D`, `$E118` and `$EC2B`
 and four entry points into `$E120` are structured source. They retain the

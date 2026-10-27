@@ -42,7 +42,7 @@ are not measures of gameplay completion.
 <!-- BEGIN GENERATED PROGRESS -->
 | Version | Reconstructed PRG | Status |
 | --- | ---: | --- |
-| USA v1.5 | **58.30%** (38,206 / 65,536 bytes) | In progress |
+| USA v1.5 | **59.15%** (38,762 / 65,536 bytes) | In progress |
 | USA v1.4 | **0.00%** (0 / 65,536 bytes) | Not started |
 | USA v1.3 | **0.00%** (0 / 65,536 bytes) | Not started |
 | USA v1.2 | **0.00%** (0 / 65,536 bytes) | Not started |

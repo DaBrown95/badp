@@ -169,6 +169,24 @@ compareRangeReturn:
 
 ; BOGUS command forms below name only the behaviour established by handlers.
 ; Script targets in PRG bank 1 are encoded as offsets below $8000.
+.macro BogusCopyLinkedMotionFields
+    .byte $A2
+.endmacro
+.macro BogusStoreSlotLowAtIndexedPage
+    .byte $AD
+.endmacro
+.macro BogusSetSlot05E0Bit40 value
+    .byte $B2, value
+.endmacro
+.macro BogusRelinkToLastRelatedSlot
+    .byte $B8
+.endmacro
+.macro BogusClearSlot0640PairBits first, second
+    .byte $B9, first, second
+.endmacro
+.macro BogusSetSlot0640PairBits first, second
+    .byte $BA, first, second
+.endmacro
 .macro BogusConfigureSlot0750 first, second
     .byte $65, first, second
 .endmacro
@@ -13709,7 +13727,11 @@ RuntimeRecordACBE:
 RuntimeRecordACC7:
     SlotRuntimeRecord $FFFF, (RuntimeScriptAFBA - BankStart), $00, $FF, $00, $00, $00
 .assert (* - BankStart) = $2CD0, error, "bank 1 runtime records $ACAC end"
-    .incbin "bank1_acd0_ace2.bin"
+; Observed in zero mode; fields gated by $FFFF may be skipped.
+InteractionRecordACD0:
+    SlotRuntimeRecord $FFFF, (InteractionScriptB04C - BankStart), $00, $FF, $00, $00, $00 ; CONTROL_INTERACTION_RECORD_ACD0
+.assert (* - BankStart) = $2CD9, error, "bank 1 interaction record $ACD0 end"
+    .incbin "bank1_acd9_ace2.bin"
 ; Record accesses observed at the bank-0 loader in the opening scenarios.
 ; Fields behind a $FFFF resource pointer may not be read by the loader.
 RuntimeRecordACE2:
@@ -13790,7 +13812,11 @@ RuntimeScriptADA7:
 RuntimeScriptADAA:
     BogusJumpBank1 RuntimeScriptADB0
 .assert (* - BankStart) = $2DAD, error, "bank 1 runtime script $AD93 end"
-    .incbin "bank1_adad_adb0.bin"
+; Candidate successor of a longer-run command; control flow remains provisional.
+; Labels preserve independent branch and resume entries.
+ExtendedScriptADAD:
+    BogusLoadSlotRecordAtPointer $2D0F ; CONTROL_EXTENDED_SCRIPT_ADAD
+.assert (* - BankStart) = $2DB0, error, "bank 1 extended script $ADAD end"
 ; Observed at the bank-0 command fetcher during the opening scenarios.
 ; Names describe handler behaviour; independent entry points are retained.
 RuntimeScriptADB0:
@@ -14049,7 +14075,11 @@ SuccessorScriptAEE9:
 SuccessorScriptAEEB:
     BogusLoadSlotRecordAtPointer $3936
 .assert (* - BankStart) = $2EEE, error, "bank 1 candidate successor $AEA6 end"
-    .incbin "bank1_aeee_aef1.bin"
+; Candidate successor of a longer-run command; control flow remains provisional.
+; Labels preserve independent branch and resume entries.
+ExtendedScriptAEEE:
+    BogusJumpBank1 LongScriptAF2C ; CONTROL_EXTENDED_SCRIPT_AEEE
+.assert (* - BankStart) = $2EF1, error, "bank 1 extended script $AEEE end"
 ; Candidate successors of opening-observed scripts, from reviewed handler rules.
 ; Independent labels preserve alternate entries; reachability remains unproven.
 SuccessorScriptAEF1:
@@ -14061,7 +14091,37 @@ SuccessorScriptAEF6:
 SuccessorScriptAEF9:
     BogusLoadSlotRecordAtPointer $2D18
 .assert (* - BankStart) = $2EFC, error, "bank 1 candidate successor $AEF1 end"
-    .incbin "bank1_aefc_af2c.bin"
+; Command entries observed in the varied-input emulator exploration.
+InteractionScriptAEFC:
+    BogusSetSlot07F0 $80 ; CONTROL_INTERACTION_SCRIPT_AEFC
+InteractionScriptAEFE:
+    BogusJumpBank1 InteractionScriptAF05
+.assert (* - BankStart) = $2F01, error, "bank 1 interaction script $AEFC end"
+    .incbin "bank1_af01_af05.bin"
+; Command entries observed in the varied-input emulator exploration.
+InteractionScriptAF05:
+    BogusSetSlotFields80 $00, $82 ; CONTROL_INTERACTION_SCRIPT_AF05
+InteractionScriptAF08:
+    BogusSetSlotMode $FF
+InteractionScriptAF0A:
+    BogusMarkRelatedSlotAtDepth $1A, $01
+InteractionScriptAF0D:
+    BogusSetVoicePointers $2C88, $2C97, $0000, $0000
+InteractionScriptAF16:
+    BogusMarkRelatedSlotAtDepth $1A, $02
+InteractionScriptAF19:
+    BogusSetSlotFields80 $00, $82
+InteractionScriptAF1C:
+    BogusMarkRelatedSlotAtDepth $1A, $03
+InteractionScriptAF1F:
+    BogusSetSlotFields80 $00, $82
+InteractionScriptAF22:
+    BogusMarkRelatedSlotAtDepth $1A, $04
+InteractionScriptAF25:
+    BogusSetSlotFields80 $00, $82
+InteractionScriptAF28:
+    BogusBranchIfSlotB0AtMost InteractionScriptAF28, $DC
+.assert (* - BankStart) = $2F2C, error, "bank 1 interaction script $AF05 end"
 ; Observed at the bank-0 command fetcher during longer exploratory runs.
 ; Names describe handler behaviour; independent entry points are retained.
 LongScriptAF2C:
@@ -14170,7 +14230,20 @@ LongScriptAFCE:
 LongScriptAFCF:
     BogusBranchIfSlot0620Bit10 RuntimeScriptAFED
 .assert (* - BankStart) = $2FD2, error, "bank 1 long-run script $AFC7 end"
-    .incbin "bank1_afd2_afed.bin"
+; Candidate successor of a longer-run command; control flow remains provisional.
+; Labels preserve independent branch and resume entries.
+ExtendedScriptAFD2:
+    BogusBranchIfSelectedFlagsClear RuntimeScriptAF9E, $80 ; CONTROL_EXTENDED_SCRIPT_AFD2
+ExtendedScriptAFD6:
+    BogusApplyAndClearSelected3E
+.assert (* - BankStart) = $2FD7, error, "bank 1 extended script $AFD2 end"
+; Command entries observed in the varied-input emulator exploration.
+InteractionScriptAFD7:
+    BogusBranchIfSlot0620Bit10 RuntimeScriptAFED
+InteractionScriptAFDA:
+    BogusBranchIfSelectedFlagsClear RuntimeScriptAF9E, $80 ; CONTROL_INTERACTION_SCRIPT_AFD7
+.assert (* - BankStart) = $2FDE, error, "bank 1 interaction script $AFD7 end"
+    .incbin "bank1_afde_afed.bin"
 ; Observed at the bank-0 command fetcher during the opening scenarios.
 ; Names describe handler behaviour; independent entry points are retained.
 RuntimeScriptAFED:
@@ -14250,7 +14323,39 @@ SuccessorScriptB044:
 SuccessorScriptB047:
     BogusApplyAndClearSelected3E
 .assert (* - BankStart) = $3048, error, "bank 1 candidate successor $B031 end"
-    .incbin "bank1_b048_b12e.bin"
+    .incbin "bank1_b048_b04c.bin"
+; Command entries observed in the varied-input emulator exploration.
+InteractionScriptB04C:
+    BogusSetDispatchCounter $89 ; CONTROL_INTERACTION_SCRIPT_B04C
+InteractionScriptB04E:
+    BogusStoreSlotValueArray $FF
+InteractionScriptB050:
+    BogusBranchIfSlotCoordinatesA3 InteractionScriptB06A, $10, $0C
+InteractionScriptB055:
+    BogusFindLinkedSlot
+InteractionScriptB056:
+    BogusBranchIfSlotValueNotEqual (BankStart + $30C0), $FFFF
+InteractionScriptB05B:
+    BogusReadSlotValue $0F
+InteractionScriptB05D:
+    BogusBranchIfSlotValueEqual (BankStart + $3080), $0F, $00
+InteractionScriptB062:
+    BogusBranchIfSlotFieldsWithin InteractionScriptB06A, $20, $FF
+InteractionScriptB067:
+    BogusJumpBank1 InteractionScriptB074
+InteractionScriptB06A:
+    BogusBranchIfSlot0620Bit10 (BankStart + $3070)
+InteractionScriptB06D:
+    BogusJumpBank1 InteractionScriptB074
+.assert (* - BankStart) = $3070, error, "bank 1 interaction script $B04C end"
+    .incbin "bank1_b070_b074.bin"
+; Command entries observed in the varied-input emulator exploration.
+InteractionScriptB074:
+    BogusLoadSlotValueArray $FF ; CONTROL_INTERACTION_SCRIPT_B074
+InteractionScriptB076:
+    BogusRestoreSavedScriptAndSlotFlags
+.assert (* - BankStart) = $3077, error, "bank 1 interaction script $B074 end"
+    .incbin "bank1_b077_b12e.bin"
 ; Observed at the bank-0 command fetcher during the opening scenarios.
 ; Names describe handler behaviour; independent entry points are retained.
 RuntimeScriptB12E:
@@ -14266,7 +14371,12 @@ RuntimeScriptB138:
 RuntimeScriptB13B:
     BogusJumpBank1 RuntimeScriptB144
 .assert (* - BankStart) = $313E, error, "bank 1 runtime script $B12E end"
-    .incbin "bank1_b13e_b144.bin"
+; Candidate successor of a longer-run command; control flow remains provisional.
+; Labels preserve independent branch and resume entries.
+ExtendedScriptB13E:
+    BogusLoadSlotRecordAtPointer $2CFD ; CONTROL_EXTENDED_SCRIPT_B13E
+.assert (* - BankStart) = $3141, error, "bank 1 extended script $B13E end"
+    .incbin "bank1_b141_b144.bin"
 ; Observed at the bank-0 command fetcher during the opening scenarios.
 ; Names describe handler behaviour; independent entry points are retained.
 RuntimeScriptB144:
@@ -14282,7 +14392,12 @@ RuntimeScriptB14D:
 RuntimeScriptB152:
     BogusBranchIfSlot0620Bit10 RuntimeScriptB144
 .assert (* - BankStart) = $3155, error, "bank 1 runtime script $B144 end"
-    .incbin "bank1_b155_b191.bin"
+; Candidate successor of a longer-run command; control flow remains provisional.
+; Labels preserve independent branch and resume entries.
+ExtendedScriptB155:
+    BogusLoadRecordAndClearSavedState $12 ; CONTROL_EXTENDED_SCRIPT_B155
+.assert (* - BankStart) = $3157, error, "bank 1 extended script $B155 end"
+    .incbin "bank1_b157_b191.bin"
 ; Observed at the bank-0 command fetcher during the opening scenarios.
 ; Names describe handler behaviour; independent entry points are retained.
 RuntimeScriptB191:
@@ -14545,7 +14660,11 @@ SuccessorScriptB31F:
 SuccessorScriptB321:
     BogusClearSlot0790Bits $25
 .assert (* - BankStart) = $3323, error, "bank 1 candidate successor $B2CC end"
-    .incbin "bank1_b323_b324.bin"
+; Candidate successor of a longer-run command; control flow remains provisional.
+; Labels preserve independent branch and resume entries.
+ExtendedScriptB323:
+    BogusMarkSlot05A0AndYield ; CONTROL_EXTENDED_SCRIPT_B323
+.assert (* - BankStart) = $3324, error, "bank 1 extended script $B323 end"
 ; Candidate successors of opening-observed scripts, from reviewed handler rules.
 ; Independent labels preserve alternate entries; reachability remains unproven.
 SuccessorScriptB324:
@@ -14573,7 +14692,12 @@ SuccessorScriptB355:
 SuccessorScriptB358:
     BogusSetSlotValue $2B00
 .assert (* - BankStart) = $335B, error, "bank 1 candidate successor $B34A end"
-    .incbin "bank1_b35b_b3c7.bin"
+; Candidate successor of a longer-run command; control flow remains provisional.
+; Labels preserve independent branch and resume entries.
+ExtendedScriptB35B:
+    BogusStoreSlotLowAtIndexedPage ; CONTROL_EXTENDED_SCRIPT_B35B
+.assert (* - BankStart) = $335C, error, "bank 1 extended script $B35B end"
+    .incbin "bank1_b35c_b3c7.bin"
 ; Candidate descriptor $B3E5, command $B67F, mode $FF.
 SlotFlowB3C7:
     SlotCompactRecord $BF1B, $00 ; CONTROL_SLOT_FLOW_B3C7
@@ -15048,7 +15172,10 @@ LongScriptB7E3:
 SlotRuntimeB7E5:
     SlotRuntimeRecord $B945, (CandidateB809 - BankStart), $40, $FF, $00, $00, $00 ; CONTROL_SLOT_RUNTIME_B7E5
 .assert (* - BankStart) = $37EE, error, "bank 1 slot record B7E5 end"
-    .incbin "bank1_b7ee_b7f7.bin"
+; Observed in zero mode; fields gated by $FFFF may be skipped.
+InteractionRecordB7EE:
+    SlotRuntimeRecord $C5B9, (InteractionScriptB87D - BankStart), $00, $FF, $00, $00, $00 ; CONTROL_INTERACTION_RECORD_B7EE
+.assert (* - BankStart) = $37F7, error, "bank 1 interaction record $B7EE end"
 ; Candidate descriptor $B7E5, command $B831, mode $00.
 SlotFlowB7F7:
     SlotRuntimeRecord $B930, $3833, $00, $FE, $40, $41, $41 ; CONTROL_SLOT_FLOW_B7F7
@@ -15112,7 +15239,18 @@ ContextScriptB87A:
     BogusCheckSlotFlagsAndRestorePointer
     BogusYieldAndSlotAction $00
 .assert (* - BankStart) = $387D, error, "bank 1 contextual script B833 end"
-    .incbin "bank1_b87d_b88a.bin"
+; Command entries observed in the varied-input emulator exploration.
+InteractionScriptB87D:
+    BogusSetSlotC0 $FF ; CONTROL_INTERACTION_SCRIPT_B87D
+InteractionScriptB87F:
+    BogusSetSlotMode $FF
+InteractionScriptB881:
+    BogusSetLinkedSlotFieldsC0 $40, $A0
+InteractionScriptB884:
+    BogusBranchIfSlotB0AtMost InteractionScriptB884, $E6
+InteractionScriptB888:
+    BogusYieldAndSlotAction $00
+.assert (* - BankStart) = $388A, error, "bank 1 interaction script $B87D end"
 ; Descriptor-linked slot record; resource data remains local.
 SlotRuntimeB88A:
     SlotRuntimeRecord $B5FD, (ScriptB89C - BankStart), $00, $00, $20, $D9, $11 ; CONTROL_SLOT_RUNTIME_B88A
@@ -15193,7 +15331,11 @@ ScriptB92E:
 ScriptB934:
     BogusYieldAndSlotAction $00  ; CONTROL_BOGUS_B934
 .assert (* - BankStart) = $3936, error, "bank 1 script B934 end"
-    .incbin "bank1_b936_b93f.bin"
+; Observed in zero and negative modes: byte 2 is both script-pointer low
+; (zero mode) and flags (negative mode); both interpretations share bytes.
+ExtendedRecordB936:
+    SlotRuntimeRecord $BC79, $FFFF, $00, $FF, $00, $00, $00 ; CONTROL_EXTENDED_RECORD_B936
+.assert (* - BankStart) = $393F, error, "bank 1 dual-mode record $B936 end"
 ; Descriptor-linked slot record; resource data remains local.
 SlotRuntimeB93F:
     SlotRuntimeRecord $BC79, $3948, $00, $FF, $00, $00, $00 ; CONTROL_SLOT_RUNTIME_B93F
@@ -15232,15 +15374,17 @@ ScriptB970:
     BogusBranchIfSlot0360Above ScriptB970, $01
     BogusYieldAndSlotAction $00
 .assert (* - BankStart) = $398E, error, "bank 1 script B968 end"
-    .incbin "bank1_b98e_b990.bin"
+; Candidate successor of a longer-run command; control flow remains provisional.
+; Labels preserve independent branch and resume entries.
+ExtendedScriptB98E:
+    BogusYieldAndSlotAction $00 ; CONTROL_EXTENDED_SCRIPT_B98E
+.assert (* - BankStart) = $3990, error, "bank 1 extended script $B98E end"
 ; Descriptor-linked slot record; resource data remains local.
 SlotRuntimeB990:
     SlotRuntimeRecord $BC79, (ScriptB999 - BankStart), $00, $FF, $00, $00, $00 ; CONTROL_SLOT_RUNTIME_B990
 .assert (* - BankStart) = $3999, error, "bank 1 slot record B990 end"
 ; The indexed bases below are local data. The command at $B99E clears a
 ; stack-page bitset; its runtime stack interaction needs separate validation.
-DataB9E5 = BankStart + $39E5
-DataB9FB = BankStart + $39FB
 ScriptB999:
     BogusSetDispatchCounter $9F
     BogusBranchIfState58ZeroAndClear ScriptB9A0
@@ -15273,8 +15417,22 @@ ScriptB9A0:
     BogusSetVoicePointers $2AD8, $FFFF, $FFFF, $FFFF
     BogusYieldAndSlotAction $00
 .assert (* - BankStart) = $39E0, error, "bank 1 script B999 end"
+; Two-byte indexed reads can cross this label and the adjacent region.
 DataB9E0:
-    .incbin "bank1_b9e0_ba11.bin"
+    .byte $00, $06, $07, $08, $08 ; CONTROL_EXTENDED_STATE_B9E0
+.assert (* - BankStart) = $39E5, error, "bank 1 state bytes $B9E0 end"
+; Two-byte indexed reads can cross this label and the adjacent region.
+DataB9E5:
+    .byte $F0, $F0, $F0, $F0, $F0, $FB, $FB, $FB ; CONTROL_EXTENDED_STATE_B9E5
+    .byte $FB, $FB, $FB, $FA, $FA, $FA, $FA, $FA
+    .byte $F0, $F0, $F0, $F0, $F0, $F0
+.assert (* - BankStart) = $39FB, error, "bank 1 state bytes $B9E5 end"
+; Two-byte indexed reads can cross this label and the adjacent region.
+DataB9FB:
+    .byte $E0, $E0, $E0, $E0, $E0, $DA, $DA, $DA ; CONTROL_EXTENDED_STATE_B9FB
+    .byte $DA, $DA, $DA, $E0, $E0, $E0, $E0, $E0
+    .byte $E0, $E0, $E0, $E0, $E0, $E0
+.assert (* - BankStart) = $3A11, error, "bank 1 state bytes $B9FB end"
 ; Descriptor-linked slot record; resource data remains local.
 SlotRuntimeBA11:
     SlotRuntimeRecord $C4BF, (CandidateBA23 - BankStart), $00, $00, $30, $70, $11 ; CONTROL_SLOT_RUNTIME_BA11
@@ -16208,7 +16366,60 @@ LongScriptD61C:
 LongScriptD61E:
     BogusBranchIfSlot0520AtMost LongScriptD668, $00
 .assert (* - BankStart) = $5622, error, "bank 1 long-run script $D609 end"
-    .incbin "bank1_d622_d668.bin"
+; Candidate successor of a longer-run command; control flow remains provisional.
+; Labels preserve independent branch and resume entries.
+ExtendedScriptD622:
+    BogusBranchIfSelectedFieldEqual ExtendedScriptD702, $10 ; CONTROL_EXTENDED_SCRIPT_D622
+ExtendedScriptD626:
+    BogusReadSlotValue $24
+ExtendedScriptD628:
+    BogusLookupSlotValue
+.assert (* - BankStart) = $5629, error, "bank 1 extended script $D622 end"
+; $95 compares the slot value with each case and branches to its target.
+    BogusLookupCaseBank1 ExtendedScriptD637, $0000 ; CONTROL_EXTENDED_LOOKUP_D629
+    BogusLookupCaseBank1 ExtendedScriptD645, $0006
+    BogusLookupCaseBank1 LongScriptD668, $001D
+    BogusLookupEnd
+.assert (* - BankStart) = $5637, error, "bank 1 extended lookup $D629 end"
+; Candidate successor of a longer-run command; control flow remains provisional.
+; Labels preserve independent branch and resume entries.
+ExtendedScriptD637:
+    BogusSetDispatchCounter $04 ; CONTROL_EXTENDED_SCRIPT_D637
+ExtendedScriptD639:
+    BogusSetLinkedSlotFieldsC0 $18, $FF
+ExtendedScriptD63C:
+    BogusAdvanceAndBranchState1B ExtendedScriptD645, $40
+ExtendedScriptD640:
+    BogusWait $01
+ExtendedScriptD642:
+    BogusJumpBank1 ExtendedScriptD65B
+ExtendedScriptD645:
+    BogusSetDispatchCounter $85
+ExtendedScriptD647:
+    BogusSetLinkedSlotFieldsC0 $60, $B8
+ExtendedScriptD64A:
+    BogusAdvanceAndBranchState1B ExtendedScriptD651, $80
+ExtendedScriptD64E:
+    BogusAddSlotFields00 $00, $E8
+ExtendedScriptD651:
+    BogusSetDispatchCounter $03
+ExtendedScriptD653:
+    BogusStartVoice4 $2724
+ExtendedScriptD656:
+    BogusWait $06
+ExtendedScriptD658:
+    BogusJumpBank1 ExtendedScriptD65B
+ExtendedScriptD65B:
+    BogusSetSlotD0Bits $20
+ExtendedScriptD65D:
+    BogusBranchIfSlot0520AtMost ExtendedScriptD663, $04
+ExtendedScriptD661:
+    BogusLoadRecordAndClearSavedState $48
+ExtendedScriptD663:
+    BogusSetSlotD0Bits $40
+ExtendedScriptD665:
+    BogusJumpBank1 ExtendedScriptD661
+.assert (* - BankStart) = $5668, error, "bank 1 extended script $D637 end"
 ; Observed at the bank-0 command fetcher during longer exploratory runs.
 ; Names describe handler behaviour; independent entry points are retained.
 LongScriptD668:
@@ -16245,7 +16456,44 @@ ScriptD6EA:
     BogusRestartVoice4 $289B
     BogusYieldAndSlotAction $00
 .assert (* - BankStart) = $5702, error, "bank 1 script D6E0 end"
-    .incbin "bank1_d702_d77b.bin"
+; Candidate successor of a longer-run command; control flow remains provisional.
+; Labels preserve independent branch and resume entries.
+ExtendedScriptD702:
+    BogusBranchIfSlotD0Bits ExtendedScriptD661, $40 ; CONTROL_EXTENDED_SCRIPT_D702
+ExtendedScriptD706:
+    BogusSetSlot0790Bits $FF
+ExtendedScriptD708:
+    BogusLoadRecordAndClearSavedState $1B
+.assert (* - BankStart) = $570A, error, "bank 1 extended script $D702 end"
+    .incbin "bank1_d70a_d729.bin"
+; Candidate successor of a longer-run command; control flow remains provisional.
+; Labels preserve independent branch and resume entries.
+ExtendedScriptD729:
+    BogusBranchIfSelectedFieldEqual ExtendedScriptD73C, $11 ; CONTROL_EXTENDED_SCRIPT_D729
+ExtendedScriptD72D:
+    BogusBranchIfSelectedFieldEqual ExtendedScriptD738, $1E
+ExtendedScriptD731:
+    BogusWait $0A
+ExtendedScriptD733:
+    BogusLoadRecordAndClearSavedState $1B
+.assert (* - BankStart) = $5735, error, "bank 1 extended script $D729 end"
+    .incbin "bank1_d735_d738.bin"
+; Candidate successor of a longer-run command; control flow remains provisional.
+; Labels preserve independent branch and resume entries.
+ExtendedScriptD738:
+    BogusRelinkToLastRelatedSlot ; CONTROL_EXTENDED_SCRIPT_D738
+.assert (* - BankStart) = $5739, error, "bank 1 extended script $D738 end"
+    .incbin "bank1_d739_d73c.bin"
+; Candidate successor of a longer-run command; control flow remains provisional.
+; Labels preserve independent branch and resume entries.
+ExtendedScriptD73C:
+    BogusSetDispatchCounter $87 ; CONTROL_EXTENDED_SCRIPT_D73C
+ExtendedScriptD73E:
+    BogusSetSlot05F0Pair $7F, $7F
+ExtendedScriptD741:
+    BogusCopyLinkedMotionFields
+.assert (* - BankStart) = $5742, error, "bank 1 extended script $D73C end"
+    .incbin "bank1_d742_d77b.bin"
 ; Candidate script entries from the reviewed slot-record context trace.
 ContextScriptD77B:
     BogusSetDispatchCounter $06 ; CONTROL_CONTEXT_D77B
@@ -16281,7 +16529,11 @@ LongScriptD7A5:
 LongScriptD7A8:
     BogusBranchIfSlot0620Bit10 LongScriptD8C3
 .assert (* - BankStart) = $57AB, error, "bank 1 long-run script $D78B end"
-    .incbin "bank1_d7ab_d7ad.bin"
+; Candidate successor of a longer-run command; control flow remains provisional.
+; Labels preserve independent branch and resume entries.
+ExtendedScriptD7AB:
+    BogusLoadRecordAndClearSavedState $12 ; CONTROL_EXTENDED_SCRIPT_D7AB
+.assert (* - BankStart) = $57AD, error, "bank 1 extended script $D7AB end"
 ; Observed at the bank-0 command fetcher during longer exploratory runs.
 ; Names describe handler behaviour; independent entry points are retained.
 LongScriptD7AD:
@@ -16297,7 +16549,15 @@ LongScriptD7BA:
 LongScriptD7BF:
     BogusBranchIfSlotD0BitsClear LongScriptD7D1, $01
 .assert (* - BankStart) = $57C3, error, "bank 1 long-run script $D7AD end"
-    .incbin "bank1_d7c3_d7d1.bin"
+; Candidate successor of a longer-run command; control flow remains provisional.
+; Labels preserve independent branch and resume entries.
+ExtendedScriptD7C3:
+    BogusBranchIfSlotCoordinates01 LongScriptD7D1, $40, $FF ; CONTROL_EXTENDED_SCRIPT_D7C3
+ExtendedScriptD7C8:
+    BogusAdvanceAndBranchState1B LongScriptD7D1, $80
+ExtendedScriptD7CC:
+    BogusBranchIfSlotCoordinates01 ExtendedScriptD867, $FF, $30
+.assert (* - BankStart) = $57D1, error, "bank 1 extended script $D7C3 end"
 ; Observed at the bank-0 command fetcher during longer exploratory runs.
 ; Names describe handler behaviour; independent entry points are retained.
 LongScriptD7D1:
@@ -16337,7 +16597,49 @@ LongScriptD807:
 LongScriptD80A:
     BogusJumpBank1 (BankStart + $5856)
 .assert (* - BankStart) = $580D, error, "bank 1 long-run script $D7D1 end"
-    .incbin "bank1_d80d_d86d.bin"
+; Candidate successor of a longer-run command; control flow remains provisional.
+; Labels preserve independent branch and resume entries.
+ExtendedScriptD80D:
+    BogusSetDispatchCounter $85 ; CONTROL_EXTENDED_SCRIPT_D80D
+ExtendedScriptD80F:
+    BogusSetSlotFields80 $01, $00
+ExtendedScriptD812:
+    BogusBranchIfDirectionalOffsetClear LongScriptD804, $20
+ExtendedScriptD816:
+    BogusSetSlotFields80 $20, $00
+ExtendedScriptD819:
+    BogusBranchIfSlotCoordinates01 ExtendedScriptD828, $10, $08
+ExtendedScriptD81E:
+    BogusBranchIfSlot0620Bit10Clear (BankStart + $5970)
+ExtendedScriptD821:
+    BogusBranchIfSlotCoordinates01 ExtendedScriptD816, $40, $10
+ExtendedScriptD826:
+    BogusLoadRecordAndClearSavedState $48
+ExtendedScriptD828:
+    BogusLoadRecordAndClearSavedState $51
+ExtendedScriptD82A:
+    BogusBranchIfSlotCoordinates01 ExtendedScriptD832, $FF, $10
+ExtendedScriptD82F:
+    BogusJumpBank1 LongScriptD78B
+ExtendedScriptD832:
+    BogusJumpBank1 LongScriptD90E
+.assert (* - BankStart) = $5835, error, "bank 1 extended script $D80D end"
+    .incbin "bank1_d835_d856.bin"
+; Candidate successor of a longer-run command; control flow remains provisional.
+; Labels preserve independent branch and resume entries.
+ExtendedScriptD856:
+    BogusBranchIfSlotD0BitsClear LongScriptD86D, $01 ; CONTROL_EXTENDED_SCRIPT_D856
+ExtendedScriptD85A:
+    BogusBranchIfSlotCoordinates01 LongScriptD86D, $40, $FF
+ExtendedScriptD85F:
+    BogusBranchIfSlotCoordinates01 ExtendedScriptD867, $FF, $30
+ExtendedScriptD864:
+    BogusJumpBank1 LongScriptD86D
+ExtendedScriptD867:
+    BogusAdvanceAndBranchState1B LongScriptD86D, $40
+ExtendedScriptD86B:
+    BogusLoadRecordAndClearSavedState $36
+.assert (* - BankStart) = $586D, error, "bank 1 extended script $D856 end"
 ; Observed at the bank-0 command fetcher during longer exploratory runs.
 ; Names describe handler behaviour; independent entry points are retained.
 LongScriptD86D:
@@ -16347,7 +16649,17 @@ LongScriptD871:
 LongScriptD874:
     BogusJumpBank1 LongScriptD794
 .assert (* - BankStart) = $5877, error, "bank 1 long-run script $D86D end"
-    .incbin "bank1_d877_d883.bin"
+; Candidate successor of a longer-run command; control flow remains provisional.
+; Labels preserve independent branch and resume entries.
+ExtendedScriptD877:
+    BogusSetSlotFields80 $20, $00 ; CONTROL_EXTENDED_SCRIPT_D877
+ExtendedScriptD87A:
+    BogusJumpBank1 LongScriptD794
+ExtendedScriptD87D:
+    BogusSetSlotFields80 $08, $00
+ExtendedScriptD880:
+    BogusJumpBank1 LongScriptD794
+.assert (* - BankStart) = $5883, error, "bank 1 extended script $D877 end"
 ; Observed at the bank-0 command fetcher during longer exploratory runs.
 ; Names describe handler behaviour; independent entry points are retained.
 LongScriptD883:
@@ -16365,7 +16677,13 @@ LongScriptD88F:
 LongScriptD893:
     BogusBranchIfDirectionalOffsetClear LongScriptD89E, $08
 .assert (* - BankStart) = $5897, error, "bank 1 long-run script $D883 end"
-    .incbin "bank1_d897_d89e.bin"
+; Candidate successor of a longer-run command; control flow remains provisional.
+; Labels preserve independent branch and resume entries.
+ExtendedScriptD897:
+    BogusBranchIfDirectionalOffsetClear LongScriptD89E, $00 ; CONTROL_EXTENDED_SCRIPT_D897
+ExtendedScriptD89B:
+    BogusJumpBank1 ExtendedScriptD8A8
+.assert (* - BankStart) = $589E, error, "bank 1 extended script $D897 end"
 ; Observed at the bank-0 command fetcher during longer exploratory runs.
 ; Names describe handler behaviour; independent entry points are retained.
 LongScriptD89E:
@@ -16377,7 +16695,29 @@ LongScriptD8A3:
 LongScriptD8A6:
     BogusLoadRecordAndClearSavedState $24
 .assert (* - BankStart) = $58A8, error, "bank 1 long-run script $D89E end"
-    .incbin "bank1_d8a8_d8c3.bin"
+; Candidate successor of a longer-run command; control flow remains provisional.
+; Labels preserve independent branch and resume entries.
+ExtendedScriptD8A8:
+    BogusLoadSlotRecord $48, $02 ; CONTROL_EXTENDED_SCRIPT_D8A8
+ExtendedScriptD8AB:
+    BogusJumpBank1 LongScriptD794
+ExtendedScriptD8AE:
+    BogusLoadSlotRecord $48, $02
+ExtendedScriptD8B1:
+    BogusSetDirectionalSlotFields40 $F0, $FF
+ExtendedScriptD8B4:
+    BogusWait $02
+ExtendedScriptD8B6:
+    BogusSetDirectionalSlotFields40 $F0, $FF
+ExtendedScriptD8B9:
+    BogusWait $02
+ExtendedScriptD8BB:
+    BogusSetDirectionalSlotFields40 $F0, $FF
+ExtendedScriptD8BE:
+    BogusWait $02
+ExtendedScriptD8C0:
+    BogusJumpBank1 LongScriptD78B
+.assert (* - BankStart) = $58C3, error, "bank 1 extended script $D8A8 end"
 ; Observed at the bank-0 command fetcher during longer exploratory runs.
 ; Names describe handler behaviour; independent entry points are retained.
 LongScriptD8C3:
@@ -16385,7 +16725,15 @@ LongScriptD8C3:
 LongScriptD8C5:
     BogusBranchIfSlotD0BitsClear LongScriptD8D7, $01
 .assert (* - BankStart) = $58C9, error, "bank 1 long-run script $D8C3 end"
-    .incbin "bank1_d8c9_d8d7.bin"
+; Candidate successor of a longer-run command; control flow remains provisional.
+; Labels preserve independent branch and resume entries.
+ExtendedScriptD8C9:
+    BogusBranchIfSlotCoordinates01 LongScriptD8D7, $40, $FF ; CONTROL_EXTENDED_SCRIPT_D8C9
+ExtendedScriptD8CE:
+    BogusAdvanceAndBranchState1B LongScriptD8D7, $80
+ExtendedScriptD8D2:
+    BogusBranchIfSlotCoordinates01 ExtendedScriptD867, $FF, $30
+.assert (* - BankStart) = $58D7, error, "bank 1 extended script $D8C9 end"
 ; Observed at the bank-0 command fetcher during longer exploratory runs.
 ; Names describe handler behaviour; independent entry points are retained.
 LongScriptD8D7:
@@ -16433,7 +16781,20 @@ LongScriptD915:
 LongScriptD917:
     BogusBranchIfSlotD0BitsClear (BankStart + $591D), $60
 .assert (* - BankStart) = $591B, error, "bank 1 long-run script $D8D7 end"
-    .incbin "bank1_d91b_d92d.bin"
+; Candidate successor of a longer-run command; control flow remains provisional.
+; Labels preserve independent branch and resume entries.
+ExtendedScriptD91B:
+    BogusSetSlot0370 $01 ; CONTROL_EXTENDED_SCRIPT_D91B
+ExtendedScriptD91D:
+    BogusBranchIfSlot0370AtMost ExtendedScriptD928, $01
+ExtendedScriptD921:
+    BogusBranchIfSlotCoordinates01 ExtendedScriptD91D, $28, $0F
+ExtendedScriptD926:
+    BogusLoadRecordAndClearSavedState $48
+ExtendedScriptD928:
+    BogusLoadRecordAndClearSavedState $2D
+.assert (* - BankStart) = $592A, error, "bank 1 extended script $D91B end"
+    .incbin "bank1_d92a_d92d.bin"
 ; Observed at the bank-0 command fetcher during longer exploratory runs.
 ; Names describe handler behaviour; independent entry points are retained.
 LongScriptD92D:
@@ -16447,7 +16808,14 @@ LongScriptD934:
 LongScriptD937:
     BogusLoadRecordAndClearSavedState $48
 .assert (* - BankStart) = $5939, error, "bank 1 long-run script $D92D end"
-    .incbin "bank1_d939_d970.bin"
+; Candidate successor of a longer-run command; control flow remains provisional.
+; Labels preserve independent branch and resume entries.
+ExtendedScriptD939:
+    BogusClearSlotD0Bits $20 ; CONTROL_EXTENDED_SCRIPT_D939
+ExtendedScriptD93B:
+    BogusLoadRecordAndClearSavedState $48
+.assert (* - BankStart) = $593D, error, "bank 1 extended script $D939 end"
+    .incbin "bank1_d93d_d970.bin"
 ; Candidate script entries from the reviewed slot-record context trace.
 ContextScriptD970:
     BogusSetDispatchCounter $03 ; CONTROL_CONTEXT_D970
@@ -16486,7 +16854,15 @@ LongScriptD9A4:
 LongScriptD9A7:
     BogusBranchIfSlotD0BitsClear LongScriptD9B4, $04
 .assert (* - BankStart) = $59AB, error, "bank 1 long-run script $D98E end"
-    .incbin "bank1_d9ab_d9b4.bin"
+; Candidate successor of a longer-run command; control flow remains provisional.
+; Labels preserve independent branch and resume entries.
+ExtendedScriptD9AB:
+    BogusSetSlotFields80 $FF, $A0 ; CONTROL_EXTENDED_SCRIPT_D9AB
+ExtendedScriptD9AE:
+    BogusSetSlotFields80 $FF, $A0
+ExtendedScriptD9B1:
+    BogusSetSlotFields80 $FF, $A0
+.assert (* - BankStart) = $59B4, error, "bank 1 extended script $D9AB end"
 ; Observed at the bank-0 command fetcher during longer exploratory runs.
 ; Names describe handler behaviour; independent entry points are retained.
 LongScriptD9B4:
@@ -16526,7 +16902,15 @@ LongScriptD9DF:
 LongScriptD9E1:
     BogusBranchIfSlot0620Bit10 LongScriptD9EB
 .assert (* - BankStart) = $59E4, error, "bank 1 long-run script $D9B4 end"
-    .incbin "bank1_d9e4_d9eb.bin"
+; Candidate successor of a longer-run command; control flow remains provisional.
+; Labels preserve independent branch and resume entries.
+ExtendedScriptD9E4:
+    BogusSetSlotFields80 $FF, $E0 ; CONTROL_EXTENDED_SCRIPT_D9E4
+ExtendedScriptD9E7:
+    BogusWait $04
+ExtendedScriptD9E9:
+    BogusLoadRecordAndClearSavedState $12
+.assert (* - BankStart) = $59EB, error, "bank 1 extended script $D9E4 end"
 ; Observed at the bank-0 command fetcher during longer exploratory runs.
 ; Names describe handler behaviour; independent entry points are retained.
 LongScriptD9EB:
@@ -16554,7 +16938,12 @@ LongScriptDA0F:
 LongScriptDA12:
     BogusLoadRecordAndClearSavedState $12
 .assert (* - BankStart) = $5A14, error, "bank 1 long-run script $D9EB end"
-    .incbin "bank1_da14_da1c.bin"
+; Candidate successor of a longer-run command; control flow remains provisional.
+; Labels preserve independent branch and resume entries.
+ExtendedScriptDA14:
+    BogusLoadRecordAndClearSavedState $48 ; CONTROL_EXTENDED_SCRIPT_DA14
+.assert (* - BankStart) = $5A16, error, "bank 1 extended script $DA14 end"
+    .incbin "bank1_da16_da1c.bin"
 ; Descriptor-linked slot record; resource data remains local.
 SlotRuntimeDA1C:
     SlotRuntimeRecord $B65B, (ScriptE9BC - BankStart), $22, $FF, $00, $00, $00 ; CONTROL_SLOT_RUNTIME_DA1C
@@ -17535,12 +17924,18 @@ SlotFlowE3D7:
 SlotRuntimeE3E6:
     SlotRuntimeRecord $B7EB, (ScriptE48E - BankStart), $23, $FF, $00, $00, $00 ; CONTROL_SLOT_RUNTIME_E3E6
 .assert (* - BankStart) = $63EF, error, "bank 1 slot record E3E6 end"
-    .incbin "bank1_e3ef_e3f8.bin"
+; Observed in zero mode; fields gated by $FFFF may be skipped.
+InteractionRecordE3EF:
+    SlotRuntimeRecord $FFFF, (RuntimeScriptE764 - BankStart), $00, $FF, $00, $00, $00 ; CONTROL_INTERACTION_RECORD_E3EF
+.assert (* - BankStart) = $63F8, error, "bank 1 interaction record $E3EF end"
 ; Candidate descriptor $E3E6, command $E4B0, mode $00.
 SlotFlowE3F8:
     SlotRuntimeRecord $C133, $68F2, $00, $FF, $00, $00, $00 ; CONTROL_SLOT_FLOW_E3F8
 .assert (* - BankStart) = $6401, error, "bank 1 slot record flow E3F8 end"
-    .incbin "bank1_e401_e40a.bin"
+; Observed in zero mode; fields gated by $FFFF may be skipped.
+InteractionRecordE401:
+    SlotRuntimeRecord $B7C3, (LongScriptE527 - BankStart), $13, $FF, $00, $00, $00 ; CONTROL_INTERACTION_RECORD_E401
+.assert (* - BankStart) = $640A, error, "bank 1 interaction record $E401 end"
 ; Candidate descriptor $E3E6, command $E56C, mode $00.
 SlotFlowE40A:
     SlotRuntimeRecord $C141, $6592, $00, $FF, $00, $00, $00 ; CONTROL_SLOT_FLOW_E40A
@@ -17682,7 +18077,11 @@ LongScriptE53A:
 LongScriptE53C:
     BogusBranchIfSlot0700AtMost LongScriptE543, $E4
 .assert (* - BankStart) = $6540, error, "bank 1 long-run script $E527 end"
-    .incbin "bank1_e540_e543.bin"
+; Candidate successor of a longer-run command; control flow remains provisional.
+; Labels preserve independent branch and resume entries.
+ExtendedScriptE540:
+    BogusJumpBank1 LongScriptE551 ; CONTROL_EXTENDED_SCRIPT_E540
+.assert (* - BankStart) = $6543, error, "bank 1 extended script $E540 end"
 ; Observed at the bank-0 command fetcher during longer exploratory runs.
 ; Names describe handler behaviour; independent entry points are retained.
 LongScriptE543:
@@ -17710,7 +18109,15 @@ ContextScriptE562:
     BogusRestartVoice4 $277A
     BogusLoadRecordAndClearSavedState $24
 .assert (* - BankStart) = $656E, error, "bank 1 contextual script E562 end"
-    .incbin "bank1_e56e_e576.bin"
+; Candidate successor of a longer-run command; control flow remains provisional.
+; Labels preserve independent branch and resume entries.
+ExtendedScriptE56E:
+    BogusSetDispatchCounter $83 ; CONTROL_EXTENDED_SCRIPT_E56E
+ExtendedScriptE570:
+    BogusSetSlotFields80 $20, $C0
+ExtendedScriptE573:
+    BogusJumpBank1 LongScriptE57B
+.assert (* - BankStart) = $6576, error, "bank 1 extended script $E56E end"
 ; Observed at the bank-0 command fetcher during longer exploratory runs.
 ; Names describe handler behaviour; independent entry points are retained.
 LongScriptE576:
@@ -17987,7 +18394,18 @@ SuccessorScriptE784:
 SuccessorScriptE787:
     BogusFollowLinkedSlotsAndYield $FF, $FF, $23, $00, $00
 .assert (* - BankStart) = $678D, error, "bank 1 candidate successor $E775 end"
-    .incbin "bank1_e78d_e7b6.bin"
+; Candidate successor of a longer-run command; control flow remains provisional.
+; Labels preserve independent branch and resume entries.
+ExtendedScriptE78D:
+    BogusSetSlot05E0Bit40 $01 ; CONTROL_EXTENDED_SCRIPT_E78D
+.assert (* - BankStart) = $678F, error, "bank 1 extended script $E78D end"
+    .incbin "bank1_e78f_e7b2.bin"
+; Candidate successor of a longer-run command; control flow remains provisional.
+; Labels preserve independent branch and resume entries.
+ExtendedScriptE7B2:
+    BogusSetSlot07F0 $14 ; CONTROL_EXTENDED_SCRIPT_E7B2
+.assert (* - BankStart) = $67B4, error, "bank 1 extended script $E7B2 end"
+    .incbin "bank1_e7b4_e7b6.bin"
 ; Candidate successors of opening-observed scripts, from reviewed handler rules.
 ; Independent labels preserve alternate entries; reachability remains unproven.
 SuccessorScriptE7B6:
@@ -17995,7 +18413,12 @@ SuccessorScriptE7B6:
 SuccessorScriptE7B8:
     BogusSetSlot0660HighBits $00
 .assert (* - BankStart) = $67BA, error, "bank 1 candidate successor $E7B6 end"
-    .incbin "bank1_e7ba_e7f0.bin"
+; Candidate successor of a longer-run command; control flow remains provisional.
+; Labels preserve independent branch and resume entries.
+ExtendedScriptE7BA:
+    BogusClearSlot0640PairBits $04, $00 ; CONTROL_EXTENDED_SCRIPT_E7BA
+.assert (* - BankStart) = $67BD, error, "bank 1 extended script $E7BA end"
+    .incbin "bank1_e7bd_e7f0.bin"
 ; Candidate successors of opening-observed scripts, from reviewed handler rules.
 ; Independent labels preserve alternate entries; reachability remains unproven.
 SuccessorScriptE7F0:
@@ -18049,7 +18472,12 @@ SuccessorScriptE82D:
 SuccessorScriptE82F:
     BogusYieldAndSlotAction $01
 .assert (* - BankStart) = $6831, error, "bank 1 candidate successor $E809 end"
-    .incbin "bank1_e831_e835.bin"
+; Candidate successor of a longer-run command; control flow remains provisional.
+; Labels preserve independent branch and resume entries.
+ExtendedScriptE831:
+    BogusRelinkToLastRelatedSlot ; CONTROL_EXTENDED_SCRIPT_E831
+.assert (* - BankStart) = $6832, error, "bank 1 extended script $E831 end"
+    .incbin "bank1_e832_e835.bin"
 ; Candidate successors of opening-observed scripts, from reviewed handler rules.
 ; Independent labels preserve alternate entries; reachability remains unproven.
 SuccessorScriptE835:
@@ -18059,7 +18487,12 @@ SuccessorScriptE837:
 SuccessorScriptE83A:
     BogusSetSlot05F0Pair $7F, $7F
 .assert (* - BankStart) = $683D, error, "bank 1 candidate successor $E835 end"
-    .incbin "bank1_e83d_e841.bin"
+; Candidate successor of a longer-run command; control flow remains provisional.
+; Labels preserve independent branch and resume entries.
+ExtendedScriptE83D:
+    BogusCopyLinkedMotionFields ; CONTROL_EXTENDED_SCRIPT_E83D
+.assert (* - BankStart) = $683E, error, "bank 1 extended script $E83D end"
+    .incbin "bank1_e83e_e841.bin"
 ; Candidate successors of opening-observed scripts, from reviewed handler rules.
 ; Independent labels preserve alternate entries; reachability remains unproven.
 SuccessorScriptE841:
@@ -18067,7 +18500,12 @@ SuccessorScriptE841:
 SuccessorScriptE843:
     BogusSetSlot07F0 $44
 .assert (* - BankStart) = $6845, error, "bank 1 candidate successor $E841 end"
-    .incbin "bank1_e845_e864.bin"
+; Candidate successor of a longer-run command; control flow remains provisional.
+; Labels preserve independent branch and resume entries.
+ExtendedScriptE845:
+    BogusSetSlot0640PairBits $04, $00 ; CONTROL_EXTENDED_SCRIPT_E845
+.assert (* - BankStart) = $6848, error, "bank 1 extended script $E845 end"
+    .incbin "bank1_e848_e864.bin"
 ; Candidate successors of opening-observed scripts, from reviewed handler rules.
 ; Independent labels preserve alternate entries; reachability remains unproven.
 SuccessorScriptE864:
@@ -18083,7 +18521,12 @@ SuccessorScriptE86F:
 SuccessorScriptE871:
     BogusRelinkSlots
 .assert (* - BankStart) = $6872, error, "bank 1 candidate successor $E864 end"
-    .incbin "bank1_e872_e8e8.bin"
+; Candidate successor of a longer-run command; control flow remains provisional.
+; Labels preserve independent branch and resume entries.
+ExtendedScriptE872:
+    BogusSetSlot05E0Bit40 $FF ; CONTROL_EXTENDED_SCRIPT_E872
+.assert (* - BankStart) = $6874, error, "bank 1 extended script $E872 end"
+    .incbin "bank1_e874_e8e8.bin"
 ; Candidate successors of opening-observed scripts, from reviewed handler rules.
 ; Independent labels preserve alternate entries; reachability remains unproven.
 SuccessorScriptE8E8:
@@ -18095,7 +18538,12 @@ SuccessorScriptE8EB:
 SuccessorScriptE8ED:
     BogusSwapSlotValueBytes
 .assert (* - BankStart) = $68EE, error, "bank 1 candidate successor $E8E8 end"
-    .incbin "bank1_e8ee_e8f2.bin"
+; Candidate successor of a longer-run command; control flow remains provisional.
+; Labels preserve independent branch and resume entries.
+ExtendedScriptE8EE:
+    BogusStoreSlotLowAtIndexedPage ; CONTROL_EXTENDED_SCRIPT_E8EE
+.assert (* - BankStart) = $68EF, error, "bank 1 extended script $E8EE end"
+    .incbin "bank1_e8ef_e8f2.bin"
 ; Candidate script entries from the reviewed slot-record context trace.
 ContextScriptE8F2:
     BogusSetDispatchCounter $04 ; CONTROL_CONTEXT_E8F2
@@ -18722,7 +19170,12 @@ RuntimeScriptEE5C:
 RuntimeScriptEE5F:
     BogusJumpBank1 (BankStart + $6FF3)
 .assert (* - BankStart) = $6E62, error, "bank 1 runtime script $EE57 end"
-    .incbin "bank1_ee62_ee68.bin"
+; Candidate successor of a longer-run command; control flow remains provisional.
+; Labels preserve independent branch and resume entries.
+ExtendedScriptEE62:
+    BogusBranchIfSlot0620Bit10 (BankStart + $6FF3) ; CONTROL_EXTENDED_SCRIPT_EE62
+.assert (* - BankStart) = $6E65, error, "bank 1 extended script $EE62 end"
+    .incbin "bank1_ee65_ee68.bin"
 ; Descriptor-linked slot record; resource data remains local.
 SlotRuntimeEE68:
     SlotRuntimeRecord $B6B7, $6E7A, $00, $00, $20, $D9, $11 ; CONTROL_SLOT_RUNTIME_EE68
@@ -18787,7 +19240,10 @@ SlotRuntimeEF48:
 SlotRuntimeEF5A:
     SlotRuntimeRecord $BB8B, (ScriptEF87 - BankStart), $00, $00, $20, $D9, $11 ; CONTROL_SLOT_RUNTIME_EF5A
 .assert (* - BankStart) = $6F63, error, "bank 1 slot record EF5A end"
-    .incbin "bank1_ef63_ef6c.bin"
+; Observed in zero mode; fields gated by $FFFF may be skipped.
+InteractionRecordEF63:
+    SlotRuntimeRecord $FFFF, (InteractionScriptF00F - BankStart), $00, $FF, $00, $00, $00 ; CONTROL_INTERACTION_RECORD_EF63
+.assert (* - BankStart) = $6F6C, error, "bank 1 interaction record $EF63 end"
 ; Descriptor-linked slot record; resource data remains local.
 SlotRuntimeEF6C:
     SlotRuntimeRecord $C533, (ScriptEF7E - BankStart), $00, $00, $20, $D9, $11 ; CONTROL_SLOT_RUNTIME_EF6C
@@ -18864,7 +19320,23 @@ ScriptF000:
     BogusLoadSlotRecord $03, $FF
     BogusJumpBank1 ScriptEFF9
 .assert (* - BankStart) = $700F, error, "bank 1 script EFF0 end"
-    .incbin "bank1_f00f_f0d1.bin"
+; Command entries observed in the varied-input emulator exploration.
+InteractionScriptF00F:
+    BogusSetDispatchCounter $07 ; CONTROL_INTERACTION_SCRIPT_F00F
+InteractionScriptF011:
+    BogusBranchIfSelectedFieldEqual (BankStart + $7058), $12
+InteractionScriptF015:
+    BogusBranchIfSlot06D0Present (BankStart + $708A)
+InteractionScriptF018:
+    BogusBranchIfSelectedFieldEqual (BankStart + $7025), $10
+InteractionScriptF01C:
+    BogusBranchIfSelectedFieldEqual (BankStart + $7128), $1F
+InteractionScriptF020:
+    BogusBranchIfSelectedFieldEqual (BankStart + $712C), $07
+InteractionScriptF024:
+    BogusRestoreSavedScriptAndSlotFlags
+.assert (* - BankStart) = $7025, error, "bank 1 interaction script $F00F end"
+    .incbin "bank1_f025_f0d1.bin"
 ; Candidate script path; object role and execution remain unverified.
 CandidateF0D1:
     BogusBranchIfRemainingVerticalOffsetAtMost (BankStart + $7157), $0028 ; CONTROL_BOGUS_F0D1
@@ -19102,7 +19574,11 @@ RuntimeScriptF432:
 RuntimeScriptF434:
     BogusJumpViaSlotIndexedTable
 .assert (* - BankStart) = $7435, error, "bank 1 runtime script $F432 end"
-    .incbin "bank1_f435_f43b.bin"
+; Three adjacent indexed targets. The handler does not bound its index.
+    BogusIndexedTargetBank1 RuntimeScriptF43B ; CONTROL_EXTENDED_JUMP_F435
+    BogusIndexedTargetBank1 RuntimeScriptF441
+    BogusIndexedTargetBank1 RuntimeScriptF447
+.assert (* - BankStart) = $743B, error, "bank 1 indexed targets $F435 end"
 ; Observed at the bank-0 command fetcher during the opening scenarios.
 ; Names describe handler behaviour; independent entry points are retained.
 RuntimeScriptF43B:

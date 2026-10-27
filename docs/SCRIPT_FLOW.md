@@ -66,3 +66,10 @@ nonconflicting portions now include 249 additional candidate commands and
 three `$95` lookup tables in source. The inputs and output of this second walk
 remain in ignored local analysis. A successor of an observed command is still
 only a static candidate until that path is exercised.
+
+The longer 8,000-frame exploration provided 1,322 distinct command entries; a
+separate walk found 2,016 nodes without internal overlapping decodes. A further
+109 commands and the terminated `$95` table at `$D629` are represented as
+source after checks against existing ownership and candidate records. The
+three entries at `$F435` were each selected by the indexed-jump handler in
+MesenCE. Their presence does not bound the handler's index.
