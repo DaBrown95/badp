@@ -720,7 +720,7 @@ ClearPalette:
     lda #$18
     sta $03FE
     jsr InitializeShadowOam
-    jsr $8C66
+    jsr ClearSlotRecords
     jsr InitializeEngineSlots
     jsr $CA5D
     jsr EnablePpuNmi
@@ -981,7 +981,406 @@ EnablePpuNmi:
     rts
 .assert (* - BankStart) = $05C0, error, "bank 0 NMI enable routine size"
 
-    .incbin "bank0_85c0_8d7d.bin"
+    .incbin "bank0_85c0_867f.bin"
+; Copy two bytes from the banked pointer in $FE/$FF onto the stack, install
+; those bytes as the new pointer, and restore the previous $03E0 count.
+ReadBankedPointer:
+    lda $03E0                     ; CONTROL_READ_BANKED_POINTER
+    pha
+    pha
+    pha
+    lda #$02
+    sta $03E0
+    jsr CopyToStack
+    tsx
+    lda $0101,x
+    sta $FE
+    lda $0102,x
+    sta $FF
+    pla
+    pla
+    pla
+    sta $03E0
+    rts
+
+; Compute a table index from the high portions of $039A/$039B and $039C,
+; retaining the low three bits of $039A in $03DF for the map query.
+ResolveMapChunk:
+    lda $039A                     ; CONTROL_RESOLVE_MAP_CHUNK
+    sta $EC
+    lda $039B
+    lsr a
+    ror $EC
+    lsr a
+    ror $EC
+    lsr a
+    ror $EC
+    lda $039C
+    lsr a
+    lsr a
+    lsr a
+    tax
+    ldy $03AA
+    jsr MultiplyUnsigned8
+    lda $EC
+    jsr AddAToXY
+    stx $EC
+    sty $ED
+    lda $EC
+    clc
+    adc $F4
+    sta $EC
+    lda $F5
+    adc $ED
+    sta $ED
+    lda $039A
+    and #$07
+    sta $03DF
+    jmp LoadMapChunkPointer
+
+; Preserve $FE/$FF while fetching a pointer through the table at $A1DE.
+; The $F3 update uses the existing $F3 value, matching the original bytes.
+LoadMapChunkPointer:
+    lda $FE                       ; CONTROL_LOAD_MAP_CHUNK_POINTER
+    pha
+    lda $FF
+    pha
+    lda $EC
+    sta $FE
+    lda $ED
+    sta $FF
+    jsr ReadBankedPointer
+    ldy #$00
+    lda $FE
+    sta $F0
+    sty $F1
+    asl $F0
+    rol $F1
+    lda #$DE
+    clc
+    adc $F0
+    sta $F0
+    lda #$A1
+    adc $F1
+    sta $F1
+    lda ($F0),y
+    pha
+    iny
+    lda ($F0),y
+    sta $F1
+    pla
+    sta $F0
+    lda #$08
+    sta $03F8
+    sta $03F9
+    lda $F0
+    clc
+    adc #$40
+    sta $F2
+    lda $F3
+    adc #$00
+    sta $F3
+    pla
+    sta $FF
+    pla
+    sta $FE
+    rts
+.assert (* - BankStart) = $072F, error, "bank 0 map chunk helper end"
+
+    .incbin "bank0_872f_8a4c.bin"
+; The slot query records candidate coordinates and validates its slot record.
+; A missing bit $08 returns zero without inspecting the map.
+QuerySlotAtPosition:
+    stx $03A6                     ; CONTROL_SLOT_QUERY_ENTRY
+    sty $03A7
+    jsr RequireSlotRecord
+    stx $03DE
+    and #$08
+    bne SlotQueryPrepare
+    lda #$00
+    rts
+
+; Resolve the record's graphics/data pointer, optionally following the pair
+; at offsets 3-4. The record's packed byte supplies the query dimensions.
+SlotQueryPrepare:
+    lda $03A6                     ; CONTROL_SLOT_QUERY_PREPARE
+    sta $03E2
+    lda $03A7
+    sta $03E5
+    lda $03E2
+    clc
+    adc $03EE
+    sta $039A
+    lda $03EF
+    adc #$00
+    sta $039B
+    lda $0402,x
+    sta $FE
+    lda $0403,x
+    sta $FF
+    lda $0400,x
+    and #$03
+    cmp #$01
+    beq SlotQueryDimensions
+    ldy #$03
+    lda ($FE),y
+    pha
+    iny
+    lda ($FE),y
+    sta $FF
+    pla
+    sta $FE
+SlotQueryDimensions:
+    ldy #$01
+    lda ($FE),y
+    lsr a
+    lsr a
+    lsr a
+    lsr a
+    sta $03E2
+    dec $03E2
+    bne SlotQueryAdjustFirst
+    inc $03E2
+    jmp SlotQuerySecondDimension
+SlotQueryAdjustFirst:
+    lda $039A
+    clc
+    adc #$04
+    sta $039A
+    lda $039B
+    adc #$00
+    sta $039B
+
+; Transform the second dimension and coordinates into eight-unit values.
+; Keep the carry chain through the repeated shifts and rotates intact.
+SlotQuerySecondDimension:
+    lda ($FE),y                   ; CONTROL_SLOT_QUERY_COORDINATES
+    and #$0F
+    sta $03E3
+    ldy #$00
+    lda ($FE),y
+    bpl SlotQueryScaleSecond
+    asl $03E3
+SlotQueryScaleSecond:
+    lda $03E3
+    jsr ShiftALeft3
+    dec $03E5
+    clc
+    adc $03E5
+    clc
+    adc $03F0
+    sta $03E5
+    lda #$00
+    adc $03F1
+    lsr a
+    ror $03E5
+    lsr a
+    ror $03E5
+    lsr a
+    ror $03E5
+    lda $03E5
+    sta $039C
+    lsr $039B
+    ror $039A
+    ror $03E1
+    lsr $039B
+    ror $039A
+    ror $03E1
+    lsr $039B
+    ror $039A
+    ror $03E1
+    cmp $0396
+    bcc SlotQuerySpan
+    lda #$00
+    rts
+
+; Clip the query span against the 16-bit $039E/$039F boundary. A wrapped or
+; empty span selects the preceding position and one unit instead.
+SlotQueryPrevious:
+    lda $039E                     ; CONTROL_SLOT_QUERY_SPAN
+    sec
+    sbc #$01
+    sta $039A
+    lda $039F
+    sbc #$00
+    sta $039B
+    lda #$01
+    sta $03E1
+    jmp SlotQueryReserveStack
+SlotQuerySpan:
+    lda $03E1
+    and #$E0
+    beq SlotQuerySpanSize
+    inc $03E2
+SlotQuerySpanSize:
+    lda $03E2
+    sta $03E1
+    lda $039E
+    sec
+    sbc $039A
+    tay
+    lda $039F
+    sbc $039B
+    bcc SlotQueryPrevious
+    bne SlotQueryReserveStack
+    cpy $03E1
+    beq SlotQueryClipSpan
+    bcs SlotQueryReserveStack
+SlotQueryClipSpan:
+    sty $03E1
+    cpy #$00
+    beq SlotQueryPrevious
+
+; Reserve 17 stack bytes, obtain map data in pieces through CopyToStack, and
+; compare it with the slot record's $0409 threshold. Restore SP on both paths.
+SlotQueryReserveStack:
+    tsx                           ; CONTROL_SLOT_QUERY_STACK
+    txa
+    sec
+    sbc #$11
+    tax
+    txs
+SlotQueryChunk:
+    jsr ResolveMapChunk
+    lda $03F8
+    sec
+    sbc $03DF
+    sta $03E0
+    lda $03E1
+    sec
+    sbc $03E0
+    bcs SlotQueryChunkSize
+    lda #$00
+SlotQueryChunkSize:
+    sta $03E0
+    tax
+    lda $03E1
+    sec
+    sbc $03E0
+    sta $03E0
+    stx $03E1
+    clc
+    adc $039A
+    sta $039A
+    bcc SlotQueryChunkAddress
+    inc $039B
+SlotQueryChunkAddress:
+    lda $039C                     ; CONTROL_SLOT_QUERY_ADDRESS
+    and #$07
+    asl a
+    asl a
+    asl a
+    tax
+    ldy #$00
+    lda $03DF
+    jsr AddAToXY
+    txa
+    clc
+    adc $F0
+    sta $FE
+    tya
+    adc $F1
+    sta $FF
+    lda $03E0
+    sta $03DF
+    jsr CopyToStack
+    ldy $03DF
+    ldx $03DE
+    lda $0409,x
+    sta $03DF
+    tsx
+    inx
+SlotQueryCompare:
+    lda $0100,x                   ; CONTROL_SLOT_QUERY_COMPARE
+    inx
+    cmp $03DF
+    bcs SlotQueryHit
+    dey
+    bne SlotQueryCompare
+    lda $03E1
+    bne SlotQueryChunk
+    lda #$00
+    jmp SlotQueryReleaseStack
+SlotQueryHit:
+    sta $03A5
+    lda #$04
+SlotQueryReleaseStack:
+    sta $03E0
+    tsx
+    txa
+    clc
+    adc #$11
+    tax
+    txs
+    lda $03E0
+    rts
+.assert (* - BankStart) = $0C03, error, "bank 0 slot query end"
+
+; This related map read computes a single position, copies one byte to the
+; reserved stack location, and returns it in A. Its caller provides the stack.
+ReadMapByteAtPosition:
+    lda $03A6                     ; CONTROL_READ_MAP_BYTE
+    clc
+    adc $03EE
+    sta $039A
+    lda $03EF
+    adc #$00
+    lsr a
+    ror $039A
+    lsr a
+    ror $039A
+    lsr a
+    ror $039A
+    sta $039B
+    lda $03A7
+    clc
+    adc $03F0
+    sta $039C
+    lda #$00
+    adc $03F1
+    lsr a
+    ror $039C
+    lsr a
+    ror $039C
+    lsr a
+    ror $039C
+    jsr ResolveMapChunk
+    lda $039C
+    and #$07
+    asl a
+    asl a
+    asl a
+    tax
+    ldy #$00
+    lda $03DF
+    jsr AddAToXY
+    txa
+    clc
+    adc $F0
+    sta $FE
+    tya
+    adc $F1
+    sta $FF
+    lda #$01
+    sta $03E0
+    pha
+    jsr CopyToStack
+    pla
+    rts
+
+; Clear all sixteen eleven-byte $0400 records.
+ClearSlotRecords:
+    lda #$00                      ; CONTROL_CLEAR_SLOT_RECORDS
+    tax
+ClearSlotRecordsLoop:
+    sta $0400,x
+    inx
+    cpx #$B0
+    bne ClearSlotRecordsLoop
+    rts
+.assert (* - BankStart) = $0C72, error, "bank 0 map query helpers end"
+
+    .incbin "bank0_8c72_8d7d.bin"
 ; Convert an index into an eleven-byte $0400 record, then store $04DC at its
 ; offset $0A. Out-of-range indices return without the store.
 StoreSlotRecordField0A:
@@ -1491,7 +1890,7 @@ ScriptOp09Store:
 .assert (* - BankStart) = $5836, error, "bank 0 initial script handlers size"
 
 ; Opcode $0A selects or updates per-slot flags and dispatches to $8D14. Several
-; paths depend on the unconverted $8A4C routine; retain the original tests.
+; paths use the shared position query; retain the original tests.
 ScriptOp0A:
     jsr ScriptOperand61OrSlot
     cmp #$FF                     ; CONTROL_SCRIPT_OP0A
@@ -1517,7 +1916,7 @@ ScriptUpdateSlotMode:
     lda $0580,x
     tax
     lda $10
-    jsr $8A4C
+    jsr QuerySlotAtPosition
     ldx $10
     cmp #$00
     beq ScriptClearSlotFlag08
@@ -3832,7 +4231,7 @@ ScriptOpA5:
     clc
     adc $80,x
     sta $03A7
-    jsr $8C03
+    jsr ReadMapByteAtPosition
     ldx $10
     jmp ScriptStoreSlotLowAndClearHigh
 ScriptOpA6:
@@ -5301,7 +5700,7 @@ SlotRecordPlace:
     lda $0580,x
     tax
     lda $10
-    jsr $8A4C
+    jsr QuerySlotAtPosition
     beq SlotRecordApplyFlags
     ldx $10
     ldy $0590,x
@@ -5313,7 +5712,7 @@ SlotRecordPlace:
 SlotRecordLeftTest:
     tax
     lda $10
-    jsr $8A4C
+    jsr QuerySlotAtPosition
     beq SlotRecordUseAdjustedPosition
     ldx $10
     ldy $0590,x
@@ -5325,7 +5724,7 @@ SlotRecordLeftTest:
 SlotRecordRightTest:
     tax
     lda $10
-    jsr $8A4C
+    jsr QuerySlotAtPosition
     bne SlotRecordApplyFlags
 SlotRecordUseAdjustedPosition:
     ldx $10
@@ -5599,7 +5998,7 @@ ApplySlotOffsetReturn:
 TestSlotOffset:
     jsr ClampSlotOffsets          ; CONTROL_TEST_SLOT_OFFSET
     lda $10
-    jsr $8A4C
+    jsr QuerySlotAtPosition
     ldx $10
     cmp #$00
     rts

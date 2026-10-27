@@ -33,9 +33,9 @@ independent source trees or treat one version's evidence as verifying the rest.
 `make audit-all` checks reference integrity for all targets without requiring
 simultaneous reconstruction. Keep progress and completion evidence per target.
 
-The v1.5 build now assembles and links to the exact reference, with 9,687 bytes
+The v1.5 build now assembles and links to the exact reference, with 10,413 bytes
 of source code and 840 bytes of structured data across the physical PRG banks.
-It still includes 55,009 local PRG bytes and 65,536 local CHR bytes. Two hundred ninety-one
+It still includes 54,283 local PRG bytes and 65,536 local CHR bytes. Three hundred three
 independent source-change controls verify every listed reconstructed region.
 Passing input audits or whole-ROM equality alone is not reconstruction
 completion. The developer identifies BOGUS as the
@@ -143,10 +143,11 @@ Coordinate selection and the related direction-flag update are now source.
 
 The post-dispatch path now includes slot eligibility, signed-field adjustment
 and limits, linked-slot position calculation, direction-bit updates and change
-tracking. The unlinked movement path now includes split-step collision probes
-and retries; its collision query and several downstream calls remain local
-input. Slot-record validation also preserves its early-return stack behavior.
-Names and intended gameplay effects still need runtime verification.
+tracking. The unlinked movement path includes split-step collision probes
+and retries. Its slot-position query, stack-buffer comparison and banked map
+chunk lookup are now source; several downstream calls and map data remain
+local input. Slot-record validation also preserves its early-return stack
+behavior. Names and intended gameplay effects still need runtime verification.
 
 The [source map](../config/source-us-v1.5.json) records bank, CPU address, size,
 classification and control for every owned region. `make build` retains the
