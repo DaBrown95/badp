@@ -1822,6 +1822,7 @@ InitializeSlotDescriptorNext:
     sta $0520,x
     lda $0620,x
     bmi InitializeSlotStoreIndex
+InitializeSlotCheckLoad:
     lda #$00
     sta $04DC
     lda $10
@@ -1870,7 +1871,418 @@ FindMatchingSlotReturn:
     rts
 .assert (* - BankStart) = $5002, error, "bank 0 slot initialization end"
 
-    .incbin "bank0_d002_d4da.bin"
+; Find a free slot or one eligible for reuse. If all slots are active, the
+; last $05E0 bit-$10 candidate is preferred; otherwise the second scan tests
+; active slots with bit $80 in $0620 and a distance of at least three.
+FindAvailableSlot:
+    ldy #$FF                      ; CONTROL_FIND_AVAILABLE_SLOT
+    ldx #$00
+FindAvailableSlotLoop:
+    lda $04E0,x
+    cmp #$FF
+    beq FindAvailableSlotSuccess
+    lda $05E0,x
+    and #$10
+    beq FindAvailableSlotNext
+    txa
+    tay
+FindAvailableSlotNext:
+    inx
+    cpx #$10
+    bne FindAvailableSlotLoop
+    tya
+    bmi FindAvailableSlotSecondScan
+FindAvailableSlotReuse:
+    pha
+    tax
+    jsr ReleaseSlotByIndex
+    pla
+    tax
+FindAvailableSlotSuccess:
+    lda #$00
+    rts
+FindAvailableSlotSecondScan:
+    ldx #$00
+FindAvailableSlotDistanceLoop:
+    lda $0620,x
+    bpl FindAvailableSlotDistanceNext
+    jsr SlotDistanceFromReference
+    cmp #$03
+    bcs FindAvailableSlotUseDistance
+FindAvailableSlotDistanceNext:
+    inx
+    cpx #$10
+    bne FindAvailableSlotDistanceLoop
+    lda #$FF
+    rts
+FindAvailableSlotUseDistance:
+    txa
+    jmp FindAvailableSlotReuse
+
+; Calculate a bounded difference between $07D0/$07E0 and $0E/$0F. The
+; subtraction and special handling of $FF in the high byte are retained.
+SlotDistanceFromReference:
+    lda $07D0,x                   ; CONTROL_SLOT_DISTANCE_REFERENCE
+    sec
+    sbc $0E
+    tay
+    lda $07E0,x
+    sbc $0F
+    bcs SlotDistanceNonnegative
+    cmp #$FF
+    bne SlotDistanceLarge
+    tya
+    jsr NegateA
+    rts
+SlotDistanceNonnegative:
+    bne SlotDistanceLarge
+    tya
+    sec
+    sbc #$20
+    bcs SlotDistanceReturn
+    lda #$00
+SlotDistanceReturn:
+    rts
+SlotDistanceLarge:
+    lda #$FF
+    rts
+
+; Consult the still-unconverted $D19A selector and, if its checks pass, copy
+; values $2B/$2C into slot fields and set pending command $1B.
+UpdateSlotFromPosition:
+    lda $07D0,x                   ; CONTROL_SLOT_POSITION_EVENT
+    sta $5E
+    lda $07E0,x
+    sta $5F
+    jsr $D19A
+    beq SlotPositionEventReturn
+    cmp #$F0
+    bcs SlotPositionEventReturn
+    ldx $10
+    jsr CalculateSlotCoordinate
+    lda $11
+    cmp $29
+    bcc SlotPositionEventReturn
+    sbc #$01
+    cmp $2A
+    bcs SlotPositionEventReturn
+    lda #$04
+    and $0790,x
+    bne SlotPositionEventReturn
+    lda $0630,x
+    bmi SlotPositionEventApply
+    and #$01
+    tay
+    lda $038D,y
+    and $2E
+    eor $2D
+    bne SlotPositionEventReturn
+SlotPositionEventApply:
+    lda $2B
+    sta $0770,x
+    lda $2C
+    sta $0780,x
+    lda #$1B
+    sta $04F0,x
+SlotPositionEventReturn:
+    rts
+
+; Add $B0,x to $03F0/$03F1 and rotate the result right three times. The
+; carry entering the first rotate is preserved from the original addition.
+CalculateSlotCoordinate:
+    lda $B0,x                     ; CONTROL_CALCULATE_SLOT_COORDINATE
+    clc
+    adc $03F0
+    sta $11
+    lda $03F1
+    adc #$00
+    jsr RotateSlotCoordinate
+    jsr RotateSlotCoordinate
+RotateSlotCoordinate:
+    ror a                         ; CONTROL_ROTATE_SLOT_COORDINATE
+    ror $11
+    rts
+.assert (* - BankStart) = $50CA, error, "bank 0 slot allocation helpers end"
+
+    .incbin "bank0_d0ca_d2f8.bin"
+; Mark a slot free, then pass its index to the still-unconverted $8C72 path.
+ReleaseCurrentSlot:
+    ldx $10                       ; CONTROL_RELEASE_CURRENT_SLOT
+ReleaseSlotByIndex:
+    lda #$FF                      ; CONTROL_RELEASE_SLOT_BY_INDEX
+    sta $04E0,x
+    txa
+    jmp $8C72
+
+; Release selected active slots while retaining the original $03C9 mask test.
+ReleaseSelectedSlots:
+    ldy #$00                      ; CONTROL_RELEASE_SELECTED_SLOTS
+ReleaseSelectedSlotsLoop:
+    jsr ScriptCheckSlotPresent
+    beq ReleaseSelectedSlotsNext
+    lda $0630,y
+    bpl ReleaseSelectedSlotsNext
+    lda $05E0,y
+    and $03C9
+    and #$40
+    bne ReleaseSelectedSlotsNext
+    sty $10
+    jsr ReleaseCurrentSlot
+    ldy $10
+ReleaseSelectedSlotsNext:
+    iny
+    cpy #$10
+    bne ReleaseSelectedSlotsLoop
+    rts
+
+; Search active slots for $05D0 bit $04 and require $0620 to be nonnegative.
+FindSlotWithFlag04:
+    ldy #$00                      ; CONTROL_FIND_SLOT_FLAG04
+FindSlotWithFlagLoop:
+    jsr ScriptCheckSlotPresent
+    beq FindSlotWithFlagNext
+    lda $05D0,y
+    and #$04
+    bne FindSlotWithFlagCheck
+FindSlotWithFlagNext:
+    iny
+    cpy #$10
+    bne FindSlotWithFlagLoop
+    rts
+FindSlotWithFlagCheck:
+    lda $0620,y
+    bmi FindSlotWithFlagNext
+    lda #$FF
+    rts
+.assert (* - BankStart) = $5342, error, "bank 0 slot release helpers end"
+
+; Check whether the current slot should update this frame. Some flag and frame
+; combinations update only its linked position and return without script work.
+UpdateCurrentSlot:
+    ldx $10                       ; CONTROL_UPDATE_CURRENT_SLOT
+    lda $04E0,x
+    cmp #$FF
+    bne SlotUpdateCheckFrame
+SlotUpdateEarlyReturn:
+    rts
+SlotUpdateCheckFrame:
+    jsr $F987
+    bne SlotUpdateEarlyReturn
+    lda $0630,x
+    and #$40
+    beq SlotUpdateCheckAlternate
+    txa
+    eor $20
+    and #$01
+    beq SlotUpdateCheckAlternate
+SlotUpdateLinkedOnly:
+    lda $06D0,x
+    bmi SlotUpdateEarlyReturn
+    jsr UpdateLinkedSlotPosition
+    jmp SlotUpdateEarlyReturn
+SlotUpdateCheckAlternate:
+    lda $14
+    beq SlotUpdateCheckPosition
+    lda $05E0,x
+    and #$20
+    beq SlotUpdateCheckPosition
+    lda $0630,x
+    and #$40
+    beq SlotUpdateAlternateBit0
+    txa
+    eor $20
+    and #$02
+    bne SlotUpdateLinkedOnly
+    jmp SlotUpdateCheckPosition
+SlotUpdateAlternateBit0:
+    txa
+    eor $20
+    and #$01
+    bne SlotUpdateLinkedOnly
+
+; For slots with $0620 bit $80 set, call the coordinate helper and possibly
+; run the slot-load path when the returned horizontal coordinate matches.
+SlotUpdateCheckPosition:
+    lda $0620,x                  ; CONTROL_SLOT_UPDATE_POSITION
+    bpl SlotUpdateCheckContact
+    lda $07D0,x
+    sta $11
+    lda $07E0,x
+    sta $12
+    lda $05A0,x
+    sta $51
+    lda $80,x
+    tay
+    lda $0590,x
+    sta $50
+    jsr $D26A
+    txa
+    ldx $10
+    bcs SlotUpdatePositionReturn
+    sta $0580,x
+    tya
+    sta $0590,x
+    lda $70,x
+    cmp #$FE
+    beq SlotUpdateReload
+    lda $0580,x
+    jsr ShiftARight3
+    cmp $70,x
+    bne SlotUpdatePositionReturn
+SlotUpdateReload:
+    lda $04E0,x
+    sta $2A
+    jsr InitializeSlotCheckLoad
+    ldx $10
+    lda $0620,x
+    and #$7F
+    sta $0620,x
+SlotUpdatePositionReturn:
+    rts
+
+; Check the active contact threshold before building the contact rectangle.
+SlotUpdateCheckContact:
+    lda $0690,x                  ; CONTROL_SLOT_UPDATE_CONTACT
+    cmp #$FF
+    beq SlotUpdateStartScripts
+    cmp #$FE
+    beq SlotUpdateContactBounds
+    lda $0620,x
+    and #$20
+    beq SlotUpdateStartScripts
+    lda $10
+    jsr GetSlotRecordField06
+    txa
+    ldx $10
+    cmp $0690,x
+    bcs SlotUpdateToggleContact
+SlotUpdateStartScripts:
+    jmp PrepareScriptLoop
+SlotUpdateToggleContact:
+    lda $0620,x
+    eor #$20
+    sta $0620,x
+
+; Construct a rectangle from packed $06A0/$06C0 fields, with the original
+; saturation rules, then scan up to sixteen other slot rectangles.
+SlotUpdateContactBounds:
+    lda $06A0,x                  ; CONTROL_SLOT_CONTACT_BOUNDS
+    and #$0F
+    asl a
+    sta $11
+    ldy $0660,x
+    bpl SlotContactPositiveFirst
+    lda $0700,x
+    sec
+    sbc $11
+    bcs SlotContactFirstReady
+    lda #$00
+    jmp SlotContactFirstReady
+SlotContactPositiveFirst:
+    clc
+    adc $0700,x
+    bcc SlotContactFirstReady
+    lda #$FF
+SlotContactFirstReady:
+    sta $03
+    lda $06A0,x
+    and #$F0
+    lsr a
+    lsr a
+    clc
+    adc $0590,x
+    sta $04
+    lda $06C0,x
+    and #$0F
+    asl a
+    asl a
+    sta $11
+    lda $03
+    clc
+    adc $11
+    bcc SlotContactFirstMaximum
+    lda #$FF
+SlotContactFirstMaximum:
+    sta $05
+    lda $03
+    sec
+    sbc $11
+    bcs SlotContactFirstMinimum
+    lda #$00
+SlotContactFirstMinimum:
+    sta $03
+    lda $06C0,x
+    and #$F0
+    lsr a
+    lsr a
+    sta $11
+    lda $04
+    clc
+    adc $11
+    sta $06
+    lda $04
+    sec
+    sbc $11
+    bcs SlotContactSecondMinimum
+    lda #$00
+SlotContactSecondMinimum:
+    sta $04
+    ldy #$00
+SlotContactScan:
+    jsr ScriptCheckOtherSlot      ; CONTROL_SLOT_CONTACT_SCAN
+    beq SlotContactNext
+    lda $05D0,x
+    and #$40
+    beq SlotContactCheckSecond
+    lda $0640,y
+    and $0670,x
+    bne SlotContactCheckSecond
+    lda $0650,y
+    and $0680,x
+    beq SlotContactNext
+SlotContactCheckSecond:
+    lda $0590,y
+    cmp $04
+    bcs SlotContactSecondLower
+    lda $B0,y
+    cmp $04
+    bcs SlotContactCheckFirst
+    jmp SlotContactNext
+SlotContactSecondLower:
+    cmp $06
+    bcc SlotContactCheckFirst
+    bne SlotContactNext
+SlotContactCheckFirst:
+    lda $0580,y
+    cmp $03
+    bcs SlotContactFirstLower
+    clc
+    adc $0570,y
+    bcc SlotContactFirstEnd
+    lda #$FF
+SlotContactFirstEnd:
+    cmp $03
+    bcs SlotContactMark
+    jmp SlotContactNext
+SlotContactFirstLower:
+    cmp $05
+    bcc SlotContactMark
+    bne SlotContactNext
+SlotContactMark:
+    jsr ScriptMarkOtherSlot
+    lda $0620,x
+    ora #$08
+    sta $0620,x
+    lda $04E0,y
+    sta $07C0,x
+SlotContactNext:
+    iny
+    cpy #$10
+    bne SlotContactScan
+    jmp PrepareScriptLoop
+.assert (* - BankStart) = $54DA, error, "bank 0 slot update dispatch end"
+
+
 ; $D4DA transfers fields from the current slot to another slot and sets a
 ; pending value unless bit 0 of its $0790 field is set. Several script
 ; commands call this helper with a temporary value in $06B0,x.
@@ -2503,7 +2915,7 @@ ScriptOp1E:
     cmp #$02
     beq ScriptOp1EReturn
 ScriptOp1ECall:
-    jsr $D2F8
+    jsr ReleaseCurrentSlot
 ScriptOp1EReturn:
     rts
 ScriptSlotBitMask:
@@ -2521,10 +2933,10 @@ ScriptBitMasks:
     .endrepeat
 
 ; Opcode $1F prepares another slot, saves the current pointer, runs $CF02 with
-; that slot selected, and restores the current slot's pointer. $D002 is still
-; unconverted, so do not assume how the destination slot is selected.
+; that slot selected, and restores the current slot's pointer. The selection
+; and reuse rules are in FindAvailableSlot.
 ScriptOp1F:
-    jsr $D002                     ; CONTROL_SCRIPT_OP1F
+    jsr FindAvailableSlot                     ; CONTROL_SCRIPT_OP1F
     bne ScriptOp1EReturn
     txa
     tay
@@ -3441,11 +3853,11 @@ ScriptOp60:
     jmp ScriptSetPointerFromOperands
 .assert (* - BankStart) = $607A, error, "bank 0 script handlers through opcode $60"
 
-; Opcode $61 prepares another slot similarly to $1F. The unresolved $D002
-; routine decides whether a destination is available; the two callers share
+; Opcode $61 prepares another slot similarly to $1F. FindAvailableSlot
+; decides whether a destination is available; the two callers share
 ; the save, initialization and restore sequence beginning at $DAB7.
 ScriptOp61:
-    jsr $D002                    ; CONTROL_SCRIPT_OP61
+    jsr FindAvailableSlot                    ; CONTROL_SCRIPT_OP61
     bne ScriptOp5EReturn
     txa
     tay
@@ -3841,7 +4253,7 @@ ScriptOp79Loop:
     lda $10
     cmp $03
     beq ScriptOp79Next
-    jsr $D2F8
+    jsr ReleaseCurrentSlot
 ScriptOp79Next:
     dec $10
     bpl ScriptOp79Loop
@@ -4791,7 +5203,7 @@ ScriptOpB3:
     jsr ScriptLoadSlotPointer
     jmp ScriptOp50
 ScriptOpB4ToB5:
-    jsr $D0B3                     ; CONTROL_SCRIPT_OPB4
+    jsr CalculateSlotCoordinate                     ; CONTROL_SCRIPT_OPB4
     lda $11
     jmp ScriptStoreSlotLowAndClearHigh
 
@@ -5477,7 +5889,7 @@ TrackSlotPositionStore:
     sta $07E0,x
     lda $04
     sta $05A0,x
-    jsr $D067
+    jsr UpdateSlotFromPosition
 TrackSlotPositionReturn:
     rts
 
@@ -5572,9 +5984,9 @@ SyncSlotDirectionReturn:
 
 
 ; Derive a 16-bit value from $0700 and $03EE/$03EF, then shift it right by
-; three. $D0B3 is still unconverted and its return in $11 is saved to $04.
+; three. CalculateSlotCoordinate returns a value in $11, saved to $04.
 ComputeSlotScaledPosition:
-    jsr $D0B3                     ; CONTROL_SLOT_SCALED_POSITION
+    jsr CalculateSlotCoordinate                     ; CONTROL_SLOT_SCALED_POSITION
     lda $11
     sta $04
     lda $0700,x
