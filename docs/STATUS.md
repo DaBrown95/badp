@@ -33,9 +33,9 @@ independent source trees or treat one version's evidence as verifying the rest.
 `make audit-all` checks reference integrity for all targets without requiring
 simultaneous reconstruction. Keep progress and completion evidence per target.
 
-The v1.5 build now assembles and links to the exact reference, with 121 bytes of
-source code and 44 bytes of structured data across the physical PRG banks.
-It still includes 65,371 local PRG bytes and 65,536 local CHR bytes. Seven
+The v1.5 build now assembles and links to the exact reference, with 1,952 bytes
+of source code and 44 bytes of structured data across the physical PRG banks.
+It still includes 63,540 local PRG bytes and 65,536 local CHR bytes. Twenty-two
 independent source-change controls verify every listed reconstructed region.
 Passing input audits or whole-ROM equality alone is not reconstruction
 completion. The developer identifies BOGUS as the
@@ -66,10 +66,22 @@ the address avoids conflicting ROM bus values. This is static evidence, not a
 runtime verification of power-on bank state or board behaviour.
 
 Bank 0 begins by disabling interrupts, clearing PPUCTRL, calling the `$9ED0`
-PPUSTATUS polling routine twice, and setting PPUMASK. The tails in both banks
-contain a bank-select routine/table, NMI handler, reset routine and interrupt
-vectors. The NMI handlers use different RAM source locations in the two banks;
-their called routines and complete timing have not yet been traced.
+PPUSTATUS polling routine twice, and setting PPUMASK. The following reset-state
+dispatcher checks a byte against its stored complement and selects timed mapper
+write sequences. Several writes target their own immediate operand bytes, so
+the write value matches the value driven by ROM during a bus conflict.
+
+The reconstructed bank-0 NMI work handles OAM DMA, PPU update queue flushing,
+controller serial reads and dispatch, workspace swapping and PPU scroll/control
+updates. Handler targets and several called engine routines remain untraced;
+these are static findings, not runtime or cycle-timing verification.
+
+The shared `$FE6C-$FFB2` routines are identical in both PRG banks. They include
+bank switching around copies to the stack and RAM, strided and bitwise buffer
+copies, and a record fetcher. The fetcher selects a length from a table at
+`$FDA7` when X is zero, then copies that many bytes from `($53),Y` to `$60,Y`.
+The table's opcode meanings and any relationship to BOGUS remain unconfirmed.
+The NMI handlers use different RAM source locations in the two banks.
 
 The [source map](../config/source-us-v1.5.json) records bank, CPU address, size,
 classification and control for every owned region. `make build` retains the

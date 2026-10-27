@@ -25,6 +25,21 @@ PROOF_INPUTS = ("tools/build_rom.py", "tools/identify_rom.py", "tools/project.py
 # macro expands into two banks. Controls are built from isolated source copies.
 MUTATIONS = {
     "boot": ("CONTROL_BOOT", "sei", "cli"),
+    "reset_dispatch": ("CONTROL_STATE_DISPATCH", "cmp #$FF", "cmp #$FE"),
+    "nmi_frame": ("CONTROL_FRAME_WORK", "ldx #$08", "ldx #$07"),
+    "nmi_swap": ("CONTROL_SWAP_WORKSPACE", "$EC + slot", "$ED + slot"),
+    "nmi_ppu": ("CONTROL_APPLY_PPU", "and #$E7", "and #$E6"),
+    "slot_init": ("CONTROL_SLOT_INIT", "cpx #$28", "cpx #$27"),
+    "enable_nmi": ("CONTROL_ENABLE_NMI", "ora #$80", "ora #$40"),
+    "ppu_flush": ("CONTROL_PPU_FLUSH", "ldx #$00", "ldx #$01"),
+    "oam_init": ("CONTROL_OAM_INIT", "ldy #$00", "ldy #$01"),
+    "restore_bank": ("CONTROL_RESTORE_BANK", "lda $03C0", "ldx $03C0"),
+    "record_fetch": ("CONTROL_RECORD_FETCH", "lda a:$54", "ldx a:$54"),
+    "stack_copy": ("CONTROL_STACK_COPY", "tsx", "txa"),
+    "stride_copy": ("CONTROL_STRIDE_COPY", "adc $03D1", "sbc $03D1"),
+    "pair_copy": ("CONTROL_PAIR_COPY", "ldy #$02", "ldy #$03"),
+    "linear_copy": ("CONTROL_LINEAR_COPY", "adc #$01", "adc #$02"),
+    "bit_copy": ("CONTROL_BIT_COPY", "ror a", "asl a"),
     "wait": ("CONTROL_WAIT", "lda PPUSTATUS", "ldx PPUSTATUS"),
     "switch": ("CONTROL_SWITCH", "sta BankValues,y", "sta BankValues,x"),
     "table": ("CONTROL_TABLE", "$0C |", "$08 |"),
@@ -92,7 +107,7 @@ def extract_gaps(prg: bytes, chr_data: bytes, regions: list[dict], inputs: Path)
 def mutate_source(source: str, control: str) -> str:
     marker, old, new = MUTATIONS[control]
     lines = source.splitlines(keepends=True)
-    indexes = [i for i, line in enumerate(lines) if marker in line]
+    indexes = [i for i, line in enumerate(lines) if line.partition(";")[2].strip() == marker]
     if len(indexes) != 1 or lines[indexes[0]].count(old) != 1:
         raise ValueError(f"control {control}: expected one marked, mutable source line")
     lines[indexes[0]] = lines[indexes[0]].replace(old, new, 1)

@@ -61,6 +61,8 @@ class SourceOwnershipTests(unittest.TestCase):
     def test_mutation_requires_exactly_one_unambiguous_marker(self):
         line = "    sei ; CONTROL_BOOT\n"
         self.assertIn("cli", mutate_source(line, "boot"))
+        unrelated = "    sei ; CONTROL_BOOT_EXTRA\n"
+        self.assertEqual(mutate_source(line + unrelated, "boot"), "    cli ; CONTROL_BOOT\n" + unrelated)
         for invalid in ("sei\n", line * 2, "    cli ; CONTROL_BOOT\n"):
             with self.subTest(source=invalid), self.assertRaisesRegex(ValueError, "one marked"):
                 mutate_source(invalid, "boot")
