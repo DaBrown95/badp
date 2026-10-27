@@ -33,9 +33,9 @@ independent source trees or treat one version's evidence as verifying the rest.
 `make audit-all` checks reference integrity for all targets without requiring
 simultaneous reconstruction. Keep progress and completion evidence per target.
 
-The v1.5 build now assembles and links to the exact reference, with 10,413 bytes
-of source code and 840 bytes of structured data across the physical PRG banks.
-It still includes 54,283 local PRG bytes and 65,536 local CHR bytes. Three hundred three
+The v1.5 build now assembles and links to the exact reference, with 10,669 bytes
+of source code and 1,568 bytes of structured data across the physical PRG banks.
+It still includes 53,299 local PRG bytes and 65,536 local CHR bytes. Three hundred eleven
 independent source-change controls verify every listed reconstructed region.
 Passing input audits or whole-ROM equality alone is not reconstruction
 completion. The developer identifies BOGUS as the
@@ -148,6 +148,12 @@ and retries. Its slot-position query, stack-buffer comparison and banked map
 chunk lookup are now source; several downstream calls and map data remain
 local input. Slot-record validation also preserves its early-return stack
 behavior. Names and intended gameplay effects still need runtime verification.
+
+The initializer at `$CF02` reads six-byte descriptors at `$9F06`: a two-byte
+encoded pointer and four bytes copied to `$05D0`, `$0610`, `$05E0` and `$0520`.
+There are 114 entries before `$A1B2`, where a separate 22-entry address table
+is read at `$CB9A-$CB9D`; `$A1DE` begins the next lookup table. The runtime
+index bounds and higher-level meanings of these fields remain unverified.
 
 The [source map](../config/source-us-v1.5.json) records bank, CPU address, size,
 classification and control for every owned region. `make build` retains the

@@ -1,6 +1,12 @@
 .setcpu "6502"
 .include "nes.inc"
 
+; Record layout is established by $F0D8 and the slot initializer at $CF84.
+.macro SlotDescriptor record_pointer, field_05d0, field_0610, field_05e0, field_0520
+    .word record_pointer
+    .byte field_05d0, field_0610, field_05e0, field_0520
+.endmacro
+
 ; A command byte indexes three parallel tables: record length, and the low and
 ; high bytes of an RTS dispatch address. Handler addresses below are actual
 ; entry points; the stored pointer is entry minus one because RTS increments it.
@@ -1566,7 +1572,156 @@ AdvanceSpriteOffset:
     rts
 .assert (* - BankStart) = $1EFA, error, "bank 0 shadow OAM initializer size"
 
-    .incbin "bank0_9efa_cc82.bin"
+    .incbin "bank0_9efa_9f06.bin"
+; Observed six-byte slot descriptors. The pointer is an encoded ROM address;
+; the other bytes initialize $05D0/$0610/$05E0/$0520. The boundary at
+; $A1B2 is the start of a separately referenced table; runtime index bounds
+; are not established.
+SlotInitialDescriptors:
+    SlotDescriptor $716D, $00, $00, $00, $00 ; CONTROL_SLOT_DESCRIPTOR
+    SlotDescriptor $2CA3, $B2, $E0, $00, $0C ; index $01
+    SlotDescriptor $5584, $74, $E0, $80, $01 ; index $02
+    SlotDescriptor $3990, $00, $00, $40, $00 ; index $03
+    SlotDescriptor $395F, $20, $00, $30, $00 ; index $04
+    SlotDescriptor $5470, $00, $00, $30, $00 ; index $05
+    SlotDescriptor $7419, $00, $00, $00, $00 ; index $06
+    SlotDescriptor $38EE, $60, $E0, $00, $01 ; index $07
+    SlotDescriptor $6E68, $20, $E0, $E0, $00 ; index $08
+    SlotDescriptor $3DF6, $20, $00, $00, $00 ; index $09
+    SlotDescriptor $53B7, $20, $DA, $A0, $00 ; index $0A
+    SlotDescriptor $37B5, $20, $00, $20, $00 ; index $0B
+    SlotDescriptor $37E5, $20, $E0, $20, $01 ; index $0C
+    SlotDescriptor $33E5, $20, $00, $4F, $00 ; index $0D
+    SlotDescriptor $5A1C, $30, $E0, $80, $01 ; index $0E
+    SlotDescriptor $6E82, $30, $E0, $A0, $00 ; index $0F
+    SlotDescriptor $6F00, $30, $E0, $A0, $00 ; index $10
+    SlotDescriptor $5AD6, $30, $E0, $80, $01 ; index $11
+    SlotDescriptor $5B12, $30, $E0, $80, $01 ; index $12
+    SlotDescriptor $521C, $30, $E0, $00, $14 ; index $13
+    SlotDescriptor $36D3, $60, $00, $80, $00 ; index $14
+    SlotDescriptor $5A46, $30, $E0, $80, $01 ; index $15
+    SlotDescriptor $3C6C, $00, $00, $00, $00 ; index $16
+    SlotDescriptor $3CAE, $00, $00, $00, $00 ; index $17
+    SlotDescriptor $5A79, $30, $E0, $80, $01 ; index $18
+    SlotDescriptor $5A79, $30, $E0, $80, $01 ; index $19
+    SlotDescriptor $5B4E, $30, $E0, $A0, $01 ; index $1A
+    SlotDescriptor $5B4E, $30, $E0, $A0, $01 ; index $1B
+    SlotDescriptor $6398, $B0, $E0, $80, $01 ; index $1C
+    SlotDescriptor $63E6, $B0, $E0, $80, $01 ; index $1D
+    SlotDescriptor $7C58, $20, $E9, $00, $00 ; index $1E
+    SlotDescriptor $7CFC, $20, $E9, $00, $00 ; index $1F
+    SlotDescriptor $54C1, $30, $E9, $80, $00 ; index $20
+    SlotDescriptor $6F5A, $20, $E0, $30, $00 ; index $21
+    SlotDescriptor $6F36, $30, $E0, $A0, $00 ; index $22
+    SlotDescriptor $5AAC, $30, $E0, $80, $01 ; index $23
+    SlotDescriptor $5AAC, $30, $E0, $80, $01 ; index $24
+    SlotDescriptor $3D4F, $00, $00, $00, $00 ; index $25
+    SlotDescriptor $3DB6, $00, $00, $0C, $00 ; index $26
+    SlotDescriptor $3DCD, $00, $00, $00, $00 ; index $27
+    SlotDescriptor $56D7, $00, $00, $00, $00 ; index $28
+    SlotDescriptor $5B66, $60, $E0, $80, $01 ; index $29
+    SlotDescriptor $5B66, $60, $E0, $80, $01 ; index $2A
+    SlotDescriptor $5B66, $60, $E0, $80, $01 ; index $2B
+    SlotDescriptor $63E6, $B0, $E0, $80, $01 ; index $2C
+    SlotDescriptor $6398, $B0, $E0, $80, $01 ; index $2D
+    SlotDescriptor $6BD3, $60, $E0, $80, $01 ; index $2E
+    SlotDescriptor $6BD3, $60, $E0, $80, $01 ; index $2F
+    SlotDescriptor $5DBC, $60, $E0, $80, $01 ; index $30
+    SlotDescriptor $5DBC, $60, $E0, $80, $01 ; index $31
+    SlotDescriptor $5D62, $60, $E0, $80, $01 ; index $32
+    SlotDescriptor $5D8F, $60, $E0, $80, $01 ; index $33
+    SlotDescriptor $5DE9, $60, $E0, $80, $01 ; index $34
+    SlotDescriptor $5DE9, $60, $E0, $80, $01 ; index $35
+    SlotDescriptor $6434, $B0, $E0, $80, $01 ; index $36
+    SlotDescriptor $6434, $B0, $E0, $80, $01 ; index $37
+    SlotDescriptor $6008, $30, $E0, $80, $01 ; index $38
+    SlotDescriptor $6008, $30, $E0, $80, $01 ; index $39
+    SlotDescriptor $6F48, $20, $E0, $30, $00 ; index $3A
+    SlotDescriptor $393F, $30, $00, $30, $01 ; index $3B
+    SlotDescriptor $6B74, $30, $E0, $80, $01 ; index $3C
+    SlotDescriptor $6B74, $30, $E0, $80, $01 ; index $3D
+    SlotDescriptor $62FC, $B0, $E0, $80, $01 ; index $3E
+    SlotDescriptor $62FC, $B0, $E0, $80, $01 ; index $3F
+    SlotDescriptor $FFFF, $30, $E0, $00, $01 ; index $40
+    SlotDescriptor $FFFF, $30, $E0, $00, $01 ; index $41
+    SlotDescriptor $60F4, $30, $E0, $80, $01 ; index $42
+    SlotDescriptor $60F4, $30, $E0, $80, $01 ; index $43
+    SlotDescriptor $60B9, $30, $E0, $80, $01 ; index $44
+    SlotDescriptor $60B9, $30, $E0, $80, $01 ; index $45
+    SlotDescriptor $FFFF, $30, $E0, $00, $01 ; index $46
+    SlotDescriptor $FFFF, $30, $E0, $00, $01 ; index $47
+    SlotDescriptor $607E, $30, $E0, $80, $01 ; index $48
+    SlotDescriptor $607E, $30, $E0, $80, $01 ; index $49
+    SlotDescriptor $6043, $30, $E0, $80, $01 ; index $4A
+    SlotDescriptor $6043, $30, $E0, $80, $01 ; index $4B
+    SlotDescriptor $FFFF, $30, $E0, $80, $01 ; index $4C
+    SlotDescriptor $6EE8, $30, $E0, $A0, $00 ; index $4D
+    SlotDescriptor $6D21, $30, $E0, $A0, $01 ; index $4E
+    SlotDescriptor $6D21, $30, $E0, $A0, $01 ; index $4F
+    SlotDescriptor $5C1A, $30, $E0, $80, $01 ; index $50
+    SlotDescriptor $6B37, $30, $E0, $A0, $01 ; index $51
+    SlotDescriptor $5EF4, $30, $E0, $80, $01 ; index $52
+    SlotDescriptor $388A, $70, $E0, $30, $01 ; index $53
+    SlotDescriptor $3B52, $20, $00, $00, $00 ; index $54
+    SlotDescriptor $5584, $70, $E0, $00, $01 ; index $55
+    SlotDescriptor $6D56, $30, $E0, $80, $01 ; index $56
+    SlotDescriptor $6D56, $30, $E0, $80, $01 ; index $57
+    SlotDescriptor $6AED, $30, $E0, $80, $01 ; index $58
+    SlotDescriptor $6AED, $30, $E0, $80, $01 ; index $59
+    SlotDescriptor $6F24, $30, $E0, $A0, $00 ; index $5A
+    SlotDescriptor $6F5A, $20, $E0, $A0, $00 ; index $5B
+    SlotDescriptor $6E82, $30, $E0, $A0, $00 ; index $5C
+    SlotDescriptor $552B, $70, $E0, $80, $07 ; index $5D
+    SlotDescriptor $6E94, $30, $E0, $A0, $00 ; index $5E
+    SlotDescriptor $6EA6, $30, $E0, $A0, $00 ; index $5F
+    SlotDescriptor $6ED0, $30, $E0, $A0, $00 ; index $60
+    SlotDescriptor $6F12, $30, $E0, $A0, $00 ; index $61
+    SlotDescriptor $6EB8, $30, $E0, $A0, $00 ; index $62
+    SlotDescriptor $3A11, $20, $E0, $80, $01 ; index $63
+    SlotDescriptor $3D09, $00, $00, $00, $00 ; index $64
+    SlotDescriptor $3B60, $60, $00, $80, $00 ; index $65
+    SlotDescriptor $543E, $60, $00, $00, $01 ; index $66
+    SlotDescriptor $3C19, $02, $00, $20, $01 ; index $67
+    SlotDescriptor $5A46, $30, $E0, $80, $01 ; index $68
+    SlotDescriptor $5A1C, $30, $E0, $80, $01 ; index $69
+    SlotDescriptor $6E45, $30, $E0, $A0, $01 ; index $6A
+    SlotDescriptor $3A4A, $20, $00, $A0, $00 ; index $6B
+    SlotDescriptor $3A63, $70, $DA, $A0, $01 ; index $6C
+    SlotDescriptor $6F6C, $30, $E0, $20, $01 ; index $6D
+    SlotDescriptor $634A, $B0, $E0, $80, $01 ; index $6E
+    SlotDescriptor $6B9A, $20, $E0, $A0, $01 ; index $6F
+    SlotDescriptor $3685, $30, $E0, $20, $00 ; index $70
+    SlotDescriptor $6B13, $30, $E0, $80, $01 ; index $71
+.assert (* - BankStart) = $21B2, error, "bank 0 slot descriptor boundary"
+
+; 22 encoded addresses read as adjacent low/high bytes at $CB9A-$CB9D.
+; The next table starts at $A1DE; runtime index bounds are not established.
+SlotRelatedAddressTable:
+    .word $A302 ; CONTROL_SLOT_RELATED_ADDRESS
+    .word $744D ; index $01
+    .word $744D ; index $02
+    .word $744D ; index $03
+    .word $744D ; index $04
+    .word $7965 ; index $05
+    .word $7A5C ; index $06
+    .word $7B53 ; index $07
+    .word $7A5C ; index $08
+    .word $7965 ; index $09
+    .word $7B53 ; index $0A
+    .word $7625 ; index $0B
+    .word $76CF ; index $0C
+    .word $7735 ; index $0D
+    .word $7791 ; index $0E
+    .word $7873 ; index $0F
+    .word $A32A ; index $10
+    .word $A302 ; index $11
+    .word $A318 ; index $12
+    .word $A318 ; index $13
+    .word $A33C ; index $14
+    .word $A34E ; index $15
+.assert (* - BankStart) = $21DE, error, "bank 0 related address table end"
+
+    .incbin "bank0_a1de_cc82.bin"
 ; Entry points share shift tails: CC82 shifts left four, CC83 shifts left
 ; three, CC87 shifts right four, and CC88 shifts right three.
 ShiftALeft4:
@@ -1585,7 +1740,137 @@ ShiftARight3:
     rts
 .assert (* - BankStart) = $4C8C, error, "bank 0 shift helper end"
 
-    .incbin "bank0_cc8c_d4da.bin"
+    .incbin "bank0_cc8c_cf02.bin"
+; Initialize the current slot unless its $07B0 bit is already set in the
+; stack-page bitset. Defaults and repeated stores are preserved exactly.
+InitializeCurrentSlot:
+    ldx $10                       ; CONTROL_INITIALIZE_SLOT_ENTRY
+    lda $07B0,x
+    cmp #$FF
+    beq InitializeSlotDefaults
+    jsr ScriptSlotBitMask
+    ldx $10
+    and $0100,y
+    beq InitializeSlotDefaults
+    jmp InitializeSlotUnavailable
+InitializeSlotDefaults:
+    lda #$00                      ; CONTROL_INITIALIZE_SLOT_DEFAULTS
+    sta $04F0,x
+    sta $0750,x
+    sta $0500,x
+    sta $0510,x
+    sta $0530,x
+    sta $0700,x
+    sta $0560,x
+    sta $0640,x
+    sta $0650,x
+    sta $0660,x
+    sta $0640,x
+    sta $0650,x
+    sta $0670,x
+    sta $0680,x
+    sta $0360,x
+    sta $0370,x
+    sta $D0,x
+    lda #$FF
+    sta $0790,x
+    sta $0540,x
+    sta $06F0,x
+    sta $06D0,x
+    sta $0760,x
+    lda #$80
+    sta $0630,x
+    lda #$44
+    sta $07F0,x
+    lda #$10
+    sta $C0,x
+    lda #$24
+    sta $05F0,x
+    lda #$60
+    sta $0600,x
+    lda #$20
+    sta $0710,x
+    lda #$00
+    sta $0720,x
+    lda #$00
+    sta $0730,x
+
+; The six-byte descriptor contains a pointer followed by four values copied
+; into the per-slot $05D0, $0610, $05E0 and $0520 fields.
+InitializeSlotFromDescriptor:
+    lda $2A                       ; CONTROL_INITIALIZE_SLOT_DESCRIPTOR
+    jsr SlotRecordAddressFromIndex
+    ldy #$02
+    lda ($FE),y
+    sta $05D0,x
+    iny
+    lda #$04
+    ora $0620,x
+    sta $0620,x
+    lda ($FE),y
+    sta $0610,x
+    bne InitializeSlotDescriptorNext
+    lda $0620,x
+    eor #$04
+    sta $0620,x
+InitializeSlotDescriptorNext:
+    iny
+    lda ($FE),y
+    sta $05E0,x
+    iny
+    lda ($FE),y
+    sta $0520,x
+    lda $0620,x
+    bmi InitializeSlotStoreIndex
+    lda #$00
+    sta $04DC
+    lda $10
+    jsr StoreSlotRecordField0A
+    ldx $10
+    jsr ScriptPushZeroAndCall
+    beq InitializeSlotStoreIndex
+InitializeSlotUnavailable:
+    ldx $10                       ; CONTROL_INITIALIZE_SLOT_UNAVAILABLE
+    lda #$FF
+    sta $04E0,x
+    rts
+InitializeSlotStoreIndex:
+    lda $2A
+    sta $04E0,x
+    rts
+
+; The first helper discards the caller's return address for a matched slot
+; whose $0630 bit $20 is clear. The search compares $90/$A0 against $5E/$5F.
+RequireMatchingSlotFlag:
+    jsr FindMatchingSlot          ; CONTROL_REQUIRE_MATCHING_SLOT_FLAG
+    bne RequireMatchingSlotReturn
+    lda $0630,y
+    and #$20
+    bne RequireMatchingSlotReturn
+    pla
+    pla
+RequireMatchingSlotReturn:
+    rts
+FindMatchingSlot:
+    ldy #$0F                      ; CONTROL_FIND_MATCHING_SLOT
+FindMatchingSlotLoop:
+    jsr ScriptCheckSlotPresent
+    beq FindMatchingSlotNext
+    lda $90,y
+    cmp $5E
+    bne FindMatchingSlotNext
+    lda $A0,y
+    cmp $5F
+    beq FindMatchingSlotReturn
+FindMatchingSlotNext:
+    dey
+    bpl FindMatchingSlotLoop
+    lda #$FF
+FindMatchingSlotReturn:
+    rts
+.assert (* - BankStart) = $5002, error, "bank 0 slot initialization end"
+
+    .incbin "bank0_d002_d4da.bin"
 ; $D4DA transfers fields from the current slot to another slot and sets a
 ; pending value unless bit 0 of its $0790 field is set. Several script
 ; commands call this helper with a temporary value in $06B0,x.
@@ -2268,7 +2553,7 @@ ScriptInitializeOtherSlot:
     sty $10
     lda #$FF
     sta $07B0,y
-    jsr $CF02
+    jsr InitializeCurrentSlot
     pla
     sta $10
     tax
