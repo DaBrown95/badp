@@ -3,8 +3,10 @@
 `make script-flow` starts from the candidate slot-record script pointers found
 by `make script-entries`. It reads and audits the pinned v1.5 ROM, checks the
 identical command length tables, and writes only ignored local analysis. The
-encoded-pointer to physical-bank mapping is an inference from the existing
-fetch and bank-selection code; mapper behavior has not been verified at runtime.
+encoded-pointer to physical-bank mapping follows the existing fetch and bank
+selection code. Separate MesenCE opening runs observed the mapping after the
+switch for all sampled command fetches; that is emulator evidence for those
+paths, not verification of a physical cartridge.
 
 The walker has explicit rules only for reviewed handlers in
 [`src/us-v1.5/rom.s`](../src/us-v1.5/rom.s). Simple setters and examined helpers
@@ -48,3 +50,12 @@ or unreviewed handlers and no physical-byte overlaps. Those are static candidate
 not a complete script inventory, gameplay evidence or source ownership. The
 ignored JSON retains operand bytes for local examination; none are added to the
 tracked source or progress count by this tool.
+
+Separate execution probes sampled the command pointer and alternate-bank value
+at the bank-0 fetcher, then inspected Mesen's mapped address after switching.
+They confirmed 10,404 Noah, 10,822 Moses and 11,102 David fetches in PRG bank 1
+with no mapping disagreement. Of the previously unowned observed commands,
+194 in 18 contiguous, nonconflicting groups are now represented with named
+command forms. Other paths and any conflicting interpretations remain local.
+The captured command identities, mapping checks and probe scripts are kept in
+ignored `analysis/us-v1.5/`; these opening sequences do not cover the full game.

@@ -169,6 +169,27 @@ compareRangeReturn:
 
 ; BOGUS command forms below name only the behaviour established by handlers.
 ; Script targets in PRG bank 1 are encoded as offsets below $8000.
+.macro BogusApplyAndClearSelected3E
+    .byte $11
+.endmacro
+.macro BogusRestoreSavedScriptAndSlotFlags
+    .byte $17
+.endmacro
+.macro BogusSubtractSlotPriorityFromField0520
+    .byte $21
+.endmacro
+.macro BogusBranchIfSlot0520AtMost target, value
+    .byte $22
+    .word target - $8000
+    .byte value
+.endmacro
+.macro BogusBranchIfSlot06D0Present target
+    .byte $6B
+    .word target - $8000
+.endmacro
+.macro BogusMarkRelatedSlotAtDepth field, depth
+    .byte $BC, field, depth
+.endmacro
 .macro BogusSetSlotC0 value
     .byte $09, value
 .endmacro
@@ -1102,6 +1123,28 @@ BitCopyAdvanceDone:
     dec $03D0
     bne BitCopyLoop
     jmp RestoreCopyBank
+.endmacro
+
+.macro BankScriptNativeCall
+; $61/$62 hold the encoded RTS address of a native script helper. For an
+; address below $8000 select the bank in $03C2/$03C3 before making the call.
+; The helper returns to this routine, which restores the default bank.
+CallScriptNativeBanked:
+    lda a:$62                    ; CONTROL_SCRIPT_NATIVE_CALL
+    bmi CallScriptNativeReady
+    lda $03C2
+    ldy $03C3
+    jsr SwitchBank
+CallScriptNativeReady:
+    jsr CallScriptNativeOperand
+    jmp RestoreDefaultBank
+CallScriptNativeOperand:
+    lda a:$62
+    ora #$80
+    pha
+    lda a:$61
+    pha
+    rts
 .endmacro
 
 ; Both 32 KiB PRG banks contain this tail at the same CPU addresses.
@@ -13615,25 +13658,7 @@ RequireControllerModeReturn:
 .assert (* - BankStart) = $7D3F, error, "bank 0 controller mode gate end"
 
     .incbin "bank0_fd3f_fd88.bin"
-; $61/$62 hold the encoded RTS address of a native script helper. For an
-; address below $8000 select the bank in $03C2/$03C3 before making the call.
-; The helper returns to this routine, which restores the default bank.
-CallScriptNativeBanked:
-    lda a:$62                    ; CONTROL_SCRIPT_NATIVE_CALL
-    bmi CallScriptNativeReady
-    lda $03C2
-    ldy $03C3
-    jsr SwitchBank
-CallScriptNativeReady:
-    jsr CallScriptNativeOperand
-    jmp RestoreDefaultBank
-CallScriptNativeOperand:
-    lda a:$62
-    ora #$80
-    pha
-    lda a:$61
-    pha
-    rts
+    BankScriptNativeCall
 .assert (* - BankStart) = $7DA7, error, "bank 0 native script call end"
 ScriptRecordLengths:
     ScriptTable 0
@@ -13647,12 +13672,52 @@ ScriptRecordLengths:
 .segment "PRG1"
 .scope Bank1
 BankStart:
-    .incbin "bank1_8000_aca3.bin"
+    .incbin "bank1_8000_aca0.bin"
+; Record accesses observed at the bank-0 loader in the opening scenarios.
+; Fields behind a $FFFF resource pointer may not be read by the loader.
+RuntimeRecordACA0:
+    SlotCompactRecord $B725, $00 ; CONTROL_RUNTIME_RECORD_ACA0
+.assert (* - BankStart) = $2CA3, error, "bank 1 runtime records $ACA0 end"
 ; Descriptor-linked slot record; resource data remains local.
 SlotRuntimeACA3:
     SlotRuntimeRecord $BF27, (CandidateAD45 - BankStart), $40, $FF, $00, $00, $00 ; CONTROL_SLOT_RUNTIME_ACA3
 .assert (* - BankStart) = $2CAC, error, "bank 1 slot record ACA3 end"
-    .incbin "bank1_acac_ad45.bin"
+; Record accesses observed at the bank-0 loader in the opening scenarios.
+; Fields behind a $FFFF resource pointer may not be read by the loader.
+RuntimeRecordACAC:
+    SlotRuntimeRecord $FFFF, (RuntimeScriptADDD - BankStart), $00, $FF, $00, $00, $00 ; CONTROL_RUNTIME_RECORD_ACAC
+RuntimeRecordACB5:
+    SlotRuntimeRecord $FFFF, (RuntimeScriptAF84 - BankStart), $00, $FF, $00, $00, $00
+RuntimeRecordACBE:
+    SlotRuntimeRecord $FFFF, (RuntimeScriptB191 - BankStart), $13, $FF, $00, $00, $00
+RuntimeRecordACC7:
+    SlotRuntimeRecord $FFFF, (RuntimeScriptAFBA - BankStart), $00, $FF, $00, $00, $00
+.assert (* - BankStart) = $2CD0, error, "bank 1 runtime records $ACAC end"
+    .incbin "bank1_acd0_ace2.bin"
+; Record accesses observed at the bank-0 loader in the opening scenarios.
+; Fields behind a $FFFF resource pointer may not be read by the loader.
+RuntimeRecordACE2:
+    SlotRuntimeRecord $FFFF, (RuntimeScriptB12E - BankStart), $40, $FF, $00, $00, $00 ; CONTROL_RUNTIME_RECORD_ACE2
+RuntimeRecordACEB:
+    SlotRuntimeRecord $FFFF, (RuntimeScriptAD93 - BankStart), $23, $FF, $00, $00, $00
+RuntimeRecordACF4:
+    SlotRuntimeRecord $BF27, $FFFF, $40, $FF, $00, $00, $00
+.assert (* - BankStart) = $2CFD, error, "bank 1 runtime records $ACE2 end"
+    .incbin "bank1_acfd_ad06.bin"
+; Record accesses observed at the bank-0 loader in the opening scenarios.
+; Fields behind a $FFFF resource pointer may not be read by the loader.
+RuntimeRecordAD06:
+    SlotRuntimeRecord $B745, $FFFF, $23, $FF, $00, $00, $00 ; CONTROL_RUNTIME_RECORD_AD06
+.assert (* - BankStart) = $2D0F, error, "bank 1 runtime records $AD06 end"
+    .incbin "bank1_ad0f_ad2a.bin"
+; Record accesses observed at the bank-0 loader in the opening scenarios.
+; Fields behind a $FFFF resource pointer may not be read by the loader.
+RuntimeRecordAD2A:
+    SlotRuntimeRecord $BFF1, $FFFF, $23, $FF, $00, $00, $00 ; CONTROL_RUNTIME_RECORD_AD2A
+RuntimeRecordAD33:
+    SlotRuntimeRecord $BFF1, $FFFF, $23, $FF, $00, $00, $00
+.assert (* - BankStart) = $2D3C, error, "bank 1 runtime records $AD2A end"
+    .incbin "bank1_ad3c_ad45.bin"
 ; Candidate script path; object role and execution remain unverified.
 CandidateAD45:
     BogusSetDispatchCounter $8F ; CONTROL_BOGUS_AD45
@@ -13686,7 +13751,308 @@ CandidateAD83:
     BogusInitializeOtherSlotAbsolute $03, $FF, $C0, $00
     BogusLoadRecordAndClearSavedState $48
 .assert (* - BankStart) = $2D93, error, "bank 1 candidate script AD45 end"
-    .incbin "bank1_ad93_b3c7.bin"
+; Observed at the bank-0 command fetcher during the opening scenarios.
+; Names describe handler behaviour; independent entry points are retained.
+RuntimeScriptAD93:
+    BogusSetDispatchCounter $0A ; CONTROL_RUNTIME_SCRIPT_AD93
+RuntimeScriptAD95:
+    BogusSetSlot0670Pair $04, $40
+RuntimeScriptAD98:
+    BogusSetSlot07F0 $14
+RuntimeScriptAD9A:
+    BogusClearSlot0790Bits $BF
+RuntimeScriptAD9C:
+    BogusSetSlotC0 $FF
+RuntimeScriptAD9E:
+    BogusSetSlot0640Pair $01, $00
+RuntimeScriptADA1:
+    BogusFindLinkedSlot
+RuntimeScriptADA2:
+    BogusBranchIfSlotValueNotEqual (BankStart + $2DAD), $FFFF
+RuntimeScriptADA7:
+    BogusLoadSlotRecordAtPointer $2D06
+RuntimeScriptADAA:
+    BogusJumpBank1 RuntimeScriptADB0
+.assert (* - BankStart) = $2DAD, error, "bank 1 runtime script $AD93 end"
+    .incbin "bank1_adad_adb0.bin"
+; Observed at the bank-0 command fetcher during the opening scenarios.
+; Names describe handler behaviour; independent entry points are retained.
+RuntimeScriptADB0:
+    BogusApplyAndClearSelected3E
+RuntimeScriptADB1:
+    BogusSetDispatchCounter $04 ; CONTROL_RUNTIME_SCRIPT_ADB0
+RuntimeScriptADB3:
+    BogusBranchIfSlotFieldsWithin RuntimeScriptADC5, $07, $FF
+RuntimeScriptADB8:
+    BogusSetSlot0360 $06
+RuntimeScriptADBA:
+    BogusBranchIfSelectedFlags (BankStart + $2DD1), $40
+RuntimeScriptADBE:
+    BogusSetDispatchCounter $02
+RuntimeScriptADC0:
+    BogusLoadSlotValueArray $27
+RuntimeScriptADC2:
+    BogusSetSlot05F0Pair $00, $FF
+RuntimeScriptADC5:
+    BogusBranchIfSlot0360AtMost (BankStart + $2DCF), $01
+RuntimeScriptADC9:
+    BogusApplyAndClearSelected3E
+RuntimeScriptADCA:
+    BogusBranchIfSlot0620Bit10 RuntimeScriptADB0
+.assert (* - BankStart) = $2DCD, error, "bank 1 runtime script $ADB0 end"
+    .incbin "bank1_adcd_addd.bin"
+; Observed at the bank-0 command fetcher during the opening scenarios.
+; Names describe handler behaviour; independent entry points are retained.
+RuntimeScriptADDD:
+    BogusSetDispatchCounter $0B ; CONTROL_RUNTIME_SCRIPT_ADDD
+RuntimeScriptADDF:
+    BogusLoadSlotValueArray $29
+RuntimeScriptADE1:
+    BogusSetSlotMode $00
+RuntimeScriptADE3:
+    BogusSetSlotMode $02
+RuntimeScriptADE5:
+    BogusSubtractSlotPriorityFromField0520
+RuntimeScriptADE6:
+    BogusReadSlotValue $01
+RuntimeScriptADE8:
+    BogusStoreSlotValueArray $26
+RuntimeScriptADEA:
+    BogusReadSlotValue $24
+RuntimeScriptADEC:
+    BogusBranchIfSlotValueEqual (BankStart + $2E7C), $07, $00
+RuntimeScriptADF1:
+    BogusBranchIfSlotValueEqual (BankStart + $2EB9), $0F, $00
+RuntimeScriptADF6:
+    BogusLoadSlotRecord $03, $FF
+RuntimeScriptADF9:
+    BogusMarkRelatedSlotAtDepth $18, $01
+RuntimeScriptADFC:
+    BogusSetDispatchCounter $05
+RuntimeScriptADFE:
+    BogusBranchIfSlotD0BitsClear RuntimeScriptAE06, $80
+.assert (* - BankStart) = $2E02, error, "bank 1 runtime script $ADDD end"
+    .incbin "bank1_ae02_ae06.bin"
+; Observed at the bank-0 command fetcher during the opening scenarios.
+; Names describe handler behaviour; independent entry points are retained.
+RuntimeScriptAE06:
+    BogusSetDispatchCounter $02 ; CONTROL_RUNTIME_SCRIPT_AE06
+RuntimeScriptAE08:
+    BogusReadSlotValue $24
+RuntimeScriptAE0A:
+    BogusLookupSlotValue
+.assert (* - BankStart) = $2E0B, error, "bank 1 runtime script $AE06 end"
+    .incbin "bank1_ae0b_ae51.bin"
+; Observed at the bank-0 command fetcher during the opening scenarios.
+; Names describe handler behaviour; independent entry points are retained.
+RuntimeScriptAE51:
+    BogusSetDispatchCounter $82 ; CONTROL_RUNTIME_SCRIPT_AE51
+RuntimeScriptAE53:
+    BogusSetSlot05F0Pair $40, $FF
+RuntimeScriptAE56:
+    BogusRestartVoice4 $2724
+RuntimeScriptAE59:
+    BogusSetLinkedSlotFieldsC0 $60, $D0
+RuntimeScriptAE5C:
+    BogusBranchIfAbsSlot0700Below (BankStart + $2E48), $18
+RuntimeScriptAE60:
+    BogusAddSlotFields00 $00, $F0
+RuntimeScriptAE63:
+    BogusAddSlotFields00 $00, $F0
+RuntimeScriptAE66:
+    BogusAddSlotFields00 $00, $F0
+RuntimeScriptAE69:
+    BogusAddSlotFields00 $00, $F0
+RuntimeScriptAE6C:
+    BogusAddSlotFields00 $00, $F0
+RuntimeScriptAE6F:
+    BogusLoadSlotValueArray $27
+RuntimeScriptAE71:
+    BogusSetSlot05F0Pair $00, $FF
+RuntimeScriptAE74:
+    BogusBranchIfSlot0520AtMost (BankStart + $2EF1), $00
+RuntimeScriptAE78:
+    BogusWait $06
+RuntimeScriptAE7A:
+    BogusLoadRecordAndClearSavedState $12
+.assert (* - BankStart) = $2E7C, error, "bank 1 runtime script $AE51 end"
+    .incbin "bank1_ae7c_af84.bin"
+; Observed at the bank-0 command fetcher during the opening scenarios.
+; Names describe handler behaviour; independent entry points are retained.
+RuntimeScriptAF84:
+    BogusSetDispatchCounter $0A ; CONTROL_RUNTIME_SCRIPT_AF84
+RuntimeScriptAF86:
+    BogusLoadSlotValueArray $29
+RuntimeScriptAF88:
+    BogusSetSlotMode $00
+RuntimeScriptAF8A:
+    BogusSetSlotMode $02
+RuntimeScriptAF8C:
+    BogusClearSlotD0Bits $80
+RuntimeScriptAF8E:
+    BogusSetSlotC0 $FF
+RuntimeScriptAF90:
+    BogusClearSlot0790Bits $BF
+RuntimeScriptAF92:
+    BogusSetSlot05F0Pair $FF, $60
+RuntimeScriptAF95:
+    BogusFindLinkedSlot
+RuntimeScriptAF96:
+    BogusBranchIfSlotValueNotEqual RuntimeScriptAF9E, $FFFF
+RuntimeScriptAF9B:
+    BogusLoadSlotRecordAtPointer $2D2A
+RuntimeScriptAF9E:
+    BogusApplyAndClearSelected3E
+RuntimeScriptAF9F:
+    BogusSetDispatchCounter $08
+RuntimeScriptAFA1:
+    BogusBranchIfRemainingVerticalOffsetAtMost (BankStart + $2EF1), $0004
+RuntimeScriptAFA6:
+    BogusReadSlotValue $AA
+RuntimeScriptAFA8:
+    BogusBranchIfSlotValueNotEqual RuntimeScriptAFB2, $0008
+RuntimeScriptAFAD:
+    BogusBranchIfRemainingVerticalOffsetAtMost (BankStart + $2EC0), $0028
+RuntimeScriptAFB2:
+    BogusBranchIfSlot0620Bit10Clear RuntimeScriptAF9E
+RuntimeScriptAFB5:
+    BogusStartVoice4 $281D
+RuntimeScriptAFB8:
+    BogusLoadRecordAndClearSavedState $48
+RuntimeScriptAFBA:
+    BogusBranchIfSlot0620Bit10 RuntimeScriptAFED
+.assert (* - BankStart) = $2FBD, error, "bank 1 runtime script $AF84 end"
+    .incbin "bank1_afbd_afed.bin"
+; Observed at the bank-0 command fetcher during the opening scenarios.
+; Names describe handler behaviour; independent entry points are retained.
+RuntimeScriptAFED:
+    BogusSetDispatchCounter $0C ; CONTROL_RUNTIME_SCRIPT_AFED
+RuntimeScriptAFEF:
+    BogusClearSlot0790Bits $B7
+RuntimeScriptAFF1:
+    BogusClearSlotD0Bits $80
+RuntimeScriptAFF3:
+    BogusBranchIfSelectedFlags (BankStart + $3031), $04
+RuntimeScriptAFF7:
+    BogusFindLinkedSlot
+RuntimeScriptAFF8:
+    BogusBranchIfSlotValueNotEqual RuntimeScriptB000, $FFFF
+RuntimeScriptAFFD:
+    BogusLoadSlotRecordAtPointer $2D33
+RuntimeScriptB000:
+    BogusSetSlot0360 $03
+RuntimeScriptB002:
+    BogusRestartVoice4 $274E
+RuntimeScriptB005:
+    BogusLoadSlotValueArray $3C
+RuntimeScriptB007:
+    BogusSetSlotMode $00
+RuntimeScriptB009:
+    BogusSetSlotFields80 $FF, $A0
+RuntimeScriptB00C:
+    BogusSetDispatchCounter $85
+RuntimeScriptB00E:
+    BogusSetSlotFields80 $FF, $A0
+RuntimeScriptB011:
+    BogusApplyAndClearSelected3E
+RuntimeScriptB012:
+    BogusBranchIfSelectedFlagsClear RuntimeScriptB01D, $80
+RuntimeScriptB016:
+    BogusBranchIfSlot0360AtMost RuntimeScriptB022, $00
+RuntimeScriptB01A:
+    BogusJumpBank1 RuntimeScriptB00C
+RuntimeScriptB01D:
+    BogusSetSlotFields80 $FF, $E0
+RuntimeScriptB020:
+    BogusLoadRecordAndClearSavedState $12
+RuntimeScriptB022:
+    BogusSetDispatchCounter $82
+RuntimeScriptB024:
+    BogusSetSlotFields80 $FF, $B0
+RuntimeScriptB027:
+    BogusApplyAndClearSelected3E
+RuntimeScriptB028:
+    BogusSetDispatchCounter $82
+RuntimeScriptB02A:
+    BogusSetSlotFields80 $FF, $C0
+RuntimeScriptB02D:
+    BogusApplyAndClearSelected3E
+RuntimeScriptB02E:
+    BogusLoadRecordAndClearSavedState $12
+.assert (* - BankStart) = $3030, error, "bank 1 runtime script $AFED end"
+    .incbin "bank1_b030_b12e.bin"
+; Observed at the bank-0 command fetcher during the opening scenarios.
+; Names describe handler behaviour; independent entry points are retained.
+RuntimeScriptB12E:
+    BogusSetDispatchCounter $05 ; CONTROL_RUNTIME_SCRIPT_B12E
+RuntimeScriptB130:
+    BogusClearSlot0790Bits $BF
+RuntimeScriptB132:
+    BogusFindLinkedSlot
+RuntimeScriptB133:
+    BogusBranchIfSlotValueNotEqual (BankStart + $313E), $FFFF
+RuntimeScriptB138:
+    BogusLoadSlotRecordAtPointer $2CF4
+RuntimeScriptB13B:
+    BogusJumpBank1 RuntimeScriptB144
+.assert (* - BankStart) = $313E, error, "bank 1 runtime script $B12E end"
+    .incbin "bank1_b13e_b144.bin"
+; Observed at the bank-0 command fetcher during the opening scenarios.
+; Names describe handler behaviour; independent entry points are retained.
+RuntimeScriptB144:
+    BogusApplyAndClearSelected3E
+RuntimeScriptB145:
+    BogusBranchIfSlotFieldsWithin RuntimeScriptB14C, $07, $FF ; CONTROL_RUNTIME_SCRIPT_B144
+RuntimeScriptB14A:
+    BogusLoadRecordAndClearSavedState $48
+RuntimeScriptB14C:
+    BogusApplyAndClearSelected3E
+RuntimeScriptB14D:
+    BogusBranchIfRemainingVerticalOffsetAtMost (BankStart + $2EF1), $0004
+RuntimeScriptB152:
+    BogusBranchIfSlot0620Bit10 RuntimeScriptB144
+.assert (* - BankStart) = $3155, error, "bank 1 runtime script $B144 end"
+    .incbin "bank1_b155_b191.bin"
+; Observed at the bank-0 command fetcher during the opening scenarios.
+; Names describe handler behaviour; independent entry points are retained.
+RuntimeScriptB191:
+    BogusSetDispatchCounter $0C ; CONTROL_RUNTIME_SCRIPT_B191
+RuntimeScriptB193:
+    BogusStoreSlotValueArray $3E
+RuntimeScriptB195:
+    BogusSwapSlotValueBytes
+RuntimeScriptB196:
+    BogusStoreSlotValueArray $3F
+RuntimeScriptB198:
+    BogusReadSlotValue $2A
+RuntimeScriptB19A:
+    BogusLookupSlotValue
+.assert (* - BankStart) = $319B, error, "bank 1 runtime script $B191 end"
+    .incbin "bank1_b19b_b1b5.bin"
+; Observed at the bank-0 command fetcher during the opening scenarios.
+; Names describe handler behaviour; independent entry points are retained.
+RuntimeScriptB1B5:
+    BogusLoadSlotLowFromByteArray $3F ; CONTROL_RUNTIME_SCRIPT_B1B5
+RuntimeScriptB1B7:
+    BogusSwapSlotValueBytes
+RuntimeScriptB1B8:
+    BogusLoadSlotLowFromByteArray $3E
+RuntimeScriptB1BA:
+    BogusRestoreSavedScriptAndSlotFlags
+.assert (* - BankStart) = $31BB, error, "bank 1 runtime script $B1B5 end"
+    .incbin "bank1_b1bb_b2a8.bin"
+; Observed at the bank-0 command fetcher during the opening scenarios.
+; Names describe handler behaviour; independent entry points are retained.
+RuntimeScriptB2A8:
+    BogusBranchIfSlotD0Bits (BankStart + $32CC), $80 ; CONTROL_RUNTIME_SCRIPT_B2A8
+RuntimeScriptB2AC:
+    BogusSetDispatchCounter $07
+RuntimeScriptB2AE:
+    BogusBranchIfSelectedFlags (BankStart + $32B9), $08
+RuntimeScriptB2B2:
+    BogusBranchIfSlot0620Bit10 RuntimeScriptB1B5
+.assert (* - BankStart) = $32B5, error, "bank 1 runtime script $B2A8 end"
+    .incbin "bank1_b2b5_b3c7.bin"
 ; Candidate descriptor $B3E5, command $B67F, mode $FF.
 SlotFlowB3C7:
     SlotCompactRecord $BF1B, $00 ; CONTROL_SLOT_FLOW_B3C7
@@ -16229,12 +16595,21 @@ SlotFlowE332:
 SlotFlowE33B:
     SlotRuntimeRecord $B8CE, $6640, $00, $FF, $00, $00, $00
 .assert (* - BankStart) = $6344, error, "bank 1 slot record flow E320 end"
-    .incbin "bank1_e344_e34a.bin"
+    .incbin "bank1_e344_e347.bin"
+; Record accesses observed at the bank-0 loader in the opening scenarios.
+; Fields behind a $FFFF resource pointer may not be read by the loader.
+RuntimeRecordE347:
+    SlotCompactRecord $C6DB, $00 ; CONTROL_RUNTIME_RECORD_E347
+.assert (* - BankStart) = $634A, error, "bank 1 runtime records $E347 end"
 ; Descriptor-linked slot record; resource data remains local.
 SlotRuntimeE34A:
     SlotRuntimeRecord $B99F, (ScriptE484 - BankStart), $23, $FF, $00, $00, $00 ; CONTROL_SLOT_RUNTIME_E34A
 .assert (* - BankStart) = $6353, error, "bank 1 slot record E34A end"
-    .incbin "bank1_e353_e35c.bin"
+; Record accesses observed at the bank-0 loader in the opening scenarios.
+; Fields behind a $FFFF resource pointer may not be read by the loader.
+RuntimeRecordE353:
+    SlotRuntimeRecord $FFFF, (RuntimeScriptE764 - BankStart), $00, $FF, $00, $00, $00 ; CONTROL_RUNTIME_RECORD_E353
+.assert (* - BankStart) = $635C, error, "bank 1 runtime records $E353 end"
 ; Candidate descriptor $E34A, command $E4B0, mode $00.
 SlotFlowE35C:
     SlotRuntimeRecord $C6B7, $68F2, $00, $FF, $00, $00, $00 ; CONTROL_SLOT_FLOW_E35C
@@ -16629,7 +17004,20 @@ ContextScriptE75D:
     BogusWait $09
     BogusLoadRecordAndClearSavedState $00
 .assert (* - BankStart) = $6764, error, "bank 1 contextual script E74D end"
-    .incbin "bank1_e764_e8f2.bin"
+; Observed at the bank-0 command fetcher during the opening scenarios.
+; Names describe handler behaviour; independent entry points are retained.
+RuntimeScriptE764:
+    BogusSetDispatchCounter $07 ; CONTROL_RUNTIME_SCRIPT_E764
+RuntimeScriptE766:
+    BogusBranchIfSelectedFieldEqual (BankStart + $686F), $12
+RuntimeScriptE76A:
+    BogusBranchIfSlot06D0Present (BankStart + $67F0)
+RuntimeScriptE76D:
+    BogusBranchIfSelectedFieldEqual (BankStart + $677C), $10
+RuntimeScriptE771:
+    BogusBranchIfSelectedFieldEqual RuntimeScriptE905, $1D
+.assert (* - BankStart) = $6775, error, "bank 1 runtime script $E764 end"
+    .incbin "bank1_e775_e8f2.bin"
 ; Candidate script entries from the reviewed slot-record context trace.
 ContextScriptE8F2:
     BogusSetDispatchCounter $04 ; CONTROL_CONTEXT_E8F2
@@ -16643,7 +17031,114 @@ ContextScriptE8FA:
 ContextScriptE903:
     BogusLoadRecordAndClearSavedState $00
 .assert (* - BankStart) = $6905, error, "bank 1 contextual script E8F2 end"
-    .incbin "bank1_e905_e9ba.bin"
+; Observed at the bank-0 command fetcher during the opening scenarios.
+; Names describe handler behaviour; independent entry points are retained.
+RuntimeScriptE905:
+    BogusLoadSlotRecord $03, $FF ; CONTROL_RUNTIME_SCRIPT_E905
+RuntimeScriptE908:
+    BogusClearSlotD0Bits $40
+RuntimeScriptE90A:
+    BogusSetLinkedSlotFieldsC0 $20, $A0
+RuntimeScriptE90D:
+    BogusSetSlotMode $03
+RuntimeScriptE90F:
+    BogusSetUnlinkedFields $20, $00
+RuntimeScriptE912:
+    BogusSetSlot07F0 $0A
+RuntimeScriptE914:
+    BogusClearSlot0790Bits $01
+RuntimeScriptE916:
+    BogusWait $14
+RuntimeScriptE918:
+    BogusInitializeOtherSlotRelative $04, $00, $F0, $00
+RuntimeScriptE91D:
+    BogusWait $06
+RuntimeScriptE91F:
+    BogusInitializeOtherSlotRelative $04, $00, $F0, $00
+RuntimeScriptE924:
+    BogusWait $06
+RuntimeScriptE926:
+    BogusInitializeOtherSlotRelative $04, $00, $F0, $00
+RuntimeScriptE92B:
+    BogusWait $28
+RuntimeScriptE92D:
+    BogusInitializeOtherSlotRelative $04, $00, $F0, $00
+RuntimeScriptE932:
+    BogusWait $06
+RuntimeScriptE934:
+    BogusInitializeOtherSlotRelative $04, $00, $F0, $00
+RuntimeScriptE939:
+    BogusWait $06
+RuntimeScriptE93B:
+    BogusInitializeOtherSlotRelative $04, $00, $F0, $00
+RuntimeScriptE940:
+    BogusWait $28
+RuntimeScriptE942:
+    BogusInitializeOtherSlotRelative $04, $00, $F0, $00
+RuntimeScriptE947:
+    BogusWait $06
+RuntimeScriptE949:
+    BogusInitializeOtherSlotRelative $04, $00, $F0, $00
+RuntimeScriptE94E:
+    BogusWait $06
+RuntimeScriptE950:
+    BogusInitializeOtherSlotRelative $04, $00, $F0, $00
+RuntimeScriptE955:
+    BogusAdjustSlotBounds $FF, $00
+RuntimeScriptE958:
+    BogusWait $01
+RuntimeScriptE95A:
+    BogusAdjustSlotBounds $02, $00
+RuntimeScriptE95D:
+    BogusWait $01
+RuntimeScriptE95F:
+    BogusAdjustSlotBounds $FE, $00
+RuntimeScriptE962:
+    BogusWait $01
+RuntimeScriptE964:
+    BogusAdjustSlotBounds $02, $00
+RuntimeScriptE967:
+    BogusWait $01
+RuntimeScriptE969:
+    BogusAdjustSlotBounds $FE, $00
+RuntimeScriptE96C:
+    BogusLoadSlotValueArray $FF
+RuntimeScriptE96E:
+    BogusBranchIfSlotValueAtLeast (BankStart + $6979), $8000
+RuntimeScriptE973:
+    BogusStartVoice4FromIndexedPair $26D0
+RuntimeScriptE976:
+    BogusJumpBank1 RuntimeScriptE97F
+.assert (* - BankStart) = $6979, error, "bank 1 runtime script $E905 end"
+    .incbin "bank1_e979_e97f.bin"
+; Observed at the bank-0 command fetcher during the opening scenarios.
+; Names describe handler behaviour; independent entry points are retained.
+RuntimeScriptE97F:
+    BogusAdjustSlotBounds $02, $00 ; CONTROL_RUNTIME_SCRIPT_E97F
+RuntimeScriptE982:
+    BogusWait $01
+RuntimeScriptE984:
+    BogusAdjustSlotBounds $FE, $00
+RuntimeScriptE987:
+    BogusWait $01
+RuntimeScriptE989:
+    BogusAdjustSlotBounds $02, $00
+RuntimeScriptE98C:
+    BogusWait $01
+RuntimeScriptE98E:
+    BogusAdjustSlotBounds $FE, $00
+RuntimeScriptE991:
+    BogusWait $01
+RuntimeScriptE993:
+    BogusAdjustSlotBounds $02, $00
+RuntimeScriptE996:
+    BogusWait $01
+RuntimeScriptE998:
+    BogusAdjustSlotBounds $FE, $00
+RuntimeScriptE99B:
+    BogusWait $01
+.assert (* - BankStart) = $699D, error, "bank 1 runtime script $E97F end"
+    .incbin "bank1_e99d_e9ba.bin"
 ; Linked slot and movement state graph; gameplay role remains unverified.
 ScriptB98E = BankStart + $398E
 ScriptE9BA:
@@ -17105,7 +17600,19 @@ SlotFlowEE42:
 SlotRuntimeEE45:
     SlotRuntimeRecord $BA45, $6E57, $00, $FF, $00, $00, $00 ; CONTROL_SLOT_RUNTIME_EE45
 .assert (* - BankStart) = $6E4E, error, "bank 1 slot record EE45 end"
-    .incbin "bank1_ee4e_ee68.bin"
+    .incbin "bank1_ee4e_ee57.bin"
+; Observed at the bank-0 command fetcher during the opening scenarios.
+; Names describe handler behaviour; independent entry points are retained.
+RuntimeScriptEE57:
+    BogusSetSlot0640Pair $00, $50 ; CONTROL_RUNTIME_SCRIPT_EE57
+RuntimeScriptEE5A:
+    BogusSetSlotD0Bits $01
+RuntimeScriptEE5C:
+    BogusBranchIfSlot0630Bit02 (BankStart + $6E62)
+RuntimeScriptEE5F:
+    BogusJumpBank1 (BankStart + $6FF3)
+.assert (* - BankStart) = $6E62, error, "bank 1 runtime script $EE57 end"
+    .incbin "bank1_ee62_ee68.bin"
 ; Descriptor-linked slot record; resource data remains local.
 SlotRuntimeEE68:
     SlotRuntimeRecord $B6B7, $6E7A, $00, $00, $20, $D9, $11 ; CONTROL_SLOT_RUNTIME_EE68
@@ -17452,12 +17959,25 @@ ContextScriptF401:
     BogusStoreSlotValueArray $23
     BogusSetMainState $10
 .assert (* - BankStart) = $740A, error, "bank 1 contextual script F401 end"
-    .incbin "bank1_f40a_f419.bin"
+    .incbin "bank1_f40a_f410.bin"
+; Record accesses observed at the bank-0 loader in the opening scenarios.
+; Fields behind a $FFFF resource pointer may not be read by the loader.
+RuntimeRecordF410:
+    SlotCompactRecord $BA4B, $00 ; CONTROL_RUNTIME_RECORD_F410
+RuntimeRecordF413:
+    SlotCompactRecord $BBF7, $00
+RuntimeRecordF416:
+    SlotCompactRecord $C28F, $00
+.assert (* - BankStart) = $7419, error, "bank 1 runtime records $F410 end"
 ; Descriptor-linked slot record; resource data remains local.
 SlotRuntimeF419:
     SlotRuntimeRecord $BC89, $742B, $00, $FF, $00, $00, $00 ; CONTROL_SLOT_RUNTIME_F419
 .assert (* - BankStart) = $7422, error, "bank 1 slot record F419 end"
-    .incbin "bank1_f422_f42b.bin"
+; Record accesses observed at the bank-0 loader in the opening scenarios.
+; Fields behind a $FFFF resource pointer may not be read by the loader.
+RuntimeRecordF422:
+    SlotRuntimeRecord $FFFF, (RuntimeScriptF432 - BankStart), $00, $FF, $00, $00, $00 ; CONTROL_RUNTIME_RECORD_F422
+.assert (* - BankStart) = $742B, error, "bank 1 runtime records $F422 end"
 ; Candidate script entries from the reviewed slot-record context trace.
 ContextScriptF42B:
     BogusSetSlotC0 $00 ; CONTROL_CONTEXT_F42B
@@ -17465,7 +17985,30 @@ ContextScriptF42B:
 ContextScriptF42F:
     BogusJumpBank1 ContextScriptF42F
 .assert (* - BankStart) = $7432, error, "bank 1 contextual script F42B end"
-    .incbin "bank1_f432_fc58.bin"
+; Observed at the bank-0 command fetcher during the opening scenarios.
+; Names describe handler behaviour; independent entry points are retained.
+RuntimeScriptF432:
+    BogusReadSlotValue $24 ; CONTROL_RUNTIME_SCRIPT_F432
+RuntimeScriptF434:
+    BogusJumpViaSlotIndexedTable
+.assert (* - BankStart) = $7435, error, "bank 1 runtime script $F432 end"
+    .incbin "bank1_f435_f43b.bin"
+; Observed at the bank-0 command fetcher during the opening scenarios.
+; Names describe handler behaviour; independent entry points are retained.
+RuntimeScriptF43B:
+    BogusLoadSlotRecord $03, $FF ; CONTROL_RUNTIME_SCRIPT_F43B
+RuntimeScriptF43E:
+    BogusJumpBank1 (BankStart + $742D)
+RuntimeScriptF441:
+    BogusLoadSlotRecord $09, $FF
+RuntimeScriptF444:
+    BogusJumpBank1 (BankStart + $742D)
+RuntimeScriptF447:
+    BogusLoadSlotRecord $06, $FF
+RuntimeScriptF44A:
+    BogusJumpBank1 (BankStart + $742D)
+.assert (* - BankStart) = $744D, error, "bank 1 runtime script $F43B end"
+    .incbin "bank1_f44d_fc58.bin"
 ; Descriptor-linked slot record; resource data remains local.
 SlotRuntimeFC58:
     SlotRuntimeRecord $BF6B, (CandidateFC6A - BankStart), $00, $FF, $00, $00, $00 ; CONTROL_SLOT_RUNTIME_FC58
@@ -17519,7 +18062,9 @@ CandidateFD3C:
     BogusCallNativeEncoded $B51B
     BogusSaveStateAndPlaceSlots $10
 .assert (* - BankStart) = $7D56, error, "bank 1 candidate script FD05 end"
-    .incbin "bank1_fd56_fda7.bin"
+    .incbin "bank1_fd56_fd88.bin"
+    BankScriptNativeCall
+.assert (* - BankStart) = $7DA7, error, "bank 1 native script call end"
 ScriptRecordLengths:
     ScriptTable 0
 .assert (* - BankStart) = $7E6C, error, "bank 1 common helpers offset"

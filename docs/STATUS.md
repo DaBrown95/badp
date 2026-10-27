@@ -33,10 +33,10 @@ independent source trees or treat one version's evidence as verifying the rest.
 `make audit-all` checks reference integrity for all targets without requiring
 simultaneous reconstruction. Keep progress and completion evidence per target.
 
-The v1.5 build now assembles and links to the exact reference, with 21,443 bytes
-of source code and 14,716 bytes of structured data across the physical PRG banks.
-It still includes 29,377 local PRG bytes and 65,536 local CHR bytes. A total of
-931 independent source-change controls verify every listed reconstructed region.
+The v1.5 build now assembles and links to the exact reference, with 21,474 bytes
+of source code and 15,360 bytes of structured data across the physical PRG banks.
+It still includes 28,702 local PRG bytes and 65,536 local CHR bytes. A total of
+958 independent source-change controls verify every listed reconstructed region.
 Passing input audits or whole-ROM equality alone is not reconstruction
 completion. The developer identifies BOGUS as the
 state-machine engine in the [Vance Kozik interview](https://www.nesworld.com/kozik.php);
@@ -315,6 +315,26 @@ additional connected blocks as source; some referenced data and downstream
 commands remain local. The fetch reads
 four bytes even for the terminator, an important distinction for boundary checks.
 
+Three opening-gameplay traces identified 194 previously unowned command entries
+in 18 nonconflicting contiguous groups. They are represented by named commands,
+with independent labels even where neighbouring bytes were also observed. Each
+group has a source-change control; unobserved paths and lookup data remain local.
+The same runs confirmed the script fetcher's bank mapping in the emulator as
+described in [script-flow notes](SCRIPT_FLOW.md). The probes and logs remain in
+ignored local analysis and do not establish full gameplay coverage.
+
+The slot-record loader was also observed reading 17 previously local records
+in nine contiguous groups. Compact negative-mode records and full zero-mode
+records are represented separately, with script-pointer labels where known.
+When a resource pointer is `$FFFF`, later fields can be skipped by the loader;
+their original bytes are retained without claiming they were read at runtime.
+The records do not overlap any candidate command or table bytes in the current
+static inventory. The traces establish only the tested opening paths.
+The corrected mapping probe paired every sampled loader entry with the mapped
+fetch: 124 Noah, 83 Moses and 145 David, including all 17 records, with no
+mapping disagreement in MesenCE. An earlier probe mistakenly sampled the
+script pointer at loader entry; its misleading generated output was retired.
+
 Opcode `$9B` invokes a native routine using an encoded RTS address and restores
 the default bank after return. Its observed bank-1 target at `$BEEA` decodes
 five-bit symbols and queues a `$BF` update using a stack-page buffer. Its mask,
@@ -334,6 +354,11 @@ credit. The connected script paths and their `$B1` remapping table are source.
 The other observed `$9B` native target is a bank-0 palette fade at `$B51C`.
 Its four palette passes, VBlank polling and register writes are reconstructed;
 there is no runtime evidence yet for PPU timing or the resulting display.
+
+The native-call wrapper at `$FD88-$FDA6` is identical in both physical PRG
+banks and is now shared source. In the opening traces, bank 1 executed its
+`$FD96` continuation after the bank switch: 16 times for Noah and 20 each for
+Moses and David. Its one source mutation is checked against both bank copies.
 
 Additional connected bank-1 scripts at `$B6EE`, `$B89C`, `$B999`, `$BB69`,
 `$BDFF`, `$DC35` and `$DF0F` express their commands, branches and inline cases in source.

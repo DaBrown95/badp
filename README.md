@@ -22,9 +22,9 @@ redraw, frame motion and slot updates, arithmetic, packed-text decoding, and
 shared banked record and data-copy routines. The script command dispatcher, its record-length and
 handler tables, and source at all 197 handler entries are also reconstructed.
 Slot descriptors, position-record streams, audio lookup tables and several
-candidate script regions are represented as structured data; some called
-routines remain unconverted. Remaining PRG bytes and CHR graphics are local
-binary inclusions.
+script regions are represented as structured data. Some scripts and slot
+records have also been observed during the opening gameplay checks. Remaining
+PRG bytes and CHR graphics are local binary inclusions.
 Changed-source controls check that each reconstructed region affects the
 assembled output.
 
@@ -42,7 +42,7 @@ are not measures of gameplay completion.
 <!-- BEGIN GENERATED PROGRESS -->
 | Version | Reconstructed PRG | Status |
 | --- | ---: | --- |
-| USA v1.5 | **55.17%** (36,159 / 65,536 bytes) | In progress |
+| USA v1.5 | **56.20%** (36,834 / 65,536 bytes) | In progress |
 | USA v1.4 | **0.00%** (0 / 65,536 bytes) | Not started |
 | USA v1.3 | **0.00%** (0 / 65,536 bytes) | Not started |
 | USA v1.2 | **0.00%** (0 / 65,536 bytes) | Not started |
