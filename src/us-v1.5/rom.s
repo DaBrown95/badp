@@ -3141,7 +3141,680 @@ ScriptOp88:
     rts
 .assert (* - BankStart) = $6452, error, "bank 0 script handlers through opcode $88"
 
-    .incbin "bank0_e452_fda7.bin"
+; Opcode $89 reads a seven-byte indexed record and uses its fields to update
+; several state and coordinate values. The roles of the values remain inferred.
+ScriptOp89:
+    jsr ScriptSaveSlotPointer    ; CONTROL_SCRIPT_OP89_FETCH
+    ldy #$07
+    lda $61
+    sta $53
+    lda $62
+    sta $54
+ScriptOp89IndexLoop:
+    lda $70,x
+    clc
+    adc $53
+    sta $53
+    lda $54
+    adc #$00
+    sta $54
+    dey
+    bne ScriptOp89IndexLoop
+    ldx #$07
+    jsr FetchVariableRecord
+    ldx $10
+    jsr ScriptLoadSlotPointer
+    lda $60
+    cmp #$FF
+    bne ScriptOp89CheckBounds
+ScriptOp89TestRelative:
+    jmp ScriptOp89Relative
+ScriptOp89CheckBounds:
+    lda $64
+    cmp #$FF
+    bne ScriptOp89Setup
+    lda $63
+    cmp #$FF
+    bne ScriptOp89Setup
+    cmp $01
+    beq ScriptOp89TestRelative
+ScriptOp89Setup:
+    lda #$FF                     ; CONTROL_SCRIPT_OP89_SETUP
+    sta $0A
+    lda $01
+    sta $00
+    sta $58
+    lda #$FF
+    sta $03C9
+    lda $60
+    cmp #$FF
+    beq ScriptOp89SetPosition
+    sta $00
+    cmp $01
+    beq ScriptOp89SetPosition
+    lda #$00
+    sta $03C9
+ScriptOp89SetPosition:
+    lda $63
+    sta $0B
+    lda $64
+    sta $0C
+    cmp #$FF
+    bne ScriptOp89SetVertical
+    lda $63
+    cmp #$FF
+    bne ScriptOp89SetVertical
+    lda $65
+    sec
+    sbc #$10
+    sta $0B
+    lda $66
+    sbc #$00
+    sta $0C
+    bcs ScriptOp89SetVertical
+    lda #$00
+    sta $0B
+    sta $0C
+ScriptOp89SetVertical:
+    lda $62                      ; CONTROL_SCRIPT_OP89_POSITION
+    sta $1C
+    cmp #$FF
+    bne ScriptOp89Convert
+    lda $61
+    sec
+    sbc #$10
+    sta $1C
+    bcs ScriptOp89VerticalReady
+    lda #$00
+    sta $1C
+ScriptOp89VerticalReady:
+    lda $1C
+    sta $62
+ScriptOp89Convert:
+    lda #$00
+    jsr ScriptOp89ShiftVertical
+    jsr ScriptOp89ShiftVertical
+    jsr ScriptOp89ShiftVertical
+    sta $1D
+    lda $61
+    sec
+    sbc $62
+    jsr $CC83
+    sta $0590,x
+    lda $65
+    sec
+    sbc $0B
+    and #$1F
+    jsr $CC83
+    sta $0580,x
+    jsr $F479
+    jsr ScriptOp89ShiftHorizontal
+    jsr ScriptOp89ShiftHorizontal
+    jsr ScriptOp89ShiftHorizontal
+    jmp ScriptYield
+ScriptOp89RetrySetup:
+    jmp ScriptOp89Setup          ; CONTROL_SCRIPT_OP89_SHIFTS
+ScriptOp89ShiftVertical:
+    asl $1C
+    rol a
+    rts
+ScriptOp89ShiftHorizontal:
+    asl $0B
+    rol $0C
+    rts
+ScriptOp89Relative:
+    lda $65                      ; CONTROL_SCRIPT_OP89_RELATIVE
+    sec
+    sbc $0E
+    sta $11
+    lda $66
+    sbc $0F
+    bcc ScriptOp89RetrySetup
+    bne ScriptOp89RetrySetup
+    lda $11
+    cmp #$1F
+    bcs ScriptOp89RetrySetup
+    cmp #$01
+    bcc ScriptOp89RetrySetup
+    lda $61
+    sec
+    sbc $4F
+    cmp #$18
+    bcs ScriptOp89RetrySetup
+    cmp #$05
+    bcc ScriptOp89RetrySetup
+    lda $61
+    sec
+    sbc $62
+    jsr $CC83
+    tay
+    sta $0590,x
+    lda $65
+    sec
+    sbc $0E
+    and #$1F
+    jsr $CC83
+    sta $11
+    lda $03EE
+    and #$07
+    clc
+    adc $11
+    sta $0580,x
+    jsr $F479
+    jmp ScriptYield
+.assert (* - BankStart) = $6581, error, "bank 0 script handler opcode $89"
+
+; Opcode $8A clears a 32-byte stack-page buffer when $61 is $FF; otherwise it
+; clears a selected bit using the same mask helper as opcode $1E.
+ScriptOp8A:
+    lda $61                      ; CONTROL_SCRIPT_OP8A
+    cmp #$FF
+    bne ScriptOp8AClearBit
+    lda #$00
+    tax
+    ldy #$20
+ScriptOp8AClearLoop:
+    sta $0100,x
+    inx
+    dey
+    bne ScriptOp8AClearLoop
+ScriptOp8AReturn:
+    rts
+ScriptOp8AClearBit:
+    jsr ScriptSlotBitMask
+    ldx $10
+    sta $11
+    ora $0100,y
+    eor $11
+    sta $0100,y
+    rts
+ScriptOp8B:
+    lda $58                      ; CONTROL_SCRIPT_OP8B
+    pha
+    lda #$00
+    sta $58
+    pla
+    bne ScriptOp8AReturn
+    jmp ScriptSetPointerFromOperands
+
+; $8C resets the scan position; $B0 enters immediately after the reset.
+; Both scan slots for $06D0,y equal to the current slot, skipping invalid slots.
+ScriptOp8C:
+    lda #$00                     ; CONTROL_SCRIPT_OP8C
+    sta $03C8
+ScriptOpB0:
+    jsr ScriptSetSlotFFFF        ; CONTROL_SCRIPT_OPB0
+    ldy $03C8
+ScriptOp8CScan:
+    cpy #$10
+    beq ScriptOp8CEnd
+    jsr ScriptCheckOtherSlot
+    beq ScriptOp8CNext
+    lda $06D0,y
+    cmp $10
+    bne ScriptOp8CNext
+    sty $03C8
+    inc $03C8
+    lda $04E0,y
+    jmp ScriptStoreSlotLowAndClearHigh
+ScriptOp8CNext:
+    iny
+    jmp ScriptOp8CScan
+ScriptOp8CEnd:
+    sty $03C8
+    rts
+ScriptOp8DTo8F:
+    lda $70,x                    ; CONTROL_SCRIPT_OP8D
+    pha
+    lda $80,x
+    sta $70,x
+    pla
+    sta $80,x
+    rts
+
+; $90 reads and $91 writes the byte at the address in operands $61/$62.
+ScriptOp90:
+    jsr ScriptSetIndirectOperand ; CONTROL_SCRIPT_OP90
+    lda ($FE),y
+    jmp ScriptStoreSlotLowAndClearHigh
+ScriptOp91:
+    jsr ScriptSetIndirectOperand ; CONTROL_SCRIPT_OP91
+    lda $70,x
+    sta ($FE),y
+    rts
+ScriptSetIndirectOperand:
+    lda $61                      ; CONTROL_SCRIPT_INDIRECT_OPERAND
+    sta $FE
+    lda $62
+    sta $FF
+    ldy #$00
+ScriptIndirectReturn:
+    rts
+ScriptOp92:
+    jsr $EBAC                    ; CONTROL_SCRIPT_OP92
+    lda $63
+    and $038D,y
+    bne ScriptIndirectReturn
+    jmp ScriptSetPointerFromOperands
+ScriptOp93:
+    lda $63
+    cmp $0360,x                  ; CONTROL_SCRIPT_OP93
+    bcs ScriptIndirectReturn
+    jmp ScriptSetPointerFromOperands
+ScriptOp94:
+    lda $0700,x                  ; CONTROL_SCRIPT_OP94
+    bpl ScriptOp94Compare
+    jsr $9E91
+ScriptOp94Compare:
+    cmp $63
+    bcs ScriptIndirectReturn
+    jmp ScriptSetPointerFromOperands
+
+; $95 reads successive four-byte records and compares the final pair to the
+; slot value. The behavior of its pointer-advance helper $F2CC is unconverted.
+ScriptOp95:
+    ldx #$04                     ; CONTROL_SCRIPT_OP95
+    jsr FetchVariableRecord
+    ldx $10
+    jsr $F2CC
+    lda $60
+    ora $61
+    beq ScriptIndirectReturn
+    jsr $F2CC
+    lda $62
+    cmp $70,x
+    bne ScriptOp95
+    lda $63
+    cmp $80,x
+    bne ScriptOp95
+    lda $61
+    sta $62
+    lda $60
+    sta $61
+    jmp ScriptSetPointerFromOperands
+ScriptOp96:
+    lda $61                      ; CONTROL_SCRIPT_OP96
+    ldy $0700,x
+    bpl ScriptOp96FirstReady
+    jsr $9E91
+ScriptOp96FirstReady:
+    sta $61
+    lda $62
+    ldy $B0,x
+    bpl ScriptOp96SecondReady
+    jsr $9E91
+ScriptOp96SecondReady:
+    sta $62
+    jsr $F066
+    jmp ScriptYieldIfNonnegative
+ScriptOp97:
+    jsr ScriptSelectValueArray   ; CONTROL_SCRIPT_OP97
+    beq ScriptOp97Pair
+    lda $70,x
+    and $0140,y
+    sta $70,x
+    lda $80,x
+    and $0141,y
+    sta $80,x
+    rts
+ScriptOp97Pair:
+    lda $70,x
+    and $0120,y
+    sta $70,x
+    lda $80,x
+    and $0121,y
+    sta $80,x
+    rts
+.assert (* - BankStart) = $6696, error, "bank 0 script handlers through opcode $97"
+
+; $98 saves state fields and calls $890A for all sixteen slots; $99 reloads
+; operand fields from $49-$4C and passes the result to the shared state setter.
+ScriptOp98:
+    lda $01                      ; CONTROL_SCRIPT_OP98
+    sta $27
+    lda $03EE
+    sta $0B
+    lda $03EF
+    sta $0C
+    lda $03F0
+    sta $1C
+    lda $03F1
+    sta $1D
+    lda $3C
+    sta $5B
+    lda $3D
+    sta $5C
+    lda $15
+    sta $4D
+    lda $16
+    sta $4E
+    lda $61
+    sta $00
+    lda #$0F
+    sta $11
+    lda #$F8
+    sec
+    sbc $03EC
+    sta $12
+ScriptOp98SlotLoop:
+    ldx $11
+    lda $0630,x
+    ora #$20
+    sta $0630,x
+    lda $11
+    ldy $12
+    jsr $890A
+    dec $11
+    bpl ScriptOp98SlotLoop
+    jmp ScriptYield
+ScriptOp99:
+    lda #$FF                     ; CONTROL_SCRIPT_OP99
+    sta $0A
+    lda $49
+    sta $61
+    lda $4A
+    sta $62
+    lda $4B
+    sta $63
+    lda $4C
+    sta $64
+    jsr $EAF6
+    lda $27
+    bne ScriptOp99Set
+    lda #$FF
+ScriptOp99Set:
+    jmp ScriptSetMainState
+ScriptOp9A:
+    jsr ScriptCompareState27     ; CONTROL_SCRIPT_OP9A
+    beq ScriptCompareStateReturn
+    jmp ScriptSetPointerFromOperands
+ScriptReadState27:
+    jsr ScriptCompareState27
+    beq ScriptReadStateReturn
+    lda $0A
+ScriptReadStateReturn:
+    rts
+ScriptCompareState27:
+    lda $27
+    cmp #$FF
+ScriptCompareStateReturn:
+    rts
+ScriptOp9B:
+    jmp $FD88                    ; CONTROL_SCRIPT_OP9B
+ScriptOp9C:
+    lda $61
+    eor #$FF                     ; CONTROL_SCRIPT_OP9C
+    sta $03ED
+    rts
+ScriptOp9D:
+    rts                          ; CONTROL_SCRIPT_OP9D
+
+; $9E-$A0 compare the command's operand pair with calculated offsets. The
+; horizontal and vertical position conventions are provisional.
+ScriptOp9E:
+    lda $0700,x                  ; CONTROL_SCRIPT_OP9E
+    clc
+    adc $03EE
+    sta $11
+    lda $03EF
+    adc #$00
+    sta $12
+ScriptCompareOffset:
+    lda $63
+    sec
+    sbc $11
+    lda $64
+    sbc $12
+    bcc ScriptOp9D
+    jmp ScriptSetPointerFromOperands
+ScriptOp9F:
+    jsr ScriptGetSecondOffset   ; CONTROL_SCRIPT_OP9F
+    jmp ScriptCompareOffset
+ScriptGetSecondOffset:
+    lda $B0,x
+    clc
+    adc $03F0
+    sta $11
+    lda $03F1
+    adc #$00
+    sta $12
+    rts
+ScriptOpA0:
+    jsr ScriptGetSecondOffset   ; CONTROL_SCRIPT_OPA0
+    lda #$00
+    sta $03
+    lda $0396
+    jsr ScriptShiftAInto03
+    jsr ScriptShiftAInto03
+    jsr ScriptShiftAInto03
+    sec
+    sbc $11
+    sta $11
+    lda $03
+    sbc $12
+    sta $12
+    jmp ScriptCompareOffset
+ScriptShiftAInto03:
+    asl a
+    rol $03
+    rts
+ScriptOpA1:
+    jsr ScriptSelectValueArray  ; CONTROL_SCRIPT_OPA1
+    lda $0140,y
+    sta $70,x
+    rts
+ScriptOpA2:
+    ldy $06D0,x                 ; CONTROL_SCRIPT_OPA2
+    lda $0500,y
+    sta $0500,x
+    lda $0510,y
+    sta $0510,x
+    rts
+; $A3 shares the previously reconstructed $01 handler.
+ScriptOpA4:
+    lda $0630,x
+    and #$FB                    ; CONTROL_SCRIPT_OPA4
+    ldy $61
+    cpy #$FF
+    beq ScriptOpA4Store
+    ora #$04
+ScriptOpA4Store:
+    sta $0630,x
+    rts
+ScriptOpA5:
+    lda $0580,x                 ; CONTROL_SCRIPT_OPA5
+    clc
+    adc $70,x
+    sta $03A6
+    lda $0590,x
+    clc
+    adc $80,x
+    sta $03A7
+    jsr $8C03
+    ldx $10
+    jmp ScriptStoreSlotLowAndClearHigh
+ScriptOpA6:
+    lda $62                     ; CONTROL_SCRIPT_OPA6
+    sta $64
+    lda $70,x
+    sta $62
+    lda $80,x
+    sta $63
+    jmp ScriptOp1F
+.assert (* - BankStart) = $67D3, error, "bank 0 script handlers through opcode $A6"
+
+; $A7 scans other slots against bounds derived from $0580/$0590 and the
+; current slot's value, returning a slot field or $FFFF when none qualifies.
+ScriptOpA7:
+    lda $0580,x                 ; CONTROL_SCRIPT_OPA7
+    clc
+    adc $70,x
+    sta $61
+    lda $0590,x
+    clc
+    adc $80,x
+    sta $62
+    ldy #$00
+ScriptOpA7Scan:
+    jsr ScriptCheckOtherSlot
+    beq ScriptOpA7Next
+    lda $0590,y
+    sec
+    sbc #$08
+    bcs ScriptOpA7FirstLow
+    lda #$00
+ScriptOpA7FirstLow:
+    cmp $62
+    bcs ScriptOpA7Next
+    lda $B0,y
+    clc
+    adc #$08
+    bcc ScriptOpA7FirstHigh
+    lda #$FF
+ScriptOpA7FirstHigh:
+    cmp $62
+    bcc ScriptOpA7Next
+    lda $0580,y
+    sec
+    sbc #$08
+    bcs ScriptOpA7SecondLow
+    lda #$00
+ScriptOpA7SecondLow:
+    cmp $61
+    bcs ScriptOpA7Next
+    lda $0580,y
+    clc
+    adc $0570,y
+    bcc ScriptOpA7SecondExtent
+    lda #$FF
+ScriptOpA7SecondExtent:
+    clc
+    adc #$08
+    bcc ScriptOpA7SecondHigh
+    lda #$FF
+ScriptOpA7SecondHigh:
+    cmp $61
+    bcc ScriptOpA7Next
+    lda $04E0,y
+    jmp ScriptStoreSlotLowAndClearHigh
+ScriptOpA7Next:
+    iny
+    cpy #$10
+    bne ScriptOpA7Scan
+ScriptSetSlotFFFF:
+    lda #$FF                    ; CONTROL_SCRIPT_SLOT_FFFF
+    sta $70,x
+    sta $80,x
+    rts
+ScriptOpA8:
+    lda $70,x                   ; CONTROL_SCRIPT_OPA8
+    clc
+    adc $03EE
+    and #$07
+    jsr $9E91
+    clc
+    adc $70,x
+    sta $70,x
+    lda $80,x
+    clc
+    adc $03F0
+    and #$07
+    jsr $9E91
+    clc
+    adc $80,x
+    sta $80,x
+    rts
+ScriptOpA9:
+    lda $61                     ; CONTROL_SCRIPT_OPA9
+    bne ScriptOpA9Adjust
+    lda $62
+    bne ScriptOpA9Adjust
+    lda $70,x
+    sta $61
+    lda $80,x
+    sta $62
+ScriptOpA9Adjust:
+    lda $0580,x
+    clc
+    adc $61
+    sta $0580,x
+    lda $0590,x
+    clc
+    adc $62
+    sta $0590,x
+    jmp $F479
+ScriptOpAA:
+    jsr ScriptOperand61OrSlot   ; CONTROL_SCRIPT_OPAA
+    ora #$00
+    bpl ScriptOpAANonnegative
+    jmp $CC8C
+ScriptOpAANonnegative:
+    jmp $CC95
+
+; $AB and $BF share this busy-state handler and write their command byte to
+; $04D9 when the state is available.
+ScriptOpABOrBF:
+    ldy $60                     ; CONTROL_SCRIPT_OPAB
+    lda $E7
+    beq ScriptOpABSetup
+    jmp ScriptWaitForState
+ScriptOpABSetup:
+    lda $61
+    sta $EA
+    lda $62
+    sta $EB
+    bne ScriptOpABStore
+    lda $61
+    bne ScriptOpABStore
+    lda $70,x
+    sta $EA
+    lda $80,x
+    sta $EB
+ScriptOpABStore:
+    sty $04D9
+    lda #$1C
+    sta $E7
+    rts
+ScriptOpAC:
+    ldy $80,x                   ; CONTROL_SCRIPT_OPAC
+    lda $0140,y
+    sta $70,x
+    rts
+ScriptOpAD:
+    ldy $80,x                   ; CONTROL_SCRIPT_OPAD
+    lda $70,x
+    sta $0140,y
+    rts
+ScriptOpAE:
+    lda $61                     ; CONTROL_SCRIPT_OPAE
+    sta $03
+    lda $62
+    sta $04
+    lda $63
+    sta $06
+    jsr ScriptDefaultSearchFields
+    jsr ScriptFindSlot
+    bne ScriptOpAEReturn
+    lda $0630,y
+    and #$DF
+    sta $0630,y
+ScriptOpAEReturn:
+    rts
+.assert (* - BankStart) = $68E3, error, "bank 0 script handlers through opcode $AE"
+
+    .incbin "bank0_e8e3_fd29.bin"
+; Opcode $18 invokes the same two unconverted $84xx routines used by $49.
+ScriptOp18:
+    lda #$04                     ; CONTROL_SCRIPT_OP18
+    jsr $848F
+    ldx #$C8
+    ldy #$26
+    lda #$04
+    jsr $844B
+    rts
+.assert (* - BankStart) = $7D38, error, "bank 0 script handler opcode $18"
+
+    .incbin "bank0_fd38_fda7.bin"
 ScriptRecordLengths:
     ScriptTable 0
 .assert (* - BankStart) = $7E6C, error, "bank 0 common helpers offset"

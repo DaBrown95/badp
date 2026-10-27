@@ -33,9 +33,9 @@ independent source trees or treat one version's evidence as verifying the rest.
 `make audit-all` checks reference integrity for all targets without requiring
 simultaneous reconstruction. Keep progress and completion evidence per target.
 
-The v1.5 build now assembles and links to the exact reference, with 5,394 bytes
+The v1.5 build now assembles and links to the exact reference, with 6,578 bytes
 of source code and 840 bytes of structured data across the physical PRG banks.
-It still includes 59,302 local PRG bytes and 65,536 local CHR bytes. One hundred sixty-six
+It still includes 58,118 local PRG bytes and 65,536 local CHR bytes. Two hundred nine
 independent source-change controls verify every listed reconstructed region.
 Passing input audits or whole-ROM equality alone is not reconstruction
 completion. The developer identifies BOGUS as the
@@ -101,8 +101,8 @@ instructions; many calls and higher-level state names remain unresolved. The
 table boundary follows the adjacent native code; no runtime bound check has
 been established, and no link to the named BOGUS engine is claimed yet.
 
-Handlers through opcode `$88` are now represented, except `$18`, which jumps
-to a separate unconverted routine. These include an eight-entry single-bit
+Handler entries through opcode `$AE` are now represented, including `$18`,
+which is located separately near the end of bank 0. These include an eight-entry single-bit
 mask table, a four-pair operand loop and searches over sixteen slots. The slot
 search skips the current slot and records marked `$FF`; opcode `$36` either
 searches by fields or scans another flag before calling `$D4DA`. Those higher-
@@ -118,6 +118,12 @@ Later handlers share slot initialization, busy-state waiting, indexed record
 fetching and value-array operations. Two helpers deliberately remove a return
 address before returning or jumping; the matching source preserves their stack
 behavior. Names and higher-level roles remain provisional.
+
+The later handlers include seven-byte indexed records, indirect byte access,
+slot scans and coordinate comparisons. Opcode `$B0` enters the `$8C` scan after
+its initialization, and `$BF` shares the `$AB` handler. Some handlers still
+call unconverted routines, so covering their entry points does not establish
+the behavior of all commands.
 
 The [source map](../config/source-us-v1.5.json) records bank, CPU address, size,
 classification and control for every owned region. `make build` retains the
