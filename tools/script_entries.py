@@ -36,6 +36,22 @@ def _location(bank: int, offset: int) -> dict:
             'physical_prg_offset': bank * BANK_SIZE + offset}
 
 
+def decode_slot_record(raw: bytes) -> dict:
+    """Describe the nine used bytes and the loader's tenth fetched byte.
+
+    Mode and sentinel checks determine which fields the loader actually uses.
+    The lookahead byte can belong to an adjacent record or script.
+    """
+    if len(raw) != 10:
+        raise ValueError('expected ten fetched slot-record bytes')
+    return {'sprite_pointer': int.from_bytes(raw[:2], 'little'),
+            'encoded_script_pointer': int.from_bytes(raw[2:4], 'little'),
+            'mode_flags': raw[4], 'fields_0690_to_06c0': list(raw[5:9]),
+            'sprite_fields_present': raw[1] != 0xff,
+            'script_installable_in_zero_mode': raw[3] != 0xff,
+            'lookahead': raw[9]}
+
+
 def inventory(bank0: bytes, bank1: bytes, descriptor_offset: int,
               descriptor_count: int, lengths: bytes) -> dict:
     """Inspect descriptor records and first commands, retaining uncertainty."""
@@ -70,7 +86,8 @@ def inventory(bank0: bytes, bank1: bytes, descriptor_offset: int,
         raw = banks[bank][offset:offset + 10]
         record['status'] = 'inspected'
         record['bytes'] = list(raw)
-        script_pointer = int.from_bytes(raw[2:4], 'little')
+        record['decoded_fields'] = decode_slot_record(raw)
+        script_pointer = record['decoded_fields']['encoded_script_pointer']
         record['encoded_script_pointer'] = f'0x{script_pointer:04x}'
         # LoadSlotRecordAtFE suppresses script installation when byte 3 is FF.
         if raw[3] == 0xFF:

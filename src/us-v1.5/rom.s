@@ -141,6 +141,13 @@ compareRangeReturn:
     .byte field_05d0, field_0610, field_05e0, field_0520
 .endmacro
 
+; The loader fetches ten bytes, but reads only these first nine as record
+; fields. Its tenth fetch can overlap the following record or script.
+.macro SlotRuntimeRecord sprite_pointer, encoded_script, mode_flags, field_0690, field_06a0, field_06b0, field_06c0
+    .word sprite_pointer, encoded_script
+    .byte mode_flags, field_0690, field_06a0, field_06b0, field_06c0
+.endmacro
+
 ; BOGUS command forms below name only the behaviour established by handlers.
 ; Script targets in PRG bank 1 are encoded as offsets below $8000.
 .macro BogusSetSlotC0 value
@@ -2019,11 +2026,11 @@ LoadMapChunkPointer:
     sty $F1
     asl $F0
     rol $F1
-    lda #$DE
+    lda #<MapChunkOffsets
     clc
     adc $F0
     sta $F0
-    lda #$A1
+    lda #>MapChunkOffsets
     adc $F1
     sta $F1
     lda ($F0),y
@@ -5009,11 +5016,11 @@ MapChunkOffsetPointer:
     sta $F7
     asl $F6
     rol $F7
-    lda #$DE
+    lda #<MapChunkOffsets
     clc
     adc $F6
     sta $F6
-    lda #$A1
+    lda #>MapChunkOffsets
     adc $F7
     sta $F7
     pla
@@ -5254,7 +5261,10 @@ AdvanceSpriteOffset:
     rts
 .assert (* - BankStart) = $1EFA, error, "bank 0 shadow OAM initializer size"
 
-    .incbin "bank0_9efa_9efe.bin"
+; Four default operands copied to $61-$64 by the main-state initializer.
+DefaultSplitScreenParameters:
+    .byte $00, $00, $00, $00 ; CONTROL_DEFAULT_SPLIT_PARAMETERS
+.assert (* - BankStart) = $1EFE, error, "bank 0 default split parameters end"
 ; Signed X/Y delta pairs selected by the four controller motion paths.
 ControllerDeltas:
     .byte $F4, $00, $0C, $00, $00, $F4, $00, $0C ; CONTROL_CONTROLLER_DELTAS
@@ -5407,7 +5417,38 @@ SlotRelatedAddressTable:
     .word $A34E ; index $15
 .assert (* - BankStart) = $21DE, error, "bank 0 related address table end"
 
-    .incbin "bank0_a1de_a37e.bin"
+; The map index selects an offset into the local 68-byte chunk data.
+; Both references to chunk zero and the original nonsequential order remain.
+MapChunkOffsets:
+    .word $44 * $00 ; CONTROL_MAP_CHUNK_OFFSETS
+    .word $44 * $00, $44 * $01, $44 * $02, $44 * $03, $44 * $04, $44 * $05, $44 * $06, $44 * $07
+    .word $44 * $08, $44 * $09, $44 * $0A, $44 * $0B, $44 * $0C, $44 * $4D, $44 * $5F, $44 * $0D
+    .word $44 * $0E, $44 * $0F, $44 * $10, $44 * $11, $44 * $12, $44 * $59, $44 * $13, $44 * $14
+    .word $44 * $15, $44 * $86, $44 * $17, $44 * $18, $44 * $19, $44 * $1A, $44 * $1B, $44 * $1C
+    .word $44 * $1D, $44 * $1E, $44 * $1F, $44 * $20, $44 * $21, $44 * $22, $44 * $23, $44 * $24
+    .word $44 * $25, $44 * $26, $44 * $27, $44 * $28, $44 * $29, $44 * $2A, $44 * $2B, $44 * $2C
+    .word $44 * $2D, $44 * $2E, $44 * $2F, $44 * $30, $44 * $31, $44 * $32, $44 * $33, $44 * $34
+    .word $44 * $35, $44 * $36, $44 * $58, $44 * $38, $44 * $39, $44 * $3A, $44 * $3B, $44 * $54
+    .word $44 * $3C, $44 * $3D, $44 * $3E, $44 * $3F, $44 * $78, $44 * $40, $44 * $52, $44 * $5E
+    .word $44 * $37, $44 * $41, $44 * $68, $44 * $53, $44 * $7A, $44 * $4E, $44 * $79, $44 * $5A
+    .word $44 * $42, $44 * $44, $44 * $45, $44 * $46, $44 * $47, $44 * $48, $44 * $49, $44 * $4A
+    .word $44 * $4B, $44 * $4C, $44 * $56, $44 * $4F, $44 * $7B, $44 * $60, $44 * $61, $44 * $62
+    .word $44 * $63, $44 * $64, $44 * $65, $44 * $66, $44 * $67, $44 * $69, $44 * $74, $44 * $75
+    .word $44 * $76, $44 * $77, $44 * $7C, $44 * $7D, $44 * $7E, $44 * $7F, $44 * $5D, $44 * $80
+    .word $44 * $81, $44 * $82, $44 * $83, $44 * $50, $44 * $5B, $44 * $5C, $44 * $6A, $44 * $6B
+    .word $44 * $6C, $44 * $6D, $44 * $6E, $44 * $6F, $44 * $70, $44 * $71, $44 * $55, $44 * $51
+    .word $44 * $72, $44 * $73, $44 * $57, $44 * $84, $44 * $85, $44 * $87, $44 * $88, $44 * $89
+    .word $44 * $8A, $44 * $43, $44 * $8B, $44 * $8C, $44 * $8D, $44 * $8E, $44 * $8F, $44 * $90
+    .word $44 * $91
+.assert (* - BankStart) = $2302, error, "bank 0 map chunk offset table end"
+    .incbin "bank0_a302_a368.bin"
+; State-indexed vertical base seeds are multiplied by eight on the
+; non-restored path. Valid state indices remain unverified.
+InitialVerticalBaseSeeds:
+    .byte $03, $28, $28, $28, $28, $1A, $1A, $1A ; CONTROL_INITIAL_VERTICAL_SEEDS
+    .byte $1A, $1A, $1A, $10, $32, $0A, $08, $58
+    .byte $00, $03, $00, $00, $00, $00
+.assert (* - BankStart) = $237E, error, "bank 0 initial vertical seeds end"
 ; Twenty-two observed state entries select mapper and PPU-control bits. The
 ; code does not establish a runtime bound on the state index.
 StateBankSelectors:
@@ -5600,13 +5641,13 @@ InitializeMainState:
     sta $07
     sta $1E
     jsr InitializeState19To1B
-    lda $9EFA
+    lda DefaultSplitScreenParameters
     sta $61
-    lda $9EFB
+    lda DefaultSplitScreenParameters + 1
     sta $62
-    lda $9EFC
+    lda DefaultSplitScreenParameters + 2
     sta $63
-    lda $9EFD
+    lda DefaultSplitScreenParameters + 3
     sta $64
     jmp ConfigureSplitScreen
 
@@ -5745,7 +5786,7 @@ MainSetupVerticalBase:
     lda $0A
     bne MainPrepareMap
     ldx $01
-    lda $A368,x
+    lda InitialVerticalBaseSeeds,x
     sta $03F0
     lda #$00
     sta $03F1
@@ -12788,7 +12829,12 @@ ScriptRecordLengths:
 .segment "PRG1"
 .scope Bank1
 BankStart:
-    .incbin "bank1_8000_ad45.bin"
+    .incbin "bank1_8000_aca3.bin"
+; Descriptor-linked slot record; resource data remains local.
+SlotRuntimeACA3:
+    SlotRuntimeRecord $BF27, (CandidateAD45 - BankStart), $40, $FF, $00, $00, $00 ; CONTROL_SLOT_RUNTIME_ACA3
+.assert (* - BankStart) = $2CAC, error, "bank 1 slot record ACA3 end"
+    .incbin "bank1_acac_ad45.bin"
 ; Candidate script path; object role and execution remain unverified.
 CandidateAD45:
     BogusSetDispatchCounter $8F ; CONTROL_BOGUS_AD45
@@ -12822,7 +12868,11 @@ CandidateAD83:
     BogusInitializeOtherSlotAbsolute $03, $FF, $C0, $00
     BogusLoadRecordAndClearSavedState $48
 .assert (* - BankStart) = $2D93, error, "bank 1 candidate script AD45 end"
-    .incbin "bank1_ad93_b3ee.bin"
+    .incbin "bank1_ad93_b3e5.bin"
+; Descriptor-linked slot record; resource data remains local.
+SlotRuntimeB3E5:
+    SlotRuntimeRecord $BEA3, (ScriptB3EE - BankStart), $00, $FF, $00, $00, $00 ; CONTROL_SLOT_RUNTIME_B3E5
+.assert (* - BankStart) = $33EE, error, "bank 1 slot record B3E5 end"
 ; Map and slot selection script; unconverted branch targets remain address aliases.
 ScriptB3EE:
     BogusSetSlotC0 $00 ; CONTROL_BOGUS_B3EE
@@ -13118,7 +13168,11 @@ ScriptB67F:
     BogusLoadSlotRecord $1E, $FF
     BogusJumpBank1 ScriptB420
 .assert (* - BankStart) = $3685, error, "bank 1 indexed script table B62D end"
-    .incbin "bank1_b685_b6a0.bin"
+; Descriptor-linked slot record; resource data remains local.
+SlotRuntimeB685:
+    SlotRuntimeRecord $BC83, (CandidateB6A0 - BankStart), $00, $FF, $00, $00, $00 ; CONTROL_SLOT_RUNTIME_B685
+.assert (* - BankStart) = $368E, error, "bank 1 slot record B685 end"
+    .incbin "bank1_b68e_b6a0.bin"
 ; Candidate script path; object role and execution remain unverified.
 CandidateB6A0:
     BogusSetSlotC0 $00 ; CONTROL_BOGUS_B6A0
@@ -13130,7 +13184,12 @@ CandidateB6A8:
     BogusClearSlot0790Bits $01
     BogusLoadRecordAndClearSavedState $12
 .assert (* - BankStart) = $36B1, error, "bank 1 candidate script B6A0 end"
-    .incbin "bank1_b6b1_b6ee.bin"
+    .incbin "bank1_b6b1_b6d3.bin"
+; Descriptor-linked slot record; resource data remains local.
+SlotRuntimeB6D3:
+    SlotRuntimeRecord $B693, (ScriptB6EE - BankStart), $00, $FF, $00, $00, $00 ; CONTROL_SLOT_RUNTIME_B6D3
+.assert (* - BankStart) = $36DC, error, "bank 1 slot record B6D3 end"
+    .incbin "bank1_b6dc_b6ee.bin"
 ; Connected slot-action script with coordinate checks, linked-slot search and
 ; original wait/loop behaviour. The gameplay object is not yet identified.
 ScriptB6EE:
@@ -13200,7 +13259,12 @@ ScriptB780:
     BogusBranchIfSlotB0AtMost ScriptB6EE, $3C
     BogusJumpBank1 ScriptB780
 .assert (* - BankStart) = $3787, error, "bank 1 script B6EE end"
-    .incbin "bank1_b787_b7c7.bin"
+    .incbin "bank1_b787_b7b5.bin"
+; Descriptor-linked slot record; resource data remains local.
+SlotRuntimeB7B5:
+    SlotRuntimeRecord $BC83, (CandidateB7C7 - BankStart), $00, $FF, $00, $00, $00 ; CONTROL_SLOT_RUNTIME_B7B5
+.assert (* - BankStart) = $37BE, error, "bank 1 slot record B7B5 end"
+    .incbin "bank1_b7be_b7c7.bin"
 ; Candidate script path; object role and execution remain unverified.
 CandidateB7C7:
     BogusSetSlotC0 $00 ; CONTROL_BOGUS_B7C7
@@ -13214,7 +13278,12 @@ CandidateB7D0:
 CandidateB7DC:
     BogusLoadRecordAndClearSavedState $09
 .assert (* - BankStart) = $37DE, error, "bank 1 candidate script B7C7 end"
-    .incbin "bank1_b7de_b809.bin"
+    .incbin "bank1_b7de_b7e5.bin"
+; Descriptor-linked slot record; resource data remains local.
+SlotRuntimeB7E5:
+    SlotRuntimeRecord $B945, (CandidateB809 - BankStart), $40, $FF, $00, $00, $00 ; CONTROL_SLOT_RUNTIME_B7E5
+.assert (* - BankStart) = $37EE, error, "bank 1 slot record B7E5 end"
+    .incbin "bank1_b7ee_b809.bin"
 ; Candidate script path; object role and execution remain unverified.
 CandidateB809:
     BogusSetDispatchCounter $8B ; CONTROL_BOGUS_B809
@@ -13236,7 +13305,12 @@ CandidateB82D:
     BogusSetDirectionalSlotFields40 $FF, $09
     BogusLoadRecordAndClearSavedState $12
 .assert (* - BankStart) = $3833, error, "bank 1 candidate script B809 end"
-    .incbin "bank1_b833_b89c.bin"
+    .incbin "bank1_b833_b88a.bin"
+; Descriptor-linked slot record; resource data remains local.
+SlotRuntimeB88A:
+    SlotRuntimeRecord $B5FD, (ScriptB89C - BankStart), $00, $00, $20, $D9, $11 ; CONTROL_SLOT_RUNTIME_B88A
+.assert (* - BankStart) = $3893, error, "bank 1 slot record B88A end"
+    .incbin "bank1_b893_b89c.bin"
 ; Slot-field updates and conditional checks lead to one of several loops or
 ; a slot release. The script's gameplay role remains provisional.
 ScriptB89C:
@@ -13277,7 +13351,11 @@ ScriptB8E8:
     BogusLoadSlotRecord $09, $02
     BogusJumpBank1 ScriptB8D8
 .assert (* - BankStart) = $38EE, error, "bank 1 script B89C end"
-    .incbin "bank1_b8ee_b900.bin"
+; Descriptor-linked slot record; resource data remains local.
+SlotRuntimeB8EE:
+    SlotRuntimeRecord $B9FF, (ScriptB900 - BankStart), $22, $00, $20, $01, $01 ; CONTROL_SLOT_RUNTIME_B8EE
+.assert (* - BankStart) = $38F7, error, "bank 1 slot record B8EE end"
+    .incbin "bank1_b8f7_b900.bin"
 ; Descriptor-derived script. Nonzero record mode preserves the command pointer;
 ; the record-loading helper's gameplay effects remain provisional.
 ScriptB900:
@@ -13308,7 +13386,16 @@ ScriptB92E:
 ScriptB934:
     BogusYieldAndSlotAction $00  ; CONTROL_BOGUS_B934
 .assert (* - BankStart) = $3936, error, "bank 1 script B934 end"
-    .incbin "bank1_b936_b968.bin"
+    .incbin "bank1_b936_b93f.bin"
+; Descriptor-linked slot record; resource data remains local.
+SlotRuntimeB93F:
+    SlotRuntimeRecord $BC79, $3948, $00, $FF, $00, $00, $00 ; CONTROL_SLOT_RUNTIME_B93F
+.assert (* - BankStart) = $3948, error, "bank 1 slot record B93F end"
+    .incbin "bank1_b948_b95f.bin"
+; Descriptor-linked slot record; resource data remains local.
+SlotRuntimeB95F:
+    SlotRuntimeRecord $C7DB, (ScriptB968 - BankStart), $00, $FF, $00, $00, $00 ; CONTROL_SLOT_RUNTIME_B95F
+.assert (* - BankStart) = $3968, error, "bank 1 slot record B95F end"
 ; Eight slot-field updates form a loop while $0360 is above the threshold.
 ; Slot action $00 yields and releases the current slot.
 ScriptB968:
@@ -13328,7 +13415,11 @@ ScriptB970:
     BogusBranchIfSlot0360Above ScriptB970, $01
     BogusYieldAndSlotAction $00
 .assert (* - BankStart) = $398E, error, "bank 1 script B968 end"
-    .incbin "bank1_b98e_b999.bin"
+    .incbin "bank1_b98e_b990.bin"
+; Descriptor-linked slot record; resource data remains local.
+SlotRuntimeB990:
+    SlotRuntimeRecord $BC79, (ScriptB999 - BankStart), $00, $FF, $00, $00, $00 ; CONTROL_SLOT_RUNTIME_B990
+.assert (* - BankStart) = $3999, error, "bank 1 slot record B990 end"
 ; The indexed bases below are local data. The command at $B99E clears a
 ; stack-page bitset; its runtime stack interaction needs separate validation.
 DataB9E5 = BankStart + $39E5
@@ -13366,7 +13457,12 @@ ScriptB9A0:
     BogusYieldAndSlotAction $00
 .assert (* - BankStart) = $39E0, error, "bank 1 script B999 end"
 DataB9E0:
-    .incbin "bank1_b9e0_ba23.bin"
+    .incbin "bank1_b9e0_ba11.bin"
+; Descriptor-linked slot record; resource data remains local.
+SlotRuntimeBA11:
+    SlotRuntimeRecord $C4BF, (CandidateBA23 - BankStart), $00, $00, $30, $70, $11 ; CONTROL_SLOT_RUNTIME_BA11
+.assert (* - BankStart) = $3A1A, error, "bank 1 slot record BA11 end"
+    .incbin "bank1_ba1a_ba23.bin"
 ; Candidate script path; object role and execution remain unverified.
 CandidateBA23:
     BogusSetDispatchCounter $08 ; CONTROL_BOGUS_BA23
@@ -13389,7 +13485,10 @@ CandidateBA3A:
 CandidateBA47:
     BogusJumpBank1 CandidateBA32
 .assert (* - BankStart) = $3A4A, error, "bank 1 candidate script BA23 end"
-    .incbin "bank1_ba4a_ba53.bin"
+; Descriptor-linked slot record; resource data remains local.
+SlotRuntimeBA4A:
+    SlotRuntimeRecord $B6AC, (ScriptBA53 - BankStart), $00, $FF, $00, $00, $00 ; CONTROL_SLOT_RUNTIME_BA4A
+.assert (* - BankStart) = $3A53, error, "bank 1 slot record BA4A end"
 ; This descriptor-derived entry reaches a self-loop after setting two fields.
 ScriptBA53:
     BogusSetSlotC0 $00
@@ -13397,7 +13496,12 @@ ScriptBA53:
 ScriptBA57:
     BogusJumpBank1 ScriptBA57
 .assert (* - BankStart) = $3A5A, error, "bank 1 script BA53 end"
-    .incbin "bank1_ba5a_ba75.bin"
+    .incbin "bank1_ba5a_ba63.bin"
+; Descriptor-linked slot record; resource data remains local.
+SlotRuntimeBA63:
+    SlotRuntimeRecord $B9B8, (ScriptBA75 - BankStart), $00, $00, $20, $61, $11 ; CONTROL_SLOT_RUNTIME_BA63
+.assert (* - BankStart) = $3A6C, error, "bank 1 slot record BA63 end"
+    .incbin "bank1_ba6c_ba75.bin"
 ; This entry selects offsets using a slot-value lookup.
 ScriptBA75:
     BogusSetDispatchCounter $8A
@@ -13474,7 +13578,16 @@ ScriptBB19:
     BogusBranchIfAbsSlot0700Below ScriptBB19, $18
     BogusJumpBank1 ScriptBAD6
 .assert (* - BankStart) = $3B20, error, "bank 1 script BABD end"
-    .incbin "bank1_bb20_bb69.bin"
+    .incbin "bank1_bb20_bb52.bin"
+; Descriptor-linked slot record; resource data remains local.
+SlotRuntimeBB52:
+    SlotRuntimeRecord $B977, $3B5B, $40, $FF, $00, $00, $00 ; CONTROL_SLOT_RUNTIME_BB52
+.assert (* - BankStart) = $3B5B, error, "bank 1 slot record BB52 end"
+    .incbin "bank1_bb5b_bb60.bin"
+; Descriptor-linked slot record; resource data remains local.
+SlotRuntimeBB60:
+    SlotRuntimeRecord $C69B, (ScriptBB69 - BankStart), $00, $00, $00, $F0, $11 ; CONTROL_SLOT_RUNTIME_BB60
+.assert (* - BankStart) = $3B69, error, "bank 1 slot record BB60 end"
 ; This connected graph tests two map positions, uses lookup tables and updates
 ; slot bounds. Its labels describe control flow rather than inferred game roles.
 ScriptBB69:
@@ -13562,7 +13675,10 @@ ScriptBC14:
     BogusWait $14
     BogusJumpBank1 ScriptBB87
 .assert (* - BankStart) = $3C19, error, "bank 1 script BB69 end"
-    .incbin "bank1_bc19_bc22.bin"
+; Descriptor-linked slot record; resource data remains local.
+SlotRuntimeBC19:
+    SlotRuntimeRecord $BC7D, (ScriptBC22 - BankStart), $00, $FF, $00, $00, $00 ; CONTROL_SLOT_RUNTIME_BC19
+.assert (* - BankStart) = $3C22, error, "bank 1 slot record BC19 end"
 ; Candidate slot search and repeated palette/audio sequence.
 ScriptBC22:
     BogusSetSlotBit40 $01 ; CONTROL_BOGUS_BC22
@@ -13594,7 +13710,10 @@ ScriptBC3D:
     BogusSetBackgroundPalettePointer $FFFF
     BogusJumpBank1 ScriptBC27
 .assert (* - BankStart) = $3C6C, error, "bank 1 script BC22 end"
-    .incbin "bank1_bc6c_bc75.bin"
+; Descriptor-linked slot record; resource data remains local.
+SlotRuntimeBC6C:
+    SlotRuntimeRecord $BAB7, (CandidateBC75 - BankStart), $00, $FF, $00, $00, $00 ; CONTROL_SLOT_RUNTIME_BC6C
+.assert (* - BankStart) = $3C75, error, "bank 1 slot record BC6C end"
 ; Candidate script path; object role and execution remain unverified.
 CandidateBC75:
     BogusSetSlotC0 $00 ; CONTROL_BOGUS_BC75
@@ -13613,7 +13732,12 @@ CandidateBC8B:
     BogusCallNativeEncoded $B51B
     BogusSetMainState $FF
 .assert (* - BankStart) = $3CA8, error, "bank 1 candidate script BC75 end"
-    .incbin "bank1_bca8_bcc0.bin"
+    .incbin "bank1_bca8_bcae.bin"
+; Descriptor-linked slot record; resource data remains local.
+SlotRuntimeBCAE:
+    SlotRuntimeRecord $B5D3, (ScriptBCC0 - BankStart), $00, $FF, $00, $00, $00 ; CONTROL_SLOT_RUNTIME_BCAE
+.assert (* - BankStart) = $3CB7, error, "bank 1 slot record BCAE end"
+    .incbin "bank1_bcb7_bcc0.bin"
 ; Candidate entry from a slot descriptor. The full graph is contained here;
 ; gameplay role and runtime use are not yet established.
 ScriptBCC0:
@@ -13631,7 +13755,12 @@ ScriptBCC0Loop:
     BogusSetDispatchCounter $01
     BogusJumpBank1 ScriptBCC0Loop
 .assert (* - BankStart) = $3CE3, error, "bank 1 script BCC0 end"
-    .incbin "bank1_bce3_bd1b.bin"
+    .incbin "bank1_bce3_bd09.bin"
+; Descriptor-linked slot record; resource data remains local.
+SlotRuntimeBD09:
+    SlotRuntimeRecord $B7F2, (ScriptBD1B - BankStart), $40, $FF, $00, $00, $00 ; CONTROL_SLOT_RUNTIME_BD09
+.assert (* - BankStart) = $3D12, error, "bank 1 slot record BD09 end"
+    .incbin "bank1_bd12_bd1b.bin"
 ; Repeated slot-record and voice-pointer sequence with the original retry.
 ScriptBD1B:
     BogusSetDispatchCounter $85 ; CONTROL_BOGUS_BD1B
@@ -13652,7 +13781,11 @@ ScriptBD26:
     BogusLoadSlotRecord $00, $01
     BogusJumpBank1 ScriptBD26
 .assert (* - BankStart) = $3D4D, error, "bank 1 script BD1B end"
-    .incbin "bank1_bd4d_bd58.bin"
+    .incbin "bank1_bd4d_bd4f.bin"
+; Descriptor-linked slot record; resource data remains local.
+SlotRuntimeBD4F:
+    SlotRuntimeRecord $BC79, (ScriptBD58 - BankStart), $00, $FF, $00, $00, $00 ; CONTROL_SLOT_RUNTIME_BD4F
+.assert (* - BankStart) = $3D58, error, "bank 1 slot record BD4F end"
 ; Connected slot, audio and fade state sequence.
 ScriptBD58:
     BogusSetSlotC0 $00 ; CONTROL_BOGUS_BD58
@@ -13686,10 +13819,11 @@ ScriptBD97:
     BogusSetVoicePointers $0000, $0000, $0000, $0000
     BogusCallNativeEncoded Bank0::FadeOutPalettes - 1
     BogusSetMainState $10
-    BogusCreateLinkedSlot $C2, $BF, $3D, $00
-    BogusLoadRecordAndClearSavedState $00
-.assert (* - BankStart) = $3DBD, error, "bank 1 script BD58 end"
-    .incbin "bank1_bdbd_bdbf.bin"
+.assert (* - BankStart) = $3DB6, error, "bank 1 script BD58 end"
+; Descriptor-linked slot record; resource data remains local.
+SlotRuntimeBDB6:
+    SlotRuntimeRecord $C269, (ScriptBDBF - BankStart), $00, $00, $00, $10, $06 ; CONTROL_SLOT_RUNTIME_BDB6
+.assert (* - BankStart) = $3DBF, error, "bank 1 slot record BDB6 end"
 ; Another descriptor-derived graph: set a slot bit, then branch when bit $08
 ; is set and clear it. Both destinations are local loops.
 ScriptBDBF:
@@ -13702,7 +13836,10 @@ ScriptBDBFLoop:
 ScriptBDBFDone:
     BogusJumpBank1 ScriptBDBFDone
 .assert (* - BankStart) = $3DCD, error, "bank 1 script BDBF end"
-    .incbin "bank1_bdcd_bdd6.bin"
+; Descriptor-linked slot record; resource data remains local.
+SlotRuntimeBDCD:
+    SlotRuntimeRecord $B64D, (ScriptBDD6 - BankStart), $00, $FF, $00, $00, $00 ; CONTROL_SLOT_RUNTIME_BDCD
+.assert (* - BankStart) = $3DD6, error, "bank 1 slot record BDCD end"
 ; Compare the slot value to $0001, choose a field update, wait, then loop
 ; until the magnitude of $0700 is below $10 and release the current slot.
 ScriptBDD6:
@@ -13722,7 +13859,10 @@ ScriptBDED:
 ScriptBDF4:
     BogusYieldAndSlotAction $00
 .assert (* - BankStart) = $3DF6, error, "bank 1 script BDD6 end"
-    .incbin "bank1_bdf6_bdff.bin"
+; Descriptor-linked slot record; resource data remains local.
+SlotRuntimeBDF6:
+    SlotRuntimeRecord $BC89, (ScriptBDFF - BankStart), $40, $FF, $00, $00, $00 ; CONTROL_SLOT_RUNTIME_BDF6
+.assert (* - BankStart) = $3DFF, error, "bank 1 slot record BDF6 end"
 ScriptBDFF:
     BogusSetSlotC0 $00           ; CONTROL_BOGUS_BDFF
     BogusLoadSlotValueArray $3D
@@ -14013,7 +14153,17 @@ ScriptD059:
     BogusInitializeSplitAndMainState
 .assert (* - BankStart) = $505F, error, "bank 1 script CFDC end"
 DataD05F:
-    .incbin "bank1_d05f_d3c9.bin"
+    .incbin "bank1_d05f_d21c.bin"
+; Descriptor-linked slot record; resource data remains local.
+SlotRuntimeD21C:
+    SlotRuntimeRecord $BF27, $522E, $40, $FF, $00, $00, $00 ; CONTROL_SLOT_RUNTIME_D21C
+.assert (* - BankStart) = $5225, error, "bank 1 slot record D21C end"
+    .incbin "bank1_d225_d3b7.bin"
+; Descriptor-linked slot record; resource data remains local.
+SlotRuntimeD3B7:
+    SlotRuntimeRecord $C70D, (ScriptD3C9 - BankStart), $00, $FF, $00, $00, $00 ; CONTROL_SLOT_RUNTIME_D3B7
+.assert (* - BankStart) = $53C0, error, "bank 1 slot record D3B7 end"
+    .incbin "bank1_d3c0_d3c9.bin"
 ; Linked-slot update and position sequence.
 ScriptD3C9:
     BogusSetSlot0640Pair $00, $40 ; CONTROL_BOGUS_D3C9
@@ -14059,7 +14209,12 @@ ScriptD41D:
     BogusStoreSlotValueArray $26
     BogusLoadSlotRecordAtPointer $53C0
 .assert (* - BankStart) = $542E, error, "bank 1 script D3C9 end"
-    .incbin "bank1_d42e_d450.bin"
+    .incbin "bank1_d42e_d43e.bin"
+; Descriptor-linked slot record; resource data remains local.
+SlotRuntimeD43E:
+    SlotRuntimeRecord $C533, (ScriptD450 - BankStart), $00, $FE, $20, $61, $10 ; CONTROL_SLOT_RUNTIME_D43E
+.assert (* - BankStart) = $5447, error, "bank 1 slot record D43E end"
+    .incbin "bank1_d447_d450.bin"
 ScriptD450:
     BogusSetDispatchCounter $86 ; CONTROL_BOGUS_D450
     BogusSetSlot05F0Pair $78, $78
@@ -14077,7 +14232,10 @@ ScriptD463:
     BogusBranchIfSlotB0AtMost ScriptD463, $E4
     BogusYieldAndSlotAction $00
 .assert (* - BankStart) = $5470, error, "bank 1 script D463 end"
-    .incbin "bank1_d470_d479.bin"
+; Descriptor-linked slot record; resource data remains local.
+SlotRuntimeD470:
+    SlotRuntimeRecord $BE93, (ScriptD479 - BankStart), $00, $FF, $00, $00, $00 ; CONTROL_SLOT_RUNTIME_D470
+.assert (* - BankStart) = $5479, error, "bank 1 slot record D470 end"
 ScriptD479:
     BogusSetSlotC0 $00           ; CONTROL_BOGUS_D479
     BogusWait $01
@@ -14111,7 +14269,22 @@ ScriptD4B8:
     BogusRestartVoice4 $2724
     BogusJumpBank1 ScriptD463
 .assert (* - BankStart) = $54BE, error, "bank 1 script D479 end"
-    .incbin "bank1_d4be_d5de.bin"
+    .incbin "bank1_d4be_d4c1.bin"
+; Descriptor-linked slot record; resource data remains local.
+SlotRuntimeD4C1:
+    SlotRuntimeRecord $BFD3, $551B, $00, $FF, $00, $00, $00 ; CONTROL_SLOT_RUNTIME_D4C1
+.assert (* - BankStart) = $54CA, error, "bank 1 slot record D4C1 end"
+    .incbin "bank1_d4ca_d52b.bin"
+; Descriptor-linked slot record; resource data remains local.
+SlotRuntimeD52B:
+    SlotRuntimeRecord $C587, $557C, $40, $FE, $45, $62, $31 ; CONTROL_SLOT_RUNTIME_D52B
+.assert (* - BankStart) = $5534, error, "bank 1 slot record D52B end"
+    .incbin "bank1_d534_d584.bin"
+; Descriptor-linked slot record; resource data remains local.
+SlotRuntimeD584:
+    SlotRuntimeRecord $C5F5, (ScriptD5DE - BankStart), $40, $FF, $00, $00, $00 ; CONTROL_SLOT_RUNTIME_D584
+.assert (* - BankStart) = $558D, error, "bank 1 slot record D584 end"
+    .incbin "bank1_d58d_d5de.bin"
 ScriptD5DE:
     BogusSetSlotD0Bits $02 ; CONTROL_BOGUS_D5DE
     BogusReadSlotValue $02
@@ -14133,7 +14306,11 @@ ScriptD5F8:
     BogusSetSlotFields80 $01, $00
     BogusLoadRecordAndClearSavedState $48
 .assert (* - BankStart) = $5609, error, "bank 1 script D5DE end"
-    .incbin "bank1_d609_d6e0.bin"
+    .incbin "bank1_d609_d6d7.bin"
+; Descriptor-linked slot record; resource data remains local.
+SlotRuntimeD6D7:
+    SlotRuntimeRecord $BC79, (ScriptD6E0 - BankStart), $00, $FF, $00, $00, $00 ; CONTROL_SLOT_RUNTIME_D6D7
+.assert (* - BankStart) = $56E0, error, "bank 1 slot record D6D7 end"
 ; A slot-field comparison gates three matching-slot updates and waits.
 ScriptD6E0:
     BogusSetSlot0640Pair $04, $00
@@ -14148,7 +14325,47 @@ ScriptD6EA:
     BogusRestartVoice4 $289B
     BogusYieldAndSlotAction $00
 .assert (* - BankStart) = $5702, error, "bank 1 script D6E0 end"
-    .incbin "bank1_d702_db81.bin"
+    .incbin "bank1_d702_da1c.bin"
+; Descriptor-linked slot record; resource data remains local.
+SlotRuntimeDA1C:
+    SlotRuntimeRecord $B65B, (ScriptE9BC - BankStart), $22, $FF, $00, $00, $00 ; CONTROL_SLOT_RUNTIME_DA1C
+.assert (* - BankStart) = $5A25, error, "bank 1 slot record DA1C end"
+    .incbin "bank1_da25_da46.bin"
+; Descriptor-linked slot record; resource data remains local.
+SlotRuntimeDA46:
+    SlotRuntimeRecord $B644, (ScriptE9BA - BankStart), $22, $FF, $00, $00, $00 ; CONTROL_SLOT_RUNTIME_DA46
+.assert (* - BankStart) = $5A4F, error, "bank 1 slot record DA46 end"
+    .incbin "bank1_da4f_da79.bin"
+; Descriptor-linked slot record; resource data remains local.
+SlotRuntimeDA79:
+    SlotRuntimeRecord $B83F, (ScriptE9BA - BankStart), $22, $FF, $00, $00, $00 ; CONTROL_SLOT_RUNTIME_DA79
+.assert (* - BankStart) = $5A82, error, "bank 1 slot record DA79 end"
+    .incbin "bank1_da82_daac.bin"
+; Descriptor-linked slot record; resource data remains local.
+SlotRuntimeDAAC:
+    SlotRuntimeRecord $B67A, $6D11, $22, $FF, $00, $00, $00 ; CONTROL_SLOT_RUNTIME_DAAC
+.assert (* - BankStart) = $5AB5, error, "bank 1 slot record DAAC end"
+    .incbin "bank1_dab5_dad6.bin"
+; Descriptor-linked slot record; resource data remains local.
+SlotRuntimeDAD6:
+    SlotRuntimeRecord $C42F, (ScriptE691 - BankStart), $22, $FF, $00, $00, $00 ; CONTROL_SLOT_RUNTIME_DAD6
+.assert (* - BankStart) = $5ADF, error, "bank 1 slot record DAD6 end"
+    .incbin "bank1_dadf_db12.bin"
+; Descriptor-linked slot record; resource data remains local.
+SlotRuntimeDB12:
+    SlotRuntimeRecord $C4AD, (ScriptE691 - BankStart), $22, $FF, $00, $00, $00 ; CONTROL_SLOT_RUNTIME_DB12
+.assert (* - BankStart) = $5B1B, error, "bank 1 slot record DB12 end"
+    .incbin "bank1_db1b_db4e.bin"
+; Descriptor-linked slot record; resource data remains local.
+SlotRuntimeDB4E:
+    SlotRuntimeRecord $B937, (ScriptED7C - BankStart), $23, $FF, $00, $00, $00 ; CONTROL_SLOT_RUNTIME_DB4E
+.assert (* - BankStart) = $5B57, error, "bank 1 slot record DB4E end"
+    .incbin "bank1_db57_db66.bin"
+; Descriptor-linked slot record; resource data remains local.
+SlotRuntimeDB66:
+    SlotRuntimeRecord $B876, (ScriptDB81 - BankStart), $22, $FF, $00, $00, $00 ; CONTROL_SLOT_RUNTIME_DB66
+.assert (* - BankStart) = $5B6F, error, "bank 1 slot record DB66 end"
+    .incbin "bank1_db6f_db81.bin"
 ; Slot movement and contact state sequence.
 ScriptDBE9 = BankStart + $5BE9
 ScriptDB81:
@@ -14204,7 +14421,12 @@ CandidateDC03:
     BogusBranchIfSlotCoordinatesA3 CandidateDC03, $10, $FF
     BogusJumpBank1 (BankStart + $5BBE)
 .assert (* - BankStart) = $5C0E, error, "bank 1 candidate script DBE9 end"
-    .incbin "bank1_dc0e_dc35.bin"
+    .incbin "bank1_dc0e_dc1a.bin"
+; Descriptor-linked slot record; resource data remains local.
+SlotRuntimeDC1A:
+    SlotRuntimeRecord $B6D8, (ScriptDC35 - BankStart), $23, $00, $16, $61, $22 ; CONTROL_SLOT_RUNTIME_DC1A
+.assert (* - BankStart) = $5C23, error, "bank 1 slot record DC1A end"
+    .incbin "bank1_dc23_dc35.bin"
 ; Connected movement and interaction state-machine paths. The byte-level
 ; conditions are reconstructed; the associated gameplay role remains unknown.
 ScriptDC35:
@@ -14339,7 +14561,27 @@ ScriptDD55:
     BogusWait $0F
     BogusLoadRecordAndClearSavedState $00
 .assert (* - BankStart) = $5D59, error, "bank 1 script DC35 end"
-    .incbin "bank1_dd59_de0d.bin"
+    .incbin "bank1_dd59_dd62.bin"
+; Descriptor-linked slot record; resource data remains local.
+SlotRuntimeDD62:
+    SlotRuntimeRecord $B7AA, (ScriptDE0D - BankStart), $22, $FF, $00, $00, $00 ; CONTROL_SLOT_RUNTIME_DD62
+.assert (* - BankStart) = $5D6B, error, "bank 1 slot record DD62 end"
+    .incbin "bank1_dd6b_dd8f.bin"
+; Descriptor-linked slot record; resource data remains local.
+SlotRuntimeDD8F:
+    SlotRuntimeRecord $B7B3, (ScriptDE0D - BankStart), $22, $FF, $00, $00, $00 ; CONTROL_SLOT_RUNTIME_DD8F
+.assert (* - BankStart) = $5D98, error, "bank 1 slot record DD8F end"
+    .incbin "bank1_dd98_ddbc.bin"
+; Descriptor-linked slot record; resource data remains local.
+SlotRuntimeDDBC:
+    SlotRuntimeRecord $B866, (ScriptDE0D - BankStart), $22, $FF, $00, $00, $00 ; CONTROL_SLOT_RUNTIME_DDBC
+.assert (* - BankStart) = $5DC5, error, "bank 1 slot record DDBC end"
+    .incbin "bank1_ddc5_dde9.bin"
+; Descriptor-linked slot record; resource data remains local.
+SlotRuntimeDDE9:
+    SlotRuntimeRecord $B79A, (ScriptDE0D - BankStart), $22, $FF, $00, $00, $00 ; CONTROL_SLOT_RUNTIME_DDE9
+.assert (* - BankStart) = $5DF2, error, "bank 1 slot record DDE9 end"
+    .incbin "bank1_ddf2_de0d.bin"
 ; Descriptor-derived movement and interaction state machine; gameplay role is provisional.
 ScriptDE0D:
     BogusSetDispatchCounter $86 ; CONTROL_BOGUS_DE0D
@@ -14416,7 +14658,12 @@ ScriptDEBC:
     BogusBranchIfSlotCoordinatesA3 ScriptDEBC, $18, $FF
     BogusJumpBank1 ScriptDE58
 .assert (* - BankStart) = $5EC7, error, "bank 1 script DE0D end"
-    .incbin "bank1_dec7_df0f.bin"
+    .incbin "bank1_dec7_def4.bin"
+; Descriptor-linked slot record; resource data remains local.
+SlotRuntimeDEF4:
+    SlotRuntimeRecord $B7BC, (ScriptDF0F - BankStart), $00, $FF, $00, $00, $00 ; CONTROL_SLOT_RUNTIME_DEF4
+.assert (* - BankStart) = $5EFD, error, "bank 1 slot record DEF4 end"
+    .incbin "bank1_defd_df0f.bin"
 ; Slot movement and linked-slot checks with branches into several update paths.
 ; The final $00 command can load a new record and change the script pointer.
 ScriptDF0F:
@@ -14520,32 +14767,57 @@ ScriptDFF4:
     BogusBranchIfSlot0620Bit10Clear ScriptDFF4
     BogusLoadRecordAndClearSavedState $00
 .assert (* - BankStart) = $5FF9, error, "bank 1 script DF0F end"
-    .incbin "bank1_dff9_e02c.bin"
+    .incbin "bank1_dff9_e008.bin"
+; Descriptor-linked slot record; resource data remains local.
+SlotRuntimeE008:
+    SlotRuntimeRecord $B82A, (ScriptE02C - BankStart), $00, $FF, $00, $00, $00 ; CONTROL_SLOT_RUNTIME_E008
+.assert (* - BankStart) = $6011, error, "bank 1 slot record E008 end"
+    .incbin "bank1_e011_e02c.bin"
 ; Four entry points choose slot flags before entering the shared $E120 path.
 ScriptE02C:
     BogusSetSlotD0Bits $03       ; CONTROL_BOGUS_E02C
     BogusSetSlotValue $0007
     BogusJumpBank1 ScriptE120
 .assert (* - BankStart) = $6034, error, "bank 1 script E02C end"
-    .incbin "bank1_e034_e067.bin"
+    .incbin "bank1_e034_e043.bin"
+; Descriptor-linked slot record; resource data remains local.
+SlotRuntimeE043:
+    SlotRuntimeRecord $B9E1, (ScriptE067 - BankStart), $00, $FF, $00, $00, $00 ; CONTROL_SLOT_RUNTIME_E043
+.assert (* - BankStart) = $604C, error, "bank 1 slot record E043 end"
+    .incbin "bank1_e04c_e067.bin"
 ScriptE067:
     BogusSetSlotD0Bits $02       ; CONTROL_BOGUS_E067
     BogusSetSlotValue $0007
     BogusJumpBank1 ScriptE120
 .assert (* - BankStart) = $606F, error, "bank 1 script E067 end"
-    .incbin "bank1_e06f_e0a2.bin"
+    .incbin "bank1_e06f_e07e.bin"
+; Descriptor-linked slot record; resource data remains local.
+SlotRuntimeE07E:
+    SlotRuntimeRecord $BCB1, (ScriptE0A2 - BankStart), $00, $FF, $00, $00, $00 ; CONTROL_SLOT_RUNTIME_E07E
+.assert (* - BankStart) = $6087, error, "bank 1 slot record E07E end"
+    .incbin "bank1_e087_e0a2.bin"
 ScriptE0A2:
     BogusSetSlotD0Bits $02       ; CONTROL_BOGUS_E0A2
     BogusSetSlotValue $0007
     BogusJumpBank1 ScriptE120
 .assert (* - BankStart) = $60AA, error, "bank 1 script E0A2 end"
-    .incbin "bank1_e0aa_e0dd.bin"
+    .incbin "bank1_e0aa_e0b9.bin"
+; Descriptor-linked slot record; resource data remains local.
+SlotRuntimeE0B9:
+    SlotRuntimeRecord $BB1F, (ScriptE0DD - BankStart), $00, $FF, $00, $00, $00 ; CONTROL_SLOT_RUNTIME_E0B9
+.assert (* - BankStart) = $60C2, error, "bank 1 slot record E0B9 end"
+    .incbin "bank1_e0c2_e0dd.bin"
 ScriptE0DD:
     BogusSetSlotD0Bits $0B       ; CONTROL_BOGUS_E0DD
     BogusSetSlotValue $0007
     BogusJumpBank1 ScriptE120
 .assert (* - BankStart) = $60E5, error, "bank 1 script E0DD end"
-    .incbin "bank1_e0e5_e118.bin"
+    .incbin "bank1_e0e5_e0f4.bin"
+; Descriptor-linked slot record; resource data remains local.
+SlotRuntimeE0F4:
+    SlotRuntimeRecord $BB3D, (ScriptE118 - BankStart), $00, $FF, $00, $00, $00 ; CONTROL_SLOT_RUNTIME_E0F4
+.assert (* - BankStart) = $60FD, error, "bank 1 slot record E0F4 end"
+    .incbin "bank1_e0fd_e118.bin"
 ; Connected shared slot state machine. Its higher-level object and role remain unknown.
 ScriptE118:
     BogusSetSlotD0Bits $1E ; CONTROL_BOGUS_E118
@@ -14743,7 +15015,32 @@ ScriptE2E8:
 ScriptE2F4:
     BogusLoadRecordAndClearSavedState $00
 .assert (* - BankStart) = $62F6, error, "bank 1 script E118 end"
-    .incbin "bank1_e2f6_e47c.bin"
+    .incbin "bank1_e2f6_e2fc.bin"
+; Descriptor-linked slot record; resource data remains local.
+SlotRuntimeE2FC:
+    SlotRuntimeRecord $B8E7, (ScriptE486 - BankStart), $23, $FF, $00, $00, $00 ; CONTROL_SLOT_RUNTIME_E2FC
+.assert (* - BankStart) = $6305, error, "bank 1 slot record E2FC end"
+    .incbin "bank1_e305_e34a.bin"
+; Descriptor-linked slot record; resource data remains local.
+SlotRuntimeE34A:
+    SlotRuntimeRecord $B99F, (ScriptE484 - BankStart), $23, $FF, $00, $00, $00 ; CONTROL_SLOT_RUNTIME_E34A
+.assert (* - BankStart) = $6353, error, "bank 1 slot record E34A end"
+    .incbin "bank1_e353_e398.bin"
+; Descriptor-linked slot record; resource data remains local.
+SlotRuntimeE398:
+    SlotRuntimeRecord $B823, (ScriptE48E - BankStart), $23, $FF, $00, $00, $00 ; CONTROL_SLOT_RUNTIME_E398
+.assert (* - BankStart) = $63A1, error, "bank 1 slot record E398 end"
+    .incbin "bank1_e3a1_e3e6.bin"
+; Descriptor-linked slot record; resource data remains local.
+SlotRuntimeE3E6:
+    SlotRuntimeRecord $B7EB, (ScriptE48E - BankStart), $23, $FF, $00, $00, $00 ; CONTROL_SLOT_RUNTIME_E3E6
+.assert (* - BankStart) = $63EF, error, "bank 1 slot record E3E6 end"
+    .incbin "bank1_e3ef_e434.bin"
+; Descriptor-linked slot record; resource data remains local.
+SlotRuntimeE434:
+    SlotRuntimeRecord $B77E, (ScriptE47C - BankStart), $23, $FF, $00, $00, $00 ; CONTROL_SLOT_RUNTIME_E434
+.assert (* - BankStart) = $643D, error, "bank 1 slot record E434 end"
+    .incbin "bank1_e43d_e47c.bin"
 ; Slot and movement state graph; unconverted destinations remain address aliases.
 ScriptE562 = BankStart + $6562
 ScriptE590 = BankStart + $6590
@@ -15014,7 +15311,22 @@ ScriptEA9D:
     BogusWait $04
     BogusJumpBank1 ScriptE9CC
 .assert (* - BankStart) = $6AA2, error, "bank 1 script E9BA end"
-    .incbin "bank1_eaa2_eb52.bin"
+    .incbin "bank1_eaa2_eaed.bin"
+; Descriptor-linked slot record; resource data remains local.
+SlotRuntimeEAED:
+    SlotRuntimeRecord $B608, (ScriptEC03 - BankStart), $22, $00, $16, $61, $12 ; CONTROL_SLOT_RUNTIME_EAED
+.assert (* - BankStart) = $6AF6, error, "bank 1 slot record EAED end"
+    .incbin "bank1_eaf6_eb13.bin"
+; Descriptor-linked slot record; resource data remains local.
+SlotRuntimeEB13:
+    SlotRuntimeRecord $B608, (ScriptEC03 - BankStart), $22, $00, $16, $61, $22 ; CONTROL_SLOT_RUNTIME_EB13
+.assert (* - BankStart) = $6B1C, error, "bank 1 slot record EB13 end"
+    .incbin "bank1_eb1c_eb37.bin"
+; Descriptor-linked slot record; resource data remains local.
+SlotRuntimeEB37:
+    SlotRuntimeRecord $B909, (CandidateEB52 - BankStart), $22, $00, $20, $41, $12 ; CONTROL_SLOT_RUNTIME_EB37
+.assert (* - BankStart) = $6B40, error, "bank 1 slot record EB37 end"
+    .incbin "bank1_eb40_eb52.bin"
 ; Candidate script path; object role and execution remain unverified.
 CandidateEB52:
     BogusSetSlotValue $0000 ; CONTROL_BOGUS_EB52
@@ -15028,7 +15340,17 @@ CandidateEB66:
     BogusSetSlotD0Bits $08
     BogusJumpBank1 (BankStart + $6C33)
 .assert (* - BankStart) = $6B6B, error, "bank 1 candidate script EB52 end"
-    .incbin "bank1_eb6b_ebb5.bin"
+    .incbin "bank1_eb6b_eb74.bin"
+; Descriptor-linked slot record; resource data remains local.
+SlotRuntimeEB74:
+    SlotRuntimeRecord $B848, (ScriptEBFD - BankStart), $22, $00, $16, $61, $22 ; CONTROL_SLOT_RUNTIME_EB74
+.assert (* - BankStart) = $6B7D, error, "bank 1 slot record EB74 end"
+    .incbin "bank1_eb7d_eb9a.bin"
+; Descriptor-linked slot record; resource data remains local.
+SlotRuntimeEB9A:
+    SlotRuntimeRecord $B91E, (CandidateEBB5 - BankStart), $22, $FF, $00, $00, $00 ; CONTROL_SLOT_RUNTIME_EB9A
+.assert (* - BankStart) = $6BA3, error, "bank 1 slot record EB9A end"
+    .incbin "bank1_eba3_ebb5.bin"
 ; Candidate script path; object role and execution remain unverified.
 CandidateEBB5:
     BogusSetSlot0670Pair $08, $00 ; CONTROL_BOGUS_EBB5
@@ -15040,7 +15362,12 @@ CandidateEBB5:
     BogusClearSlot0790Bits $01
     BogusJumpBank1 (BankStart + $6C33)
 .assert (* - BankStart) = $6BCA, error, "bank 1 candidate script EBB5 end"
-    .incbin "bank1_ebca_ebee.bin"
+    .incbin "bank1_ebca_ebd3.bin"
+; Descriptor-linked slot record; resource data remains local.
+SlotRuntimeEBD3:
+    SlotRuntimeRecord $C72F, (ScriptEBEE - BankStart), $22, $FF, $00, $00, $00 ; CONTROL_SLOT_RUNTIME_EBD3
+.assert (* - BankStart) = $6BDC, error, "bank 1 slot record EBD3 end"
+    .incbin "bank1_ebdc_ebee.bin"
 ; Related entry paths converge on the already recovered EC2B and EC33 loops.
 ScriptEBEE:
     BogusSetSlot0670Pair $40, $00 ; CONTROL_BOGUS_EBEE
@@ -15163,7 +15490,17 @@ ScriptED0A:
     BogusBranchIfSlotCoordinates01 ScriptED0A, $1E, $10
     BogusLoadRecordAndClearSavedState $00
 .assert (* - BankStart) = $6D11, error, "bank 1 script EC2B end"
-    .incbin "bank1_ed11_ed71.bin"
+    .incbin "bank1_ed11_ed21.bin"
+; Descriptor-linked slot record; resource data remains local.
+SlotRuntimeED21:
+    SlotRuntimeRecord $BA0A, $6D45, $22, $FF, $00, $00, $00 ; CONTROL_SLOT_RUNTIME_ED21
+.assert (* - BankStart) = $6D2A, error, "bank 1 slot record ED21 end"
+    .incbin "bank1_ed2a_ed56.bin"
+; Descriptor-linked slot record; resource data remains local.
+SlotRuntimeED56:
+    SlotRuntimeRecord $B68A, (ScriptED71 - BankStart), $22, $FF, $00, $00, $00 ; CONTROL_SLOT_RUNTIME_ED56
+.assert (* - BankStart) = $6D5F, error, "bank 1 slot record ED56 end"
+    .incbin "bank1_ed5f_ed71.bin"
 ; Shared slot state graph with one unconverted branch destination.
 ScriptEE1A = BankStart + $6E1A
 ScriptED71:
@@ -15241,7 +15578,82 @@ CandidateEE3A:
     BogusSetVoicesFromIndexedRecord $26E4
     BogusLoadRecordAndClearSavedState $00
 .assert (* - BankStart) = $6E42, error, "bank 1 candidate script EE1A end"
-    .incbin "bank1_ee42_ef7e.bin"
+    .incbin "bank1_ee42_ee45.bin"
+; Descriptor-linked slot record; resource data remains local.
+SlotRuntimeEE45:
+    SlotRuntimeRecord $BA45, $6E57, $00, $FF, $00, $00, $00 ; CONTROL_SLOT_RUNTIME_EE45
+.assert (* - BankStart) = $6E4E, error, "bank 1 slot record EE45 end"
+    .incbin "bank1_ee4e_ee68.bin"
+; Descriptor-linked slot record; resource data remains local.
+SlotRuntimeEE68:
+    SlotRuntimeRecord $B6B7, $6E7A, $00, $00, $20, $D9, $11 ; CONTROL_SLOT_RUNTIME_EE68
+.assert (* - BankStart) = $6E71, error, "bank 1 slot record EE68 end"
+    .incbin "bank1_ee71_ee82.bin"
+; Descriptor-linked slot record; resource data remains local.
+SlotRuntimeEE82:
+    SlotRuntimeRecord $BE9D, (ScriptEFDD - BankStart), $00, $00, $20, $D9, $11 ; CONTROL_SLOT_RUNTIME_EE82
+.assert (* - BankStart) = $6E8B, error, "bank 1 slot record EE82 end"
+    .incbin "bank1_ee8b_ee94.bin"
+; Descriptor-linked slot record; resource data remains local.
+SlotRuntimeEE94:
+    SlotRuntimeRecord $BE99, (ScriptEFE9 - BankStart), $00, $FF, $00, $00, $00 ; CONTROL_SLOT_RUNTIME_EE94
+.assert (* - BankStart) = $6E9D, error, "bank 1 slot record EE94 end"
+    .incbin "bank1_ee9d_eea6.bin"
+; Descriptor-linked slot record; resource data remains local.
+SlotRuntimeEEA6:
+    SlotRuntimeRecord $C7C5, (ScriptEFDD - BankStart), $00, $FF, $00, $00, $00 ; CONTROL_SLOT_RUNTIME_EEA6
+.assert (* - BankStart) = $6EAF, error, "bank 1 slot record EEA6 end"
+    .incbin "bank1_eeaf_eeb8.bin"
+; Descriptor-linked slot record; resource data remains local.
+SlotRuntimeEEB8:
+    SlotRuntimeRecord $BAD5, $6ECA, $00, $FF, $00, $00, $00 ; CONTROL_SLOT_RUNTIME_EEB8
+.assert (* - BankStart) = $6EC1, error, "bank 1 slot record EEB8 end"
+    .incbin "bank1_eec1_eed0.bin"
+; Descriptor-linked slot record; resource data remains local.
+SlotRuntimeEED0:
+    SlotRuntimeRecord $C7D5, $6EE2, $00, $00, $20, $D9, $11 ; CONTROL_SLOT_RUNTIME_EED0
+.assert (* - BankStart) = $6ED9, error, "bank 1 slot record EED0 end"
+    .incbin "bank1_eed9_eee8.bin"
+; Descriptor-linked slot record; resource data remains local.
+SlotRuntimeEEE8:
+    SlotRuntimeRecord $B74E, $6EFA, $00, $00, $20, $D9, $11 ; CONTROL_SLOT_RUNTIME_EEE8
+.assert (* - BankStart) = $6EF1, error, "bank 1 slot record EEE8 end"
+    .incbin "bank1_eef1_ef00.bin"
+; Descriptor-linked slot record; resource data remains local.
+SlotRuntimeEF00:
+    SlotRuntimeRecord $C393, (ScriptEFE9 - BankStart), $00, $FF, $00, $00, $00 ; CONTROL_SLOT_RUNTIME_EF00
+.assert (* - BankStart) = $6F09, error, "bank 1 slot record EF00 end"
+    .incbin "bank1_ef09_ef12.bin"
+; Descriptor-linked slot record; resource data remains local.
+SlotRuntimeEF12:
+    SlotRuntimeRecord $C397, (ScriptEFE9 - BankStart), $00, $FF, $00, $00, $00 ; CONTROL_SLOT_RUNTIME_EF12
+.assert (* - BankStart) = $6F1B, error, "bank 1 slot record EF12 end"
+    .incbin "bank1_ef1b_ef24.bin"
+; Descriptor-linked slot record; resource data remains local.
+SlotRuntimeEF24:
+    SlotRuntimeRecord $BAAF, (ScriptEFE9 - BankStart), $00, $FF, $00, $00, $00 ; CONTROL_SLOT_RUNTIME_EF24
+.assert (* - BankStart) = $6F2D, error, "bank 1 slot record EF24 end"
+    .incbin "bank1_ef2d_ef36.bin"
+; Descriptor-linked slot record; resource data remains local.
+SlotRuntimeEF36:
+    SlotRuntimeRecord $BAB3, (ScriptEFF0 - BankStart), $00, $FF, $00, $00, $00 ; CONTROL_SLOT_RUNTIME_EF36
+.assert (* - BankStart) = $6F3F, error, "bank 1 slot record EF36 end"
+    .incbin "bank1_ef3f_ef48.bin"
+; Descriptor-linked slot record; resource data remains local.
+SlotRuntimeEF48:
+    SlotRuntimeRecord $BA23, (ScriptEF87 - BankStart), $00, $00, $20, $D9, $11 ; CONTROL_SLOT_RUNTIME_EF48
+.assert (* - BankStart) = $6F51, error, "bank 1 slot record EF48 end"
+    .incbin "bank1_ef51_ef5a.bin"
+; Descriptor-linked slot record; resource data remains local.
+SlotRuntimeEF5A:
+    SlotRuntimeRecord $BB8B, (ScriptEF87 - BankStart), $00, $00, $20, $D9, $11 ; CONTROL_SLOT_RUNTIME_EF5A
+.assert (* - BankStart) = $6F63, error, "bank 1 slot record EF5A end"
+    .incbin "bank1_ef63_ef6c.bin"
+; Descriptor-linked slot record; resource data remains local.
+SlotRuntimeEF6C:
+    SlotRuntimeRecord $C533, (ScriptEF7E - BankStart), $00, $00, $20, $D9, $11 ; CONTROL_SLOT_RUNTIME_EF6C
+.assert (* - BankStart) = $6F75, error, "bank 1 slot record EF6C end"
+    .incbin "bank1_ef75_ef7e.bin"
 ; Slot sequence joining the existing $EFF3 path.
 ScriptEF7E:
     BogusSetSlot0640Pair $00, $40 ; CONTROL_BOGUS_EF7E
@@ -15347,7 +15759,10 @@ CandidateF157:
     BogusWait $05
     BogusYieldAndSlotAction $00
 .assert (* - BankStart) = $716D, error, "bank 1 candidate script F157 end"
-    .incbin "bank1_f16d_f176.bin"
+; Descriptor-linked slot record; resource data remains local.
+SlotRuntimeF16D:
+    SlotRuntimeRecord $B9AF, (ScriptF176 - BankStart), $00, $FF, $00, $00, $00 ; CONTROL_SLOT_RUNTIME_F16D
+.assert (* - BankStart) = $7176, error, "bank 1 slot record F16D end"
 ; State-update and palette setup sequence; data payloads remain local.
 ScriptF176:
     BogusSetDispatchCounter $8F ; CONTROL_BOGUS_F176
@@ -15507,7 +15922,17 @@ CandidateF349:
     BogusSetSlotValue $000B
     BogusJumpBank1 (BankStart + $7401)
 .assert (* - BankStart) = $7354, error, "bank 1 candidate script F2DB end"
-    .incbin "bank1_f354_fc6a.bin"
+    .incbin "bank1_f354_f419.bin"
+; Descriptor-linked slot record; resource data remains local.
+SlotRuntimeF419:
+    SlotRuntimeRecord $BC89, $742B, $00, $FF, $00, $00, $00 ; CONTROL_SLOT_RUNTIME_F419
+.assert (* - BankStart) = $7422, error, "bank 1 slot record F419 end"
+    .incbin "bank1_f422_fc58.bin"
+; Descriptor-linked slot record; resource data remains local.
+SlotRuntimeFC58:
+    SlotRuntimeRecord $BF6B, (CandidateFC6A - BankStart), $00, $FF, $00, $00, $00 ; CONTROL_SLOT_RUNTIME_FC58
+.assert (* - BankStart) = $7C61, error, "bank 1 slot record FC58 end"
+    .incbin "bank1_fc61_fc6a.bin"
 ; Candidate script path; object role and execution remain unverified.
 CandidateFC6A:
     BogusSetDispatchCounter $03 ; CONTROL_BOGUS_FC6A
@@ -15518,7 +15943,11 @@ CandidateFC6A:
 CandidateFC7E:
     BogusJumpBank1 CandidateFC7E
 .assert (* - BankStart) = $7C81, error, "bank 1 candidate script FC6A end"
-    .incbin "bank1_fc81_fd05.bin"
+    .incbin "bank1_fc81_fcfc.bin"
+; Descriptor-linked slot record; resource data remains local.
+SlotRuntimeFCFC:
+    SlotRuntimeRecord $BC79, (CandidateFD05 - BankStart), $00, $FF, $00, $00, $00 ; CONTROL_SLOT_RUNTIME_FCFC
+.assert (* - BankStart) = $7D05, error, "bank 1 slot record FCFC end"
 ; Candidate script path; object role and execution remain unverified.
 CandidateFD05:
     BogusSetSlotC0 $00 ; CONTROL_BOGUS_FD05

@@ -2,7 +2,7 @@
 import unittest
 from unittest.mock import patch
 
-from tools.script_entries import BANK_SIZE, _locate, inventory, main
+from tools.script_entries import BANK_SIZE, _locate, decode_slot_record, inventory, main
 
 
 def banks():
@@ -14,6 +14,22 @@ def put_word(data, offset, value):
 
 
 class ScriptEntryTests(unittest.TestCase):
+    def test_slot_record_decodes_used_fields_and_separate_lookahead(self):
+        result = decode_slot_record(bytes([0x34, 0x81, 0x78, 0x56, 0x40,
+                                           1, 2, 3, 4, 0x99]))
+        self.assertEqual(result['sprite_pointer'], 0x8134)
+        self.assertEqual(result['encoded_script_pointer'], 0x5678)
+        self.assertEqual(result['mode_flags'], 0x40)
+        self.assertEqual(result['fields_0690_to_06c0'], [1, 2, 3, 4])
+        self.assertEqual(result['lookahead'], 0x99)
+        self.assertTrue(result['sprite_fields_present'])
+        self.assertTrue(result['script_installable_in_zero_mode'])
+        empty = decode_slot_record(bytes([0, 0xff, 0, 0xff, 0, 0, 0, 0, 0, 0]))
+        self.assertFalse(empty['sprite_fields_present'])
+        self.assertFalse(empty['script_installable_in_zero_mode'])
+        with self.assertRaisesRegex(ValueError, 'ten fetched'):
+            decode_slot_record(bytes(9))
+
     def test_banked_records_aliases_and_first_command(self):
         b0, b1 = banks()
         for start, ptr in ((0, 0x20), (6, 0x20), (12, 0x30)):

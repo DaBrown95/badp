@@ -33,14 +33,17 @@ The `$8A` stack-buffer operation has a possible normal-return successor. Its
 address in that range, so the walk does not model every possible outcome.
 The `$79`, `$84`, `$8D/$8E`, `$A4`, `$BC` and `$BD` handlers also have normal
 return successors; that does not prove their execution or termination.
-The `$98` and `$99` main-state changes stop the walk because later scheduling is unproven.
+The `$0F`, `$98` and `$99` main-state changes stop the walk because later
+scheduling is unproven. In particular, treating the bytes after `$0F` as an
+automatic continuation produced a speculative command decode over a
+descriptor-linked record; the separately evidenced record is now data.
 Unknown, dynamically computed
 and unreviewed handlers stop their paths. The walker rejects malformed lengths,
 records that cross the physical bank boundary and invalid input, and reports
 physical-byte overlaps and any nodes left by its traversal limit.
 
-On the current pinned v1.5 input the bounded walk finds 1,996 candidate commands
-starting from the descriptor-derived entries, with 46 nodes stopping at dynamic
+On the current pinned v1.5 input the bounded walk finds 1,936 candidate commands
+starting from the descriptor-derived entries, with 38 nodes stopping at dynamic
 or unreviewed handlers and no physical-byte overlaps. Those are static candidates,
 not a complete script inventory, gameplay evidence or source ownership. The
 ignored JSON retains operand bytes for local examination; none are added to the

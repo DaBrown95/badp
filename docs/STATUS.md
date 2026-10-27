@@ -34,9 +34,9 @@ independent source trees or treat one version's evidence as verifying the rest.
 simultaneous reconstruction. Keep progress and completion evidence per target.
 
 The v1.5 build now assembles and links to the exact reference, with 21,443 bytes
-of source code and 7,761 bytes of structured data across the physical PRG banks.
-It still includes 36,332 local PRG bytes and 65,536 local CHR bytes. A total of
-740 independent source-change controls verify every listed reconstructed region.
+of source code and 8,819 bytes of structured data across the physical PRG banks.
+It still includes 35,274 local PRG bytes and 65,536 local CHR bytes. A total of
+826 independent source-change controls verify every listed reconstructed region.
 Passing input audits or whole-ROM equality alone is not reconstruction
 completion. The developer identifies BOGUS as the
 state-machine engine in the [Vance Kozik interview](https://www.nesworld.com/kozik.php);
@@ -172,6 +172,20 @@ There are 114 entries before `$A1B2`, where a separate 22-entry address table
 is read at `$CB9A-$CB9D`; `$A1DE` begins the next lookup table. The runtime
 index bounds and higher-level meanings of these fields remain unverified.
 
+The 83 descriptor-linked slot records that fit within a physical bank now
+express the nine bytes used by the loader as resource and script pointers,
+mode flags and four slot fields. The loader actually fetches ten bytes, and
+the tenth may belong to the next record or command. A separate descriptor
+points across a bank boundary and remains unclassified. Resource payloads
+remain local, and pointer roles and execution require runtime confirmation.
+The temporary record transcription script was retired after integration;
+the structured source and current build proof remain.
+
+The map lookup uses 146 two-byte offsets, each a multiple of 68, into locally
+supplied map-chunk data. The offset table and state-indexed vertical-base seeds
+are source; map layouts and chunk contents remain local. Runtime bounds on
+either table have not been established.
+
 The slot allocator scans for a free slot, otherwise choosing the last eligible
 replacement or a slot passing its distance check. A focused instruction-subset
 check exercised free slots, replacement, distance fallback and exhaustion on
@@ -223,9 +237,13 @@ branches or prove execution. Its output is ignored local analysis and does not
 count as reconstructed PRG.
 
 The [script-flow inventory](SCRIPT_FLOW.md) follows reviewed successor rules
-from those candidates. It finds 1,996 candidate commands and stops at 46 nodes
+from those candidates. It finds 1,936 candidate commands and stops at 38 nodes
 with dynamic or unreviewed handlers, with no physical-byte overlaps. Branches
 and resumes remain unverified possibilities; this analysis adds no PRG credit.
+The `$0F` state change now terminates a traced path rather than presuming a
+later resume. This reclassified a speculative command decode at `$BDB6` as a
+descriptor-linked slot record; its separately referenced script starts at
+`$BDBF`. A possible additional use of those bytes remains unverified.
 
 Fifteen additional connected script regions include menu-state, palette,
 audio and slot operations. The `$8A` stack-buffer clear is followed only as a

@@ -205,14 +205,19 @@ class ScriptFlowTests(unittest.TestCase):
 
     def test_main_state_change_stops_before_following_data(self):
         b0, b1, lengths = fixture()
+        lengths[0x0f] = 2
         b1[0x10:0x12] = bytes([0x99, 0x3e])
         b1[0x20:0x22] = bytes([0x98, 0x3e])
-        nodes = by_pointer(walk(bytes(b0), bytes(b1), bytes(lengths), [0x10, 0x20]))
+        b1[0x30:0x33] = bytes([0x0f, 0x10, 0x69])
+        nodes = by_pointer(walk(bytes(b0), bytes(b1), bytes(lengths), [0x10, 0x20, 0x30]))
         self.assertEqual(nodes['0x0010']['status'], 'reviewed_main_state_change')
         self.assertEqual(nodes['0x0010']['successors'], [])
         self.assertNotIn('0x0011', nodes)
         self.assertEqual(nodes['0x0020']['status'], 'reviewed_main_state_change')
         self.assertNotIn('0x0021', nodes)
+        self.assertEqual(nodes['0x0030']['status'], 'reviewed_main_state_change')
+        self.assertEqual(nodes['0x0030']['successors'], [])
+        self.assertNotIn('0x0032', nodes)
 
     def test_offset_probe_branches_and_indexed_voice_restores_pointer(self):
         b0, b1, lengths = fixture()
