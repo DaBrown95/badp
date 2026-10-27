@@ -1,0 +1,23 @@
+{
+  "schema_version": 1,
+  "target": "us-v1.5",
+  "bank_size": 32768,
+  "cpu_base": 32768,
+  "bank_count": 2,
+  "source": "src/us-v1.5/rom.s",
+  "linker_config": "config/link-us-v1.5.cfg",
+  "regions": [
+    {"id": "bank0-boot", "bank": 0, "cpu": "0x8000", "size": 17, "kind": "code", "control": "boot"},
+    {"id": "bank0-wait-vblank", "bank": 0, "cpu": "0x9ed0", "size": 6, "kind": "code", "control": "wait"},
+    {"id": "bank0-switch", "bank": 0, "cpu": "0xffb3", "size": 4, "kind": "code", "control": "switch"},
+    {"id": "bank0-bank-table", "bank": 0, "cpu": "0xffb7", "size": 16, "kind": "data", "control": "table"},
+    {"id": "bank0-nmi", "bank": 0, "cpu": "0xffc7", "size": 34, "kind": "code", "control": "nmi"},
+    {"id": "bank0-reset", "bank": 0, "cpu": "0xffe9", "size": 11, "kind": "code", "control": "reset"},
+    {"id": "bank0-vectors", "bank": 0, "cpu": "0xfffa", "size": 6, "kind": "data", "control": "vectors"},
+    {"id": "bank1-switch", "bank": 1, "cpu": "0xffb3", "size": 4, "kind": "code", "control": "switch"},
+    {"id": "bank1-bank-table", "bank": 1, "cpu": "0xffb7", "size": 16, "kind": "data", "control": "table"},
+    {"id": "bank1-nmi", "bank": 1, "cpu": "0xffc7", "size": 34, "kind": "code", "control": "nmi"},
+    {"id": "bank1-reset", "bank": 1, "cpu": "0xffe9", "size": 11, "kind": "code", "control": "reset"},
+    {"id": "bank1-vectors", "bank": 1, "cpu": "0xfffa", "size": 6, "kind": "data", "control": "vectors"}
+  ]
+}

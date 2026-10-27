@@ -12,8 +12,15 @@ Almost all code, analysis and tooling are AI-generated.
 All six reference ROMs have been identified against a
 [pinned No-Intro catalogue](config/catalogues/no-intro-nes.json). Exact headers,
 full-file hashes and separate PRG/CHR identities are recorded in
-[config/targets/](config/targets/). No game code has been reconstructed and no
-ROM build exists.
+[config/targets/](config/targets/).
+
+The v1.5 build matches the reference ROM byte for byte. The current source
+reconstructs 121 physical PRG bytes of 6502 code and 44 bytes of structured data.
+It covers reset, startup, the vblank wait, bank switching, NMI/IRQ tails and
+vectors. The remaining 65,371 PRG bytes and all 65,536 CHR bytes are local
+binary inclusions. The amount of game code still to reconstruct is unknown.
+Seven changed-source controls check that each reconstructed region affects the
+assembled output. These results are recorded with the local build proof.
 
 We will complete v1.5 first, then adapt the shared reconstruction to the other
 versions in order. Each version needs its own matching and gameplay evidence.
@@ -41,10 +48,12 @@ copied bytes alone will not count as a completed reconstruction.
 
 ## Building
 
-The repository tools require Python 3.10+ and Make. They use only the Python
-standard library. Run from the repository root:
+Requires Python 3.10+, Make and a C compiler. On macOS, install Xcode's command
+line tools. Run once from the repository root to download and build the pinned
+assembler and linker locally:
 
 ```sh
+make setup
 make test
 ```
 
@@ -61,6 +70,7 @@ Inspect its container and verify the reference inputs:
 make identify
 make audit
 make audit-all
+make build
 ```
 
 Select another configured version, or inspect an arbitrary file:
@@ -77,18 +87,23 @@ reference automatically. The audits compare against reviewed pins, including
 catalogue SHA-1 checks. Header mapper fields still need verification against the
 cartridge and program behaviour. Input audits do not establish a working build.
 
+`make build` assembles and links v1.5 in a fresh directory, verifies the entire
+ROM and its components, and runs the source-change controls. Output and proof:
+`build/us-v1.5/bible-adventures.nes` and `build/us-v1.5/proof.json`. They remain
+local, along with the extracted inputs and control builds.
+
 | Command | Purpose |
 | --- | --- |
 | `make help` | Show available commands. |
+| `make setup` | Download and build the pinned cc65 tools locally. |
 | `make targets` | Show the primary target and version order. |
 | `make identify` | Inspect the primary ROM, or a selected target/file. |
 | `make audit` | Verify the primary input; `TARGET=<id>` selects another. |
 | `make audit-all` | Verify all six input identities. |
+| `make build` | Build and compare v1.5; retain source-change controls. |
 | `make test` | Test the tooling using synthetic data; no game ROM needed. |
 
-A ROM build and pinned assembler/linker are the next implementation steps.
-`make build` is not implemented yet. The intended build will verify every byte
-of the selected container and its PRG/CHR payload separately.
+Other versions have pinned reference identities but do not have builds yet.
 
 ## Repository
 
@@ -126,13 +141,16 @@ publisher or Nintendo.
 
 ### Tools and dependencies
 
-The initial tools use Python's standard library. No third-party game code,
-assembler, linker or emulator is bundled. Future dependencies will be pinned
-in `config/` and retain their upstream licences and notices.
+The tooling uses Python's standard library and builds the following dependency
+locally. No third-party game code or emulator is bundled.
+
+| Dependency | Use | Licence |
+| --- | --- | --- |
+| [cc65 V2.19](https://github.com/cc65/cc65/tree/555282497c3ecf8b313d87d5973093af19c35bd5) | ca65 assembler, ld65 linker and da65 disassembler | [zlib](https://github.com/cc65/cc65/blob/555282497c3ecf8b313d87d5973093af19c35bd5/LICENSE) |
 
 ### References and inspiration
 
 - [NESdev Wiki](https://www.nesdev.org/wiki/Nesdev_Wiki), for NES hardware research.
 - [iNES](https://www.nesdev.org/wiki/INES) and [NES 2.0](https://www.nesdev.org/wiki/NES_2.0), for ROM container formats.
 - [Color Dreams mapper documentation](https://www.nesdev.org/wiki/Color_Dreams), a starting reference whose applicability must be checked against the selected dump.
-- [ca65](https://cc65.github.io/doc/ca65.html) and [ld65](https://cc65.github.io/doc/ld65.html), candidates for the reconstruction toolchain, without implying they were used for the original game.
+- [ca65](https://cc65.github.io/doc/ca65.html) and [ld65](https://cc65.github.io/doc/ld65.html), used for the reconstruction without implying they were used for the original game.

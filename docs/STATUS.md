@@ -33,27 +33,50 @@ independent source trees or treat one version's evidence as verifying the rest.
 `make audit-all` checks reference integrity for all targets without requiring
 simultaneous reconstruction. Keep progress and completion evidence per target.
 
-No game source has been reconstructed and no ROM build exists. Passing input
-audits is not reconstruction progress. The initial source approach is labelled
-6502 assembly and decoded scripts/data. The developer identifies BOGUS as the
+The v1.5 build now assembles and links to the exact reference, with 121 bytes of
+source code and 44 bytes of structured data across the physical PRG banks.
+It still includes 65,371 local PRG bytes and 65,536 local CHR bytes. Seven
+independent source-change controls verify every listed reconstructed region.
+Passing input audits or whole-ROM equality alone is not reconstruction
+completion. The developer identifies BOGUS as the
 state-machine engine in the [Vance Kozik interview](https://www.nesworld.com/kozik.php);
 the original source language and toolchain remain unestablished.
 
 ## Next work
 
-1. Verify mapper behaviour, bus conflicts, timing and reset mapping for v1.5.
-   Map physical banks separately from CPU/PPU addresses.
-2. Pin an assembler/linker and implement an exact layout build. Classify local
-   binary inclusions explicitly; an equal scaffold is not source progress.
-3. Trace reset, NMI/IRQ vectors, bank transitions and indirect dispatch. Separate
+1. Trace reset, NMI/IRQ vectors, bank transitions and indirect dispatch. Separate
    native instructions, BOGUS state-machine data, other data and unknown bytes.
-4. Reconstruct connected routines and data formats, retaining changed-source
+2. Verify mapper behaviour, bus conflicts, timing and reset mapping with runtime
+   evidence. Map physical banks separately from CPU/PPU addresses.
+3. Reconstruct connected routines and data formats, retaining changed-source
    negative controls and one current full-build proof. Build the progress map
    from verified ownership with no invented denominator.
-5. Establish repeatable runtime checks for all three adventures and shared
+4. Establish repeatable runtime checks for all three adventures and shared
    menus, controls, rendering, audio and progression. Finish source accounting
    and gameplay verification for v1.5, then repeat acceptance for each remaining
    version in the recorded order.
+
+## First v1.5 source evidence
+
+The same reset entry at `$FFE9` appears in both 32 KiB PRG banks. It initializes
+the stack, loads `$0C`, writes that value to `$FFB7`, then jumps to `$8000`.
+Both banks contain `$0C` at `$FFB7`. Under the documented Color Dreams mapper,
+the low PRG-select bits choose bank 0 and writing the value already present at
+the address avoids conflicting ROM bus values. This is static evidence, not a
+runtime verification of power-on bank state or board behaviour.
+
+Bank 0 begins by disabling interrupts, clearing PPUCTRL, calling the `$9ED0`
+PPUSTATUS polling routine twice, and setting PPUMASK. The tails in both banks
+contain a bank-select routine/table, NMI handler, reset routine and interrupt
+vectors. The NMI handlers use different RAM source locations in the two banks;
+their called routines and complete timing have not yet been traced.
+
+The [source map](../config/source-us-v1.5.json) records bank, CPU address, size,
+classification and control for every owned region. `make build` retains the
+actual link map, debug information, source snapshots, local inputs, control
+outputs and hashes under `build/us-v1.5/`. The assembler and linker are built
+from the checksum-pinned cc65 V2.19 release; V2.19 reports itself as V2.18 with
+the release's Git build ID, as documented upstream.
 
 The repository retains the Sims project's MIT licence, AI disclosure,
 owner-run contribution policy and strict matching standard. No hosted repository

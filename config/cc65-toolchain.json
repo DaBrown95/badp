@@ -1,0 +1,13 @@
+{
+  "schema_version": 1,
+  "name": "cc65",
+  "release": "V2.19",
+  "revision": "555282497c3ecf8b313d87d5973093af19c35bd5",
+  "archive_url": "https://github.com/cc65/cc65/archive/refs/tags/V2.19.tar.gz",
+  "archive_sha256": "157b8051aed7f534e5093471e734e7a95e509c577324099c3c81324ed9d0de77",
+  "archive_name": "cc65-v2.19.tar.gz",
+  "archive_root": "cc65-2.19",
+  "build_id": "Git 555282497",
+  "programs": ["ca65", "ld65", "da65"],
+  "licence": "zlib"
+}
