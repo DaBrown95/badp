@@ -58,6 +58,24 @@ class ScriptFlowTests(unittest.TestCase):
             self.assertEqual(nodes[pointer]['status'], 'unreviewed_or_dynamic_handler')
             self.assertEqual(nodes[pointer]['successors'], [])
 
+    def test_slot_comparisons_branch_and_bounds_update_falls_through(self):
+        b0, b1, lengths = fixture()
+        lengths[0x93] = lengths[0x94] = 4
+        lengths[0xa9] = 3
+        b1[0x10:0x14] = bytes([0x93, 0x30, 0, 5])
+        b1[0x14:0x18] = bytes([0x94, 0x40, 0, 6])
+        b1[0x18:0x1b] = bytes([0xa9, 1, 2])
+        b1[0x1b] = b1[0x30] = b1[0x40] = 0x80
+        nodes = by_pointer(walk(bytes(b0), bytes(b1), bytes(lengths), [0x10]))
+        self.assertEqual(nodes['0x0010']['successors'], [
+            {'kind': 'target', 'encoded_pointer': '0x0030'},
+            {'kind': 'fallthrough', 'encoded_pointer': '0x0014'}])
+        self.assertEqual(nodes['0x0014']['successors'], [
+            {'kind': 'target', 'encoded_pointer': '0x0040'},
+            {'kind': 'fallthrough', 'encoded_pointer': '0x0018'}])
+        self.assertEqual(nodes['0x0018']['successors'], [
+            {'kind': 'next', 'encoded_pointer': '0x001b'}])
+
     def test_encoded_bank_transition(self):
         b0, b1, lengths = fixture()
         b1[-1] = 0x21
