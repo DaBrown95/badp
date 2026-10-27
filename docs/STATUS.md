@@ -44,24 +44,36 @@ the original source language and toolchain remain unestablished.
 
 ## v1.5 opening-gameplay evidence
 
-`make verify-gameplay` runs 2,100 NTSC frames each for Noah, Moses and David
+`make verify-gameplay` runs 2,800 NTSC frames each for Noah, Moses and David
 in pinned MesenCE 2.2.1, with zeroed power-on RAM and fixed mapper/alignment
 settings. It compares the audited reference and verified build under the same
-menu, start, right and A inputs. All three reached their opening areas and
-showed a change in scroll and screenshot after rightward input. The six sampled
-frames, state and cycle counts, mapper-write streams, NMI counts, OAM DMA and
+menu and movement inputs. All three reached their opening areas and showed a
+change in scroll and screenshot after rightward input. The Moses sequence also
+presses B to lift the baby, jumps past the first approaching enemy and crosses
+the first water gap. Its sampled slot fields show the baby linked to the player
+and carried as the level scrolls; screenshots provide visual evidence of the
+lift. The fifteen sampled
+frames, slot fields, state and cycle counts, mapper-write streams, NMI counts, OAM DMA and
 APU-register write streams agreed between the reference and build. Both PRG
 banks appeared in the emulator's mapper-write mapping; every observed write
 value equalled the mapped ROM byte. This describes the emulator model and the
 tested paths, not physical board behaviour or proof of timing on hardware.
 
-The respective Noah, Moses and David runs recorded 70,517, 71,604 and 78,016
-mapper writes; 2,028, 2,027 and 2,027 NMIs; and 1,314, 1,262 and 1,245 APU
-register writes. Mesen reported 180, 181 and 188 uninitialized-read warnings
-respectively, equally for the reference and build; their causes remain to be
-investigated. Audio output and complete progression have not been checked.
+Mesen reports uninitialized-read warnings in these runs, equally for the
+reference and build; their causes remain to be investigated. Audio output and
+complete progression have not been checked.
 Screenshots, event streams and the proof remain under ignored
 `reports/us-v1.5/runtime/`.
+
+A separate reference-only execution callback for the Moses carry sequence
+observed no instruction starts in the source map's remaining local PRG gaps.
+This covers only the exercised path and does not classify every byte or establish
+the behaviour of paths that were not reached. Its local trace remains in
+`analysis/us-v1.5/unowned-carry-execution.json`.
+Local jump-timing explorations beyond frame 2,800 lost the baby before the
+frame-3,000 samples; the attempts and screenshots remain under
+`analysis/us-v1.5/moses-second-*`. They are exploratory reference runs, not
+successful reference-versus-build checks.
 
 The emulator archive matched the published SHA-256. On the test machine,
 `codesign --verify` reported its bundled signature as invalid; the headless

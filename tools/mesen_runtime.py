@@ -16,7 +16,8 @@ from .progress import verify_primary
 from .project import load_target
 from .setup_mesen import ROOT, digest_file, spec, verify_emulator
 
-FRAMES = (240, 650, 1200, 1400, 1800, 2100)
+FRAMES = (240, 650, 1200, 1400, 1496, 1511, 1550, 1700, 1800, 2100, 2150, 2300, 2400, 2600, 2800)
+SLOT_FRAMES = (1400, 1496, 1511, 1550, 1700, 1800, 2100, 2150, 2300, 2400, 2600, 2800)
 SCENARIOS = (('noah', 1), ('moses', 5), ('david', 11))
 SCRIPT_TARGETS = (0x3D21, 0x3D22, 0x5CFE, 0x5D00, 0x5D01, 0x5D04, 0x5D06, 0x5D08, 0x5D0A)
 RECORD_TARGETS = (0x5A40, 0x6D71, 0x6E65, 0x6E7F, 0x6ECD, 0x6EE5, 0x6EFD)
@@ -32,6 +33,7 @@ RUNTIME_INPUTS = ('config/mesence-toolchain.json', 'tools/setup_mesen.py',
 def parse_output(output: str) -> tuple[dict, dict[int, bytes], dict[str, bytes]]:
     """Parse emulator evidence strictly; unrelated emulator messages are ignored."""
     frames: dict[int, dict] = {}
+    slots: dict[int, dict] = {}
     images: dict[int, bytes] = {}
     writes: list[str] = []
     audio: list[str] = []
@@ -83,7 +85,8 @@ def parse_output(output: str) -> tuple[dict, dict[int, bytes], dict[str, bytes]]
             if (frame not in FRAMES or frame in frames or not 0 <= physical < 0x10000
                     or cycles <= 0 or nmis < 0):
                 raise ValueError('unexpected or duplicated frame evidence')
-            if any(not 0 <= value <= 255 for value in (main, state, scroll_x, scroll_y)):
+            if (any(not 0 <= value <= 255 for value in (main, state))
+                    or any(not 0 <= value <= 65535 for value in (scroll_x, scroll_y))):
                 raise ValueError('out-of-range frame state')
             image = bytes.fromhex(parts[9])
             if not image.startswith(PNG_SIGNATURE) or len(image) > 8_000_000:
@@ -93,6 +96,15 @@ def parse_output(output: str) -> tuple[dict, dict[int, bytes], dict[str, bytes]]
                              'cpu_cycles': cycles, 'nmi_count': nmis,
                              'screenshot_sha256': digest(image)}
             images[frame] = image
+        elif line.startswith('BADP_SLOT '):
+            parts = line.split()
+            if len(parts) != 9:
+                raise ValueError('malformed slot evidence')
+            frame, *values = map(int, parts[1:])
+            if frame not in SLOT_FRAMES or frame in slots or any(not 0 <= value <= 255 for value in values):
+                raise ValueError('unexpected, duplicated or out-of-range slot evidence')
+            slots[frame] = dict(zip(('player_descriptor', 'object_descriptor', 'object_link',
+                                     'object_x', 'object_y', 'player_x', 'player_y'), values))
         elif line.startswith('BADP_SUMMARY '):
             if reported is not None:
                 raise ValueError('duplicate mapper summary')
@@ -123,13 +135,14 @@ def parse_output(output: str) -> tuple[dict, dict[int, bytes], dict[str, bytes]]
                 frames.get(FRAMES[-1], {}).get('nmi_count'), len(audio), len(dma))
     expected_targets = ({f'script:{address:04X}' for address in SCRIPT_TARGETS}
                         | {f'record:{address:04X}' for address in RECORD_TARGETS})
-    if (set(frames) != set(FRAMES) or reported != expected or not writes
+    if (set(frames) != set(FRAMES) or set(slots) != set(SLOT_FRAMES) or reported != expected or not writes
             or probes is None or set(targets) != expected_targets):
         raise ValueError('runtime evidence is incomplete or inconsistent')
     write_data = ('\n'.join(writes) + '\n').encode('ascii')
     audio_data = ('\n'.join(audio) + '\n').encode('ascii')
     dma_data = ('\n'.join(dma) + '\n').encode('ascii')
     return ({'frames': {str(k): frames[k] for k in FRAMES},
+             'slots': {str(k): slots[k] for k in SLOT_FRAMES},
              'mapper_writes': len(writes), 'mapper_write_sha256': digest(write_data),
              'mapper_value_mismatches': mismatches, 'unmapped_mapper_writes': unmapped,
              'physical_prg_banks_seen': sorted(banks),
@@ -145,11 +158,23 @@ def parse_output(output: str) -> tuple[dict, dict[int, bytes], dict[str, bytes]]
 def validate_scenario(evidence: dict, expected_state: int) -> None:
     frames = evidence['frames']
     if (frames['240']['state'] != 0 or frames['650']['state'] != 16
-            or any(frames[str(frame)]['state'] != expected_state for frame in (1200, 1400, 1800, 2100))):
+            or any(frames[str(frame)]['state'] != expected_state for frame in (1200, 1400, 1800, 2100, 2300))):
         raise ValueError('input sequence did not reach the expected adventure state')
     if (frames['1800']['scroll_x'] <= frames['1400']['scroll_x']
             or frames['1800']['screenshot_sha256'] == frames['1400']['screenshot_sha256']):
         raise ValueError('rightward input did not produce the expected opening-area change')
+    if expected_state == 5:
+        slots = evidence['slots']
+        if (any(slots[str(frame)]['player_descriptor'] != 1 or
+                slots[str(frame)]['object_descriptor'] != 0x6a for frame in SLOT_FRAMES)
+                or slots['1400']['object_link'] != 0xff
+                or any(slots[str(frame)]['object_link'] != 1 for frame in SLOT_FRAMES[1:])
+                or slots['1511']['object_y'] >= slots['1400']['object_y']
+                or slots['1700']['object_x'] != slots['1700']['player_x']
+                or frames['2150']['scroll_x'] <= frames['2100']['scroll_x']
+                or frames['2800']['state'] != 5
+                or frames['2800']['scroll_x'] - frames['1700']['scroll_x'] < 1400):
+            raise ValueError('Moses pickup and carry observations did not match')
     if (evidence['mapper_value_mismatches'] or evidence['unmapped_mapper_writes']
             or evidence['physical_prg_banks_seen'] != [0, 1]):
         raise ValueError('mapper write evidence did not meet the observed-bank checks')

@@ -118,8 +118,10 @@ make verify-gameplay
 ```
 
 The check runs the reference and matching build under the same inputs, comparing
-screenshots, state, mapper writes, NMI, OAM DMA and audio-register writes. It
-keeps its evidence in the ignored `reports/us-v1.5/runtime/` directory. These
+screenshots, state, mapper writes, NMI, OAM DMA and audio-register writes. The
+Moses sequence includes picking up and carrying the baby past the first enemy
+and across the first water gap.
+It keeps its evidence in the ignored `reports/us-v1.5/runtime/` directory. These
 short opening scenarios do not establish full gameplay completion or physical
 cartridge behaviour.
 

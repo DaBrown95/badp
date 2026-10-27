@@ -1,7 +1,7 @@
 """Runtime evidence parsing tests use synthetic emulator output only."""
 import unittest
 
-from tools.mesen_runtime import (FRAMES, PNG_SIGNATURE, RECORD_TARGETS, SCRIPT_TARGETS,
+from tools.mesen_runtime import (FRAMES, SLOT_FRAMES, PNG_SIGNATURE, RECORD_TARGETS, SCRIPT_TARGETS,
                                  parse_output, validate_scenario)
 
 
@@ -10,10 +10,16 @@ def synthetic_output(state=1):
              'BADP_APU 1 4000 30', 'BADP_DMA 1 4014 02']
     for frame in FRAMES:
         scene = 0 if frame == 240 else 16 if frame == 650 else state
-        scroll = 3 if frame >= 1800 else 0
+        scroll = (1636 if frame == 2800 else 1390 if frame == 2600 else 1126 if frame == 2400
+                  else 990 if frame == 2300 else 790 if frame == 2150 else 726 if frame == 2100
+                  else 190 if frame >= 1700 else 0) if state == 5 else (3 if frame >= 1800 else 0)
         png = (PNG_SIGNATURE + (b'moved' if frame >= 1800 else b'initial')).hex()
         lines.append(f'BADP_FRAME {frame} 0 {scene} {scroll} 0 0 {frame * 100} {frame} {png}')
-    lines.append('BADP_SUMMARY 2 0 0 1 1 2100 1 1')
+        if frame in SLOT_FRAMES:
+            link = 255 if frame == 1400 else 1
+            y = 160 if frame == 1400 else 130
+            lines.append(f'BADP_SLOT {frame} 1 106 {link} 96 {y} 96 144')
+    lines.append('BADP_SUMMARY 2 0 0 1 1 2800 1 1')
     lines.append('BADP_PROBE 4 2')
     lines.extend(f'BADP_TARGET script {address:04X} 0' for address in SCRIPT_TARGETS)
     lines.extend(f'BADP_TARGET record {address:04X} 0' for address in RECORD_TARGETS)
@@ -35,10 +41,13 @@ class MesenRuntimeTests(unittest.TestCase):
 
     def test_missing_duplicate_or_inconsistent_evidence_fails(self):
         text = synthetic_output()
-        for invalid in (text.replace('BADP_SUMMARY 2 0 0 1 1 2100 1 1', ''),
-                        text + 'BADP_SUMMARY 2 0 0 1 1 2100 1 1\n',
+        for invalid in (text.replace('BADP_SUMMARY 2 0 0 1 1 2800 1 1', ''),
+                        text + 'BADP_SUMMARY 2 0 0 1 1 2800 1 1\n',
                         text.replace('BADP_TARGET script 3D21 0\n', ''),
-                        text.replace('BADP_SUMMARY 2 0 0 1 1 2100 1 1', 'BADP_SUMMARY 2 1 0 1 1 2100 1 1'),
+                        text.replace('BADP_SLOT 1400 1 106 255 96 160 96 144\n', ''),
+                        text + 'BADP_SLOT 1400 1 106 255 96 160 96 144\n',
+                        text.replace('BADP_SLOT 1400 1 106 255', 'BADP_SLOT 1400 1 106 256'),
+                        text.replace('BADP_SUMMARY 2 0 0 1 1 2800 1 1', 'BADP_SUMMARY 2 1 0 1 1 2800 1 1'),
                         text.replace('BADP_APU 1 4000 30', 'BADP_APU 1 4014 30'),
                         text.replace('BADP_WRITE 0 FFB7 0C 32767 12', 'BADP_WRITE 0 FFB7 XX 32767 12')):
             with self.subTest(invalid=invalid[:50]), self.assertRaises(ValueError):
@@ -51,6 +60,24 @@ class MesenRuntimeTests(unittest.TestCase):
         evidence['frames']['1800']['scroll_x'] = evidence['frames']['1400']['scroll_x']
         with self.assertRaisesRegex(ValueError, 'rightward input'):
             validate_scenario(evidence, 5)
+
+    def test_moses_requires_pickup_and_carry(self):
+        evidence, _, _ = parse_output(synthetic_output(state=5))
+        validate_scenario(evidence, 5)
+        for frame, field, value in (('1400', 'object_link', 1), ('1496', 'object_link', 255),
+                                    ('1700', 'object_link', 255), ('1700', 'object_x', 0),
+                                    ('1511', 'object_y', 160), ('1550', 'object_descriptor', 0),
+                                    ('2800', 'object_link', 255)):
+            with self.subTest(frame=frame, field=field):
+                broken, _, _ = parse_output(synthetic_output(state=5))
+                broken['slots'][frame][field] = value
+                with self.assertRaisesRegex(ValueError, 'pickup and carry'):
+                    validate_scenario(broken, 5)
+        for frame, value in (('2150', 726), ('2800', 1589)):
+            broken, _, _ = parse_output(synthetic_output(state=5))
+            broken['frames'][frame]['scroll_x'] = value
+            with self.subTest(frame=frame), self.assertRaisesRegex(ValueError, 'pickup and carry'):
+                validate_scenario(broken, 5)
 
 
 if __name__ == '__main__':
