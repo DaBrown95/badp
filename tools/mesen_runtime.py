@@ -18,7 +18,7 @@ from .setup_mesen import ROOT, digest_file, spec, verify_emulator
 
 FRAMES = (240, 650, 1200, 1400, 1496, 1511, 1550, 1700, 1800, 2100, 2150, 2300, 2400, 2600, 2800)
 SLOT_FRAMES = (1400, 1496, 1511, 1550, 1700, 1800, 2100, 2150, 2300, 2400, 2600, 2800)
-SCENARIOS = (('noah', 1), ('moses', 5), ('david', 11))
+SCENARIOS = (('noah', 1), ('moses', 5), ('david', 11), ('inventory', 1))
 SCRIPT_TARGETS = (0x3D21, 0x3D22, 0x5CFE, 0x5D00, 0x5D01, 0x5D04, 0x5D06, 0x5D08, 0x5D0A)
 RECORD_TARGETS = (0x5A40, 0x6D71, 0x6E65, 0x6E7F, 0x6ECD, 0x6EE5, 0x6EFD)
 PNG_SIGNATURE = b'\x89PNG\r\n\x1a\n'
@@ -26,6 +26,7 @@ SDL2 = Path('/opt/homebrew/opt/sdl2/lib/libSDL2-2.0.0.dylib')
 FLAGS = ('--testRunner', '--doNotSaveSettings', '--timeout=30', '--nes.region=Ntsc',
          '--nes.ramPowerOnState=AllZeros', '--nes.randomizeMapperPowerOnState=false',
          '--nes.randomizeCpuPpuAlignment=false')
+GAMEPLAY_FLAGS = tuple('--timeout=120' if flag == '--timeout=30' else flag for flag in FLAGS)
 RUNTIME_INPUTS = ('config/mesence-toolchain.json', 'tools/setup_mesen.py',
                   'tools/mesen_gameplay.lua', 'tools/mesen_runtime.py')
 
@@ -42,6 +43,7 @@ def parse_output(output: str) -> tuple[dict, dict[int, bytes], dict[str, bytes]]
     banks: set[int] = set()
     reported = None
     probes = None
+    inventory = None
     targets: dict[str, int] = {}
     warnings = 0
     for line in output.splitlines():
@@ -119,6 +121,13 @@ def parse_output(output: str) -> tuple[dict, dict[int, bytes], dict[str, bytes]]
             probes = tuple(map(int, parts[1:]))
             if any(value < 0 for value in probes):
                 raise ValueError('invalid probe count')
+        elif line.startswith('BADP_INVENTORY '):
+            parts = line.split()
+            if inventory is not None or len(parts) != 4:
+                raise ValueError('malformed or duplicate inventory evidence')
+            inventory = tuple(map(int, parts[1:]))
+            if any(value < 0 for value in inventory):
+                raise ValueError('invalid inventory count')
         elif line.startswith('BADP_TARGET '):
             parts = line.split()
             if len(parts) != 4 or parts[1] not in ('script', 'record'):
@@ -136,7 +145,7 @@ def parse_output(output: str) -> tuple[dict, dict[int, bytes], dict[str, bytes]]
     expected_targets = ({f'script:{address:04X}' for address in SCRIPT_TARGETS}
                         | {f'record:{address:04X}' for address in RECORD_TARGETS})
     if (set(frames) != set(FRAMES) or set(slots) != set(SLOT_FRAMES) or reported != expected or not writes
-            or probes is None or set(targets) != expected_targets):
+            or probes is None or inventory is None or set(targets) != expected_targets):
         raise ValueError('runtime evidence is incomplete or inconsistent')
     write_data = ('\n'.join(writes) + '\n').encode('ascii')
     audio_data = ('\n'.join(audio) + '\n').encode('ascii')
@@ -150,18 +159,26 @@ def parse_output(output: str) -> tuple[dict, dict[int, bytes], dict[str, bytes]]
              'apu_write_sha256': digest(audio_data), 'oam_dma_writes': len(dma),
              'oam_dma_write_sha256': digest(dma_data),
              'script_fetch_probes': probes[0], 'record_load_probes': probes[1],
+             'inventory_list_index_zero': inventory[0], 'inventory_template_index_zero': inventory[1],
+             'inventory_other_index_reads': inventory[2],
              'contested_target_hits': dict(sorted(targets.items())),
              'uninitialized_read_warnings': warnings}, images,
             {'mapper': write_data, 'apu': audio_data, 'oam_dma': dma_data})
 
 
-def validate_scenario(evidence: dict, expected_state: int) -> None:
+def validate_scenario(evidence: dict, expected_state: int, *, inventory: bool = False) -> None:
     frames = evidence['frames']
+    expected_frames = ((1200, 1), (1400, 1), (1800, 16), (2100, 16), (2300, 16), (2800, 1)) if inventory else tuple(
+        (frame, expected_state) for frame in (1200, 1400, 1800, 2100, 2300))
     if (frames['240']['state'] != 0 or frames['650']['state'] != 16
-            or any(frames[str(frame)]['state'] != expected_state for frame in (1200, 1400, 1800, 2100, 2300))):
+            or any(frames[str(frame)]['state'] != state for frame, state in expected_frames)):
         raise ValueError('input sequence did not reach the expected adventure state')
-    if (frames['1800']['scroll_x'] <= frames['1400']['scroll_x']
-            or frames['1800']['screenshot_sha256'] == frames['1400']['screenshot_sha256']):
+    if inventory:
+        if (not evidence['inventory_list_index_zero'] or not evidence['inventory_template_index_zero']
+                or frames['1800']['screenshot_sha256'] == frames['1400']['screenshot_sha256']):
+            raise ValueError('inventory opening or index-zero table reads were not observed')
+    elif (frames['1800']['scroll_x'] <= frames['1400']['scroll_x']
+          or frames['1800']['screenshot_sha256'] == frames['1400']['screenshot_sha256']):
         raise ValueError('rightward input did not produce the expected opening-area change')
     if expected_state == 5:
         slots = evidence['slots']
@@ -185,9 +202,9 @@ def validate_scenario(evidence: dict, expected_state: int) -> None:
 
 
 def run_case(exe: Path, lua: Path, rom: Path, root: Path) -> tuple[dict, dict[int, bytes], dict[str, bytes]]:
-    command = [str(exe), *FLAGS, str(lua), str(rom)]
+    command = [str(exe), *GAMEPLAY_FLAGS, str(lua), str(rom)]
     env = {key: value for key, value in os.environ.items() if not key.startswith('DYLD_')}
-    result = subprocess.run(command, cwd=root, env=env, capture_output=True, text=True, timeout=60)
+    result = subprocess.run(command, cwd=root, env=env, capture_output=True, text=True, timeout=150)
     if result.returncode != 0:
         raise ValueError(f'MesenCE exited with status {result.returncode}: {result.stderr[-500:]}')
     if len(result.stdout) > 30_000_000:
@@ -223,8 +240,8 @@ def run(root: Path = ROOT) -> dict:
             verify_emulator(root, require_core=True)
             if digest_file(SDL2) != sdl_digest:
                 raise ValueError('SDL2 changed during runtime verification')
-            validate_scenario(ref, expected_state)
-            validate_scenario(candidate, expected_state)
+            validate_scenario(ref, expected_state, inventory=name == 'inventory')
+            validate_scenario(candidate, expected_state, inventory=name == 'inventory')
             if ref != candidate or ref_events != candidate_events:
                 raise ValueError(f'{name}: reference and build runtime evidence differ')
             for frame, image in images.items():
@@ -241,7 +258,7 @@ def run(root: Path = ROOT) -> dict:
         destination = output / run_name
         if destination.exists():
             raise ValueError('runtime evidence directory already exists')
-        report = {'schema_version': 1, 'target': 'us-v1.5', 'scope': 'opening gameplay only',
+        report = {'schema_version': 1, 'target': 'us-v1.5', 'scope': 'opening gameplay and Noah inventory',
                   'reference_sha256': target['reference']['file']['sha256'],
                   'source_sha256': verified['source_sha256'],
                   'source_map_sha256': verified['source_map_sha256'],
@@ -251,7 +268,7 @@ def run(root: Path = ROOT) -> dict:
                   'emulator_core_sha256': pin['core_sha256'], 'emulator_database_sha256': pin['database_sha256'],
                   'system_sdl2_sha256': sdl_digest, 'macos_version': platform.mac_ver()[0],
                   'runtime_input_sha256': runtime_inputs,
-                  'emulator_flags': list(FLAGS), 'results': results,
+                  'emulator_flags': list(GAMEPLAY_FLAGS), 'results': results,
                   'evidence_directory': f'reports/us-v1.5/runtime/{run_name}',
                   'limitations': 'Emulator evidence only; not full gameplay completion or cartridge hardware verification.'}
         (work / 'proof.json').write_text(json.dumps(report, indent=2) + '\n')

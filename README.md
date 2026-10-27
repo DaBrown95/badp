@@ -42,7 +42,7 @@ are not measures of gameplay completion.
 <!-- BEGIN GENERATED PROGRESS -->
 | Version | Reconstructed PRG | Status |
 | --- | ---: | --- |
-| USA v1.5 | **61.34%** (40,199 / 65,536 bytes) | In progress |
+| USA v1.5 | **61.40%** (40,240 / 65,536 bytes) | In progress |
 | USA v1.4 | **0.00%** (0 / 65,536 bytes) | Not started |
 | USA v1.3 | **0.00%** (0 / 65,536 bytes) | Not started |
 | USA v1.2 | **0.00%** (0 / 65,536 bytes) | Not started |
@@ -120,7 +120,8 @@ make verify-gameplay
 The check runs the reference and matching build under the same inputs, comparing
 screenshots, state, mapper writes, NMI, OAM DMA and audio-register writes. The
 Moses sequence includes picking up and carrying the baby past the first enemy
-and across the first water gap.
+and across the first water gap. A separate Noah sequence opens and closes the
+inventory and checks its table reads.
 It keeps its evidence in the ignored `reports/us-v1.5/runtime/` directory. These
 short opening scenarios do not establish full gameplay completion or physical
 cartridge behaviour.
@@ -135,7 +136,7 @@ cartridge behaviour.
 | `make audit` | Verify the primary input; `TARGET=<id>` selects another. |
 | `make audit-all` | Verify all six input identities. |
 | `make build` | Build and compare v1.5; retain source-change controls. |
-| `make verify-gameplay` | Compare the v1.5 opening scenarios in MesenCE. |
+| `make verify-gameplay` | Compare v1.5 opening scenarios and inventory in MesenCE. |
 | `make progress` | Rebuild and update the per-version tracker. |
 | `make position-records` | Decode v1.5 position records to ignored local analysis. |
 | `make script-entries` | Inventory candidate v1.5 script entry points locally. |

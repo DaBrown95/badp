@@ -15,7 +15,7 @@ help:
 	@echo 'make setup-mesen  Install the pinned local macOS ARM64 emulator'
 	@echo 'make build     Assemble and verify v1.5, including source-change controls'
 	@echo 'make progress  Rebuild and refresh the verified per-version README tracker'
-	@echo 'make verify-gameplay  Compare v1.5 opening gameplay in MesenCE'
+	@echo 'make verify-gameplay  Compare v1.5 opening gameplay and inventory in MesenCE'
 	@echo 'make position-records  Decode v1.5 position records to local analysis'
 	@echo 'make script-entries  Inventory v1.5 script entry candidates locally'
 	@echo 'make script-flow     Trace reviewed v1.5 script control flow locally'

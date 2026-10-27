@@ -34,9 +34,9 @@ independent source trees or treat one version's evidence as verifying the rest.
 simultaneous reconstruction. Keep progress and completion evidence per target.
 
 The v1.5 build now assembles and links to the exact reference, with 21,474 bytes
-of source code and 18,725 bytes of structured data across the physical PRG banks.
-It still includes 25,337 local PRG bytes and 65,536 local CHR bytes. A total of
-1,214 independent source-change controls verify every listed reconstructed region.
+of source code and 18,766 bytes of structured data across the physical PRG banks.
+It still includes 25,296 local PRG bytes and 65,536 local CHR bytes. A total of
+1,219 independent source-change controls verify every listed reconstructed region.
 Passing input audits or whole-ROM equality alone is not reconstruction
 completion. The developer identifies BOGUS as the
 state-machine engine in the [Vance Kozik interview](https://www.nesworld.com/kozik.php);
@@ -44,7 +44,8 @@ the original source language and toolchain remain unestablished.
 
 ## v1.5 opening-gameplay evidence
 
-`make verify-gameplay` runs 2,800 NTSC frames each for Noah, Moses and David
+`make verify-gameplay` runs 2,800 NTSC frames each for Noah, Moses and David,
+plus a separate Noah inventory scenario,
 in pinned MesenCE 2.2.1, with zeroed power-on RAM and fixed mapper/alignment
 settings. It compares the audited reference and verified build under the same
 menu and movement inputs. All three reached their opening areas and showed a
@@ -74,6 +75,9 @@ Local jump-timing explorations beyond frame 2,800 lost the baby before the
 frame-3,000 samples; the attempts and screenshots remain under
 `analysis/us-v1.5/moses-second-*`. They are exploratory reference runs, not
 successful reference-versus-build checks.
+A further reference-only jump sweep carried him through the frame-3,000 sample
+in one tested timing, but he was no longer linked at frame 3,100. The sweep
+inputs and incremental results remain in `analysis/us-v1.5/moses-jump-sweep/`.
 
 The emulator archive matched the published SHA-256. On the test machine,
 `codesign --verify` reported its bundled signature as invalid; the headless
@@ -181,6 +185,18 @@ slot, palette, audio and movement scripts are represented in source. These
 predecessor bounds do not establish all possible callers or runtime behavior.
 The temporary batch transcription script was retired after integration; the
 maintained source and current build proof remain.
+
+The inventory script indexes encoded pointer entries at `$D05F` and `$D09D`;
+four entries at each base are represented as pointers to locally supplied list
+and display data. The candidate `$FD05` script indexes five pointer entries at
+each of `$FCE3` and `$FCED`, followed by five state bytes at `$FCF7`. Its
+two-byte reads can cross an entry or the boundary into the following slot
+record. These source entries preserve the observed layout without asserting
+runtime index bounds; the pointed-to game assets remain local.
+A Noah inventory comparison opened and closed the screen on both the reference
+and a fresh matching assembly, observing index zero at both `$D05F` and `$D09D`.
+The local trace and screenshots remain under `analysis/us-v1.5/inventory-*`;
+this does not verify the other entries.
 
 Shared routines now include arithmetic, bit shifts, field selection and
 conditional stack unwinding, slot coordinate calculations, and field update

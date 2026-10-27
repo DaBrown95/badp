@@ -5,11 +5,13 @@ from tools.mesen_runtime import (FRAMES, SLOT_FRAMES, PNG_SIGNATURE, RECORD_TARG
                                  parse_output, validate_scenario)
 
 
-def synthetic_output(state=1):
+def synthetic_output(state=1, *, inventory=False):
     lines = ['BADP_WRITE 0 FFB7 0C 32767 12', 'BADP_WRITE 1 FFC6 0D 65534 13',
              'BADP_APU 1 4000 30', 'BADP_DMA 1 4014 02']
     for frame in FRAMES:
         scene = 0 if frame == 240 else 16 if frame == 650 else state
+        if inventory and frame in (1800, 2100, 2300):
+            scene = 16
         scroll = (1636 if frame == 2800 else 1390 if frame == 2600 else 1126 if frame == 2400
                   else 990 if frame == 2300 else 790 if frame == 2150 else 726 if frame == 2100
                   else 190 if frame >= 1700 else 0) if state == 5 else (3 if frame >= 1800 else 0)
@@ -21,6 +23,7 @@ def synthetic_output(state=1):
             lines.append(f'BADP_SLOT {frame} 1 106 {link} 96 {y} 96 144')
     lines.append('BADP_SUMMARY 2 0 0 1 1 2800 1 1')
     lines.append('BADP_PROBE 4 2')
+    lines.append('BADP_INVENTORY 1 6 0' if inventory else 'BADP_INVENTORY 0 0 0')
     lines.extend(f'BADP_TARGET script {address:04X} 0' for address in SCRIPT_TARGETS)
     lines.extend(f'BADP_TARGET record {address:04X} 0' for address in RECORD_TARGETS)
     return '\n'.join(lines) + '\n'
@@ -44,6 +47,10 @@ class MesenRuntimeTests(unittest.TestCase):
         for invalid in (text.replace('BADP_SUMMARY 2 0 0 1 1 2800 1 1', ''),
                         text + 'BADP_SUMMARY 2 0 0 1 1 2800 1 1\n',
                         text.replace('BADP_TARGET script 3D21 0\n', ''),
+                        text.replace('BADP_INVENTORY 0 0 0\n', ''),
+                        text + 'BADP_INVENTORY 0 0 0\n',
+                        text.replace('BADP_INVENTORY 0 0 0', 'BADP_INVENTORY -1 0 0'),
+                        text + 'BADP_WRITE 2800 FFB7 0C 32767 12\n',
                         text.replace('BADP_SLOT 1400 1 106 255 96 160 96 144\n', ''),
                         text + 'BADP_SLOT 1400 1 106 255 96 160 96 144\n',
                         text.replace('BADP_SLOT 1400 1 106 255', 'BADP_SLOT 1400 1 106 256'),
@@ -78,6 +85,18 @@ class MesenRuntimeTests(unittest.TestCase):
             broken['frames'][frame]['scroll_x'] = value
             with self.subTest(frame=frame), self.assertRaisesRegex(ValueError, 'pickup and carry'):
                 validate_scenario(broken, 5)
+
+    def test_inventory_must_open_read_both_tables_and_return(self):
+        evidence, _, _ = parse_output(synthetic_output(inventory=True))
+        validate_scenario(evidence, 1, inventory=True)
+        for field in ('inventory_list_index_zero', 'inventory_template_index_zero'):
+            broken, _, _ = parse_output(synthetic_output(inventory=True))
+            broken[field] = 0
+            with self.subTest(field=field), self.assertRaisesRegex(ValueError, 'inventory opening'):
+                validate_scenario(broken, 1, inventory=True)
+        evidence['frames']['2800']['state'] = 16
+        with self.assertRaisesRegex(ValueError, 'expected adventure'):
+            validate_scenario(evidence, 1, inventory=True)
 
 
 if __name__ == '__main__':

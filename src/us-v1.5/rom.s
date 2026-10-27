@@ -16545,9 +16545,8 @@ ScriptCFD7:
 ScriptCFDA:
     BogusMultiplySlotValueByArray $FF
 .assert (* - BankStart) = $4FDC, error, "bank 1 script CFC7 end"
-; Continue the shared value-selection path. The referenced data bases remain
-; local while their wider consumers are investigated.
-DataD09D = BankStart + $509D
+; Continue the shared value-selection path. Indexed reads may extend beyond
+; the named entries below; their runtime index bounds are not established.
     BogusClampSlotValueAtMost $0008 ; CONTROL_BOGUS_CFDC
     BogusLoadSlotValueIndexedBank1 DataD05F
     BogusQueueStateAB $0000
@@ -16605,7 +16604,15 @@ ScriptD059:
     BogusInitializeSplitAndMainState
 .assert (* - BankStart) = $505F, error, "bank 1 script CFDC end"
 DataD05F:
-    .incbin "bank1_d05f_d21c.bin"
+    ; Encoded bank-1 pointers into the locally supplied inventory lists.
+    .word $5111, $518D, $51D8, $5143 ; CONTROL_INVENTORY_LIST_POINTERS
+.assert (* - BankStart) = $5067, error, "bank 1 inventory list pointer entries end"
+    .incbin "bank1_d067_d09d.bin"
+DataD09D:
+    ; Encoded pointers to four local inventory display templates.
+    .word $50A5, $50AE, $50B7, $50C0 ; CONTROL_INVENTORY_TEMPLATE_POINTERS
+.assert (* - BankStart) = $50A5, error, "bank 1 inventory template pointer entries end"
+    .incbin "bank1_d0a5_d21c.bin"
 ; Descriptor-linked slot record; resource data remains local.
 SlotRuntimeD21C:
     SlotRuntimeRecord $BF27, $522E, $40, $FF, $00, $00, $00 ; CONTROL_SLOT_RUNTIME_D21C
@@ -20935,7 +20942,18 @@ CandidateFC6A:
 CandidateFC7E:
     BogusJumpBank1 CandidateFC7E
 .assert (* - BankStart) = $7C81, error, "bank 1 candidate script FC6A end"
-    .incbin "bank1_fc81_fcfc.bin"
+    .incbin "bank1_fc81_fce3.bin"
+; These indexed entries are read by the candidate $FD05 script. The first
+; table points into local bank-1 data; the second contains palette pointers.
+; The next byte sequence is also read as overlapping two-byte values, and a
+; read near its end can include bytes of the following slot record.
+CandidateListPointersFCE3:
+    .word $7CA7, $7CA7, $7CB4, $7CC3, $7CD2 ; CONTROL_CANDIDATE_LIST_POINTERS
+CandidatePalettePointersFCED:
+    .word $C7F2, $C7F2, $C805, $C7F2, $C818 ; CONTROL_CANDIDATE_PALETTE_POINTERS
+CandidateStateValuesFCF7:
+    .byte $00, $05, $28, $07, $1E ; CONTROL_CANDIDATE_STATE_VALUES
+.assert (* - BankStart) = $7CFC, error, "bank 1 candidate indexed entries end"
 ; Descriptor-linked slot record; resource data remains local.
 SlotRuntimeFCFC:
     SlotRuntimeRecord $BC79, (CandidateFD05 - BankStart), $00, $FF, $00, $00, $00 ; CONTROL_SLOT_RUNTIME_FCFC
@@ -20946,10 +20964,10 @@ CandidateFD05:
     BogusSetSlotValue $0002
     BogusMultiplySlotValueByArray $3D
     BogusStoreSlotValueArray $FF
-    BogusLoadSlotValueIndexedBank1 (BankStart + $7CED)
+    BogusLoadSlotValueIndexedBank1 CandidatePalettePointersFCED
     BogusSetSpritePalettePointer $0000
     BogusLoadSlotValueArray $FF
-    BogusLoadSlotValueIndexedBank1 (BankStart + $7CE3)
+    BogusLoadSlotValueIndexedBank1 CandidateListPointersFCE3
 CandidateFD19:
     BogusStoreSlotValueArray $FF
     BogusLoadSlotValueIndexedBank1 (BankStart + $0000)
@@ -20968,7 +20986,7 @@ CandidateFD3C:
     BogusLoadSlotValueArray $3D
     BogusBranchIfSlotValueEqual (BankStart + $7D65), $04, $00
     BogusStoreSlotValueArray $FF
-    BogusLoadSlotValueIndexedBank1 (BankStart + $7CF7)
+    BogusLoadSlotValueIndexedBank1 CandidateStateValuesFCF7
     BogusStoreSlotValueArray $3D
     BogusCallNativeEncoded $B51B
     BogusSaveStateAndPlaceSlots $10

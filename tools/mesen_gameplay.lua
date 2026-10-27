@@ -1,7 +1,8 @@
--- The runner supplies SCENARIO as 0 (Noah), 1 (Moses), or 2 (David).
+-- The runner supplies SCENARIO as 0 (Noah), 1 (Moses), 2 (David), or 3 (inventory).
 -- Inputs and snapshots are deterministic candidates for the pinned v1.5 ROM.
 -- Mapper callbacks record the CPU write and the byte currently mapped by Mesen.
 local frames=0
+local recording=true
 local writes=0
 local mismatch=0
 local unmapped=0
@@ -11,6 +12,9 @@ local apu_writes=0
 local dma_writes=0
 local fetch_probes=0
 local record_probes=0
+local inventory_list_zero=0
+local inventory_template_zero=0
+local inventory_other=0
 local script_targets={0x3D21,0x3D22,0x5CFE,0x5D00,0x5D01,0x5D04,0x5D06,0x5D08,0x5D0A}
 local record_targets={0x5A40,0x6D71,0x6E65,0x6E7F,0x6ECD,0x6EE5,0x6EFD}
 local script_hits={}
@@ -22,6 +26,7 @@ local function hex(s)
  return table.concat(out)
 end
 emu.addMemoryCallback(function(addr,value)
+ if not recording then return end
  local m=emu.convertAddress(addr,emu.memType.nesMemory)
  local phys=(m and m.memType==emu.memType.nesPrgRom) and m.address or -1
  local rom=(phys>=0) and emu.read(phys,emu.memType.nesPrgRom) or -1
@@ -31,19 +36,22 @@ emu.addMemoryCallback(function(addr,value)
  print(string.format('BADP_WRITE %d %04X %02X %d %d',frames,addr,value,phys,rom))
 end,emu.callbackType.write,0x8000,0xffff)
 local function audio_write(addr,value)
+ if not recording then return end
  apu_writes=apu_writes+1
  print(string.format('BADP_APU %d %04X %02X',frames,addr,value))
 end
 emu.addMemoryCallback(audio_write,emu.callbackType.write,0x4000,0x4013)
 emu.addMemoryCallback(audio_write,emu.callbackType.write,0x4015,0x4015)
 emu.addMemoryCallback(function(addr,value)
+ if not recording then return end
  dma_writes=dma_writes+1
  print(string.format('BADP_DMA %d %04X %02X',frames,addr,value))
 end,emu.callbackType.write,0x4014,0x4014)
-emu.addEventCallback(function() nmis=nmis+1 end,emu.eventType.nmi)
+emu.addEventCallback(function() if recording then nmis=nmis+1 end end,emu.eventType.nmi)
 -- Check only the bank-0 interpreter and record-loader entry points. Debug
 -- reads have no side effects; candidate identities are encoded pointers.
 emu.addMemoryCallback(function()
+ if not recording then return end
  local mapped=emu.convertAddress(0xD54E,emu.memType.nesMemory)
  if mapped and mapped.memType==emu.memType.nesPrgRom and mapped.address==0x554E then
   fetch_probes=fetch_probes+1
@@ -52,6 +60,7 @@ emu.addMemoryCallback(function()
  end
 end,emu.callbackType.exec,0xD54E,0xD54E)
 emu.addMemoryCallback(function()
+ if not recording then return end
  local mapped=emu.convertAddress(0xF10C,emu.memType.nesMemory)
  if mapped and mapped.memType==emu.memType.nesPrgRom and mapped.address==0x710C then
   record_probes=record_probes+1
@@ -59,6 +68,20 @@ emu.addMemoryCallback(function()
   if record_hits[pointer] then record_hits[pointer]=record_hits[pointer]+1 end
  end
 end,emu.callbackType.exec,0xF10C,0xF10C)
+-- Opcode $54 adds the current slot value to its encoded base before reading
+-- two bytes. Observe the two inventory bases without imposing index bounds.
+emu.addMemoryCallback(function()
+ if not recording then return end
+ local mapped=emu.convertAddress(0xDFC3,emu.memType.nesMemory)
+ if not mapped or mapped.memType~=emu.memType.nesPrgRom or mapped.address~=0x5FC3 then return end
+ local base=emu.read(0x61,emu.memType.nesDebug)+256*emu.read(0x62,emu.memType.nesDebug)
+ if base~=0x505F and base~=0x509D then return end
+ local x=emu.read(0x10,emu.memType.nesDebug)
+ local index=emu.read(0x70+x,emu.memType.nesDebug)+256*emu.read(0x80+x,emu.memType.nesDebug)
+ if index~=0 then inventory_other=inventory_other+1
+ elseif base==0x505F then inventory_list_zero=inventory_list_zero+1
+ else inventory_template_zero=inventory_template_zero+1 end
+end,emu.callbackType.exec,0xDFC3,0xDFC3)
 emu.addEventCallback(function()
  local move=frames>=180 and frames<185
  local start=(frames>=300 and frames<305) or (frames>=900 and frames<905)
@@ -73,7 +96,13 @@ emu.addEventCallback(function()
        or (frames>=2046 and frames<2074)
        or (frames>=2250 and ((frames-2250)%190)<28)
  end
- emu.setInput({up=move and SCENARIO==0,down=move and SCENARIO==2,left=false,right=right,start=start,select=false,a=jump,b=pickup},0)
+ local select=false
+ if SCENARIO==3 then
+  right=false
+  jump=false
+  select=(frames>=1500 and frames<1510) or (frames>=2600 and frames<2610)
+ end
+ emu.setInput({up=move and (SCENARIO==0 or SCENARIO==3),down=move and SCENARIO==2,left=false,right=right,start=start,select=select,a=jump,b=pickup},0)
 end,emu.eventType.inputPolled)
 emu.addEventCallback(function()
  frames=frames+1
@@ -90,8 +119,11 @@ emu.addEventCallback(function()
    emu.read(0x0591,emu.memType.nesDebug)))
  end
  if frames==2800 then
+  -- stop() can return before the emulator stops invoking callbacks.
+  recording=false
   print(string.format('BADP_SUMMARY %d %d %d %d %d %d %d %d',writes,mismatch,unmapped,banks[0] and 1 or 0,banks[1] and 1 or 0,nmis,apu_writes,dma_writes))
   print(string.format('BADP_PROBE %d %d',fetch_probes,record_probes))
+  print(string.format('BADP_INVENTORY %d %d %d',inventory_list_zero,inventory_template_zero,inventory_other))
   for _,address in ipairs(script_targets) do print(string.format('BADP_TARGET script %04X %d',address,script_hits[address])) end
   for _,address in ipairs(record_targets) do print(string.format('BADP_TARGET record %04X %d',address,record_hits[address])) end
   emu.stop(0)
