@@ -33,10 +33,10 @@ independent source trees or treat one version's evidence as verifying the rest.
 `make audit-all` checks reference integrity for all targets without requiring
 simultaneous reconstruction. Keep progress and completion evidence per target.
 
-The v1.5 build now assembles and links to the exact reference, with 20,421 bytes
-of source code and 1,679 bytes of structured data across the physical PRG banks.
-It still includes 43,436 local PRG bytes and 65,536 local CHR bytes. A total of
-650 independent source-change controls verify every listed reconstructed region.
+The v1.5 build now assembles and links to the exact reference, with 20,575 bytes
+of source code and 1,789 bytes of structured data across the physical PRG banks.
+It still includes 43,172 local PRG bytes and 65,536 local CHR bytes. A total of
+658 independent source-change controls verify every listed reconstructed region.
 Passing input audits or whole-ROM equality alone is not reconstruction
 completion. The developer identifies BOGUS as the
 state-machine engine in the [Vance Kozik interview](https://www.nesworld.com/kozik.php);
@@ -191,6 +191,19 @@ nametable splits and attribute-bit merging. They do not verify PPU timing,
 mapper behavior or gameplay.
 The background palette loop retains Y from its offset calculation, unlike the
 sprite loop; a high-offset synthetic case preserves that original behavior.
+
+The split-screen setup and sprite-zero initialization are source. State bank
+selectors and two palette-stream pointer tables are structured metadata; the
+palette data itself remains local. Synthetic checks covered the setup fields,
+original extra borrow, saved-state gate and pointer selection.
+
+A local script-entry inventory follows the 114 observed slot descriptors to
+84 distinct record addresses: 83 fit entirely within the inferred bank, while
+one address, referenced five times, crosses the bank boundary. The inspected
+records yield 71 distinct candidate script entries whose first command lengths
+are valid. Bank mapping is a static inference and the tool does not follow
+branches or prove execution. Its output is ignored local analysis and does not
+count as reconstructed PRG.
 
 Controller handlers now express slot actions, pause toggling and signed motion
 updates, including the original stack-unwinding gates and overflow checks. The

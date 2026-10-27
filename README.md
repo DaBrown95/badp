@@ -16,11 +16,11 @@ full-file hashes and separate PRG/CHR identities are recorded in
 
 The v1.5 build matches the reference ROM byte for byte. Its source covers reset
 and startup, NMI frame and controller handling, PPU update streams and setup,
-palette streams, scroll updates, bank switching, sprite setup and animation,
-audio voice and command handling, map initialization and redraw, frame motion
-and slot updates, arithmetic, and shared banked record and data-copy routines.
-The script command dispatcher, its record-length and handler tables, and source at
-all 197 handler entries are also reconstructed. Slot descriptors and a related
+palette streams, split-screen setup, scroll updates, bank switching, sprite
+setup and animation, audio voice and command handling, map initialization and
+redraw, frame motion and slot updates, arithmetic, and shared banked record and
+data-copy routines. The script command dispatcher, its record-length and
+handler tables, and source at all 197 handler entries are also reconstructed. Slot descriptors and a related
 address table are represented as structured data; some called routines remain
 unconverted. Remaining PRG bytes and CHR graphics are local binary inclusions.
 Changed-source controls check that each reconstructed region affects the
@@ -40,7 +40,7 @@ are not measures of gameplay completion.
 <!-- BEGIN GENERATED PROGRESS -->
 | Version | Reconstructed PRG | Status |
 | --- | ---: | --- |
-| USA v1.5 | **33.72%** (22,100 / 65,536 bytes) | In progress |
+| USA v1.5 | **34.12%** (22,364 / 65,536 bytes) | In progress |
 | USA v1.4 | **0.00%** (0 / 65,536 bytes) | Not started |
 | USA v1.3 | **0.00%** (0 / 65,536 bytes) | Not started |
 | USA v1.2 | **0.00%** (0 / 65,536 bytes) | Not started |
@@ -118,6 +118,7 @@ local, along with the extracted inputs and control builds.
 | `make build` | Build and compare v1.5; retain source-change controls. |
 | `make progress` | Rebuild and update the per-version tracker. |
 | `make position-records` | Decode v1.5 position records to ignored local analysis. |
+| `make script-entries` | Inventory candidate v1.5 script entry points locally. |
 | `make test` | Test the tooling using synthetic data; no game ROM needed. |
 
 Other versions have pinned reference identities but do not have builds yet.

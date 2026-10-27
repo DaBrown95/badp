@@ -1074,7 +1074,18 @@ SwapNmiWorkspace:
     rts
 .assert (* - BankStart) = $040A, error, "bank 0 NMI workspace swap size"
 
-    .incbin "bank0_840a_8420.bin"
+; Set shadow sprite zero from the split position and fixed tile/attributes.
+InitializeSplitSprite:
+    lda $03B9                    ; CONTROL_INITIALIZE_SPLIT_SPRITE
+    sta $0200
+    lda #$01
+    sta $0203
+    lda #$FE
+    sta $0201
+    lda #$28
+    sta $0202
+    rts
+.assert (* - BankStart) = $0420, error, "bank 0 split sprite initialization end"
 
 ; Apply saved scroll/mask state when enabled, update PPUCTRL, then restore the
 ; default bank selection through the shared helper's tail call.
@@ -4875,7 +4886,29 @@ SlotRelatedAddressTable:
     .word $A34E ; index $15
 .assert (* - BankStart) = $21DE, error, "bank 0 related address table end"
 
-    .incbin "bank0_a1de_a3ec.bin"
+    .incbin "bank0_a1de_a37e.bin"
+; Twenty-two observed state entries select mapper and PPU-control bits. The
+; code does not establish a runtime bound on the state index.
+StateBankSelectors:
+    .byte $0E, $00, $04, $00, $06, $08, $08, $08, $08, $08, $08, $0A, $0A, $0A, $0A, $0C, $0E, $0E, $FF, $FF, $08, $02 ; CONTROL_STATE_BANK_SELECTORS
+
+; Encoded pointers to the locally supplied background and sprite palette
+; streams, indexed by state. These addresses are metadata, not the assets.
+BackgroundPalettePointers:
+    .word $C83E, $C851, $C851, $C851 ; CONTROL_BACKGROUND_PALETTE_POINTERS
+    .word $C83E, $C982, $C99D, $C9B8
+    .word $C9D3, $C9EE, $CA09, $C923
+    .word $C923, $C949, $C923, $C936
+    .word $CA37, $C83E, $C851, $C851
+    .word $CA09, $C877
+SpritePalettePointers:
+    .word $C83E, $C7F2, $C805, $C7F2 ; CONTROL_SPRITE_PALETTE_POINTERS
+    .word $C82B, $C96F, $C96F, $C96F
+    .word $CA24, $CA24, $CA24, $C8FD
+    .word $C8FD, $C8FD, $C8FD, $C910
+    .word $C83E, $C83E, $C83E, $C7F2
+    .word $C95C, $C877
+.assert (* - BankStart) = $23EC, error, "bank 0 state and palette pointer tables end"
 ; Each table has 22 two-byte starting addresses selected by $02. The target
 ; streams and valid runtime indices still require separate verification.
 PositionRecordPointersA:
@@ -5029,7 +5062,7 @@ ShiftARight3:
 ; direct entry at $CC95 accepts the table byte in A; the $FF table value skips.
 ConfigureBanksFromState:
     ldx $01                       ; CONTROL_BANKS_FROM_STATE
-    lda $A37E,x
+    lda StateBankSelectors,x
     cmp #$FF
     beq ConfigureBanksReturn
 ConfigureBanksFromValue:
@@ -5069,8 +5102,8 @@ SelectBothRelatedPointers:
     jsr SelectFirstRelatedPointer ; CONTROL_SELECT_BOTH_POINTERS
 SelectSecondRelatedPointer:
     ldx $02                       ; CONTROL_SELECT_SECOND_POINTER
-    ldy $A3C1,x
-    lda $A3C0,x
+    ldy SpritePalettePointers + 1,x
+    lda SpritePalettePointers,x
     tax
 ApplySecondRelatedPointer:
     jsr ScriptCompareState27      ; CONTROL_APPLY_SECOND_POINTER
@@ -5082,8 +5115,8 @@ ApplySecondPointerCall:
     rts
 SelectFirstRelatedPointer:
     ldx $02                       ; CONTROL_SELECT_FIRST_POINTER
-    ldy $A395,x
-    lda $A394,x
+    ldy BackgroundPalettePointers + 1,x
+    lda BackgroundPalettePointers,x
     tax
 ApplyFirstRelatedPointer:
     jsr ScriptCompareState27      ; CONTROL_APPLY_FIRST_POINTER
@@ -8561,7 +8594,7 @@ ScriptOp99:
     sta $63
     lda $4C
     sta $64
-    jsr $EAF6
+    jsr ConfigureSplitScreen
     lda $27
     bne ScriptOp99Set
     lda #$FF
@@ -9149,7 +9182,76 @@ ScriptOpC4:
     jmp ScriptOp63
 .assert (* - BankStart) = $6AF6, error, "bank 0 script handlers through opcode $C4"
 
-    .incbin "bank0_eaf6_eb7a.bin"
+; Configure the split-screen state from script operands $61-$64. The saved
+; operands are updated only when the main state is $FF.
+ConfigureSplitScreen:
+    jsr ScriptCompareState27     ; CONTROL_CONFIGURE_SPLIT_SCREEN
+    bne SplitScreenSetBounds
+    lda $61
+    sta $49
+    lda $62
+    sta $4A
+    lda $63
+    sta $4B
+    lda $64
+    sta $4C
+SplitScreenSetBounds:
+    lda #$F8                     ; CONTROL_SPLIT_SCREEN_SET_BOUNDS
+    sta $03B9
+    lda $61
+    sta $03B8
+    beq SplitScreenSetControl
+    lda #$F0
+    sec
+    sbc $61
+    sta $03B8
+    lda $62
+    sec
+    sbc #$09
+    sta $03B9
+; Set the control fields and derive mapper selection from the packed operand.
+SplitScreenSetControl:
+    lda $63                      ; CONTROL_SPLIT_SCREEN_SET_CONTROL
+    sta $03BA
+    lda $64
+    and #$01
+    jsr ShiftALeft4
+    ora #$08
+    sta $03BB
+    lda $64
+    rol a
+    rol a
+    rol a
+    and #$F0
+    jsr ComputeBankSelection
+    sta $03BE
+    stx $03BF
+    lda $62
+    clc                          ; Original SBC intentionally includes borrow.
+    sbc $63
+    sta $03EC
+    jsr InitializeSplitSprite
+; Compute the attribute base by subtracting four times the rounded-up $61.
+    lda #$27                     ; CONTROL_SPLIT_SCREEN_ATTRIBUTE_BASE
+    sta $04DA
+    lda #$C0
+    sta $04DB
+    lda $61
+    clc
+    adc #$07
+    and #$F8
+    asl a
+    asl a
+    sta $62
+    lda $04DB
+    sec
+    sbc $62
+    sta $04DB
+    lda $04DA
+    sbc #$00
+    sta $04DA
+    rts
+.assert (* - BankStart) = $6B7A, error, "bank 0 split-screen configuration end"
 ; Convert a packed state byte into the mapper selection value in A and the
 ; associated index in X. The incoming value is retained in Y during shifting.
 ComputeBankSelection:

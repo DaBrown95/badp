@@ -5,7 +5,7 @@ export BADP_TARGET = $(TARGET)
 export BADP_ROM = $(ROM)
 .DEFAULT_GOAL := help
 
-.PHONY: help setup targets identify audit audit-all build progress position-records test
+.PHONY: help setup targets identify audit audit-all build progress position-records script-entries test
 help:
 	@echo 'make targets   Show the primary target and sequential target order'
 	@echo 'make identify  Inspect a ROM (default: primary target; override TARGET=id or ROM=path)'
@@ -15,6 +15,7 @@ help:
 	@echo 'make build     Assemble and verify v1.5, including source-change controls'
 	@echo 'make progress  Rebuild and refresh the verified per-version README tracker'
 	@echo 'make position-records  Decode v1.5 position records to local analysis'
+	@echo 'make script-entries  Inventory v1.5 script entry candidates locally'
 	@echo 'make test      Test the tools without a game ROM'
 
 setup:
@@ -40,6 +41,9 @@ progress: build
 
 position-records:
 	$(PYTHON) -m tools.position_records
+
+script-entries:
+	$(PYTHON) -m tools.script_entries
 
 test:
 	$(PYTHON) -m unittest discover -s tests -v
