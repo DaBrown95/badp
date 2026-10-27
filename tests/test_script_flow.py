@@ -183,6 +183,18 @@ class ScriptFlowTests(unittest.TestCase):
         self.assertEqual(nodes['0x0010']['successors'], [])
         self.assertNotIn('0x0011', nodes)
 
+    def test_offset_probe_branches_and_indexed_voice_restores_pointer(self):
+        b0, b1, lengths = fixture()
+        lengths[0x66], lengths[0xb3] = 4, 3
+        b1[0x10:0x17] = bytes([0x66, 0x30, 0, 6, 0xb3, 0x34, 0x12])
+        b1[0x17] = b1[0x30] = 0xc4
+        nodes = by_pointer(walk(bytes(b0), bytes(b1), bytes(lengths), [0x10]))
+        self.assertEqual(nodes['0x0010']['successors'], [
+            {'kind': 'target', 'encoded_pointer': '0x0030'},
+            {'kind': 'fallthrough', 'encoded_pointer': '0x0014'}])
+        self.assertEqual(nodes['0x0014']['successors'], [
+            {'kind': 'next', 'encoded_pointer': '0x0017'}])
+
     def test_encoded_bank_transition(self):
         b0, b1, lengths = fixture()
         b1[-1] = 0x21

@@ -29,8 +29,8 @@ and unreviewed handlers stop their paths. The walker rejects malformed lengths,
 records that cross the physical bank boundary and invalid input, and reports
 physical-byte overlaps and any nodes left by its traversal limit.
 
-On the current pinned v1.5 input the bounded walk finds 1,529 candidate commands
-starting from the descriptor-derived entries, with 65 nodes stopping at dynamic
+On the current pinned v1.5 input the bounded walk finds 1,660 candidate commands
+starting from the descriptor-derived entries, with 61 nodes stopping at dynamic
 or unreviewed handlers and no physical-byte overlaps. Those are static candidates,
 not a complete script inventory, gameplay evidence or source ownership. The
 ignored JSON retains operand bytes for local examination; none are added to the
