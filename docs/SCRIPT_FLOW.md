@@ -18,13 +18,14 @@ action yields, with mode 2 retaining the slot and other modes releasing it;
 later reuse has an unknown entry. Opcode `$95` scans four-byte target/value
 cases and a two-byte zero-target terminator; the walker records candidate matches
 and the no-match continuation, stopping on bank boundaries or its record limit.
-The handler still fetches four bytes for the terminator. Unknown, dynamically computed
+The handler still fetches four bytes for the terminator. Opcodes `$AB` and `$BF`
+may retry when shared state is busy, or continue when it is available. Unknown, dynamically computed
 and unreviewed handlers stop their paths. The walker rejects malformed lengths,
 records that cross the physical bank boundary and invalid input, and reports
 physical-byte overlaps and any nodes left by its traversal limit.
 
-On the current pinned v1.5 input the bounded walk finds 971 candidate commands
-starting from the descriptor-derived entries, with 73 nodes stopping at dynamic
+On the current pinned v1.5 input the bounded walk finds 1,460 candidate commands
+starting from the descriptor-derived entries, with 69 nodes stopping at dynamic
 or unreviewed handlers and no physical-byte overlaps. Those are static candidates,
 not a complete script inventory, gameplay evidence or source ownership. The
 ignored JSON retains operand bytes for local examination; none are added to the

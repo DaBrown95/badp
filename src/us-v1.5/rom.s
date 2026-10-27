@@ -301,6 +301,52 @@ compareRangeReturn:
 .macro BogusMultiplySlotValueByArray selector
     .byte $72, selector
 .endmacro
+.macro BogusBranchIfRemainingVerticalOffsetAtMost target, value
+    .byte $A0
+    .word target - $8000, value
+.endmacro
+.macro BogusBranchIfSlotOffset target, first, second
+    .byte $7B
+    .word target - $8000
+    .byte first, second
+.endmacro
+.macro BogusBranchIfSlotFieldsWithin target, first, second
+    .byte $25
+    .word target - $8000
+    .byte first, second
+.endmacro
+.macro BogusAdvanceAndBranchState1B target, value
+    .byte $05
+    .word target - $8000
+    .byte value
+.endmacro
+.macro BogusSetSlotMode value
+    .byte $0A, value
+.endmacro
+.macro BogusBranchIfSlotB0AtMost target, value
+    .byte $52
+    .word target - $8000
+    .byte value
+.endmacro
+.macro BogusSetDirectionalSlotFields40 first, second
+    .byte $81, first, second
+.endmacro
+.macro BogusLoadSlotValueIndexedBank1 target
+    .byte $54
+    .word target - $8000
+.endmacro
+.macro BogusAddSlotValue value
+    .byte $42
+    .word value
+.endmacro
+.macro BogusBranchIfSlotValueNotEqual target, value
+    .byte $82
+    .word target - $8000, value
+.endmacro
+.macro BogusQueueStateAB pointer
+    .byte $AB
+    .word pointer
+.endmacro
 
 ; A command byte indexes three parallel tables: record length, and the low and
 ; high bytes of an RTS dispatch address. Handler addresses below are actual
@@ -12134,9 +12180,7 @@ ScriptBA57:
     BogusJumpBank1 ScriptBA57
 .assert (* - BankStart) = $3A5A, error, "bank 1 script BA53 end"
     .incbin "bank1_ba5a_ba75.bin"
-; This entry selects offsets using a slot-value lookup. A later branch targets
-; a still-local block at bank 1 CPU $BB11.
-ScriptBB11 = BankStart + $3B11
+; This entry selects offsets using a slot-value lookup.
 ScriptBA75:
     BogusSetDispatchCounter $8A
     BogusRestartVoice4 $2745
@@ -12162,13 +12206,57 @@ ScriptBA9E:
     BogusSetSlotValue $0003
     BogusStoreSlotValueArray $FF
     BogusSetSlot0670Pair $01, $00
+ScriptBAB0:
     BogusSetSlotFields40Signed $18, $00
     BogusWait $08
+ScriptBAB5:
     BogusLoadSlotRecord $00, $02
+ScriptBAB8:
     BogusBranchIfAbsSlot0700Below ScriptBB11, $18
     BogusSetSlot0620Bit20
-.assert (* - BankStart) = $3ABD, error, "bank 1 script BA75 partial graph end"
-    .incbin "bank1_babd_bcc0.bin"
+.assert (* - BankStart) = $3ABD, error, "bank 1 script BA75 block end"
+    BogusBranchIfRemainingVerticalOffsetAtMost ScriptBB0F, $000F ; CONTROL_BOGUS_BABD
+    BogusReadSlotValue $11
+    BogusBranchIfSlotValueAtLeast ScriptBAD1, $0080
+    BogusBranchIfSlotOffset ScriptBB11, $02, $00
+    BogusJumpBank1 ScriptBAD6
+ScriptBAD1:
+    BogusBranchIfSlotOffset ScriptBB11, $FE, $00
+ScriptBAD6:
+    BogusSetSlot0620Bit20
+    BogusBranchIfSlotFieldsWithin ScriptBAB0, $01, $FF
+    BogusAdvanceAndBranchState1B ScriptBAB8, $FA
+    BogusSetSlotFields80 $00, $FF
+    BogusWait $0A
+    BogusSetSlot0660LowBits $01
+    BogusLoadSlotRecord $06, $FF
+    BogusSetDispatchCounter $82
+    BogusSetSlotFields80 $18, $82
+    BogusSetSlotMode $03
+    BogusSetSlotFields80 $FF, $82
+    BogusSetSlotFields80 $FF, $82
+    BogusSetSlotFields80 $FF, $82
+ScriptBAFA:
+    BogusBranchIfSlotFieldsWithin ScriptBB02, $FF, $10
+    BogusJumpBank1 ScriptBAFA
+ScriptBB02:
+    BogusSetSlot0660LowBits $00
+    BogusLoadSlotRecord $09, $FF
+ScriptBB07:
+    BogusBranchIfSlot0620Bit10 ScriptBAB5
+    BogusSetSlot0620Bit20
+    BogusBranchIfSlotB0AtMost ScriptBB07, $DE
+ScriptBB0F:
+    BogusYieldAndSlotAction $00
+ScriptBB11:
+    BogusSetDispatchCounter $82
+    BogusSetSlotFields80 $00, $FF
+    BogusSetDirectionalSlotFields40 $E8, $FF
+ScriptBB19:
+    BogusBranchIfAbsSlot0700Below ScriptBB19, $18
+    BogusJumpBank1 ScriptBAD6
+.assert (* - BankStart) = $3B20, error, "bank 1 script BABD end"
+    .incbin "bank1_bb20_bcc0.bin"
 ; Candidate entry from a slot descriptor. The full graph is contained here;
 ; gameplay role and runtime use are not yet established.
 ScriptBCC0:
@@ -12220,9 +12308,6 @@ ScriptBDF4:
     BogusYieldAndSlotAction $00
 .assert (* - BankStart) = $3DF6, error, "bank 1 script BDD6 end"
     .incbin "bank1_bdf6_be03.bin"
-; The shared target at $CFC7 remains local and is represented by its bank
-; address until that block is decoded.
-ScriptCFC7 = BankStart + $4FC7
 ScriptBE03:
     BogusLookupSlotValue
     BogusLookupCaseBank1 ScriptBE26, $0027 ; CONTROL_BOGUS_BE03
@@ -12243,7 +12328,25 @@ ScriptBE2F:
     BogusBranchIfSlotValueAtLeast ScriptCFC7, $00F8
     BogusMultiplySlotValueByArray $FF
 .assert (* - BankStart) = $3E3F, error, "bank 1 script BE03 partial graph end"
-    .incbin "bank1_be3f_d6e0.bin"
+; The indexed data base is local; its layout and bounds are not yet decoded.
+DataBE82 = BankStart + $3E82
+    BogusLoadSlotValueIndexedBank1 DataBE82 ; CONTROL_BOGUS_BE3F
+.assert (* - BankStart) = $3E42, error, "bank 1 script BE3F end"
+    .incbin "bank1_be42_cfc7.bin"
+; This branch target adjusts the slot value and queues one of two state
+; requests; downstream indirect operations remain local.
+ScriptCFC7:
+    BogusAddSlotValue $FF08     ; CONTROL_BOGUS_CFC7
+    BogusBranchIfSlotValueNotEqual ScriptCFD7, $0002
+    BogusQueueStateAB $5083
+    BogusSetSlotD0Bits $01
+    BogusJumpBank1 ScriptCFDA
+ScriptCFD7:
+    BogusQueueStateAB $5067
+ScriptCFDA:
+    BogusMultiplySlotValueByArray $FF
+.assert (* - BankStart) = $4FDC, error, "bank 1 script CFC7 end"
+    .incbin "bank1_cfdc_d6e0.bin"
 ; A slot-field comparison gates three matching-slot updates and waits.
 ScriptD6E0:
     BogusSetSlot0640Pair $04, $00

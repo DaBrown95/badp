@@ -122,6 +122,19 @@ class ScriptFlowTests(unittest.TestCase):
         self.assertEqual(crossing['status'], 'crosses_bank_boundary')
         self.assertNotIn('continuation', crossing)
 
+    def test_busy_state_may_retry_and_spatial_test_may_branch(self):
+        b0, b1, lengths = fixture()
+        lengths[0xab], lengths[0x7b] = 3, 5
+        b1[0x10:0x18] = bytes([0xab, 1, 2, 0x7b, 0x30, 0, 4, 5])
+        b1[0x18] = b1[0x30] = 0x80
+        nodes = by_pointer(walk(bytes(b0), bytes(b1), bytes(lengths), [0x10]))
+        self.assertEqual(nodes['0x0010']['successors'], [
+            {'kind': 'possible_retry', 'encoded_pointer': '0x0010'},
+            {'kind': 'possible_next', 'encoded_pointer': '0x0013'}])
+        self.assertEqual(nodes['0x0013']['successors'], [
+            {'kind': 'target', 'encoded_pointer': '0x0030'},
+            {'kind': 'fallthrough', 'encoded_pointer': '0x0018'}])
+
     def test_encoded_bank_transition(self):
         b0, b1, lengths = fixture()
         b1[-1] = 0x21
