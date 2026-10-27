@@ -34,9 +34,9 @@ independent source trees or treat one version's evidence as verifying the rest.
 simultaneous reconstruction. Keep progress and completion evidence per target.
 
 The v1.5 build now assembles and links to the exact reference, with 21,443 bytes
-of source code and 10,106 bytes of structured data across the physical PRG banks.
-It still includes 33,987 local PRG bytes and 65,536 local CHR bytes. A total of
-895 independent source-change controls verify every listed reconstructed region.
+of source code and 14,716 bytes of structured data across the physical PRG banks.
+It still includes 29,377 local PRG bytes and 65,536 local CHR bytes. A total of
+931 independent source-change controls verify every listed reconstructed region.
 Passing input audits or whole-ROM equality alone is not reconstruction
 completion. The developer identifies BOGUS as the
 state-machine engine in the [Vance Kozik interview](https://www.nesworld.com/kozik.php);
@@ -379,10 +379,21 @@ occupied records, OAM exhaustion, reserved entries and sprite size.
 
 The sprite animation update now advances timers and handles loop or hold-on-
 last-frame behavior. The audio voice start, stop, arbitration and command
-interpreter are source; instrument, note-preset and period tables remain local.
+interpreter are source, along with instrument register pairs, special-note
+presets and overlapping windows into the period table. Wider instrument and
+special-note indices are possible in the instructions; their valid runtime
+bounds remain unverified.
 Focused instruction-subset checks on synthetic records exercise animation,
 audio commands, APU register writes, voice bounds and pointer carry; they do
 not verify hardware timing or sound playback.
+
+In separate MesenCE opening runs, bank-0 reads included instrument-pair bytes
+at `$8F92-$8F93` and `$8FAE-$8FAF` and entries in the period-pointer and
+period-value ranges. No reads in the special-note preset range were observed
+in these sequences. Mesen's read callbacks can also include CPU dummy or
+instruction reads, so these observations do not establish index bounds or
+prove that all table entries are used. The probe scripts and logs remain in
+ignored local analysis.
 
 The original five-register audio command reads its fifth value from the sixth
 stack-buffer byte, although its caller copies only five bytes total. A synthetic
@@ -391,9 +402,11 @@ the matching source preserves this apparent bug.
 
 A local decoder reads both pointer tables, deduplicates aliases and round-trips
 32 streams containing 523 eight-byte records plus four-byte terminators through
-`$B51C`. Keys, the high-bit range flag, type bytes and five parameters are
-represented without guessing the remaining semantics. Its JSON is ignored
-under `analysis/`; no position-stream bytes are credited as reconstructed PRG.
+`$B51C`. The streams and labelled pointer targets are source: keys, the high-bit
+range flag, type bytes and five parameters are represented without guessing the
+remaining semantics. Its JSON remains ignored under `analysis/`. Each stream has
+its own changed-source control. The two empty streams retain their type-zero
+record and terminator rather than assuming they are interchangeable.
 
 The [source map](../config/source-us-v1.5.json) records bank, CPU address, size,
 classification and control for every owned region. `make build` retains the

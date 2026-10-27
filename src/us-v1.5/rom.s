@@ -1,6 +1,18 @@
 .setcpu "6502"
 .include "nes.inc"
 
+; A position record stores a 15-bit sorted key and a range flag, followed by
+; a selector/type and five parameters interpreted by the consuming path.
+; The search routine reads four-byte $FFFF/$0000 stream terminators.
+.macro PositionRecord key, rangeFlag, recordType, p0, p1, p2, p3, p4
+    .word key | rangeFlag
+    .byte recordType, p0, p1, p2, p3, p4
+.endmacro
+
+.macro PositionRecordEnd
+    .word $FFFF, $0000
+.endmacro
+
 ; Two position-record search paths share control flow while using different
 ; zero-page pointer pairs and linked addresses. Both scan eight-byte records against
 ; $5E/$5F and copy bytes 3-7 to $2A-$2E when a nonzero entry is found.
@@ -3328,7 +3340,31 @@ AdvanceSpriteAnimationDone:
     jmp AdvanceSpriteAnimationNext
 .assert (* - BankStart) = $0F90, error, "bank 0 sprite animation update end"
 
-    .incbin "bank0_8f90_8fba.bin"
+; Two APU register bytes per instrument for the 21-entry segment before code.
+; The instrument command has five index bits; runtime bounds remain unverified.
+AudioInstrumentPairs:
+    .byte $C0, $00 ; CONTROL_AUDIO_INSTRUMENT_PAIRS
+    .byte $C0, $00 ; index $01
+    .byte $C0, $00 ; index $02
+    .byte $80, $00 ; index $03
+    .byte $80, $00 ; index $04
+    .byte $80, $00 ; index $05
+    .byte $00, $00 ; index $06
+    .byte $00, $00 ; index $07
+    .byte $00, $00 ; index $08
+    .byte $80, $FF ; index $09
+    .byte $80, $FF ; index $0A
+    .byte $80, $FF ; index $0B
+    .byte $00, $D6 ; index $0C
+    .byte $00, $D6 ; index $0D
+    .byte $00, $D6 ; index $0E
+    .byte $40, $00 ; index $0F
+    .byte $40, $00 ; index $10
+    .byte $40, $00 ; index $11
+    .byte $80, $C9 ; index $12
+    .byte $80, $C9 ; index $13
+    .byte $80, $C9 ; index $14
+.assert (* - BankStart) = $0FBA, error, "bank 0 audio instrument pairs end"
 ; Reserve six stack bytes for a command buffer and visit five eight-byte voice
 ; records. A negative record flag marks an active voice; its timer is decremented.
 UpdateAudioVoices:
@@ -3395,9 +3431,9 @@ AudioReadCommand:
     lda $04B6,x
     asl a
     tay
-    lda $9302,y                  ; Local period-table pointer list.
+    lda AudioPeriodPointers,y
     sta $F6
-    lda $9303,y
+    lda AudioPeriodPointers+1,y
     sta $F7
     ldy $03DD
     lda $0100,y
@@ -3431,7 +3467,7 @@ AudioPresetNote:
     clc
     adc $03E1
     tax
-    lda $9271,x
+    lda AudioSpecialPresets,x
     sta $F6
     inx
     jsr AudioOffsetChannelMask
@@ -3439,7 +3475,7 @@ AudioPresetNote:
     bne AudioPresetDone
     ldy #$00
 AudioPresetCopy:
-    lda $9271,x
+    lda AudioSpecialPresets,x
     sta ($F6),y
     inx
     iny
@@ -3700,12 +3736,31 @@ AudioAllToneChannels:
 .assert (* - BankStart) = $1267, error, "bank 0 audio channel helpers end"
 
 ; Note duration and envelope bits, indexed in pairs from the command's upper
-; bits. The values are independent of the still-local instrument presets.
+; bits. The values are independent of the instrument presets.
 AudioNoteTiming:
     .byte $08, $01, $10, $05, $20, $08, $40, $0F, $80, $1F ; CONTROL_AUDIO_NOTE_TIMING
 .assert (* - BankStart) = $1271, error, "bank 0 audio note timing end"
 
-    .incbin "bank0_9271_92c1.bin"
+; Register offset followed by four APU writes for each special-note preset.
+; The dispatcher admits wider indices; no runtime bound is assumed here.
+AudioSpecialPresets:
+    .byte $00, $80, $86, $FF, $0C ; CONTROL_AUDIO_SPECIAL_PRESETS
+    .byte $04, $80, $86, $FF, $0C ; index $01
+    .byte $00, $80, $84, $00, $8B ; index $02
+    .byte $04, $80, $84, $00, $8B ; index $03
+    .byte $00, $80, $84, $FF, $0B ; index $04
+    .byte $04, $80, $84, $FF, $0B ; index $05
+    .byte $0C, $00, $00, $08, $02 ; index $06
+    .byte $0C, $01, $01, $03, $09 ; index $07
+    .byte $0C, $0F, $00, $92, $C7 ; index $08
+    .byte $0C, $05, $00, $81, $08 ; index $09
+    .byte $0C, $03, $00, $04, $50 ; index $0A
+    .byte $08, $04, $00, $F5, $30 ; index $0B
+    .byte $00, $80, $84, $00, $89 ; index $0C
+    .byte $04, $80, $84, $00, $89 ; index $0D
+    .byte $00, $80, $84, $00, $8E ; index $0E
+    .byte $04, $80, $84, $00, $8E ; index $0F
+.assert (* - BankStart) = $12C1, error, "bank 0 special note presets end"
 ; Load the duration from the note command's upper bits. Unless voice flags
 ; $60 suppress writes, combine timing bits with the selected instrument pair
 ; and write the first two APU registers. Return Z set for the write path.
@@ -3724,9 +3779,9 @@ PrepareAudioNote:
     lda $04B6,x
     asl a
     tay
-    lda $8F91,y
+    lda AudioInstrumentPairs+1,y
     pha
-    lda $8F90,y
+    lda AudioInstrumentPairs,y
     ora $03D0
     ldy #$00
     sta ($F6),y
@@ -3748,7 +3803,102 @@ AudioVoiceRegisterAddress:
     rts
 .assert (* - BankStart) = $1302, error, "bank 0 audio register address end"
 
-    .incbin "bank0_9302_93b2.bin"
+; Instrument indices select overlapping note-period windows in one sequence.
+; Notes use indices below $1F; the extra final word remains part of the table.
+AudioPeriodPointers:
+    .word AudioPeriodWindow0 ; CONTROL_AUDIO_PERIOD_POINTERS
+    .word AudioPeriodWindow1 ; instrument $01
+    .word AudioPeriodWindow2 ; instrument $02
+    .word AudioPeriodWindow0 ; instrument $03
+    .word AudioPeriodWindow1 ; instrument $04
+    .word AudioPeriodWindow2 ; instrument $05
+    .word AudioPeriodWindow0 ; instrument $06
+    .word AudioPeriodWindow1 ; instrument $07
+    .word AudioPeriodWindow2 ; instrument $08
+    .word AudioPeriodWindow0 ; instrument $09
+    .word AudioPeriodWindow1 ; instrument $0A
+    .word AudioPeriodWindow2 ; instrument $0B
+    .word AudioPeriodWindow0 ; instrument $0C
+    .word AudioPeriodWindow1 ; instrument $0D
+    .word AudioPeriodWindow2 ; instrument $0E
+    .word AudioPeriodWindow0 ; instrument $0F
+    .word AudioPeriodWindow1 ; instrument $10
+    .word AudioPeriodWindow2 ; instrument $11
+    .word AudioPeriodWindow0 ; instrument $12
+    .word AudioPeriodWindow1 ; instrument $13
+    .word AudioPeriodWindow2 ; instrument $14
+    .word AudioPeriodWindow0 ; instrument $15
+    .word AudioPeriodWindow1 ; instrument $16
+    .word AudioPeriodWindow2 ; instrument $17
+    .word AudioPeriodWindow0 ; instrument $18
+    .word AudioPeriodWindow1 ; instrument $19
+    .word AudioPeriodWindow2 ; instrument $1A
+    .word AudioPeriodWindow0 ; instrument $1B
+    .word AudioPeriodWindow1 ; instrument $1C
+    .word AudioPeriodWindow2 ; instrument $1D
+    .word AudioPeriodWindow0 ; instrument $1E
+    .word AudioPeriodWindow1 ; instrument $1F
+.assert (* - BankStart) = $1342, error, "bank 0 audio period pointers end"
+AudioPeriodWindow0:
+    .word $0352 ; CONTROL_AUDIO_PERIOD_VALUES
+    .word $0325
+    .word $02FD
+    .word $02CC
+    .word $02A7
+    .word $027C
+    .word $025A
+    .word $023B
+    .word $0213
+    .word $01FD
+    .word $01DE
+    .word $01C6
+AudioPeriodWindow1:
+    .word $01AB
+    .word $0191
+    .word $017A
+    .word $0167
+    .word $0151
+    .word $013F
+    .word $012C
+    .word $011C
+    .word $010D
+    .word $00FE
+    .word $00EF
+    .word $00E2
+AudioPeriodWindow2:
+    .word $00D5
+    .word $00C8
+    .word $00BE
+    .word $00B3
+    .word $00A9
+    .word $009F
+    .word $0096
+    .word $008E
+    .word $0086
+    .word $007E
+    .word $0077
+    .word $0070
+    .word $006A
+    .word $0064
+    .word $005E
+    .word $0059
+    .word $0054
+    .word $004F
+    .word $004B
+    .word $0046
+    .word $0042
+    .word $003F
+    .word $003B
+    .word $0038
+    .word $0034
+    .word $0032
+    .word $002F
+    .word $002C
+    .word $0029
+    .word $0027
+    .word $0024
+    .word $0023
+.assert (* - BankStart) = $13B2, error, "bank 0 audio period values end"
 ; For an enabled voice, write the selected period's low and high bytes to its
 ; third and fourth APU registers. The high byte has bit $08 set.
 WriteAudioVoicePeriod:
@@ -3779,7 +3929,7 @@ AudioVoiceFlags:
     and #$60
     rts
 ; Use the voice's instrument index to copy a two-byte register setting from
-; the still-local table at $8F90 to the voice's first two APU registers.
+; the instrument pair table to the voice's first two APU registers.
 WriteAudioVoiceInstrument:
     lda $04B6,x                  ; CONTROL_WRITE_AUDIO_VOICE_INSTRUMENT
     asl a
@@ -3790,12 +3940,12 @@ WriteAudioVoiceInstrument:
     lda #$40
     sta $FF
     ldy $03E1
-    lda $8F90,y
+    lda AudioInstrumentPairs,y
     ldy #$00
     sta ($FE),y
     ldy $03E1
     iny
-    lda $8F90,y
+    lda AudioInstrumentPairs,y
     ldy #$01
     sta ($FE),y
     rts
@@ -5489,55 +5639,708 @@ SpritePalettePointers:
 ; Each table has 22 two-byte starting addresses selected by $02. The target
 ; streams and valid runtime indices still require separate verification.
 PositionRecordPointersA:
-    .word $A444 ; CONTROL_POSITION_POINTERS_A
-    .word $A5A4 ; index $01
-    .word $A7CC ; index $02
-    .word $A8C0 ; index $03
-    .word $A678 ; index $04
-    .word $AAF0 ; index $05
-    .word $ABAC ; index $06
-    .word $ACA0 ; index $07
-    .word $AD64 ; index $08
-    .word $AE80 ; index $09
-    .word $AF64 ; index $0A
-    .word $B14C ; index $0B
-    .word $B210 ; index $0C
-    .word $B29C ; index $0D
-    .word $B320 ; index $0E
-    .word $B3EC ; index $0F
-    .word $A458 ; index $10
-    .word $B4A0 ; index $11
-    .word $A46C ; index $12
-    .word $B4B4 ; index $13
-    .word $B4D4 ; index $14
-    .word $B4F8 ; index $15
+    .word PositionStreamA444 ; CONTROL_POSITION_POINTERS_A
+    .word PositionStreamA5A4 ; index $01
+    .word PositionStreamA7CC ; index $02
+    .word PositionStreamA8C0 ; index $03
+    .word PositionStreamA678 ; index $04
+    .word PositionStreamAAF0 ; index $05
+    .word PositionStreamABAC ; index $06
+    .word PositionStreamACA0 ; index $07
+    .word PositionStreamAD64 ; index $08
+    .word PositionStreamAE80 ; index $09
+    .word PositionStreamAF64 ; index $0A
+    .word PositionStreamB14C ; index $0B
+    .word PositionStreamB210 ; index $0C
+    .word PositionStreamB29C ; index $0D
+    .word PositionStreamB320 ; index $0E
+    .word PositionStreamB3EC ; index $0F
+    .word PositionStreamA458 ; index $10
+    .word PositionStreamB4A0 ; index $11
+    .word PositionStreamA46C ; index $12
+    .word PositionStreamB4B4 ; index $13
+    .word PositionStreamB4D4 ; index $14
+    .word PositionStreamB4F8 ; index $15
 .assert (* - BankStart) = $2418, error, "bank 0 first position pointers end"
 PositionRecordPointersB:
-    .word $A444 ; CONTROL_POSITION_POINTERS_B
-    .word $A480 ; index $01
-    .word $A480 ; index $02
-    .word $A480 ; index $03
-    .word $A480 ; index $04
-    .word $AAA4 ; index $05
-    .word $AAB8 ; index $06
-    .word $AAD4 ; index $07
-    .word $AAB8 ; index $08
-    .word $AAA4 ; index $09
-    .word $AAD4 ; index $0A
-    .word $B0C0 ; index $0B
-    .word $B0FC ; index $0C
-    .word $B110 ; index $0D
-    .word $B124 ; index $0E
-    .word $B140 ; index $0F
-    .word $B4C8 ; index $10
-    .word $B4C8 ; index $11
-    .word $B4C8 ; index $12
-    .word $B4C8 ; index $13
-    .word $B4C8 ; index $14
-    .word $B4C8 ; index $15
+    .word PositionStreamA444 ; CONTROL_POSITION_POINTERS_B
+    .word PositionStreamA480 ; index $01
+    .word PositionStreamA480 ; index $02
+    .word PositionStreamA480 ; index $03
+    .word PositionStreamA480 ; index $04
+    .word PositionStreamAAA4 ; index $05
+    .word PositionStreamAAB8 ; index $06
+    .word PositionStreamAAD4 ; index $07
+    .word PositionStreamAAB8 ; index $08
+    .word PositionStreamAAA4 ; index $09
+    .word PositionStreamAAD4 ; index $0A
+    .word PositionStreamB0C0 ; index $0B
+    .word PositionStreamB0FC ; index $0C
+    .word PositionStreamB110 ; index $0D
+    .word PositionStreamB124 ; index $0E
+    .word PositionStreamB140 ; index $0F
+    .word PositionStreamB4C8 ; index $10
+    .word PositionStreamB4C8 ; index $11
+    .word PositionStreamB4C8 ; index $12
+    .word PositionStreamB4C8 ; index $13
+    .word PositionStreamB4C8 ; index $14
+    .word PositionStreamB4C8 ; index $15
 .assert (* - BankStart) = $2444, error, "bank 0 second position pointers end"
 
-    .incbin "bank0_a444_b51c.bin"
+; Sorted, sentinel-terminated position streams shared by the two pointer tables.
+; Record type and parameters are interpreted by the consuming slot/event path.
+; Field meanings beyond the lookup code remain provisional.
+PositionStreamA444:
+    PositionRecord $0000, $0000, $00, $00, $00, $00, $00, $00
+    PositionRecord $0000, $0000, $F0, $00, $10, $00, $FF, $FF ; CONTROL_POSITION_STREAM_A444
+    PositionRecordEnd
+.assert (* - BankStart) = $2458, error, "bank 0 position stream $A444 end"
+
+PositionStreamA458:
+    PositionRecord $0000, $0000, $00, $00, $00, $00, $00, $00
+    PositionRecord $001F, $0000, $F0, $09, $00, $00, $FF, $FF ; CONTROL_POSITION_STREAM_A458
+    PositionRecordEnd
+.assert (* - BankStart) = $246C, error, "bank 0 position stream $A458 end"
+
+PositionStreamA46C:
+    PositionRecord $0000, $0000, $00, $00, $00, $00, $00, $00
+    PositionRecord $000A, $0000, $F0, $13, $12, $00, $FF, $FF ; CONTROL_POSITION_STREAM_A46C
+    PositionRecordEnd
+.assert (* - BankStart) = $2480, error, "bank 0 position stream $A46C end"
+
+PositionStreamA480:
+    PositionRecord $0000, $0000, $00, $00, $00, $00, $00, $00
+    PositionRecord $0003, $8000, $01, $3E, $01, $00, $00, $00 ; CONTROL_POSITION_STREAM_A480
+    PositionRecord $000B, $8000, $01, $3B, $01, $00, $00, $00
+    PositionRecord $001B, $8000, $32, $36, $80, $00, $08, $08
+    PositionRecord $0023, $8000, $22, $26, $80, $02, $08, $08
+    PositionRecord $003B, $8000, $01, $3B, $01, $00, $00, $00
+    PositionRecord $0043, $8000, $01, $3E, $01, $00, $00, $00
+    PositionRecord $004B, $8000, $01, $3B, $01, $00, $00, $00
+    PositionRecord $0053, $8000, $01, $3B, $01, $00, $00, $00
+    PositionRecord $005B, $8000, $01, $3E, $01, $00, $00, $00
+    PositionRecord $0063, $8000, $01, $3B, $01, $00, $00, $00
+    PositionRecord $006B, $8000, $01, $3E, $01, $00, $00, $00
+    PositionRecord $0073, $8000, $01, $3E, $01, $00, $00, $00
+    PositionRecord $007B, $8000, $01, $3B, $01, $00, $00, $00
+    PositionRecord $0083, $8000, $01, $3E, $01, $00, $00, $00
+    PositionRecord $008B, $8000, $01, $3B, $01, $00, $00, $00
+    PositionRecord $0093, $8000, $01, $3E, $01, $00, $00, $00
+    PositionRecord $009E, $8000, $31, $3C, $01, $00, $00, $00
+    PositionRecord $00D3, $8000, $23, $25, $0D, $00, $08, $08
+    PositionRecord $00D5, $8000, $23, $25, $0D, $00, $08, $08
+    PositionRecord $0113, $8000, $01, $3E, $01, $00, $00, $00
+    PositionRecord $011B, $8000, $01, $3B, $01, $00, $00, $00
+    PositionRecord $0123, $8000, $01, $3E, $01, $00, $00, $00
+    PositionRecord $012B, $8000, $01, $3B, $01, $00, $00, $00
+    PositionRecord $0133, $8000, $01, $3E, $01, $00, $00, $00
+    PositionRecord $0153, $8000, $01, $3E, $01, $00, $00, $00
+    PositionRecord $015B, $8000, $01, $3B, $01, $00, $00, $00
+    PositionRecord $0163, $8000, $01, $3E, $01, $00, $00, $00
+    PositionRecord $016B, $8000, $01, $3B, $01, $00, $00, $00
+    PositionRecord $0173, $8000, $01, $3E, $01, $00, $00, $00
+    PositionRecord $017B, $8000, $01, $3B, $01, $00, $00, $00
+    PositionRecord $0181, $8000, $1A, $46, $01, $00, $00, $00
+    PositionRecord $0189, $8000, $34, $3D, $01, $00, $00, $00
+    PositionRecord $018B, $8000, $22, $26, $00, $83, $08, $08
+    PositionRecord $0193, $8000, $32, $36, $00, $81, $08, $08
+    PositionRecord $0199, $8000, $1E, $46, $01, $00, $00, $00
+    PositionRecordEnd
+.assert (* - BankStart) = $25A4, error, "bank 0 position stream $A480 end"
+
+PositionStreamA5A4:
+    PositionRecord $0000, $0000, $00, $00, $00, $00, $00, $00
+    PositionRecord $0002, $0000, $F0, $0D, $2B, $00, $FF, $FF ; CONTROL_POSITION_STREAM_A5A4
+    PositionRecord $0005, $0000, $F0, $01, $3A, $00, $FF, $FF
+    PositionRecord $0014, $0000, $F0, $0E, $3C, $00, $FF, $02
+    PositionRecord $0018, $0000, $F0, $1B, $16, $00, $FF, $0E
+    PositionRecord $0024, $0000, $F0, $1A, $22, $00, $FF, $0F
+    PositionRecord $0040, $0000, $F0, $19, $3C, $00, $FF, $03
+    PositionRecord $005C, $0000, $F0, $0A, $3C, $13, $FF, $01
+    PositionRecord $0087, $0000, $F0, $11, $3A, $00, $FF, $04
+    PositionRecord $00B9, $0000, $F0, $2B, $34, $00, $FF, $06
+    PositionRecord $00BE, $0000, $F0, $0A, $3C, $0C, $FF, $96
+    PositionRecord $00CC, $0000, $F0, $0A, $20, $0E, $FF, $D2
+    PositionRecord $00D4, $0000, $F0, $6B, $1E, $00, $FF, $FF
+    PositionRecord $00DD, $0000, $F0, $18, $30, $00, $FF, $05
+    PositionRecord $00E1, $0000, $F0, $1C, $19, $00, $FF, $07
+    PositionRecord $00E2, $0000, $F0, $0A, $2C, $1A, $FF, $08
+    PositionRecord $00F4, $0000, $F0, $0F, $37, $00, $FF, $3E
+    PositionRecord $00F6, $0000, $F0, $15, $13, $00, $FF, $09
+    PositionRecord $0126, $0000, $F0, $0A, $3C, $17, $FF, $0A
+    PositionRecord $0127, $0000, $F0, $22, $34, $00, $FF, $3F
+    PositionRecord $013E, $0000, $F0, $2A, $3C, $00, $FF, $0B
+    PositionRecord $0160, $0000, $F0, $1D, $2A, $00, $FF, $0C
+    PositionRecord $016F, $0000, $F0, $12, $3A, $00, $FF, $0D
+    PositionRecord $017F, $0000, $F2, $00, $00, $00, $00, $00
+    PositionRecord $0180, $0000, $F1, $00, $00, $00, $00, $00
+    PositionRecord $0194, $0000, $F0, $0A, $3C, $13, $FF, $E9
+    PositionRecordEnd
+.assert (* - BankStart) = $2678, error, "bank 0 position stream $A5A4 end"
+
+PositionStreamA678:
+    PositionRecord $0000, $0000, $00, $00, $00, $00, $00, $00
+    PositionRecord $0002, $0000, $F0, $0D, $2B, $00, $FF, $FF ; CONTROL_POSITION_STREAM_A678
+    PositionRecord $0003, $0000, $F0, $37, $3C, $00, $FF, $10
+    PositionRecord $0004, $0000, $F0, $67, $28, $00, $FF, $FF
+    PositionRecord $0008, $0000, $F0, $08, $3C, $00, $FF, $FF
+    PositionRecord $000A, $0000, $F0, $01, $3A, $00, $FF, $FF
+    PositionRecord $0022, $0000, $F0, $07, $30, $00, $FF, $FF
+    PositionRecord $0024, $0000, $F0, $0A, $33, $0C, $FF, $01
+    PositionRecord $0027, $0000, $F0, $60, $16, $00, $FF, $40
+    PositionRecord $0039, $0000, $F0, $38, $1E, $00, $FF, $11
+    PositionRecord $0041, $0000, $F0, $2F, $3C, $00, $FF, $12
+    PositionRecord $0058, $0000, $F0, $0A, $3C, $06, $FF, $8C
+    PositionRecord $005E, $0000, $F0, $07, $34, $00, $FF, $FF
+    PositionRecord $0078, $0000, $F0, $07, $30, $00, $FF, $FF
+    PositionRecord $0081, $0000, $F0, $33, $20, $00, $FF, $13
+    PositionRecord $008D, $0000, $F0, $2E, $31, $00, $FF, $14
+    PositionRecord $00A2, $0000, $F0, $23, $13, $00, $FF, $15
+    PositionRecord $00A8, $0000, $F0, $56, $3C, $00, $FF, $52
+    PositionRecord $00B4, $0000, $F0, $30, $34, $00, $FF, $17
+    PositionRecord $00B5, $0000, $F0, $07, $18, $00, $FF, $FF
+    PositionRecord $00B6, $0000, $F0, $07, $30, $00, $FF, $FF
+    PositionRecord $00BC, $0000, $F0, $32, $24, $00, $FF, $18
+    PositionRecord $00CC, $0000, $F0, $07, $20, $00, $FF, $FF
+    PositionRecord $00D3, $0000, $F0, $60, $30, $00, $FF, $42
+    PositionRecord $00D4, $0000, $F0, $6B, $1E, $00, $FF, $FF
+    PositionRecord $00DB, $0000, $F0, $07, $20, $00, $FF, $FF
+    PositionRecord $00DC, $0000, $F0, $0A, $34, $19, $FF, $19
+    PositionRecord $00E1, $0000, $F0, $34, $0B, $00, $FF, $1A
+    PositionRecord $00E6, $0000, $F0, $31, $1C, $00, $FF, $1B
+    PositionRecord $00F2, $0000, $F0, $07, $18, $00, $FF, $FF
+    PositionRecord $00F5, $0000, $F0, $07, $2F, $00, $FF, $FF
+    PositionRecord $0101, $0000, $F0, $39, $1C, $00, $FF, $1C
+    PositionRecord $0126, $0000, $F0, $24, $3C, $00, $FF, $1D
+    PositionRecord $0135, $0000, $F0, $36, $3C, $00, $FF, $1E
+    PositionRecord $0136, $0000, $F0, $07, $31, $00, $FF, $FF
+    PositionRecord $0151, $0000, $F0, $35, $39, $00, $FF, $1F
+    PositionRecord $0167, $0000, $F0, $07, $2E, $00, $FF, $FF
+    PositionRecord $0168, $0000, $F0, $57, $3C, $00, $FF, $4D
+    PositionRecord $017F, $0000, $F2, $00, $00, $00, $00, $00
+    PositionRecord $0180, $0000, $F1, $00, $00, $00, $00, $00
+    PositionRecord $0194, $0000, $F0, $0A, $3C, $24, $FF, $A2
+    PositionRecord $0195, $0000, $F0, $0A, $1C, $1F, $FF, $A3
+    PositionRecordEnd
+.assert (* - BankStart) = $27CC, error, "bank 0 position stream $A678 end"
+
+PositionStreamA7CC:
+    PositionRecord $0000, $0000, $00, $00, $00, $00, $00, $00
+    PositionRecord $0002, $0000, $F0, $0D, $2B, $00, $FF, $FF ; CONTROL_POSITION_STREAM_A7CC
+    PositionRecord $0005, $0000, $F0, $01, $3A, $00, $FF, $FF
+    PositionRecord $0006, $0000, $F0, $43, $2C, $00, $FF, $20
+    PositionRecord $001C, $0000, $F0, $3E, $2A, $00, $FF, $22
+    PositionRecord $002A, $0000, $F0, $4E, $3C, $00, $FF, $23
+    PositionRecord $0049, $0000, $F0, $14, $28, $00, $FF, $FF
+    PositionRecord $0056, $0000, $F0, $0F, $31, $00, $FF, $43
+    PositionRecord $0057, $0000, $F0, $44, $16, $00, $FF, $9B
+    PositionRecord $0061, $0000, $F0, $4B, $22, $00, $FF, $25
+    PositionRecord $0071, $0000, $F0, $49, $1E, $00, $FF, $26
+    PositionRecord $0079, $0000, $F0, $0A, $2E, $26, $FF, $27
+    PositionRecord $0086, $0000, $F0, $62, $24, $00, $FF, $FF
+    PositionRecord $008F, $0000, $F0, $14, $1A, $00, $FF, $FF
+    PositionRecord $00A4, $0000, $F0, $14, $30, $00, $FF, $44
+    PositionRecord $00B1, $0000, $F0, $3D, $3C, $00, $FF, $29
+    PositionRecord $00BD, $0000, $F0, $14, $18, $00, $FF, $45
+    PositionRecord $00C2, $0000, $F0, $3C, $24, $00, $FF, $2B
+    PositionRecord $00C6, $0000, $F0, $4A, $0D, $00, $FF, $2C
+    PositionRecord $00D4, $0000, $F0, $6B, $1E, $00, $FF, $FF
+    PositionRecord $00E3, $0000, $F0, $4F, $3C, $00, $FF, $2D
+    PositionRecord $0116, $0000, $F0, $48, $2E, $00, $FF, $2E
+    PositionRecord $0129, $0000, $F0, $0A, $1E, $11, $FF, $2F
+    PositionRecord $0136, $0000, $F0, $61, $31, $00, $FF, $46
+    PositionRecord $0150, $0000, $F0, $42, $30, $00, $FF, $30
+    PositionRecord $0157, $0000, $F0, $3F, $26, $00, $FF, $31
+    PositionRecord $0161, $0000, $F0, $14, $30, $00, $FF, $FF
+    PositionRecord $0166, $0000, $F0, $45, $24, $00, $FF, $32
+    PositionRecord $017F, $0000, $F2, $00, $00, $00, $00, $00
+    PositionRecord $0180, $0000, $F1, $00, $00, $00, $00, $00
+    PositionRecordEnd
+.assert (* - BankStart) = $28C0, error, "bank 0 position stream $A7CC end"
+
+PositionStreamA8C0:
+    PositionRecord $0000, $0000, $00, $00, $00, $00, $00, $00
+    PositionRecord $0002, $0000, $F0, $0D, $2B, $00, $FF, $FF ; CONTROL_POSITION_STREAM_A8C0
+    PositionRecord $0005, $0000, $F0, $01, $3A, $00, $FF, $FF
+    PositionRecord $0007, $0000, $F0, $2C, $1F, $00, $FF, $53
+    PositionRecord $0009, $0000, $F0, $0A, $3C, $0D, $FF, $54
+    PositionRecord $000A, $0000, $F0, $69, $3C, $00, $FF, $55
+    PositionRecord $000B, $0000, $F0, $07, $20, $00, $FF, $FF
+    PositionRecord $0020, $0000, $F0, $0A, $16, $04, $FF, $56
+    PositionRecord $0029, $0000, $F0, $68, $3C, $00, $FF, $57
+    PositionRecord $002A, $0000, $F0, $2C, $13, $00, $FF, $58
+    PositionRecord $0046, $0000, $F0, $07, $34, $00, $FF, $FF
+    PositionRecord $0048, $0000, $F0, $68, $3C, $00, $FF, $5A
+    PositionRecord $0049, $0000, $F0, $2D, $1F, $00, $FF, $5B
+    PositionRecord $0061, $0000, $F0, $5C, $30, $00, $FF, $5D
+    PositionRecord $0070, $0000, $F0, $2C, $28, $00, $FF, $5E
+    PositionRecord $0071, $0000, $F0, $5F, $34, $00, $FF, $5F
+    PositionRecord $0078, $0000, $F0, $0A, $3C, $33, $FF, $A1
+    PositionRecord $0091, $0000, $F0, $5F, $18, $00, $FF, $62
+    PositionRecord $0096, $0000, $F0, $5F, $22, $00, $FF, $63
+    PositionRecord $00A2, $0000, $F0, $68, $0D, $00, $FF, $64
+    PositionRecord $00A7, $0000, $F0, $69, $24, $00, $FF, $65
+    PositionRecord $00A8, $0000, $F0, $68, $13, $00, $FF, $66
+    PositionRecord $00AB, $0000, $F0, $69, $34, $00, $FF, $67
+    PositionRecord $00BC, $0000, $F0, $07, $30, $00, $FF, $FF
+    PositionRecord $00BF, $0000, $F0, $68, $24, $00, $FF, $68
+    PositionRecord $00C0, $0000, $F0, $2C, $22, $00, $FF, $69
+    PositionRecord $00CB, $0000, $F0, $07, $37, $00, $FF, $FF
+    PositionRecord $00CD, $0000, $F0, $69, $2C, $00, $FF, $6A
+    PositionRecord $00CE, $0000, $F0, $07, $11, $00, $FF, $FF
+    PositionRecord $00D3, $0000, $F0, $07, $28, $00, $FF, $FF
+    PositionRecord $00D4, $0000, $F0, $6B, $1E, $00, $FF, $FF
+    PositionRecord $00DA, $0000, $F0, $0A, $28, $15, $FF, $6B
+    PositionRecord $00DC, $0000, $F0, $5C, $19, $00, $FF, $6C
+    PositionRecord $00DD, $0000, $F0, $5F, $30, $00, $FF, $6D
+    PositionRecord $00EE, $0000, $F0, $69, $1C, $00, $FF, $6E
+    PositionRecord $00F2, $0000, $F0, $5F, $37, $00, $FF, $6F
+    PositionRecord $00F3, $0000, $F0, $07, $31, $00, $FF, $FF
+    PositionRecord $00F5, $0000, $F0, $0A, $37, $01, $FF, $71
+    PositionRecord $00F9, $0000, $F0, $69, $2C, $00, $FF, $72
+    PositionRecord $00FA, $0000, $F0, $2C, $0B, $00, $FF, $73
+    PositionRecord $0101, $0000, $F0, $68, $13, $00, $FF, $74
+    PositionRecord $0119, $0000, $F0, $5F, $2C, $00, $FF, $75
+    PositionRecord $011A, $0000, $F0, $68, $3C, $00, $FF, $76
+    PositionRecord $0121, $0000, $F0, $07, $30, $00, $FF, $FF
+    PositionRecord $0136, $0000, $F0, $2D, $2F, $00, $FF, $78
+    PositionRecord $0144, $0000, $F0, $69, $3C, $00, $FF, $79
+    PositionRecord $0151, $0000, $F0, $5C, $1E, $00, $FF, $7A
+    PositionRecord $0156, $0000, $F0, $07, $16, $00, $FF, $FF
+    PositionRecord $015D, $0000, $F0, $2C, $16, $00, $FF, $7B
+    PositionRecord $015E, $0000, $F0, $29, $3C, $00, $FF, $7C
+    PositionRecord $0168, $0000, $F0, $5F, $24, $00, $FF, $7D
+    PositionRecord $016C, $0000, $F0, $5C, $3C, $00, $FF, $7F
+    PositionRecord $0170, $0000, $F0, $07, $1A, $00, $FF, $FF
+    PositionRecord $0177, $0000, $F0, $5C, $16, $00, $FF, $80
+    PositionRecord $017F, $0000, $F2, $00, $00, $00, $00, $00
+    PositionRecord $0180, $0000, $F1, $00, $00, $00, $00, $00
+    PositionRecord $0185, $0000, $F0, $5C, $34, $00, $FF, $82
+    PositionRecord $0190, $0000, $F0, $0A, $3C, $11, $FF, $A0
+    PositionRecord $0192, $0000, $F0, $0A, $1C, $02, $FF, $83
+    PositionRecord $0195, $0000, $F0, $5C, $44, $00, $FF, $84
+    PositionRecordEnd
+.assert (* - BankStart) = $2AA4, error, "bank 0 position stream $A8C0 end"
+
+PositionStreamAAA4:
+    PositionRecord $0000, $0000, $00, $00, $00, $00, $00, $00
+    PositionRecord $0112, $8000, $01, $38, $07, $00, $00, $00 ; CONTROL_POSITION_STREAM_AAA4
+    PositionRecordEnd
+.assert (* - BankStart) = $2AB8, error, "bank 0 position stream $AAA4 end"
+
+PositionStreamAAB8:
+    PositionRecord $0000, $0000, $00, $00, $00, $00, $00, $00
+    PositionRecord $000B, $8000, $0F, $19, $01, $00, $00, $00 ; CONTROL_POSITION_STREAM_AAB8
+    PositionRecord $0111, $8000, $01, $38, $07, $00, $00, $00
+    PositionRecordEnd
+.assert (* - BankStart) = $2AD4, error, "bank 0 position stream $AAB8 end"
+
+PositionStreamAAD4:
+    PositionRecord $0000, $0000, $00, $00, $00, $00, $00, $00
+    PositionRecord $000B, $8000, $0F, $18, $01, $00, $00, $00 ; CONTROL_POSITION_STREAM_AAD4
+    PositionRecord $0120, $8000, $01, $38, $07, $00, $00, $00
+    PositionRecordEnd
+.assert (* - BankStart) = $2AF0, error, "bank 0 position stream $AAD4 end"
+
+PositionStreamAAF0:
+    PositionRecord $0000, $0000, $00, $00, $00, $00, $00, $00
+    PositionRecord $0002, $0000, $F0, $0D, $1C, $00, $FF, $FF ; CONTROL_POSITION_STREAM_AAF0
+    PositionRecord $0008, $0000, $F0, $01, $2C, $00, $FF, $FF
+    PositionRecord $000C, $0000, $F0, $6A, $2E, $00, $FF, $01
+    PositionRecord $002C, $0000, $F0, $63, $2F, $00, $FF, $02
+    PositionRecord $0040, $0000, $F0, $63, $2B, $00, $FF, $03
+    PositionRecord $0045, $0000, $F0, $63, $18, $00, $FF, $04
+    PositionRecord $004B, $0000, $F0, $6C, $2A, $00, $FF, $05
+    PositionRecord $0052, $0000, $F0, $0A, $11, $08, $FF, $6F
+    PositionRecord $005A, $0000, $F0, $63, $12, $00, $FF, $06
+    PositionRecord $006D, $0000, $F0, $6C, $11, $00, $FF, $07
+    PositionRecord $0074, $0000, $F0, $6C, $2A, $00, $FF, $08
+    PositionRecord $0087, $0000, $F0, $63, $2F, $00, $FF, $09
+    PositionRecord $009D, $0000, $F0, $6C, $16, $00, $FF, $0A
+    PositionRecord $00A4, $0000, $F0, $0A, $16, $14, $FF, $71
+    PositionRecord $00AF, $0000, $F0, $02, $18, $00, $FF, $0B
+    PositionRecord $00B0, $0000, $F0, $02, $2C, $00, $FF, $0C
+    PositionRecord $00BD, $0000, $F0, $63, $2F, $00, $FF, $0D
+    PositionRecord $00C7, $0000, $F0, $6C, $2A, $00, $FF, $0E
+    PositionRecord $00CA, $0000, $F0, $0A, $2E, $09, $FF, $70
+    PositionRecord $00EB, $0000, $F0, $6C, $2A, $00, $FF, $0F
+    PositionRecord $00FC, $0000, $F0, $02, $28, $00, $FF, $10
+    PositionRecord $010B, $0000, $F0, $02, $2C, $00, $FF, $11
+    PositionRecordEnd
+.assert (* - BankStart) = $2BAC, error, "bank 0 position stream $AAF0 end"
+
+PositionStreamABAC:
+    PositionRecord $0000, $0000, $00, $00, $00, $00, $00, $00
+    PositionRecord $0002, $0000, $F0, $0D, $1C, $00, $FF, $FF ; CONTROL_POSITION_STREAM_ABAC
+    PositionRecord $0008, $0000, $F0, $01, $2C, $00, $FF, $FF
+    PositionRecord $000A, $0000, $F0, $0A, $1E, $13, $FF, $7B
+    PositionRecord $000B, $0000, $F0, $6A, $24, $00, $FF, $12
+    PositionRecord $0010, $0000, $F0, $6C, $16, $00, $FF, $13
+    PositionRecord $0013, $0000, $F0, $63, $0F, $00, $FF, $14
+    PositionRecord $0015, $0000, $F0, $6C, $2C, $00, $FF, $15
+    PositionRecord $0027, $0000, $F0, $14, $21, $00, $FF, $16
+    PositionRecord $0032, $0000, $F0, $6C, $09, $00, $FF, $17
+    PositionRecord $0046, $0000, $F0, $63, $27, $00, $FF, $18
+    PositionRecord $004D, $0000, $F0, $0A, $2E, $1D, $FF, $79
+    PositionRecord $0052, $0000, $F0, $6C, $22, $00, $FF, $19
+    PositionRecord $005F, $0000, $F0, $6C, $1A, $00, $FF, $FF
+    PositionRecord $0068, $0000, $F0, $63, $2F, $00, $FF, $1A
+    PositionRecord $006D, $0000, $F0, $6C, $2E, $00, $FF, $1C
+    PositionRecord $0075, $0000, $F0, $6C, $2A, $00, $FF, $1D
+    PositionRecord $007B, $0000, $F0, $02, $0F, $00, $FF, $FF
+    PositionRecord $0085, $0000, $F0, $02, $2C, $00, $FF, $1E
+    PositionRecord $008A, $0000, $F0, $14, $1C, $00, $FF, $FF
+    PositionRecord $0096, $0000, $F0, $6C, $16, $00, $FF, $1B
+    PositionRecord $00A1, $0000, $F0, $14, $28, $00, $FF, $1F
+    PositionRecord $00AF, $0000, $F0, $6C, $2E, $00, $FF, $FF
+    PositionRecord $00B5, $0000, $F0, $6C, $22, $00, $FF, $FF
+    PositionRecord $00B9, $0000, $F0, $14, $08, $00, $FF, $20
+    PositionRecord $00C2, $0000, $F0, $6C, $0B, $00, $FF, $21
+    PositionRecord $00C6, $0000, $F0, $0A, $2E, $0F, $FF, $7A
+    PositionRecord $00D7, $0000, $F0, $02, $24, $00, $FF, $22
+    PositionRecord $00F1, $0000, $F0, $6C, $2E, $00, $FF, $23
+    PositionRecord $010A, $0000, $F0, $6C, $2E, $00, $FF, $24
+    PositionRecordEnd
+.assert (* - BankStart) = $2CA0, error, "bank 0 position stream $ABAC end"
+
+PositionStreamACA0:
+    PositionRecord $0000, $0000, $00, $00, $00, $00, $00, $00
+    PositionRecord $0002, $0000, $F0, $0D, $1C, $00, $FF, $FF ; CONTROL_POSITION_STREAM_ACA0
+    PositionRecord $0008, $0000, $F0, $01, $2C, $00, $FF, $FF
+    PositionRecord $0015, $0000, $F0, $02, $16, $00, $FF, $25
+    PositionRecord $001A, $0000, $F0, $6A, $1E, $00, $FF, $26
+    PositionRecord $0020, $0000, $F0, $70, $0E, $00, $FF, $27
+    PositionRecord $003B, $0000, $F0, $0A, $2C, $14, $FF, $83
+    PositionRecord $0040, $0000, $F0, $14, $0D, $00, $FF, $FF
+    PositionRecord $0048, $0000, $F0, $02, $18, $00, $FF, $28
+    PositionRecord $0059, $0000, $F0, $6C, $22, $01, $FF, $FF
+    PositionRecord $005A, $0000, $F0, $6C, $2E, $01, $FF, $29
+    PositionRecord $006B, $0000, $F0, $14, $14, $00, $FF, $2A
+    PositionRecord $007A, $0000, $F0, $02, $24, $00, $FF, $2B
+    PositionRecord $0082, $0000, $F0, $6C, $2A, $02, $FF, $FF
+    PositionRecord $0087, $0000, $F0, $70, $26, $00, $FF, $2C
+    PositionRecord $0098, $0000, $F0, $6C, $2A, $01, $FF, $2D
+    PositionRecord $00AD, $0000, $F0, $6C, $26, $01, $FF, $FF
+    PositionRecord $00AF, $0000, $F0, $14, $16, $00, $FF, $FF
+    PositionRecord $00C8, $0000, $F0, $02, $18, $00, $FF, $2E
+    PositionRecord $00CD, $0000, $F0, $0A, $2E, $16, $FF, $84
+    PositionRecord $00DC, $0000, $F0, $6C, $16, $01, $FF, $2F
+    PositionRecord $00EC, $0000, $F0, $14, $0D, $00, $FF, $FF
+    PositionRecord $0109, $0000, $F0, $02, $2A, $00, $FF, $30
+    PositionRecord $0115, $0000, $F0, $6C, $2E, $01, $FF, $FF
+    PositionRecordEnd
+.assert (* - BankStart) = $2D64, error, "bank 0 position stream $ACA0 end"
+
+PositionStreamAD64:
+    PositionRecord $0000, $0000, $00, $00, $00, $00, $00, $00
+    PositionRecord $0002, $0000, $F0, $0D, $1C, $00, $FF, $FF ; CONTROL_POSITION_STREAM_AD64
+    PositionRecord $0003, $0000, $F0, $6C, $2E, $01, $FF, $31
+    PositionRecord $0007, $0000, $F0, $65, $30, $00, $FF, $FF
+    PositionRecord $000A, $0000, $F0, $6C, $1E, $01, $FF, $32
+    PositionRecord $000D, $0000, $F0, $01, $26, $00, $FF, $FF
+    PositionRecord $000F, $0000, $F0, $63, $0F, $00, $FF, $33
+    PositionRecord $0016, $0000, $F0, $6A, $2E, $00, $FF, $34
+    PositionRecord $0024, $0000, $F0, $0A, $2E, $1F, $FF, $8D
+    PositionRecord $0025, $0000, $F0, $65, $30, $00, $FF, $FF
+    PositionRecord $0037, $0000, $F0, $6C, $2E, $01, $FF, $35
+    PositionRecord $0038, $0000, $F0, $65, $30, $00, $FF, $FF
+    PositionRecord $003C, $0000, $F0, $02, $28, $00, $FF, $FF
+    PositionRecord $0046, $0000, $F0, $02, $24, $00, $FF, $36
+    PositionRecord $005C, $0000, $F0, $02, $2C, $00, $FF, $37
+    PositionRecord $005D, $0000, $F0, $6C, $14, $01, $FF, $38
+    PositionRecord $005F, $0000, $F0, $65, $1C, $00, $FF, $FF
+    PositionRecord $0068, $0000, $F0, $6C, $0D, $01, $FF, $39
+    PositionRecord $006C, $0000, $F0, $6C, $2E, $01, $FF, $FF
+    PositionRecord $007B, $0000, $F0, $0A, $11, $22, $FF, $8E
+    PositionRecord $0080, $0000, $F0, $02, $2C, $00, $FF, $3A
+    PositionRecord $0082, $0000, $F0, $02, $1D, $00, $FF, $FF
+    PositionRecord $008D, $0000, $F0, $65, $24, $00, $FF, $FF
+    PositionRecord $0092, $0000, $F0, $6C, $1F, $01, $FF, $FF
+    PositionRecord $0094, $0000, $F0, $6C, $2E, $01, $FF, $3B
+    PositionRecord $00A3, $0000, $F0, $02, $1C, $00, $FF, $3C
+    PositionRecord $00B5, $0000, $F0, $65, $24, $00, $FF, $FF
+    PositionRecord $00B6, $0000, $F0, $02, $2C, $00, $FF, $3D
+    PositionRecord $00BC, $0000, $F0, $6C, $0C, $01, $FF, $3E
+    PositionRecord $00C3, $0000, $F0, $65, $30, $00, $FF, $FF
+    PositionRecord $00C6, $0000, $F0, $6C, $22, $01, $FF, $3F
+    PositionRecord $00D8, $0000, $F0, $14, $1C, $00, $FF, $FF
+    PositionRecord $00F5, $0000, $F0, $02, $2C, $00, $FF, $40
+    PositionRecord $0108, $0000, $F0, $6C, $2E, $01, $FF, $41
+    PositionRecord $010D, $0000, $F0, $65, $30, $00, $FF, $FF
+    PositionRecordEnd
+.assert (* - BankStart) = $2E80, error, "bank 0 position stream $AD64 end"
+
+PositionStreamAE80:
+    PositionRecord $0000, $0000, $00, $00, $00, $00, $00, $00
+    PositionRecord $0002, $0000, $F0, $0D, $1C, $00, $FF, $FF ; CONTROL_POSITION_STREAM_AE80
+    PositionRecord $0008, $0000, $F0, $01, $2C, $00, $FF, $FF
+    PositionRecord $000C, $0000, $F0, $6A, $2E, $00, $FF, $42
+    PositionRecord $001D, $0000, $F0, $02, $2C, $00, $FF, $43
+    PositionRecord $002B, $0000, $F0, $65, $30, $00, $FF, $FF
+    PositionRecord $0040, $0000, $F0, $02, $28, $00, $FF, $44
+    PositionRecord $0059, $0000, $F0, $6C, $2E, $02, $FF, $45
+    PositionRecord $005E, $0000, $F0, $65, $30, $00, $FF, $FF
+    PositionRecord $006B, $0000, $F0, $02, $25, $00, $FF, $46
+    PositionRecord $006C, $0000, $F0, $14, $1C, $00, $FF, $FF
+    PositionRecord $0075, $0000, $F0, $6C, $2A, $01, $FF, $FF
+    PositionRecord $007E, $0000, $F0, $02, $24, $00, $FF, $FF
+    PositionRecord $0099, $0000, $F0, $63, $2F, $00, $FF, $47
+    PositionRecord $00A1, $0000, $F0, $65, $18, $00, $FF, $FF
+    PositionRecord $00A3, $0000, $F0, $0A, $16, $23, $FF, $97
+    PositionRecord $00A5, $0000, $F0, $02, $26, $00, $FF, $FF
+    PositionRecord $00AB, $0000, $F0, $0A, $24, $20, $FF, $98
+    PositionRecord $00AD, $0000, $F0, $63, $2F, $00, $FF, $48
+    PositionRecord $00B1, $0000, $F0, $6C, $1A, $02, $FF, $FF
+    PositionRecord $00BD, $0000, $F0, $65, $20, $00, $FF, $FF
+    PositionRecord $00C1, $0000, $F0, $65, $30, $00, $FF, $FF
+    PositionRecord $00CA, $0000, $F0, $14, $19, $00, $FF, $FF
+    PositionRecord $00CC, $0000, $F0, $02, $2C, $00, $FF, $49
+    PositionRecord $00DB, $0000, $F0, $6C, $2E, $02, $FF, $4A
+    PositionRecord $00E3, $0000, $F0, $6C, $27, $02, $FF, $FF
+    PositionRecord $00ED, $0000, $F0, $65, $2C, $00, $FF, $FF
+    PositionRecord $00FD, $0000, $F0, $02, $28, $00, $FF, $4B
+    PositionRecordEnd
+.assert (* - BankStart) = $2F64, error, "bank 0 position stream $AE80 end"
+
+PositionStreamAF64:
+    PositionRecord $0000, $0000, $00, $00, $00, $00, $00, $00
+    PositionRecord $0002, $0000, $F0, $0D, $1C, $00, $FF, $FF ; CONTROL_POSITION_STREAM_AF64
+    PositionRecord $0008, $0000, $F0, $01, $2C, $00, $FF, $FF
+    PositionRecord $000C, $0000, $F0, $02, $0C, $00, $FF, $4C
+    PositionRecord $0013, $0000, $F0, $6A, $1C, $00, $FF, $4D
+    PositionRecord $0015, $0000, $F0, $65, $30, $00, $FF, $FF
+    PositionRecord $0017, $0000, $F0, $65, $10, $00, $FF, $FF
+    PositionRecord $002A, $0000, $F0, $02, $0C, $00, $FF, $4E
+    PositionRecord $0039, $0000, $F0, $65, $14, $00, $FF, $FF
+    PositionRecord $0047, $0000, $F0, $02, $2C, $00, $FF, $4F
+    PositionRecord $0049, $0000, $F0, $02, $18, $00, $FF, $FF
+    PositionRecord $0051, $0000, $F0, $0A, $1E, $25, $FF, $A1
+    PositionRecord $0058, $0000, $F0, $70, $22, $00, $FF, $50
+    PositionRecord $0059, $0000, $F0, $65, $24, $00, $FF, $FF
+    PositionRecord $005A, $0000, $F0, $6C, $2E, $00, $FF, $51
+    PositionRecord $005E, $0000, $F0, $14, $18, $00, $FF, $FF
+    PositionRecord $006F, $0000, $F0, $65, $28, $00, $FF, $FF
+    PositionRecord $0078, $0000, $F0, $6C, $01, $02, $FF, $52
+    PositionRecord $007A, $0000, $F0, $02, $24, $00, $FF, $FF
+    PositionRecord $0081, $0000, $F0, $6C, $2C, $02, $FF, $53
+    PositionRecord $0089, $0000, $F0, $02, $24, $00, $FF, $54
+    PositionRecord $008D, $0000, $F0, $65, $28, $00, $FF, $FF
+    PositionRecord $0094, $0000, $F0, $6C, $2A, $02, $FF, $55
+    PositionRecord $0097, $0000, $F0, $6C, $2A, $00, $FF, $56
+    PositionRecord $009D, $0000, $F0, $02, $24, $00, $FF, $57
+    PositionRecord $00A1, $0000, $F0, $65, $30, $00, $FF, $FF
+    PositionRecord $00AB, $0000, $F0, $65, $28, $00, $FF, $FF
+    PositionRecord $00B4, $0000, $F0, $14, $19, $00, $FF, $FF
+    PositionRecord $00C5, $0000, $F0, $65, $1C, $00, $FF, $FF
+    PositionRecord $00CD, $0000, $F0, $02, $26, $00, $FF, $58
+    PositionRecord $00D7, $0000, $F0, $6C, $0F, $02, $FF, $59
+    PositionRecord $00D9, $0000, $F0, $65, $18, $00, $FF, $FF
+    PositionRecord $00DF, $0000, $F0, $6C, $2E, $00, $FF, $5A
+    PositionRecord $00E0, $0000, $F0, $6C, $16, $02, $FF, $FF
+    PositionRecord $00E4, $0000, $F0, $0A, $2E, $2A, $FF, $A2
+    PositionRecord $00F1, $0000, $F0, $14, $1E, $00, $FF, $5B
+    PositionRecord $00FB, $0000, $F0, $65, $28, $00, $FF, $FF
+    PositionRecord $0108, $0000, $F0, $6C, $2A, $02, $FF, $5C
+    PositionRecord $0109, $0000, $F0, $02, $28, $00, $FF, $58
+    PositionRecord $010D, $0000, $F0, $14, $1C, $00, $FF, $5D
+    PositionRecord $0110, $0000, $F0, $02, $26, $00, $FF, $5E
+    PositionRecord $0114, $0000, $F0, $14, $22, $00, $FF, $FF
+    PositionRecord $0117, $0000, $F0, $65, $30, $00, $FF, $FF
+    PositionRecordEnd
+.assert (* - BankStart) = $30C0, error, "bank 0 position stream $AF64 end"
+
+PositionStreamB0C0:
+    PositionRecord $0000, $0000, $00, $00, $00, $00, $00, $00
+    PositionRecord $0030, $8000, $14, $25, $01, $00, $00, $00 ; CONTROL_POSITION_STREAM_B0C0
+    PositionRecord $0040, $8000, $14, $25, $01, $00, $00, $00
+    PositionRecord $0078, $8000, $14, $25, $01, $00, $00, $00
+    PositionRecord $0090, $8000, $14, $25, $01, $00, $00, $00
+    PositionRecord $00C0, $8000, $14, $25, $01, $00, $00, $00
+    PositionRecord $00D0, $8000, $01, $18, $09, $00, $00, $00
+    PositionRecordEnd
+.assert (* - BankStart) = $30FC, error, "bank 0 position stream $B0C0 end"
+
+PositionStreamB0FC:
+    PositionRecord $0000, $0000, $00, $00, $00, $00, $00, $00
+    PositionRecord $0043, $8000, $14, $28, $09, $00, $00, $00 ; CONTROL_POSITION_STREAM_B0FC
+    PositionRecordEnd
+.assert (* - BankStart) = $3110, error, "bank 0 position stream $B0FC end"
+
+PositionStreamB110:
+    PositionRecord $0000, $0000, $00, $00, $00, $00, $00, $00
+    PositionRecord $0084, $8000, $01, $10, $09, $00, $00, $00 ; CONTROL_POSITION_STREAM_B110
+    PositionRecordEnd
+.assert (* - BankStart) = $3124, error, "bank 0 position stream $B110 end"
+
+PositionStreamB124:
+    PositionRecord $0000, $0000, $00, $00, $00, $00, $00, $00
+    PositionRecord $0070, $8000, $1C, $2D, $01, $00, $00, $00 ; CONTROL_POSITION_STREAM_B124
+    PositionRecord $00F4, $8000, $01, $20, $09, $00, $00, $00
+    PositionRecordEnd
+.assert (* - BankStart) = $3140, error, "bank 0 position stream $B124 end"
+
+PositionStreamB140:
+    PositionRecord $0000, $0000, $00, $00, $00, $00, $00, $00 ; CONTROL_POSITION_STREAM_B140
+    PositionRecordEnd
+.assert (* - BankStart) = $314C, error, "bank 0 position stream $B140 end"
+
+PositionStreamB14C:
+    PositionRecord $0000, $0000, $00, $00, $00, $00, $00, $00
+    PositionRecord $0002, $0000, $F0, $0D, $13, $00, $FF, $FF ; CONTROL_POSITION_STREAM_B14C
+    PositionRecord $0004, $0000, $F0, $01, $22, $00, $FF, $FF
+    PositionRecord $0006, $0000, $F0, $0A, $24, $0E, $FF, $BE
+    PositionRecord $0009, $0000, $F0, $6E, $19, $00, $FF, $01
+    PositionRecord $001C, $0000, $F0, $6E, $1C, $00, $FF, $02
+    PositionRecord $0023, $0000, $F0, $6F, $24, $00, $FF, $03
+    PositionRecord $002E, $0000, $F0, $6E, $1E, $00, $FF, $04
+    PositionRecord $0042, $0000, $F0, $6E, $1D, $00, $FF, $05
+    PositionRecord $004F, $0000, $F0, $71, $14, $00, $FF, $43
+    PositionRecord $0054, $0000, $F0, $6E, $1C, $00, $FF, $06
+    PositionRecord $005B, $0000, $F0, $6F, $0E, $00, $FF, $07
+    PositionRecord $0064, $0000, $F0, $6F, $24, $00, $FF, $08
+    PositionRecord $0067, $0000, $F0, $0A, $16, $21, $FF, $09
+    PositionRecord $007A, $0000, $F0, $6E, $1D, $00, $FF, $0A
+    PositionRecord $008B, $0000, $F0, $52, $22, $00, $FF, $0B
+    PositionRecord $008F, $0000, $F0, $0A, $24, $13, $FF, $49
+    PositionRecord $00A0, $0000, $F0, $50, $0E, $00, $FF, $44
+    PositionRecord $00A1, $0000, $F0, $6E, $19, $00, $FF, $0D
+    PositionRecord $00A4, $0000, $F0, $6F, $0E, $00, $FF, $0E
+    PositionRecord $00A9, $0000, $F0, $0A, $19, $2C, $FF, $0F
+    PositionRecord $00AB, $0000, $F0, $6E, $1C, $00, $FF, $10
+    PositionRecord $00BE, $0000, $F0, $6E, $1E, $00, $FF, $11
+    PositionRecord $00D0, $0000, $F0, $6B, $11, $00, $FF, $FF
+    PositionRecordEnd
+.assert (* - BankStart) = $3210, error, "bank 0 position stream $B14C end"
+
+PositionStreamB210:
+    PositionRecord $0000, $0000, $00, $00, $00, $00, $00, $00
+    PositionRecord $0002, $0000, $F0, $0D, $35, $00, $FF, $FF ; CONTROL_POSITION_STREAM_B210
+    PositionRecord $0004, $0000, $F0, $01, $42, $00, $FF, $FF
+    PositionRecord $0005, $0000, $F0, $50, $26, $00, $FF, $12
+    PositionRecord $0006, $0000, $F0, $0A, $37, $0C, $FF, $48
+    PositionRecord $000B, $0000, $F0, $50, $17, $00, $FF, $13
+    PositionRecord $0019, $0000, $F0, $50, $31, $00, $FF, $14
+    PositionRecord $001A, $0000, $F0, $6F, $0E, $00, $FF, $15
+    PositionRecord $001B, $0000, $F0, $6F, $3A, $00, $FF, $16
+    PositionRecord $0025, $0000, $F0, $50, $21, $00, $FF, $17
+    PositionRecord $0027, $0000, $F0, $50, $0E, $00, $FF, $18
+    PositionRecord $002D, $0000, $F0, $0A, $2F, $1C, $FF, $19
+    PositionRecord $002E, $0000, $F0, $50, $39, $00, $FF, $1A
+    PositionRecord $0039, $0000, $F0, $6F, $1E, $00, $FF, $1B
+    PositionRecord $0042, $0000, $F0, $50, $26, $00, $FF, $1C
+    PositionRecord $0043, $0000, $F0, $6B, $22, $00, $FF, $FF
+    PositionRecord $004A, $0000, $F0, $6F, $39, $00, $FF, $1D
+    PositionRecordEnd
+.assert (* - BankStart) = $329C, error, "bank 0 position stream $B210 end"
+
+PositionStreamB29C:
+    PositionRecord $0000, $0000, $00, $00, $00, $00, $00, $00
+    PositionRecord $0002, $0000, $F0, $0D, $0D, $00, $FF, $FF ; CONTROL_POSITION_STREAM_B29C
+    PositionRecord $0004, $0000, $F0, $01, $16, $00, $FF, $FF
+    PositionRecord $001C, $0000, $F0, $50, $0E, $00, $FF, $1E
+    PositionRecord $0020, $0000, $F0, $6F, $1C, $00, $FF, $1F
+    PositionRecord $0038, $0000, $F0, $50, $0E, $00, $FF, $20
+    PositionRecord $0040, $0000, $F0, $6F, $12, $00, $FF, $21
+    PositionRecord $0044, $0000, $F0, $52, $19, $00, $FF, $22
+    PositionRecord $004C, $0000, $F0, $50, $0A, $00, $FF, $23
+    PositionRecord $0051, $0000, $F0, $51, $0E, $00, $FF, $46
+    PositionRecord $0053, $0000, $F0, $6F, $16, $00, $FF, $24
+    PositionRecord $0054, $0000, $F0, $6F, $0E, $00, $FF, $25
+    PositionRecord $0062, $0000, $F0, $0A, $0E, $14, $FF, $26
+    PositionRecord $006B, $0000, $F0, $51, $12, $00, $FF, $47
+    PositionRecord $0079, $0000, $F0, $52, $0C, $00, $FF, $27
+    PositionRecord $0084, $0000, $F0, $6B, $09, $00, $FF, $FF
+    PositionRecordEnd
+.assert (* - BankStart) = $3320, error, "bank 0 position stream $B29C end"
+
+PositionStreamB320:
+    PositionRecord $0000, $0000, $00, $00, $00, $00, $00, $00
+    PositionRecord $0002, $0000, $F0, $0D, $0F, $00, $FF, $FF ; CONTROL_POSITION_STREAM_B320
+    PositionRecord $0004, $0000, $F0, $01, $14, $00, $FF, $FF
+    PositionRecord $000B, $0000, $F0, $71, $1E, $00, $FF, $28
+    PositionRecord $0021, $0000, $F0, $50, $0E, $00, $FF, $29
+    PositionRecord $0028, $0000, $F0, $6F, $0E, $00, $FF, $2A
+    PositionRecord $002D, $0000, $F0, $6E, $1C, $00, $FF, $2B
+    PositionRecord $002F, $0000, $F0, $6F, $2C, $00, $FF, $2F
+    PositionRecord $003B, $0000, $F0, $0A, $1E, $18, $FF, $2C
+    PositionRecord $003F, $0000, $F0, $4D, $27, $00, $FF, $2D
+    PositionRecord $004D, $0000, $F0, $6E, $24, $00, $FF, $2E
+    PositionRecord $005E, $0000, $F0, $52, $2A, $00, $FF, $30
+    PositionRecord $006E, $0000, $F0, $6E, $26, $00, $FF, $31
+    PositionRecord $007E, $0000, $F0, $71, $16, $00, $FF, $32
+    PositionRecord $0088, $0000, $F0, $0A, $24, $24, $FF, $2C
+    PositionRecord $008C, $0000, $F0, $6E, $20, $00, $FF, $33
+    PositionRecord $008F, $0000, $F0, $6F, $0E, $00, $FF, $34
+    PositionRecord $00A0, $0000, $F0, $52, $2A, $00, $FF, $35
+    PositionRecord $00A4, $0000, $F0, $6E, $23, $00, $FF, $36
+    PositionRecord $00B4, $0000, $F0, $6F, $16, $00, $FF, $37
+    PositionRecord $00B6, $0000, $F0, $71, $16, $00, $FF, $38
+    PositionRecord $00C0, $0000, $F0, $4D, $24, $00, $FF, $39
+    PositionRecord $00D1, $0000, $F0, $50, $0E, $00, $FF, $3A
+    PositionRecord $00ED, $0000, $F0, $6E, $23, $00, $FF, $3B
+    PositionRecord $00F4, $0000, $F0, $6B, $19, $00, $FF, $FF
+    PositionRecordEnd
+.assert (* - BankStart) = $33EC, error, "bank 0 position stream $B320 end"
+
+PositionStreamB3EC:
+    PositionRecord $0000, $0000, $00, $00, $00, $00, $00, $00
+    PositionRecord $0002, $0000, $F0, $0D, $5B, $00, $FF, $FF ; CONTROL_POSITION_STREAM_B3EC
+    PositionRecord $0004, $0000, $F0, $01, $6A, $00, $FF, $FF
+    PositionRecord $0018, $0000, $F0, $55, $5C, $00, $FF, $96
+    PositionRecord $0023, $0000, $F0, $0A, $4E, $1B, $FF, $3D
+    PositionRecord $002D, $0000, $F0, $51, $16, $00, $FF, $AE
+    PositionRecord $0032, $0000, $F0, $55, $4A, $00, $FF, $FF
+    PositionRecord $0033, $0000, $F0, $51, $1A, $00, $FF, $9D
+    PositionRecord $0034, $0000, $F0, $55, $2A, $00, $FF, $FF
+    PositionRecord $003B, $0000, $F0, $51, $29, $00, $FF, $AD
+    PositionRecord $0040, $0000, $F0, $55, $0C, $00, $FF, $9E
+    PositionRecord $0043, $0000, $F0, $51, $5A, $00, $FF, $AC
+    PositionRecord $0045, $0000, $F0, $0A, $0E, $10, $FF, $3F
+    PositionRecord $004B, $0000, $F0, $0A, $3E, $1C, $FF, $9A
+    PositionRecord $0054, $0000, $F0, $51, $3E, $00, $FF, $99
+    PositionRecord $005D, $0000, $F0, $0A, $54, $0B, $FF, $3E
+    PositionRecord $0068, $0000, $F0, $5D, $14, $00, $FF, $40
+    PositionRecord $006C, $0000, $F0, $51, $52, $00, $FF, $AB
+    PositionRecord $0073, $0000, $F0, $51, $22, $00, $FF, $AA
+    PositionRecord $007B, $0000, $F0, $55, $31, $00, $FF, $FF
+    PositionRecord $007C, $0000, $F0, $55, $42, $00, $FF, $FF
+    PositionRecord $007E, $0000, $F0, $20, $08, $00, $FF, $42
+    PositionRecordEnd
+.assert (* - BankStart) = $34A0, error, "bank 0 position stream $B3EC end"
+
+PositionStreamB4A0:
+    PositionRecord $0000, $0000, $00, $00, $00, $00, $00, $00
+    PositionRecord $0000, $0000, $F0, $00, $10, $01, $FF, $FF ; CONTROL_POSITION_STREAM_B4A0
+    PositionRecordEnd
+.assert (* - BankStart) = $34B4, error, "bank 0 position stream $B4A0 end"
+
+PositionStreamB4B4:
+    PositionRecord $0000, $0000, $00, $00, $00, $00, $00, $00
+    PositionRecord $001A, $0000, $F0, $1E, $0A, $00, $FF, $FF ; CONTROL_POSITION_STREAM_B4B4
+    PositionRecordEnd
+.assert (* - BankStart) = $34C8, error, "bank 0 position stream $B4B4 end"
+
+PositionStreamB4C8:
+    PositionRecord $0000, $0000, $00, $00, $00, $00, $00, $00 ; CONTROL_POSITION_STREAM_B4C8
+    PositionRecordEnd
+.assert (* - BankStart) = $34D4, error, "bank 0 position stream $B4C8 end"
+
+PositionStreamB4D4:
+    PositionRecord $0000, $0000, $00, $00, $00, $00, $00, $00
+    PositionRecord $0001, $0000, $F0, $16, $1A, $00, $FF, $FF ; CONTROL_POSITION_STREAM_B4D4
+    PositionRecord $0002, $0000, $F0, $27, $06, $00, $FF, $FF
+    PositionRecord $001D, $0000, $F0, $27, $0D, $01, $FF, $FF
+    PositionRecordEnd
+.assert (* - BankStart) = $34F8, error, "bank 0 position stream $B4D4 end"
+
+PositionStreamB4F8:
+    PositionRecord $0000, $0000, $00, $00, $00, $00, $00, $00
+    PositionRecord $0001, $0000, $F0, $25, $14, $00, $FF, $FF ; CONTROL_POSITION_STREAM_B4F8
+    PositionRecord $000D, $0000, $F0, $64, $1B, $01, $FF, $FF
+    PositionRecord $000E, $0000, $F0, $17, $1A, $00, $FF, $FF
+    PositionRecordEnd
+.assert (* - BankStart) = $351C, error, "bank 0 position stream $B4F8 end"
+
 ; Opcode $9B calls this palette fade through the native-call wrapper. Preserve
 ; the polling, palette order, four passes and restoration of scroll and PPU
 ; registers; timing and mapper behaviour still require runtime verification.
