@@ -17,8 +17,8 @@ full-file hashes and separate PRG/CHR identities are recorded in
 The v1.5 build matches the reference ROM byte for byte. Its source covers reset
 and startup, NMI frame and controller handling, PPU and sprite-buffer setup,
 bank switching, and shared banked record and data-copy routines. The script
-command dispatcher, its record-length and handler tables, and an initial group
-of handlers are also reconstructed. Remaining PRG bytes and the CHR graphics
+command dispatcher, its record-length and handler tables, and handlers through
+command $60 (except $18) are also reconstructed. Remaining PRG bytes and the CHR graphics
 are local binary inclusions. Changed-source controls check that each
 reconstructed region affects the assembled output.
 
@@ -36,7 +36,7 @@ are not measures of gameplay completion.
 <!-- BEGIN GENERATED PROGRESS -->
 | Version | Reconstructed PRG | Status |
 | --- | ---: | --- |
-| USA v1.5 | **6.59%** (4,316 / 65,536 bytes) | In progress |
+| USA v1.5 | **8.01%** (5,250 / 65,536 bytes) | In progress |
 | USA v1.4 | **0.00%** (0 / 65,536 bytes) | Not started |
 | USA v1.3 | **0.00%** (0 / 65,536 bytes) | Not started |
 | USA v1.2 | **0.00%** (0 / 65,536 bytes) | Not started |
