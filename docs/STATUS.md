@@ -79,6 +79,6 @@ from the checksum-pinned cc65 V2.19 release; V2.19 reports itself as V2.18 with
 the release's Git build ID, as documented upstream.
 
 The repository retains the Sims project's MIT licence, AI disclosure,
-owner-run contribution policy and strict matching standard. No hosted repository
-or remote has been created. Configure hosted contribution settings when
-publication is requested.
+owner-run contribution policy and strict matching standard. The GitHub
+repository was created private on 2026-10-27, with issues, discussions, projects
+and wiki disabled.
