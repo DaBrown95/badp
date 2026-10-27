@@ -1,15 +1,30 @@
 # Project guidance
 
 This is an owner-run, AI-driven matching reconstruction of *Bible Adventures*
-for the NES. The goal is the complete game as readable, rebuildable source.
-The target release is not selected; its pending identity is recorded in
-`config/targets/nes.json`. Follow the user's instructions over this file.
+for the NES. The goal is the complete game as readable, rebuildable source for
+all six supplied USA variants: the unversioned release and v1.1 through v1.5.
+`config/project.json` selects v1.5 as the primary target and records the order
+for later versions. Reviewed input identities are pinned in `config/targets/`.
+Follow the user's instructions over this file.
+
+## Version strategy
+
+- Focus reconstruction on the primary target first. Establish its matching
+  build, source inventory and gameplay verification before moving through
+  v1.4, v1.3, v1.2, v1.1 and the unversioned release. All six remain in scope.
+- Share understood engine code, scripts and data definitions wherever supported
+  by evidence. Express version differences in explicit target configuration or
+  small source variants; avoid six independent copies of the game source.
+- Preserve each target's own reference, layout and verification evidence. A
+  match or successful gameplay run on one version does not verify another.
+  Keep code reconstruction focused on one target while auditing all local ROM
+  identities cheaply with `make audit-all`.
 
 ## Matching
 
-- Identify the owner's ROM before selecting a revision, mapper, bank layout or
-  timing model. Record full-file SHA-1/SHA-256, exact header bytes and separate
-  PRG/CHR identities. Header metadata is evidence to investigate, not proof of
+- Identify new ROMs before adding targets. Record full-file SHA-1/SHA-256,
+  exact header bytes and separate PRG/CHR identities, corroborating the release
+  against a pinned catalogue. Header metadata is evidence to investigate, not proof of
   cartridge hardware. Never silently repair, strip or replace a reference header.
 - Keep the reference ROM and expected hashes fixed once selected. Investigate
   mismatches; never change the reference to make a candidate pass.
@@ -49,6 +64,9 @@ The target release is not selected; its pending identity is recorded in
 
 - `make identify` reads and hashes the local ROM; it does not validate its title
   or revision against an independent catalogue. Do not auto-pin its output.
+- `make audit` verifies the primary input against reviewed identity pins;
+  `TARGET=<id>` selects another target. `make audit-all` checks all six inputs.
+  These are reference checks, not ROM builds or reconstruction progress.
 - Run `make test` for tooling changes. Test meaningful failure cases using
   synthetic fixtures; never commit game bytes as test data.
 - There is no ROM build yet. Once implemented, pin tools and flags, build from

@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "primary_target": "us-v1.5",
+  "target_order": [
+    "us-v1.5",
+    "us-v1.4",
+    "us-v1.3",
+    "us-v1.2",
+    "us-v1.1",
+    "us-unversioned"
+  ]
+}

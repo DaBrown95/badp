@@ -2,17 +2,32 @@
 
 A matching reconstruction of Wisdom Tree's *Bible Adventures* for the
 Nintendo Entertainment System (NES), aiming to recover the complete game as
-readable source.
+readable source across all six supplied USA versions.
 
 This is an **AI-driven experiment** to see what coding agents can do.
 Almost all code, analysis and tooling are AI-generated.
 
 ## Progress
 
-Initial repository setup. No game code has been reconstructed, no ROM build
-exists, and the target release has not been selected. The target will be
-identified from the owner's ROM; its hashes and cartridge details remain
-unpinned in [config/targets/nes.json](config/targets/nes.json).
+All six reference ROMs have been identified against a
+[pinned No-Intro catalogue](config/catalogues/no-intro-nes.json). Exact headers,
+full-file hashes and separate PRG/CHR identities are recorded in
+[config/targets/](config/targets/). No game code has been reconstructed and no
+ROM build exists.
+
+We will complete v1.5 first, then adapt the shared reconstruction to the other
+versions in order. Each version needs its own matching and gameplay evidence.
+The [project configuration](config/project.json) records the primary target and
+rollout order.
+
+| Version | Target | Reconstruction order |
+| --- | --- | --- |
+| USA v1.5 | `us-v1.5` | Primary |
+| USA v1.4 | `us-v1.4` | 2 |
+| USA v1.3 | `us-v1.3` | 3 |
+| USA v1.2 | `us-v1.2` | 4 |
+| USA v1.1 | `us-v1.1` | 5 |
+| USA, unversioned | `us-unversioned` | 6 |
 
 The starting approach is labelled 6502 assembly, with gameplay scripts and data
 decoded as their formats become understood. Programmer Vance Kozik identifies
@@ -33,37 +48,45 @@ standard library. Run from the repository root:
 make test
 ```
 
-Put your own NES ROM in the ignored `baseroms/` directory. The default path is:
+Keep your own NES ROMs in the ignored `baseroms/` directory, using the filenames
+recorded in each target manifest. The default target is v1.5:
 
 ```text
-baseroms/bible-adventures.nes
+baseroms/Bible Adventures (USA) (v1.5) (Unl).nes
 ```
 
-Inspect its container and calculate its identity:
+Inspect its container and verify the reference inputs:
 
 ```sh
 make identify
+make audit
+make audit-all
 ```
 
-For a different filename:
+Select another configured version, or inspect an arbitrary file:
 
 ```sh
-make identify ROM='baseroms/Bible Adventures.nes'
+make audit TARGET=us-v1.4
+make identify ROM='baseroms/another-dump.nes'
 ```
 
-This reads iNES and NES 2.0 containers and prints JSON with full-file hashes,
+`make identify` reads iNES and NES 2.0 containers and prints JSON with full-file hashes,
 separate PRG/CHR hashes, header fields, and any trainer or trailing data.
 It does not modify the ROM, identify a release from a database, or select a
-reference automatically. Header mapper fields still need verification against
-the cartridge and program behaviour.
+reference automatically. The audits compare against reviewed pins, including
+catalogue SHA-1 checks. Header mapper fields still need verification against the
+cartridge and program behaviour. Input audits do not establish a working build.
 
 | Command | Purpose |
 | --- | --- |
 | `make help` | Show available commands. |
-| `make identify` | Inspect a local ROM without changing it. |
+| `make targets` | Show the primary target and version order. |
+| `make identify` | Inspect the primary ROM, or a selected target/file. |
+| `make audit` | Verify the primary input; `TARGET=<id>` selects another. |
+| `make audit-all` | Verify all six input identities. |
 | `make test` | Test the tooling using synthetic data; no game ROM needed. |
 
-A ROM build and pinned assembler/linker will follow target identification.
+A ROM build and pinned assembler/linker are the next implementation steps.
 `make build` is not implemented yet. The intended build will verify every byte
 of the selected container and its PRG/CHR payload separately.
 
@@ -73,7 +96,7 @@ of the selected container and its PRG/CHR payload separately.
 .
 ├── Makefile        Project commands
 ├── assets/         Future verified progress image and ROM map
-├── config/         Target identity, future tool pins and bank maps
+├── config/         Target identities, version order, future tool pins and maps
 ├── include/        Shared assembly symbols and macros
 ├── src/            Reconstructed code, scripts and structured data
 ├── tools/          Build and analysis scripts

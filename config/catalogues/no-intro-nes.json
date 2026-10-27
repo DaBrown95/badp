@@ -1,0 +1,67 @@
+{
+  "schema_version": 1,
+  "source": "No-Intro NES metadata as distributed by libretro/libretro-database",
+  "dat_version": "2026.10.07",
+  "repository": "https://github.com/libretro/libretro-database",
+  "commit": "9a899f5b13ed1c355491e342203be29bc573323b",
+  "path": "metadat/no-intro/Nintendo - Nintendo Entertainment System.dat",
+  "git_blob_sha1": "c3cb8b891815b51b29946a50d5eb9605f76e05f3",
+  "url": "https://github.com/libretro/libretro-database/blob/9a899f5b13ed1c355491e342203be29bc573323b/metadat/no-intro/Nintendo%20-%20Nintendo%20Entertainment%20System.dat#L6493-L6551",
+  "checked_on": "2026-10-27",
+  "entries": [
+    {
+      "target": "us-unversioned",
+      "name": "Bible Adventures (USA) (Unl).nes",
+      "file_size": 131088,
+      "file_sha1": "ea6f5a0172a6bdf94b84820666d92f00ed684ebb",
+      "payload_name": "Bible Adventures (USA) (Unl).unh",
+      "payload_size": 131072,
+      "payload_sha1": "cc61d76fd73fd6fe66c068c5b806988af78dca25"
+    },
+    {
+      "target": "us-v1.1",
+      "name": "Bible Adventures (USA) (v1.1) (Unl).nes",
+      "file_size": 131088,
+      "file_sha1": "159a2a2a95bf503589b45650823fe0d08891e1d6",
+      "payload_name": "Bible Adventures (USA) (v1.1) (Unl).unh",
+      "payload_size": 131072,
+      "payload_sha1": "6444c22f65686e48dedf85bd7d86f11cae13ed6a"
+    },
+    {
+      "target": "us-v1.2",
+      "name": "Bible Adventures (USA) (v1.2) (Unl).nes",
+      "file_size": 131088,
+      "file_sha1": "37ca8cdfacf01ee917a860afd2bff47afdc1e901",
+      "payload_name": "Bible Adventures (USA) (v1.2) (Unl).unh",
+      "payload_size": 131072,
+      "payload_sha1": "7d28ff707df69a62e0acf40464c2f35e2523eb0c"
+    },
+    {
+      "target": "us-v1.3",
+      "name": "Bible Adventures (USA) (v1.3) (Unl).nes",
+      "file_size": 131088,
+      "file_sha1": "295f0b90147405207141018d6813ef32c695b298",
+      "payload_name": "Bible Adventures (USA) (v1.3) (Unl).unh",
+      "payload_size": 131072,
+      "payload_sha1": "d84c1c88fd0d5b0a65f6d8f28b1ca37a5ad36c91"
+    },
+    {
+      "target": "us-v1.4",
+      "name": "Bible Adventures (USA) (v1.4) (Unl).nes",
+      "file_size": 131088,
+      "file_sha1": "698103e6cc45b55cc5e1c7af2e300c78f7cdf917",
+      "payload_name": "Bible Adventures (USA) (v1.4) (Unl).unh",
+      "payload_size": 131072,
+      "payload_sha1": "d584942ea61915316302e85de652d9f20479c0f5"
+    },
+    {
+      "target": "us-v1.5",
+      "name": "Bible Adventures (USA) (v1.5) (Unl).nes",
+      "file_size": 131088,
+      "file_sha1": "d0a35ba273aac8bade832c16d6661bae7b1485b7",
+      "payload_name": "Bible Adventures (USA) (v1.5) (Unl).unh",
+      "payload_size": 131072,
+      "payload_sha1": "f7d8f662913c6bcd86702dcc1759214eaeb186c6"
+    }
+  ]
+}

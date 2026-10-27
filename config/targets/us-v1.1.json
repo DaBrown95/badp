@@ -1,0 +1,61 @@
+{
+  "schema_version": 1,
+  "id": "us-v1.1",
+  "title": "Bible Adventures",
+  "platform": "NES",
+  "region": "USA",
+  "revision": "v1.1",
+  "input_path": "baseroms/Bible Adventures (USA) (v1.1) (Unl).nes",
+  "identity_status": "catalogue-verified",
+  "catalogue": "config/catalogues/no-intro-nes.json",
+  "reconstruction_status": "unstarted",
+  "hardware_verification": {
+    "status": "unverified",
+    "mapper": null,
+    "submapper": null,
+    "timing": null
+  },
+  "reference": {
+    "file": {
+      "size": 131088,
+      "sha1": "159a2a2a95bf503589b45650823fe0d08891e1d6",
+      "sha256": "9df2420ad2beb98bfc44d90df4a9cc560324ce3608da4217a7f5303beec7fc54"
+    },
+    "header_claims": {
+      "format": "NES 2.0",
+      "hex": "4e45531a0408b1080000000000000001",
+      "mapper": 11,
+      "submapper": 0
+    },
+    "trainer": {
+      "offset": 16,
+      "size": 0,
+      "sha1": "da39a3ee5e6b4b0d3255bfef95601890afd80709",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "prg": {
+      "offset": 16,
+      "size": 65536,
+      "sha1": "e4772cabbbf3cb24f3c14c56d4c735d016261004",
+      "sha256": "2c6e6034c6861cafcdeb2c3bfd04ae6e290d2152c4e070ddc276964c6dd14db2"
+    },
+    "chr": {
+      "offset": 65552,
+      "size": 65536,
+      "sha1": "1fd1cb6bde9388aa043cef8500c2401389682a64",
+      "sha256": "eaab8150c318c6f7bb85cc95ff78adcd28a44b4cacdb64835fef46763b8278fa"
+    },
+    "prg_chr": {
+      "offset": 16,
+      "size": 131072,
+      "sha1": "6444c22f65686e48dedf85bd7d86f11cae13ed6a",
+      "sha256": "88ee64119746de659f70f3d459c62dd2af3b21f29f5064ea14f0fb03904cbcfe"
+    },
+    "trailing": {
+      "offset": 131088,
+      "size": 0,
+      "sha1": "da39a3ee5e6b4b0d3255bfef95601890afd80709",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  }
+}
