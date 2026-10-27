@@ -1,6 +1,223 @@
 .setcpu "6502"
 .include "nes.inc"
 
+; A command byte indexes three parallel tables: record length, and the low and
+; high bytes of an RTS dispatch address. Handler addresses below are actual
+; entry points; the stored pointer is entry minus one because RTS increments it.
+; The command names and meanings remain to be recovered. There are 197 entries
+; before the following native code; runtime bounds have not been established.
+.macro ScriptOp length, handler, part
+    .if part = 0
+        .byte length
+    .elseif part = 1
+        .byte <(handler - 1)
+    .elseif part = 2
+        .byte >(handler - 1)
+    .else
+        .error "invalid script table part"
+    .endif
+.endmacro
+
+.macro ScriptTable part
+    ScriptOp 2, $D70F, part ; CONTROL_SCRIPT_LENGTHS
+    ScriptOp 5, $D72C, part ; CONTROL_SCRIPT_LOW
+    ScriptOp 4, $D79B, part ; CONTROL_SCRIPT_HIGH
+    ScriptOp 4, $D7B0, part ; opcode $03
+    ScriptOp 3, $D7C7, part ; opcode $04
+    ScriptOp 4, $D7D0, part ; opcode $05
+    ScriptOp 3, $D7DC, part ; opcode $06
+    ScriptOp 2, $D7FB, part ; opcode $07
+    ScriptOp 3, $D825, part ; opcode $08
+    ScriptOp 2, $D82B, part ; opcode $09
+    ScriptOp 2, $D836, part ; opcode $0A
+    ScriptOp 3, $D8CF, part ; opcode $0B
+    ScriptOp 3, $D8DA, part ; opcode $0C
+    ScriptOp 2, $D8F5, part ; opcode $0D
+    ScriptOp 2, $D8FA, part ; opcode $0E
+    ScriptOp 2, $D90D, part ; opcode $0F
+    ScriptOp 2, $D919, part ; opcode $10
+    ScriptOp 1, $D94B, part ; opcode $11
+    ScriptOp 1, $D960, part ; opcode $12
+    ScriptOp 1, $D972, part ; opcode $13
+    ScriptOp 1, $D97B, part ; opcode $14
+    ScriptOp 4, $D984, part ; opcode $15
+    ScriptOp 3, $D991, part ; opcode $16
+    ScriptOp 1, $D9BB, part ; opcode $17
+    ScriptOp 1, $FD29, part ; opcode $18
+    ScriptOp 1, $D9DA, part ; opcode $19
+    ScriptOp 2, $DA0A, part ; opcode $1A
+    ScriptOp 4, $DA11, part ; opcode $1B
+    ScriptOp 3, $DA1B, part ; opcode $1C
+    ScriptOp 3, $DA33, part ; opcode $1D
+    ScriptOp 2, $DA51, part ; opcode $1E
+    ScriptOp 5, $DA85, part ; opcode $1F
+    ScriptOp 3, $DAD9, part ; opcode $20
+    ScriptOp 1, $DAE3, part ; opcode $21
+    ScriptOp 4, $DAFE, part ; opcode $22
+    ScriptOp 4, $DB06, part ; opcode $23
+    ScriptOp 4, $DB0E, part ; opcode $24
+    ScriptOp 5, $DB27, part ; opcode $25
+    ScriptOp 1, $DB53, part ; opcode $26
+    ScriptOp 3, $DB5C, part ; opcode $27
+    ScriptOp 4, $DB6C, part ; opcode $28
+    ScriptOp 2, $DB76, part ; opcode $29
+    ScriptOp 4, $DB7D, part ; opcode $2A
+    ScriptOp 4, $DB85, part ; opcode $2B
+    ScriptOp 2, $DB8D, part ; opcode $2C
+    ScriptOp 3, $DB92, part ; opcode $2D
+    ScriptOp 1, $DB98, part ; opcode $2E
+    ScriptOp 2, $DBA0, part ; opcode $2F
+    ScriptOp 2, $DBA9, part ; opcode $30
+    ScriptOp 9, $DBB4, part ; opcode $31
+    ScriptOp 2, $DBEB, part ; opcode $32
+    ScriptOp 1, $DBF1, part ; opcode $33
+    ScriptOp 1, $DC08, part ; opcode $34
+    ScriptOp 6, $DC1C, part ; opcode $35
+    ScriptOp 5, $DC7E, part ; opcode $36
+    ScriptOp 4, $DCD4, part ; opcode $37
+    ScriptOp 4, $DCD4, part ; opcode $38
+    ScriptOp 6, $DCD4, part ; opcode $39
+    ScriptOp 3, $DCD4, part ; opcode $3A
+    ScriptOp 3, $DCF4, part ; opcode $3B
+    ScriptOp 5, $DD00, part ; opcode $3C
+    ScriptOp 3, $DD18, part ; opcode $3D
+    ScriptOp 3, $DD25, part ; opcode $3E
+    ScriptOp 2, $DD2E, part ; opcode $3F
+    ScriptOp 3, $DE83, part ; opcode $40
+    ScriptOp 5, $DE90, part ; opcode $41
+    ScriptOp 3, $DE9E, part ; opcode $42
+    ScriptOp 2, $DEAC, part ; opcode $43
+    ScriptOp 1, $DEB3, part ; opcode $44
+    ScriptOp 4, $DED1, part ; opcode $45
+    ScriptOp 2, $DED9, part ; opcode $46
+    ScriptOp 2, $DEF3, part ; opcode $47
+    ScriptOp 2, $DF16, part ; opcode $48
+    ScriptOp 3, $DF38, part ; opcode $49
+    ScriptOp 2, $DF55, part ; opcode $4A
+    ScriptOp 4, $DF5C, part ; opcode $4B
+    ScriptOp 2, $DF66, part ; opcode $4C
+    ScriptOp 3, $DF6D, part ; opcode $4D
+    ScriptOp 3, $DF8E, part ; opcode $4E
+    ScriptOp 2, $DF9F, part ; opcode $4F
+    ScriptOp 3, $DF43, part ; opcode $50
+    ScriptOp 4, $DFA5, part ; opcode $51
+    ScriptOp 4, $DFAF, part ; opcode $52
+    ScriptOp 5, $DFB6, part ; opcode $53
+    ScriptOp 3, $DFC3, part ; opcode $54
+    ScriptOp 2, $DFE5, part ; opcode $55
+    ScriptOp 2, $DFEC, part ; opcode $56
+    ScriptOp 3, $DFF5, part ; opcode $57
+    ScriptOp 4, $DFF5, part ; opcode $58
+    ScriptOp 3, $E01A, part ; opcode $59
+    ScriptOp 2, $E026, part ; opcode $5A
+    ScriptOp 3, $E049, part ; opcode $5B
+    ScriptOp 2, $E056, part ; opcode $5C
+    ScriptOp 2, $E056, part ; opcode $5D
+    ScriptOp 2, $E05E, part ; opcode $5E
+    ScriptOp 4, $E068, part ; opcode $5F
+    ScriptOp 4, $E071, part ; opcode $60
+    ScriptOp 5, $E07A, part ; opcode $61
+    ScriptOp 4, $E0AE, part ; opcode $62
+    ScriptOp 3, $E0D6, part ; opcode $63
+    ScriptOp 2, $E0DD, part ; opcode $64
+    ScriptOp 3, $E0E4, part ; opcode $65
+    ScriptOp 4, $E0FB, part ; opcode $66
+    ScriptOp 6, $E10D, part ; opcode $67
+    ScriptOp 1, $E160, part ; opcode $68
+    ScriptOp 5, $E170, part ; opcode $69
+    ScriptOp 2, $E1A3, part ; opcode $6A
+    ScriptOp 3, $E1B4, part ; opcode $6B
+    ScriptOp 3, $E1BE, part ; opcode $6C
+    ScriptOp 5, $E1D9, part ; opcode $6D
+    ScriptOp 7, $E1D9, part ; opcode $6E
+    ScriptOp 6, $E202, part ; opcode $6F
+    ScriptOp 10, $E221, part ; opcode $70
+    ScriptOp 2, $E221, part ; opcode $71
+    ScriptOp 2, $E267, part ; opcode $72
+    ScriptOp 2, $E284, part ; opcode $73
+    ScriptOp 5, $E290, part ; opcode $74
+    ScriptOp 4, $E293, part ; opcode $75
+    ScriptOp 2, $E293, part ; opcode $76
+    ScriptOp 7, $E29A, part ; opcode $77
+    ScriptOp 3, $E2C5, part ; opcode $78
+    ScriptOp 1, $E30F, part ; opcode $79
+    ScriptOp 2, $E327, part ; opcode $7A
+    ScriptOp 5, $E341, part ; opcode $7B
+    ScriptOp 2, $E34E, part ; opcode $7C
+    ScriptOp 3, $E34E, part ; opcode $7D
+    ScriptOp 1, $E369, part ; opcode $7E
+    ScriptOp 7, $E375, part ; opcode $7F
+    ScriptOp 3, $E3A2, part ; opcode $80
+    ScriptOp 3, $E3B6, part ; opcode $81
+    ScriptOp 5, $E3E8, part ; opcode $82
+    ScriptOp 3, $E3F7, part ; opcode $83
+    ScriptOp 2, $E410, part ; opcode $84
+    ScriptOp 2, $E419, part ; opcode $85
+    ScriptOp 2, $E42B, part ; opcode $86
+    ScriptOp 2, $E442, part ; opcode $87
+    ScriptOp 2, $E44B, part ; opcode $88
+    ScriptOp 3, $E452, part ; opcode $89
+    ScriptOp 2, $E581, part ; opcode $8A
+    ScriptOp 3, $E5A4, part ; opcode $8B
+    ScriptOp 1, $E5B1, part ; opcode $8C
+    ScriptOp 2, $E5E0, part ; opcode $8D
+    ScriptOp 2, $E5E0, part ; opcode $8E
+    ScriptOp 1, $E5E0, part ; opcode $8F
+    ScriptOp 3, $E5EB, part ; opcode $90
+    ScriptOp 3, $E5F3, part ; opcode $91
+    ScriptOp 4, $E606, part ; opcode $92
+    ScriptOp 4, $E613, part ; opcode $93
+    ScriptOp 4, $E61D, part ; opcode $94
+    ScriptOp 1, $E62C, part ; opcode $95
+    ScriptOp 3, $E656, part ; opcode $96
+    ScriptOp 2, $E673, part ; opcode $97
+    ScriptOp 2, $E696, part ; opcode $98
+    ScriptOp 1, $E6E6, part ; opcode $99
+    ScriptOp 3, $E706, part ; opcode $9A
+    ScriptOp 3, $E71B, part ; opcode $9B
+    ScriptOp 2, $E71E, part ; opcode $9C
+    ScriptOp 2, $E726, part ; opcode $9D
+    ScriptOp 5, $E727, part ; opcode $9E
+    ScriptOp 5, $E745, part ; opcode $9F
+    ScriptOp 5, $E75B, part ; opcode $A0
+    ScriptOp 2, $E780, part ; opcode $A1
+    ScriptOp 1, $E789, part ; opcode $A2
+    ScriptOp 5, $D72C, part ; opcode $A3
+    ScriptOp 2, $E799, part ; opcode $A4
+    ScriptOp 1, $E7AA, part ; opcode $A5
+    ScriptOp 3, $E7C4, part ; opcode $A6
+    ScriptOp 1, $E7D3, part ; opcode $A7
+    ScriptOp 1, $E83C, part ; opcode $A8
+    ScriptOp 3, $E85D, part ; opcode $A9
+    ScriptOp 2, $E882, part ; opcode $AA
+    ScriptOp 3, $E88F, part ; opcode $AB
+    ScriptOp 1, $E8B6, part ; opcode $AC
+    ScriptOp 1, $E8BE, part ; opcode $AD
+    ScriptOp 4, $E8C6, part ; opcode $AE
+    ScriptOp 2, $E8E3, part ; opcode $AF
+    ScriptOp 1, $E5B6, part ; opcode $B0
+    ScriptOp 1, $E918, part ; opcode $B1
+    ScriptOp 2, $E956, part ; opcode $B2
+    ScriptOp 3, $E967, part ; opcode $B3
+    ScriptOp 3, $E998, part ; opcode $B4
+    ScriptOp 1, $E998, part ; opcode $B5
+    ScriptOp 6, $E9A0, part ; opcode $B6
+    ScriptOp 1, $E9C7, part ; opcode $B7
+    ScriptOp 1, $E9EB, part ; opcode $B8
+    ScriptOp 3, $EA1C, part ; opcode $B9
+    ScriptOp 3, $EA31, part ; opcode $BA
+    ScriptOp 3, $EA42, part ; opcode $BB
+    ScriptOp 3, $EA4D, part ; opcode $BC
+    ScriptOp 2, $EA86, part ; opcode $BD
+    ScriptOp 1, $EA96, part ; opcode $BE
+    ScriptOp 3, $E88F, part ; opcode $BF
+    ScriptOp 3, $EA9F, part ; opcode $C0
+    ScriptOp 2, $EAAC, part ; opcode $C1
+    ScriptOp 3, $EAC8, part ; opcode $C2
+    ScriptOp 1, $EAD3, part ; opcode $C3
+    ScriptOp 2, $EAD7, part ; opcode $C4
+.endmacro
+
 ; This section is byte-identical in both PRG banks. It switches between mapper
 ; selections while copying data via pointers at $FE/$FF or $F6/$F7. The sign
 ; bit of the pointer's high byte governs whether a bank change is required.
@@ -25,7 +242,7 @@ RecordBankReady:
     bne RecordLengthReady
     lda ($53),y
     tax
-    lda $FDA7,x
+    lda ScriptRecordLengths,x
     tax
 RecordLengthReady:
     stx a:$FE
@@ -830,7 +1047,516 @@ AdvanceSpriteOffset:
     rts
 .assert (* - BankStart) = $1EFA, error, "bank 0 shadow OAM initializer size"
 
-    .incbin "bank0_9efa_fe6c.bin"
+    .incbin "bank0_9efa_d54e.bin"
+; Fetch the next variable-length command, advance the script pointer by the
+; fetched length and dispatch its opcode. The surrounding loop and handlers
+; remain unconverted, so their semantics are not assumed here.
+ScriptLoopContinue = BankStart + $5543
+FetchAndDispatchCommand:
+    ldx #$00                    ; CONTROL_SCRIPT_STEP
+    jsr FetchVariableRecord
+    ldx $10
+    lda $FE
+    clc
+    adc $53
+    sta $53
+    bcc ScriptPointerAdvanced
+    inc $54
+ScriptPointerAdvanced:
+    jsr DispatchScriptCommand
+    ldx $10
+    jsr $DACE
+    lda $48
+    bpl ScriptCountNonnegative
+    dec $48
+    bmi ScriptLoopContinue
+    jmp $EBBB
+ScriptCountNonnegative:
+    dec $48
+    bpl ScriptLoopContinue
+    jmp $EBBB
+DispatchScriptCommand:
+    ldy $60                     ; CONTROL_SCRIPT_DISPATCH
+    lda ScriptHandlerHigh,y
+    pha
+    lda ScriptHandlerLow,y
+    pha
+    rts
+.assert (* - BankStart) = $5585, error, "bank 0 script dispatch offset"
+ScriptHandlerLow:
+    ScriptTable 1
+ScriptHandlerHigh:
+    ScriptTable 2
+.assert (* - BankStart) = $570F, error, "bank 0 script handler table size"
+
+; The command numbers and their lengths/targets are known from the tables;
+; names below describe observed operations rather than claiming original names.
+ScriptOp00:
+    lda #$FF                     ; CONTROL_SCRIPT_OP00
+    sta $06F0,x
+ScriptClear57AndCall:
+    lda #$00
+    sta $57
+    lda $61
+    jmp $F0D8
+
+ScriptPushZeroAndCall:
+    lda #$00
+    sta $57
+    lda $2A
+    jsr $F2A0
+    lda #$00
+    pha
+    jmp $F0DC
+
+; Opcodes $01 and $A3 share this handler. It compares values returned by
+; $F357 with per-slot coordinates and command-provided limits. The $A3 variant
+; also accepts the opposite orientation before setting the script pointer.
+ScriptOp01OrA3:
+    jsr $F357
+    lda $63
+    sta $03E0
+    lda $64
+    sta $03E1
+    lda $FF
+    cmp #$FF
+    beq ScriptConditionalReturn
+    lda $03E0
+    cmp #$FF
+    beq ScriptCheckSecondLimit
+    lda $FE
+    cmp $0700,x
+    bcc ScriptFirstNegative
+    ldy #$00
+    jmp ScriptFirstDirectionReady
+ScriptFirstNegative:
+    ldy #$80
+ScriptFirstDirectionReady:
+    tya
+    eor $0500,x
+    bpl ScriptCheckFirstDistance
+    lda $60
+    cmp #$A3                     ; CONTROL_SCRIPT_OP01
+    bne ScriptConditionalReturn
+ScriptCheckFirstDistance:
+    lda $FE
+    sec
+    sbc $0700,x
+    cpy #$00
+    beq ScriptFirstDistanceReady
+    jsr $9E91
+ScriptFirstDistanceReady:
+    cmp $03E0
+    bcs ScriptConditionalReturn
+ScriptCheckSecondLimit:
+    lda $03E1
+    cmp #$FF
+    beq ScriptConditionalJump
+    lda $FF
+    cmp $B0,x
+    bcc ScriptSecondNegative
+    ldy #$00
+    jmp ScriptSecondDirectionReady
+ScriptSecondNegative:
+    ldy #$80
+ScriptSecondDirectionReady:
+    lda $FF
+    sec
+    sbc $B0,x
+    cpy #$00
+    beq ScriptSecondDistanceReady
+    jsr $9E91
+ScriptSecondDistanceReady:
+    cmp $03E1
+    bcs ScriptConditionalReturn
+ScriptConditionalJump:
+    jmp ScriptSetPointerFromOperands
+ScriptConditionalReturn:
+    rts
+
+; Probe a sequence of offsets using $F424 and jump on the first nonzero result.
+ScriptOp02:
+    lda $63
+    asl a
+    asl a
+    asl a
+    jsr $9E91
+    tay
+    ldx #$00                     ; CONTROL_SCRIPT_OP02
+    jsr $F424
+    bne ScriptSetPointerFromOperands
+    dec $63
+    bne ScriptOp02
+    rts
+
+ScriptOp03:
+    lda $63
+    clc
+    adc $0570,x
+    ldy $0660,x
+    bpl ScriptOp03DirectionReady
+    jsr $9E91
+ScriptOp03DirectionReady:
+    tax
+    ldy #$02                     ; CONTROL_SCRIPT_OP03
+    jsr $F424
+    beq ScriptSetPointerFromOperands
+    rts
+
+; Opcode $04 and several conditions share this entry: command operand bytes
+; $61/$62 become the next script pointer at $53/$54.
+ScriptSetPointerFromOperands:
+    lda $61                      ; CONTROL_SCRIPT_JUMP
+    sta $53
+    lda $62
+    sta $54
+ScriptPointerReturn:
+    rts
+
+ScriptOp05:
+    jsr $F3CA
+    lda $63
+    cmp $1B                      ; CONTROL_SCRIPT_OP05
+    bcc ScriptPointerReturn
+    jmp ScriptSetPointerFromOperands
+
+; $FF leaves a field unchanged; zero selects the current slot's $70 value.
+ScriptOp06:
+    lda $61
+    cmp #$FF                     ; CONTROL_SCRIPT_OP06
+    beq ScriptOp06SecondField
+    cmp #$00
+    bne ScriptOp06StoreFirst
+    lda $70,x
+ScriptOp06StoreFirst:
+    sta $05F0,x
+ScriptOp06SecondField:
+    lda $62
+    cmp #$FF
+    beq ScriptOp06Return
+    cmp #$00
+    bne ScriptOp06StoreSecond
+    lda $70,x
+ScriptOp06StoreSecond:
+    sta $0600,x
+ScriptOp06Return:
+    rts
+
+; Opcode $07 stores a value in the slot and yields the current command loop.
+ScriptOp07:
+    jsr ScriptOperand61OrSlot
+    sta $0530,x                  ; CONTROL_SCRIPT_WAIT
+ScriptYield:
+    lda #$00
+    sta $48
+    rts
+ScriptOperand61OrSlot:
+    lda $61
+ScriptOperandOrSlot:
+    cmp #$00
+    bne ScriptOperandReady
+    lda $70,x
+ScriptOperandReady:
+    rts
+ScriptResolveOperand61:
+    jsr ScriptOperand61OrSlot
+    sta $61
+    rts
+ScriptOperand62OrSlot:
+    lda $62
+    jmp ScriptOperandOrSlot
+ScriptResolveOperand62:
+    jsr ScriptOperand62OrSlot
+    sta $62
+    rts
+ScriptYieldIfNonnegative:
+    lda $48
+    bpl ScriptYield
+    rts
+
+ScriptOp08:
+    jsr $F057                    ; CONTROL_SCRIPT_OP08
+    jmp ScriptYieldIfNonnegative
+
+; Opcode $09 stores its operand, substituting $10 for $FF.
+ScriptOp09:
+    lda $61
+    cmp #$FF
+    bne ScriptOp09Store
+    lda #$10                     ; CONTROL_SCRIPT_OP09
+ScriptOp09Store:
+    sta $C0,x
+    rts
+.assert (* - BankStart) = $5836, error, "bank 0 initial script handlers size"
+
+; Opcode $0A selects or updates per-slot flags and dispatches to $8D14. Several
+; paths depend on the unconverted $8A4C routine; retain the original tests.
+ScriptOp0A:
+    jsr ScriptOperand61OrSlot
+    cmp #$FF                     ; CONTROL_SCRIPT_OP0A
+    beq ScriptClearSlotMode
+    cmp #$01
+    beq ScriptSetSlotMode
+    cmp #$03
+    beq ScriptSetSlotFlags
+    cmp #$02
+    bne ScriptSetSlotValue
+ScriptCheckSlotMode:
+    lda $0630,x
+    and #$08
+    beq ScriptUpdateSlotMode
+    lda $0510,x
+    bmi ScriptOp0AReturn
+ScriptUpdateSlotMode:
+    lda $0620,x
+    and #$BF
+    sta $0620,x
+    jsr ScriptSetSlotMode
+    ldy $0590,x
+    lda $0580,x
+    tax
+    lda $10
+    jsr $8A4C
+    ldx $10
+    cmp #$00
+    beq ScriptClearSlotFlag08
+    jsr ScriptClearSlotMode
+    lda $0620,x
+    ora #$40
+    sta $0620,x
+ScriptOp0AReturn:
+    rts
+ScriptSetSlotFlags:
+    lda $0630,x
+    ora #$08
+    sta $0630,x
+    lda $0620,x
+    ora #$40
+    sta $0620,x
+    jsr ScriptClearSlotMode
+    jmp ScriptCheckSlotMode
+ScriptClearSlotFlag08:
+    lda $0630,x
+    and #$F7
+    sta $0630,x
+    rts
+ScriptSetSlotValue:
+    sta $0610,x
+    lda $0620,x
+    and #$40
+    bne ScriptCheckSlotMode
+    lda $0620,x
+    and #$04
+    bne ScriptSetSlotMode
+ScriptClearSlotMode:
+    lda $0620,x
+    and #$FB
+    sta $0620,x
+    ldx #$00
+    jmp ScriptApplySlotMode
+ScriptSetSlotMode:
+    lda $0620,x
+    ora #$04
+    sta $0620,x
+    lda $0610,x
+    tax
+ScriptApplySlotMode:
+    lda $10
+    jsr $8D14
+    ldx $10
+    rts
+
+ScriptOp0B:
+    lda $61
+    sta $0640,x                  ; CONTROL_SCRIPT_OP0B
+    lda $62
+    sta $0650,x
+    rts
+; Zero operands use the current slot's $70/$80 pair.
+ScriptOp0C:
+    lda $61
+    sta $0670,x                  ; CONTROL_SCRIPT_OP0C
+    lda $62
+    sta $0680,x
+    bne ScriptOp0CReturn
+    lda $61
+    bne ScriptOp0CReturn
+    lda $70,x
+    sta $0670,x
+    lda $80,x
+    sta $0680,x
+ScriptOp0CReturn:
+    rts
+
+; The next two commands update different bit fields in $0660,x.
+ScriptOp0D:
+    lda #$FC                     ; CONTROL_SCRIPT_OP0D
+    jmp ScriptUpdateSlotBits
+ScriptOp0E:
+    lda #$CF                     ; CONTROL_SCRIPT_OP0E
+    asl $61
+    asl $61
+    asl $61
+    asl $61
+ScriptUpdateSlotBits:
+    and $0660,x
+    ora $61
+    sta $0660,x
+    rts
+
+ScriptOp0F:
+    jsr ScriptOperand61OrSlot
+ScriptSetMainState:
+    sta $00                      ; CONTROL_SCRIPT_OP0F
+    lda #$00
+    sta $58
+    jmp ScriptYield
+
+; This updates an indexed association and marks the previous slot with $80.
+ScriptOp10:
+    lda $0630,x
+    and #$81                     ; CONTROL_SCRIPT_OP10
+    cmp $61
+    beq ScriptOp10Return
+    lda $61
+    and #$07
+    sta $61
+    lda $0630,x
+    and #$6E
+    ora $61
+    sta $0630,x
+    tay
+    lda #$FF
+    sta $15,y
+    lda $3C,y
+    pha
+    txa
+    sta $3C,y
+    pla
+    tay
+    lda #$80
+    ora $0630,y
+    sta $0630,y
+ScriptOp10Return:
+    rts
+
+; $EBAC selects an index used for these state bytes; its full calling convention
+; is pending. The two paths share the call at $D95A.
+ScriptOp11:
+    jsr $EBAC
+    lda $3E,y                    ; CONTROL_SCRIPT_OP11
+    sta $61
+    lda #$00
+    sta $62
+    sta $3E,y
+ScriptApplyOperandPair:
+    jsr $F066
+    jmp ScriptYieldIfNonnegative
+ScriptOp12:
+    jsr $EBAC
+    lda $40,y                    ; CONTROL_SCRIPT_OP12
+    sta $62
+    lda #$00
+    sta $61
+    sta $40,y
+    jmp ScriptApplyOperandPair
+ScriptOp13:
+    jsr $EBAC
+    lda #$00
+    sta $3E,y                    ; CONTROL_SCRIPT_OP13
+    rts
+ScriptOp14:
+    jsr $EBAC
+    lda #$00
+    sta $40,y                    ; CONTROL_SCRIPT_OP14
+    rts
+ScriptOp15:
+    jsr $EBAC
+    lda $63
+    and $038D,y                  ; CONTROL_SCRIPT_OP15
+    beq ScriptOp10Return
+    jmp ScriptSetPointerFromOperands
+
+; Use the two operand bytes as a pointer, falling back to the current slot's
+; $70/$80 pair when both are zero, and tail-call the routine at $F10C.
+ScriptOp16:
+    lda $61
+    sta $FE                      ; CONTROL_SCRIPT_OP16
+    lda $62
+    sta $FF
+    bne ScriptOp16PointerReady
+    lda $61
+    bne ScriptOp16PointerReady
+    lda $70,x
+    sta $FE
+    lda $80,x
+    sta $FF
+ScriptOp16PointerReady:
+    jmp $F10C
+
+; Fetch a record using the caller's X, restore the current slot's pointer, and
+; return a pointer to the copied record in $FE/$FF, set to $0060.
+ScriptFetchRecordAndRestorePointer:
+    jsr FetchVariableRecord
+    ldx $10
+    jsr ScriptLoadSlotPointer
+    lda #$60                     ; CONTROL_SCRIPT_FETCH_PAIR
+    sta $FE
+    lda #$00
+    sta $FF
+    rts
+
+; Restore a previously saved script pointer and per-slot execution state.
+ScriptOp17:
+    lda $06F0,x
+    cmp #$FF                     ; CONTROL_SCRIPT_OP17
+    beq ScriptOp17Return
+    sta $54
+    lda $06E0,x
+    sta $53
+    lda $0740,x
+    sta $0530,x
+    lda $07A0,x
+    sta $0790,x
+    lda $0D
+    sta $48
+ScriptOp17Return:
+    rts
+
+; Opcode $18 dispatches elsewhere; opcode $19 falls through to the pointer
+; loader after checking the low three bits and bit $40 returned by $D9FF.
+ScriptOp19:
+    jsr ScriptGetSlotFlags
+    tay
+    and #$07                     ; CONTROL_SCRIPT_OP19
+    cmp #$02
+    bne ScriptOp17Return
+    tya
+    and #$40
+    bne ScriptOp17Return
+    jsr ScriptYield
+ScriptLoadSlotPointer:
+    lda $05B0,x                  ; CONTROL_SCRIPT_SLOT_POINTER
+    sta $53
+    lda $05C0,x
+    sta $54
+    rts
+ScriptGetSlotPointer:
+    lda $05C0,x
+    tay
+    lda $05B0,x
+    rts
+ScriptGetSlotFlags:
+    lda $10
+    jsr $8D95
+    lda $0400,x
+    ldx $10
+    rts
+.assert (* - BankStart) = $5A0A, error, "bank 0 script handlers through opcode $19"
+
+    .incbin "bank0_da0a_fda7.bin"
+ScriptRecordLengths:
+    ScriptTable 0
 .assert (* - BankStart) = $7E6C, error, "bank 0 common helpers offset"
     BankHelpers
 .assert (* - BankStart) = $7FB3, error, "bank 0 tail offset"
@@ -841,7 +1567,9 @@ AdvanceSpriteOffset:
 .segment "PRG1"
 .scope Bank1
 BankStart:
-    .incbin "bank1_8000_fe6c.bin"
+    .incbin "bank1_8000_fda7.bin"
+ScriptRecordLengths:
+    ScriptTable 0
 .assert (* - BankStart) = $7E6C, error, "bank 1 common helpers offset"
     BankHelpers
 .assert (* - BankStart) = $7FB3, error, "bank 1 tail offset"

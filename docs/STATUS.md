@@ -33,9 +33,9 @@ independent source trees or treat one version's evidence as verifying the rest.
 `make audit-all` checks reference integrity for all targets without requiring
 simultaneous reconstruction. Keep progress and completion evidence per target.
 
-The v1.5 build now assembles and links to the exact reference, with 1,952 bytes
-of source code and 44 bytes of structured data across the physical PRG banks.
-It still includes 63,540 local PRG bytes and 65,536 local CHR bytes. Twenty-two
+The v1.5 build now assembles and links to the exact reference, with 2,770 bytes
+of source code and 832 bytes of structured data across the physical PRG banks.
+It still includes 61,934 local PRG bytes and 65,536 local CHR bytes. Fifty-four
 independent source-change controls verify every listed reconstructed region.
 Passing input audits or whole-ROM equality alone is not reconstruction
 completion. The developer identifies BOGUS as the
@@ -80,8 +80,26 @@ The shared `$FE6C-$FFB2` routines are identical in both PRG banks. They include
 bank switching around copies to the stack and RAM, strided and bitwise buffer
 copies, and a record fetcher. The fetcher selects a length from a table at
 `$FDA7` when X is zero, then copies that many bytes from `($53),Y` to `$60,Y`.
-The table's opcode meanings and any relationship to BOGUS remain unconfirmed.
 The NMI handlers use different RAM source locations in the two banks.
+
+## Script command dispatch
+
+The bank-0 command loop at `$D54E` calls the record fetcher with X=0, advances
+the `$53/$54` pointer by the returned length in `$FE`, and calls `$D57A`. That
+dispatcher indexes split low/high address tables using the copied first byte at
+`$60`, pushes the encoded address and returns into the handler. The tables at
+`$D585` and `$D64A` each contain 197 entries through `$D70E`; the handler entry
+is the encoded address plus one because `RTS` increments it. The length table at
+`$FDA7` has the corresponding 197 entries and is identical in both PRG banks.
+The combined source descriptors preserve each observed record length and handler
+entry while emitting the three original tables in their original layouts.
+
+The first decoded handler group includes setting the script pointer from
+operands `$61/$62`, conditional pointer changes, per-slot state updates, and
+yield/restore paths. Handler meanings are recorded only as supported by the
+instructions; many calls and higher-level state names remain unresolved. The
+table boundary follows the adjacent native code; no runtime bound check has
+been established, and no link to the named BOGUS engine is claimed yet.
 
 The [source map](../config/source-us-v1.5.json) records bank, CPU address, size,
 classification and control for every owned region. `make build` retains the
