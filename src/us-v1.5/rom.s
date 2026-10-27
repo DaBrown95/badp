@@ -8823,7 +8823,7 @@ ScriptCompareState27:
 ScriptCompareStateReturn:
     rts
 ScriptOp9B:
-    jmp $FD88                    ; CONTROL_SCRIPT_OP9B
+    jmp CallScriptNativeBanked   ; CONTROL_SCRIPT_OP9B
 ScriptOp9C:
     lda $61
     eor #$FF                     ; CONTROL_SCRIPT_OP9C
@@ -12107,7 +12107,27 @@ RequireControllerModeReturn:
     rts
 .assert (* - BankStart) = $7D3F, error, "bank 0 controller mode gate end"
 
-    .incbin "bank0_fd3f_fda7.bin"
+    .incbin "bank0_fd3f_fd88.bin"
+; $61/$62 hold the encoded RTS address of a native script helper. For an
+; address below $8000 select the bank in $03C2/$03C3 before making the call.
+; The helper returns to this routine, which restores the default bank.
+CallScriptNativeBanked:
+    lda a:$62                    ; CONTROL_SCRIPT_NATIVE_CALL
+    bmi CallScriptNativeReady
+    lda $03C2
+    ldy $03C3
+    jsr SwitchBank
+CallScriptNativeReady:
+    jsr CallScriptNativeOperand
+    jmp RestoreDefaultBank
+CallScriptNativeOperand:
+    lda a:$62
+    ora #$80
+    pha
+    lda a:$61
+    pha
+    rts
+.assert (* - BankStart) = $7DA7, error, "bank 0 native script call end"
 ScriptRecordLengths:
     ScriptTable 0
 .assert (* - BankStart) = $7E6C, error, "bank 0 common helpers offset"
@@ -12332,7 +12352,152 @@ ScriptBE2F:
 DataBE82 = BankStart + $3E82
     BogusLoadSlotValueIndexedBank1 DataBE82 ; CONTROL_BOGUS_BE3F
 .assert (* - BankStart) = $3E42, error, "bank 1 script BE3F end"
-    .incbin "bank1_be42_cfc7.bin"
+    .incbin "bank1_be42_beea.bin"
+; Native helper reached by opcode $9B: consume packed five-bit symbols from
+; ($55), fill the stack-page buffer, and queue it as a $BF state update.
+; The exact higher-level message and control meanings remain provisional.
+DecodePackedText:
+    ldx #$00                    ; CONTROL_PACKED_TEXT_DECODE
+    lda $0140
+    bne PackedTextNextSymbol
+    sta a:$52
+    ldy #$00
+    lda #$FF
+    sta $0142
+    lda ($55),y
+    sta $0143
+    iny
+    lda ($55),y
+    sta $0144
+    lda #$7F
+    sta $0140
+    lda #$02
+    clc
+    adc a:$55
+    sta a:$55
+    lda a:$56
+    adc #$00
+    sta a:$56
+    ldx #$03
+PackedTextNextSymbol:
+    jsr ReadPackedTextSymbol
+    cmp #$0B
+    beq PackedTextLineBreak
+    cmp #$1A
+    beq PackedTextFinish
+    cmp #$00
+    bne PackedTextPrimaryCharacter
+    jsr ReadPackedTextSymbol
+    tay
+    lda PackedTextSecondaryCharacters,y
+    jmp PackedTextStoreCharacter
+PackedTextPrimaryCharacter:
+    tay
+    lda PackedTextPrimaryCharacters,y
+PackedTextStoreCharacter:
+    sta $0142,x
+    inx
+    txa
+    pha
+    pla
+    tax
+    jmp PackedTextNextSymbol
+PackedTextFinish:
+    lda #$FF
+    sta $0140
+    jmp PackedTextQueue
+PackedTextLineBreak:
+    lda #$FE
+    sta $0142,x
+    inx
+    lda #$20
+    sta $0142,x
+    inx
+    lda #$00
+    sta $0142,x
+    inx
+PackedTextQueue:
+    lda #$00
+    sta $0142,x
+    lda #$42
+    sta a:$EA
+    lda #$01
+    sta a:$EB
+    lda #$BF
+    sta $04D9
+    lda #$1C
+    sta a:$E7
+    rts
+.assert (* - BankStart) = $3F7A, error, "bank 1 packed text decoder end"
+
+; The eight phase entries describe masks, shifts and source-pointer advances
+; for a five-bit stream. Absolute zero-page operands preserve the ROM encoding.
+ReadPackedTextSymbol:
+    ldy #$00
+    lda ($55),y                 ; CONTROL_PACKED_TEXT_SYMBOL
+    ldy a:$52
+    and PackedTextFirstMasks,y
+    pha
+    lda PackedTextFirstShifts,y
+    tay
+    pla
+    jsr ShiftPackedTextRight
+    sta $0141
+    ldy #$01
+    lda ($55),y
+    ldy a:$52
+    and PackedTextSecondMasks,y
+    pha
+    lda PackedTextSecondShifts,y
+    tay
+    pla
+    jsr ShiftPackedTextRight
+    clc
+    adc $0141
+    pha
+    ldy a:$52
+    lda PackedTextAdvances,y
+    clc
+    adc a:$55
+    sta a:$55
+    lda a:$56
+    adc #$00
+    sta a:$56
+    inc a:$52
+    lda a:$52
+    and #$07
+    sta a:$52
+    pla
+    and #$1F
+    rts
+ShiftPackedTextRight:
+    cpy #$00
+    beq ShiftPackedTextReturn
+    clc
+ShiftPackedTextLoop:
+    ror a
+    dey
+    bne ShiftPackedTextLoop
+ShiftPackedTextReturn:
+    rts
+.assert (* - BankStart) = $3FD6, error, "bank 1 packed text symbol helper end"
+
+PackedTextFirstMasks:
+    .byte $F8, $07, $3E, $01, $0F, $00, $03, $00 ; CONTROL_PACKED_TEXT_TABLES
+PackedTextSecondMasks:
+    .byte $00, $C0, $00, $F0, $80, $7C, $E0, $1F
+PackedTextFirstShifts:
+    .byte $03, $07, $01, $05, $08, $00, $06, $00
+PackedTextSecondShifts:
+    .byte $00, $06, $00, $04, $07, $02, $05, $00
+PackedTextAdvances:
+    .byte $00, $01, $00, $01, $00, $01, $00, $02
+PackedTextPrimaryCharacters:
+    .byte "| EOTAHINRS", $0A, "LDU.FMWYGPCBV,", $5C, "1:K<3"
+PackedTextSecondaryCharacters:
+    .byte "247J59!6;08", $27, "X-)*QZ?xxxxxxxxxxxxx"
+.assert (* - BankStart) = $403E, error, "bank 1 packed text tables end"
+    .incbin "bank1_c03e_cfc7.bin"
 ; This branch target adjusts the slot value and queues one of two state
 ; requests; downstream indirect operations remain local.
 ScriptCFC7:

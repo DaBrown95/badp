@@ -33,10 +33,10 @@ independent source trees or treat one version's evidence as verifying the rest.
 `make audit-all` checks reference integrity for all targets without requiring
 simultaneous reconstruction. Keep progress and completion evidence per target.
 
-The v1.5 build now assembles and links to the exact reference, with 20,575 bytes
-of source code and 2,289 bytes of structured data across the physical PRG banks.
-It still includes 42,672 local PRG bytes and 65,536 local CHR bytes. A total of
-673 independent source-change controls verify every listed reconstructed region.
+The v1.5 build now assembles and links to the exact reference, with 20,842 bytes
+of source code and 2,393 bytes of structured data across the physical PRG banks.
+It still includes 42,301 local PRG bytes and 65,536 local CHR bytes. A total of
+677 independent source-change controls verify every listed reconstructed region.
 Passing input audits or whole-ROM equality alone is not reconstruction
 completion. The developer identifies BOGUS as the
 state-machine engine in the [Vance Kozik interview](https://www.nesworld.com/kozik.php);
@@ -229,6 +229,14 @@ Graphs at bank 1 `$BA75` and `$BE03` now express their lookup cases and
 additional connected blocks as source; some referenced data and downstream
 commands remain local. The fetch reads
 four bytes even for the terminator, an important distinction for boundary checks.
+
+Opcode `$9B` invokes a native routine using an encoded RTS address and restores
+the default bank after return. Its observed bank-1 target at `$BEEA` decodes
+five-bit symbols and queues a `$BF` update using a stack-page buffer. Its mask,
+shift, advance and character tables are structured data. A local mathematical
+check compared all 65,536 synthetic byte pairs at each of the eight phases with
+an independent bitstream extraction; the phase advances total five bytes.
+This confirms the bit extraction, not runtime bank switching or message rendering.
 
 Controller handlers now express slot actions, pause toggling and signed motion
 updates, including the original stack-unwinding gates and overflow checks. The
