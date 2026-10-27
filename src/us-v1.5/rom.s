@@ -1227,7 +1227,189 @@ LoadMapChunkPointer:
     rts
 .assert (* - BankStart) = $072F, error, "bank 0 map chunk helper end"
 
-    .incbin "bank0_872f_8a4c.bin"
+    .incbin "bank0_872f_890a.bin"
+; Resolve the indexed slot record, save the supplied coordinates and examine
+; its low mode bits. Mode zero returns 1; mode three returns 0 immediately.
+PlaceSlotSprites:
+    stx $03E0                     ; CONTROL_PLACE_SLOT_SPRITES
+    sty $03E1
+    jsr SlotRecordOffset
+    beq PlaceSlotValid
+    rts
+PlaceSlotValid:
+    lda $0402,x
+    sta $FE
+    lda $0403,x
+    sta $FF
+    lda $0400,x
+    and #$7F
+    sta $0400,x
+    and #$03
+    beq PlaceSlotModeZero
+    cmp #$03
+    bne PlaceSlotSelectRecord
+    lda #$00
+    rts
+PlaceSlotSelectRecord:
+    cmp #$01
+    beq PlaceSlotReadSize
+    ldy #$01
+    lda ($FE),y
+    sta $03DE
+    ldy #$03
+    lda ($FE),y
+    pha
+    iny
+    lda ($FE),y
+    sta $FF
+    pla
+    sta $FE
+    jmp PlaceSlotReadSize
+PlaceSlotModeZero:
+    lda #$01
+    rts
+
+; Read the packed dimensions, determine an 8- or 16-unit row height, and
+; seed the OAM buffer offset from the slot record's $0404 byte.
+PlaceSlotReadSize:
+    lda $03E1                     ; CONTROL_PLACE_SLOT_SIZE
+    clc
+    adc $03EC
+    sta $03E1
+    ldy #$00
+    lda ($FE),y
+    pha
+    iny
+    lda ($FE),y
+    lsr a
+    lsr a
+    lsr a
+    lsr a
+    pha
+    lda ($FE),y
+    and #$0F
+    sta $FF
+    pla
+    sta $FE
+    ldy $0404,x
+    lda #$08
+    sta $03E2
+    pla
+    bpl PlaceSlotRows
+    lda #$10
+    sta $03E2
+
+; Update sprite Y/X positions in the OAM buffer. The $FC skip and the
+; saturation of each coordinate are original behavior, not timing evidence.
+PlaceSlotRows:
+    lda $FE                       ; CONTROL_PLACE_SLOT_ROWS
+    sta $03E3
+    lda $03E0
+    pha
+PlaceSlotColumn:
+    lda $03E1
+    sta $0204,y
+    lda $03E0
+    sta $0207,y
+    clc
+    adc #$08
+    bcc PlaceSlotColumnXReady
+    lda #$FF
+PlaceSlotColumnXReady:
+    sta $03E0
+PlaceSlotNextOam:
+    iny
+    iny
+    iny
+    iny
+    cpy #$FC
+    beq PlaceSlotNextOam
+    dec $03E3
+    bne PlaceSlotColumn
+    pla
+    sta $03E0
+    lda $03E1
+    clc
+    adc $03E2
+    bcs PlaceSlotYMaximum
+    cmp #$F9
+    bcc PlaceSlotYReady
+PlaceSlotYMaximum:
+    lda #$F8
+PlaceSlotYReady:
+    sta $03E1
+    dec $FF
+    bne PlaceSlotRows
+
+; For eligible modes, derive a value from a positioned sprite and the slot
+; record; $8DB7 consumes the value if it changed. Its full role is unresolved.
+PlaceSlotEvaluate:
+    lda $0400,x                   ; CONTROL_PLACE_SLOT_EVALUATE
+    and #$70
+    beq PlaceSlotSuccess
+    cmp #$40
+    bcs PlaceSlotSuccess
+    lda $0400,x
+    and #$03
+    cmp #$01
+    beq PlaceSlotSuccess
+    lda $0400,x
+    rol a
+    rol a
+    rol a
+    ldy $0404,x
+    lda $03F0
+    sta $03E0
+    lda $0204,y
+    bcc PlaceSlotSelectCoordinate
+    lda $03EE
+    sta $03E0
+    lda $0207,y
+PlaceSlotSelectCoordinate:
+    clc
+    adc $03E0
+    sta $03E0
+    lda $0401,x
+    and #$07
+    tay
+    iny
+PlaceSlotShiftCoordinate:
+    dey
+    beq PlaceSlotDivide
+    lsr $03E0
+    jmp PlaceSlotShiftCoordinate
+PlaceSlotDivide:
+    stx $03E1                     ; CONTROL_PLACE_SLOT_DIVIDE
+    ldx $03E0
+    ldy #$00
+    lda $03DE
+    jsr DivideUnsigned16By8
+    ldx $03E1
+    lda $0400,x
+    and #$20
+    beq PlaceSlotStoreResult
+    lda $0401,x
+    and #$40
+    beq PlaceSlotStoreResult
+    lda $03DE
+    sty $03DE
+    clc                           ; Original SBC includes an extra borrow.
+    sbc $03DE
+    tay
+PlaceSlotStoreResult:
+    tya
+    ldy $0406,x
+    sta $0406,x
+    tya
+    eor $0406,x
+    beq PlaceSlotSuccess
+    jsr $8DB7
+PlaceSlotSuccess:
+    lda #$00
+    rts
+.assert (* - BankStart) = $0A4C, error, "bank 0 slot sprite placement end"
+
+
 ; The slot query records candidate coordinates and validates its slot record.
 ; A missing bit $08 returns zero without inspecting the map.
 QuerySlotAtPosition:
@@ -1520,7 +1702,163 @@ ClearSlotRecordsLoop:
     rts
 .assert (* - BankStart) = $0C72, error, "bank 0 map query helpers end"
 
-    .incbin "bank0_8c72_8d7d.bin"
+; Release one indexed $0400 record and hide its allocated shadow sprites.
+; Index $FF iterates records until SlotRecordOffset reports out of range.
+ReleaseSpriteRecord:
+    cmp #$FF                      ; CONTROL_RELEASE_SPRITE_RECORD
+    bne ReleaseSpriteRecordOne
+    lda #$00
+ReleaseSpriteRecordAllLoop:
+    pha
+    jsr ReleaseSpriteRecord
+    bne ReleaseSpriteRecordAllDone
+    pla
+    clc
+    adc #$01
+    jmp ReleaseSpriteRecordAllLoop
+ReleaseSpriteRecordAllDone:
+    pla
+    lda #$00
+    rts
+ReleaseSpriteRecordOne:
+    jsr SlotRecordOffset
+    bne ReleaseSpriteRecordReturn
+    lda $0400,x
+    pha
+    lda #$00
+    sta $0400,x
+    pla
+    and #$03
+    beq ReleaseSpriteRecordReturn
+    cmp #$03
+    beq ReleaseSpriteRecordReturn
+    txa
+    pha
+    lda $0404,x
+    tay
+    lda $040A,x
+    bne ReleaseSpriteCountReady
+    lda $0405,x
+ReleaseSpriteCountReady:
+    tax
+    jsr InitializeNextSprite
+    pla
+    tax
+    lda #$00
+ReleaseSpriteRecordReturn:
+    rts
+
+; For record modes 1 or 2, update the $20 attribute bit over its OAM range.
+; The $FC OAM offset skip is the same as the other shadow-sprite loops.
+UpdateSpriteAttribute20:
+    stx $FE                       ; CONTROL_UPDATE_SPRITE_ATTRIBUTE20
+    jsr SlotRecordOffset
+    bne UpdateSpriteAttributeReturn
+    lda $0400,x
+    and #$03
+    cmp #$01
+    beq UpdateSpriteAttributeStart
+    cmp #$02
+    beq UpdateSpriteAttributeStart
+    lda #$01
+UpdateSpriteAttributeReturn:
+    rts
+UpdateSpriteAttributeStart:
+    ldy $0404,x
+    lda $0405,x
+    tax
+UpdateSpriteAttributeLoop:
+    lda $0206,y
+    and #$DF
+    eor $FE
+    sta $0206,y
+UpdateSpriteAttributeNext:
+    iny
+    iny
+    iny
+    iny
+    cpy #$FC
+    beq UpdateSpriteAttributeNext
+    dex
+    bne UpdateSpriteAttributeLoop
+    lda #$00
+    rts
+
+; Update mode bits in $0400 and the low three bits of $0401 after validation.
+SetSpriteRecordMode:
+    stx $03E0                     ; CONTROL_SET_SPRITE_RECORD_MODE
+    sty $03E1
+    jsr RequireSlotRecord
+    and #$CF
+    ora $03E0
+    sta $0400,x
+    lda $03E1
+    and #$07
+    sta $03E1
+    lda $0401,x
+    and #$F8
+    ora $03E1
+    sta $0401,x
+    lda #$00
+    rts
+SetSpriteRecordQueryValue:
+    stx $03E0                     ; CONTROL_SET_SPRITE_QUERY_VALUE
+    jsr RequireSlotRecord
+    lda $03E0
+    sta $0409,x
+    lda $0400,x
+    ora #$08
+    ldy $03E0
+    bne SetSpriteQueryStore
+    eor #$08
+SetSpriteQueryStore:
+    sta $0400,x
+    lda #$00
+    rts
+
+; Set either high attribute bit in $0401. If the high bits changed, $8DB7
+; reloads the sprite data; its full implementation remains to be recovered.
+SetSpriteAttributeBit40:
+    stx $03E0                     ; CONTROL_SET_SPRITE_BIT40
+    jsr RequireSlotRecord
+    lda $0401,x
+    pha
+    and #$BF
+    ldy $03E0
+    beq SetSpriteHighBits
+    ora #$40
+SetSpriteHighBits:
+    sta $0401,x
+    sta $03E0
+    pla
+    eor $03E0
+    and #$C0
+    beq SetSpriteHighBitsReturn
+    jsr $8DB7
+SetSpriteHighBitsReturn:
+    lda #$00
+    rts
+SetSpriteAttributeBit80:
+    stx $03E0                     ; CONTROL_SET_SPRITE_BIT80
+    jsr RequireSlotRecord
+    lda $0401,x
+    pha
+    and #$7F
+    ldy $03E0
+    beq SetSpriteBit80Store
+    ora #$80
+SetSpriteBit80Store:
+    jmp SetSpriteHighBits
+SetSpriteRecordBit10:
+    jsr RequireSlotRecord         ; CONTROL_SET_SPRITE_RECORD_BIT10
+    lda $0401,x
+    ora #$10
+    sta $0401,x
+    lda #$00
+    rts
+.assert (* - BankStart) = $0D7D, error, "bank 0 sprite record helpers end"
+
+
 ; Convert an index into an eleven-byte $0400 record, then store $04DC at its
 ; offset $0A. Out-of-range indices return without the store.
 StoreSlotRecordField0A:
@@ -2177,7 +2515,7 @@ RefreshSlotRecordPosition:
     lda $0580,x
     tax
     lda $10
-    jsr $890A
+    jsr PlaceSlotSprites
     ldx $10
 RefreshSlotRecordReturn:
     rts
@@ -2730,14 +3068,14 @@ ShiftReferenceRight:
 .assert (* - BankStart) = $52F8, error, "bank 0 position conversion end"
 
 
-; Mark a slot free, then pass its index to the still-unconverted $8C72 path.
+; Mark a slot free, then pass its index to ReleaseSpriteRecord.
 ReleaseCurrentSlot:
     ldx $10                       ; CONTROL_RELEASE_CURRENT_SLOT
 ReleaseSlotByIndex:
     lda #$FF                      ; CONTROL_RELEASE_SLOT_BY_INDEX
     sta $04E0,x
     txa
-    jmp $8C72
+    jmp ReleaseSpriteRecord
 
 ; Release selected active slots while retaining the original $03C9 mask test.
 ReleaseSelectedSlots:
@@ -3384,7 +3722,7 @@ ScriptSetSlotMode:
     tax
 ScriptApplySlotMode:
     lda $10
-    jsr $8D14
+    jsr SetSpriteRecordQueryValue
     ldx $10
     rts
 
@@ -3798,7 +4136,7 @@ ScriptOp28:
 ScriptOp29:
     ldx $61                       ; CONTROL_SCRIPT_OP29
     lda $10
-    jmp $8CB7
+    jmp UpdateSpriteAttribute20
 ScriptOp2A:
     lda $63
     cmp $0770,x                   ; CONTROL_SCRIPT_OP2A
@@ -5526,7 +5864,7 @@ ScriptOp98SlotLoop:
     sta $0630,x
     lda $11
     ldy $12
-    jsr $890A
+    jsr PlaceSlotSprites
     dec $11
     bpl ScriptOp98SlotLoop
     jmp ScriptYield
@@ -6115,7 +6453,7 @@ ScriptOpC3:
     rts
 ScriptOpC4:
     lda $10                       ; CONTROL_SCRIPT_OPC4
-    jsr $8C72
+    jsr ReleaseSpriteRecord
     ldx $10
     jsr ScriptOperand61OrSlot
     sta $04DC
@@ -6705,20 +7043,20 @@ SlotDirectionStoreSecond:
 SlotDirectionBitsReturn:
     rts
 
-; Apply the two direction bits via the still-unconverted $8D32/$8D59 paths.
+; Apply the two direction bits through the sprite attribute helpers.
 SyncSlotDirection:
     ldx $10                       ; CONTROL_SYNC_SLOT_DIRECTION
     lda $0660,x
     and #$80
     tax
     lda $10
-    jsr $8D32
+    jsr SetSpriteAttributeBit40
     ldx $10
     lda $0660,x
     and #$40
     tax
     lda $10
-    jsr $8D59
+    jsr SetSpriteAttributeBit80
     ldx $10
 SyncSlotDirectionReturn:
     rts
@@ -7108,7 +7446,7 @@ SlotRecordAllocate:
     lda #$FF
     sta $04E0,x
     txa
-    jsr $8C72
+    jsr ReleaseSpriteRecord
     ldy $FF
     ldx $FE
     lda $10
@@ -7127,7 +7465,7 @@ SlotRecordPlace:
     lda $0580,x
     tax
     lda $10
-    jsr $890A
+    jsr PlaceSlotSprites
     jsr UpdateSlotBounds
     pla
     sta $04E0,x
@@ -7180,13 +7518,13 @@ SlotRecordApplyFlags:
     and #$07
     tay
     lda $10
-    jsr $8CED
+    jsr SetSpriteRecordMode
 SlotRecordApplyBit40:
     lda $11
     and #$40
     beq SlotRecordFinish
     lda $10
-    jsr $8D6F
+    jsr SetSpriteRecordBit10
 SlotRecordFinish:
     ldx $10
     lda #$00

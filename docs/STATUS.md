@@ -33,9 +33,9 @@ independent source trees or treat one version's evidence as verifying the rest.
 `make audit-all` checks reference integrity for all targets without requiring
 simultaneous reconstruction. Keep progress and completion evidence per target.
 
-The v1.5 build now assembles and links to the exact reference, with 12,687 bytes
+The v1.5 build now assembles and links to the exact reference, with 13,276 bytes
 of source code and 1,656 bytes of structured data across the physical PRG banks.
-It still includes 51,193 local PRG bytes and 65,536 local CHR bytes. Three hundred fifty-six
+It still includes 50,604 local PRG bytes and 65,536 local CHR bytes. Three hundred sixty-eight
 independent source-change controls verify every listed reconstructed region.
 Passing input audits or whole-ROM equality alone is not reconstruction
 completion. The developer identifies BOGUS as the
@@ -172,6 +172,12 @@ tables at `$A3EC` and `$A418`. The frame dispatcher and its position-record
 caller are also source, including the `$F0` record-type path that prepares a
 slot. Record streams, other frame callees, PPU timing and runtime index bounds
 remain unverified.
+
+Sprite placement and record helpers now update shadow OAM coordinates and
+attributes, including the original `$FC` offset skip. A focused instruction-
+subset check on synthetic RAM covered grid placement, coordinate saturation,
+the offset skip, invalid indices and two record modes. Sprite data loading,
+PPU timing and gameplay still need separate verification.
 
 A local decoder reads both pointer tables, deduplicates aliases and round-trips
 32 streams containing 523 eight-byte records plus four-byte terminators through
