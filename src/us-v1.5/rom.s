@@ -1245,22 +1245,22 @@ ScriptClear57AndCall:
     sta $57
 ScriptCallF0D8:
     lda $61
-    jmp $F0D8
+    jmp LoadSlotRecord
 
 ScriptPushZeroAndCall:
     lda #$00
     sta $57
     lda $2A
-    jsr $F2A0
+    jsr SlotRecordAddressFromIndex
     lda #$00
     pha
-    jmp $F0DC
+    jmp LoadSlotRecordIndirect
 
 ; Opcodes $01 and $A3 share this handler. It compares values returned by
 ; $F357 with per-slot coordinates and command-provided limits. The $A3 variant
 ; also accepts the opposite orientation before setting the script pointer.
 ScriptOp01OrA3:
-    jsr $F357
+    jsr FindSlotCoordinates
     lda $63
     sta $03E0
     lda $64
@@ -1361,7 +1361,7 @@ ScriptPointerReturn:
     rts
 
 ScriptOp05:
-    jsr $F3CA
+    jsr AdvanceState19To1B
     lda $63
     cmp $1B                      ; CONTROL_SCRIPT_OP05
     bcc ScriptPointerReturn
@@ -1639,7 +1639,7 @@ ScriptOp16:
     lda $80,x
     sta $FF
 ScriptOp16PointerReady:
-    jmp $F10C
+    jmp LoadSlotRecordAtFE
 
 ; Fetch a record using the caller's X, restore the current slot's pointer, and
 ; return a pointer to the copied record in $FE/$FF, set to $0060.
@@ -1647,6 +1647,7 @@ ScriptFetchRecordAndRestorePointer:
     jsr FetchVariableRecord
     ldx $10
     jsr ScriptLoadSlotPointer
+ScriptSetRecordBufferPointer:
     lda #$60                     ; CONTROL_SCRIPT_FETCH_PAIR
     sta $FE
     lda #$00
@@ -2085,6 +2086,7 @@ ScriptFindSlotReturn:
 ScriptCheckOtherSlot:
     cpy $10
     beq ScriptCheckOtherSlotReturn
+ScriptCheckSlotPresent:
     lda $04E0,y
     cmp #$FF
 ScriptCheckOtherSlotReturn:
@@ -2282,7 +2284,7 @@ ScriptOp3FCompareOther:
     beq ScriptCopySlotPair
     cpy #$18
     beq ScriptCountMarkedSlots
-    jsr $F3CA
+    jsr AdvanceState19To1B
 ScriptStoreSlotLow:
     sta $70,x
     rts
@@ -2306,7 +2308,7 @@ ScriptCopySlotPair:
     rts
 ScriptOp3FCompareCoordinates:
     sty $03                      ; CONTROL_SCRIPT_COMPARE_COORDS
-    jsr $F357
+    jsr FindSlotCoordinates
     cmp #$FF
     beq ScriptStoreSlotPair
     lda $03
@@ -2330,7 +2332,7 @@ ScriptCoordinateCompareY:
     ldy #$01
     jmp ScriptStoreYToSlot
 ScriptOp3FReadIndirect:
-    jsr $F29B                    ; CONTROL_SCRIPT_READ_INDIRECT
+    jsr SlotRecordAddressFromCurrent                    ; CONTROL_SCRIPT_READ_INDIRECT
     ldy #$03
     lda ($FE),y
     jmp ScriptStoreSlotLow
@@ -4329,7 +4331,7 @@ UpdateSlotFieldsStoreFlags:
     lda $05
     and #$40
     bne UpdateSlotFieldsChooseMode
-    jsr $F2D6
+    jsr ComputeSlotDirectionFlags
     bpl UpdateSlotFieldsSecondSign
     lda $61
     jsr NegateA
@@ -4373,7 +4375,294 @@ UpdateSlotFieldsAddReturn:
     rts
 .assert (* - BankStart) = $70D8, error, "bank 0 slot field helper end"
 
-    .incbin "bank0_f0d8_f2cc.bin"
+; Use the current slot record with an offset in A, or enter at $F0DC with its
+; address already in $FE/$FF and a saved offset. $57 selects offset direction.
+LoadSlotRecord:
+    pha                          ; CONTROL_SLOT_RECORD_ENTRY
+    jsr SlotRecordAddressFromCurrent
+LoadSlotRecordIndirect:
+    ldy #$00                     ; CONTROL_SLOT_RECORD_LOOKUP
+    lda ($FE),y
+    pha
+    iny
+    lda ($FE),y
+    sta $FF
+    pla
+    sta $FE
+    pla
+    ldy $57
+    bpl SlotRecordOffsetAdd
+    tay
+    lda $FE
+    sty $FE
+    sec
+    sbc $FE
+    sta $FE
+    lda $FF
+    sbc #$00
+    sta $FF
+    jmp LoadSlotRecordAtFE
+SlotRecordOffsetAdd:
+    clc
+    adc $FE
+    sta $FE
+    lda $FF
+    adc #$00
+    sta $FF
+
+; Fetch ten bytes without losing the current command pointer. Some modes may
+; replace the current slot pointer with the pointer in bytes 2 and 3.
+LoadSlotRecordAtFE:
+    lda $53                      ; CONTROL_SLOT_RECORD_FETCH
+    pha
+    lda $54
+    pha
+    lda $FE
+    sta $53
+    lda $FF
+    sta $54
+    ldx #$0A
+    jsr FetchVariableRecord
+    pla
+    sta $54
+    pla
+    sta $53
+    jsr ScriptSetRecordBufferPointer
+    ldx $10
+    ldy #$03
+    lda $57
+    bne SlotRecordCheckData
+    lda ($FE),y
+    cmp #$FF
+    beq SlotRecordCheckData
+    dey
+    sta $05C0,x
+    sta $54
+    lda ($FE),y
+    sta $05B0,x
+    sta $53
+SlotRecordCheckData:
+    ldy #$01
+    lda ($FE),y
+    cmp #$FF
+    bne SlotRecordReadFields
+    jmp SlotRecordFinish
+SlotRecordReadFields:
+    ldy #$04                     ; CONTROL_SLOT_RECORD_FIELDS
+    lda $57
+    bpl SlotRecordReadMode
+    ldy #$02
+SlotRecordReadMode:
+    lda ($FE),y
+    sta $11
+    lda $57
+    bmi SlotRecordReadPointer
+    cmp #$01
+    beq SlotRecordReadPointer
+    iny
+    lda ($FE),y
+    sta $0690,x
+    iny
+    lda ($FE),y
+    sta $06A0,x
+    iny
+    lda ($FE),y
+    sta $06B0,x
+    iny
+    lda ($FE),y
+    sta $06C0,x
+    lda $0620,x
+    ora #$28
+    eor #$08
+    sta $0620,x
+SlotRecordReadPointer:
+    ldy #$00
+    lda ($FE),y
+    sta $55
+    pha
+    iny
+    lda ($FE),y
+    sta $56
+    sta $FF
+    pla
+    sta $FE
+    ldy #$00
+    lda ($55),y
+    cmp #$53
+    bne SlotRecordSizeFields
+    ldy #$03
+    lda ($55),y
+    pha
+    iny
+    lda ($55),y
+    sta $56
+    pla
+    sta $55
+
+; Read packed dimensions and update slot geometry. A leading $53 selects a
+; second pointer; the exact record format and higher-level names are tentative.
+SlotRecordSizeFields:
+    ldy #$00                     ; CONTROL_SLOT_RECORD_SIZE
+    lda ($55),y
+    rol a
+    ldy #$01
+    lda ($55),y
+    and #$0F
+    bcc SlotRecordHeightReady
+    asl a
+SlotRecordHeightReady:
+    jsr ShiftALeft3
+    ldy $0560,x
+    sta $0560,x
+    tya
+    beq SlotRecordWidth
+    sec
+    sbc $0560,x
+    clc
+    adc $0590,x
+    sta $0590,x
+SlotRecordWidth:
+    ldy #$01
+    lda ($55),y
+    jsr ShiftARight4
+    jsr ShiftALeft3
+    sta $0570,x
+    lsr a
+    sta $12
+    lda $0700,x
+    beq SlotRecordAllocate
+    sec
+    sbc $12
+    bcs SlotRecordLeftReady
+    lda #$00
+SlotRecordLeftReady:
+    sta $0580,x
+
+; Temporarily mark the slot inactive while $87FA attempts to load the record.
+SlotRecordAllocate:
+    lda $04E0,x                  ; CONTROL_SLOT_RECORD_ALLOCATE
+    pha
+    lda #$FF
+    sta $04E0,x
+    txa
+    jsr $8C72
+    ldy $FF
+    ldx $FE
+    lda $10
+    jsr $87FA
+    beq SlotRecordPlace
+    pla
+    pha
+    jsr ScriptOp18
+    ldx $10
+    pla
+    cmp #$00
+    rts
+SlotRecordPlace:
+    ldx $10                      ; CONTROL_SLOT_RECORD_PLACE
+    ldy $0590,x
+    lda $0580,x
+    tax
+    lda $10
+    jsr $890A
+    jsr UpdateSlotBounds
+    pla
+    sta $04E0,x
+    lda $0620,x
+    and #$04
+    beq SlotRecordApplyFlags
+    jsr ScriptSetSlotMode
+    ldy $0590,x
+    lda $0580,x
+    tax
+    lda $10
+    jsr $8A4C
+    beq SlotRecordApplyFlags
+    ldx $10
+    ldy $0590,x
+    lda $0580,x
+    sec
+    sbc #$08
+    bcs SlotRecordLeftTest
+    lda #$00
+SlotRecordLeftTest:
+    tax
+    lda $10
+    jsr $8A4C
+    beq SlotRecordUseAdjustedPosition
+    ldx $10
+    ldy $0590,x
+    lda $0580,x
+    clc
+    adc #$08
+    bcc SlotRecordRightTest
+    lda #$FF
+SlotRecordRightTest:
+    tax
+    lda $10
+    jsr $8A4C
+    bne SlotRecordApplyFlags
+SlotRecordUseAdjustedPosition:
+    ldx $10
+    lda $03A6
+    sta $0580,x
+    lda $03A7
+    sta $0590,x
+SlotRecordApplyFlags:
+    lda $11                      ; CONTROL_SLOT_RECORD_FLAGS
+    and #$30
+    beq SlotRecordApplyBit40
+    tax
+    lda $11
+    and #$07
+    tay
+    lda $10
+    jsr $8CED
+SlotRecordApplyBit40:
+    lda $11
+    and #$40
+    beq SlotRecordFinish
+    lda $10
+    jsr $8D6F
+SlotRecordFinish:
+    ldx $10
+    lda #$00
+    rts
+
+; Address calculation: $9F06 + 4*index + low byte of 2*index. This equals
+; $9F06 + 6*index below $80; higher indices lose the carry from the first
+; doubling. The second entry accepts A; the first loads $04E0 for the slot.
+SlotRecordAddressFromCurrent:
+    ldx $10                      ; CONTROL_SLOT_RECORD_CURRENT
+    lda $04E0,x
+SlotRecordAddressFromIndex:
+    sta $FE                      ; CONTROL_SLOT_RECORD_ADDRESS
+    lda #$00
+    sta $FF
+    jsr DoubleFEPointer
+    lda $FE
+    jsr DoubleFEPointer
+    clc
+    adc $FE
+    sta $FE
+    lda $FF
+    adc #$00
+    sta $FF
+    lda #$06
+    clc
+    adc $FE
+    sta $FE
+    lda #$9F
+    adc $FF
+    sta $FF
+    rts
+DoubleFEPointer:
+    asl $FE                      ; CONTROL_DOUBLE_FE_POINTER
+    rol $FF
+    rts
+.assert (* - BankStart) = $72CC, error, "bank 0 slot record loader end"
+
+
 ; Advance the 16-bit script pointer by two bytes. Entry at $F2CF advances
 ; once; $F2CC calls that entry and then falls through for a second increment.
 AdvanceScriptPointerTwice:
@@ -4385,7 +4674,201 @@ AdvanceScriptPointerOnce:
 ScriptPointerIncremented:
     rts
 .assert (* - BankStart) = $72D6, error, "bank 0 script pointer advance helper"
-    .incbin "bank0_f2d6_f424.bin"
+; Compute flag bits in $03DE from $0660 and selected-slot comparisons.
+; When the low mode bits equal 3, a $EF68 result also participates.
+ComputeSlotDirectionFlags:
+    lda #$00                     ; CONTROL_SLOT_DIRECTION_FLAGS
+    sta $03DE
+    jsr FindSlotCoordinates
+    cmp #$FF
+    beq DirectionFlagsMode3
+    lda $0660,x
+    and #$03
+    beq DirectionFlagsSecond
+    cmp #$03
+    beq DirectionFlagsSecond
+    and #$01
+    sta $03E1
+    ldy #$00
+    lda $FE
+    cmp $0700,x
+    bcs DirectionFlagsFirstValue
+    ldy #$80
+DirectionFlagsFirstValue:
+    tya
+    ldy $03E1
+    bne DirectionFlagsFirstStore
+    eor #$80
+DirectionFlagsFirstStore:
+    sta $03DE
+DirectionFlagsSecond:
+    lda $0660,x
+    and #$30
+    beq DirectionFlagsMode3
+    and #$10
+    sta $03E1
+    ldy #$00
+    lda $FF
+    cmp $B0,x
+    bcs DirectionFlagsSecondValue
+    ldy #$01
+DirectionFlagsSecondValue:
+    tya
+    ldy $03E1
+    bne DirectionFlagsSecondStore
+    eor #$01
+DirectionFlagsSecondStore:
+    ora $03DE
+    sta $03DE
+DirectionFlagsMode3:
+    lda $0660,x
+    and #$03
+    eor #$03
+    bne DirectionFlagsReturn
+    jsr $EF68
+    ldy #$00
+    lda $90,x
+    sec
+    sbc $11
+    lda $A0,x
+    sbc $12
+    bcs DirectionFlagsMode3Store
+    ldy #$80
+DirectionFlagsMode3Store:
+    sty $11
+    lda $03DE
+    and #$7F
+    ora $11
+    sta $03DE
+DirectionFlagsReturn:
+    lda $03DE
+    rts
+
+; Use $0540,x if enabled and valid; otherwise scan other valid slots whose
+; $0640/$0650 bits intersect $0670/$0680 and choose the smallest wrapped
+; absolute difference between their $0580 fields. $FE/$FF receive the chosen
+; slot's $0700/$B0 fields, or $FF/$FF if no slot qualifies.
+FindSlotCoordinates:
+    lda $0680,x                  ; CONTROL_FIND_SLOT_COORDINATES
+    bpl FindSlotByFields
+    lda $0540,x
+    cmp #$FF
+    beq FindSlotByFields
+    tay
+    jsr ScriptCheckSlotPresent
+    bne FindSlotCoordinatesSelected
+    sta $0540,x
+    jmp FindSlotByFields
+FindSlotCoordinatesSelected:
+    lda $0700,y
+    sta $FE
+    lda $B0,y
+    sta $FF
+    rts
+FindSlotByFields:
+    lda #$FF
+    sta $FE
+    sta $FF
+    ldy #$00
+FindSlotByFieldsLoop:
+    jsr ScriptCheckSlotPresent
+    beq FindSlotByFieldsNext
+    tya
+    cmp $10
+    beq FindSlotByFieldsNext
+    lda $0640,y
+    and $0670,x
+    bne FindSlotByFieldsCompare
+    lda $0650,y
+    and $0680,x
+    beq FindSlotByFieldsNext
+FindSlotByFieldsCompare:
+    lda $0580,y
+    sec
+    sbc $0580,x
+    bcs FindSlotDistanceReady
+    jsr NegateA
+FindSlotDistanceReady:
+    cmp $FE
+    bcs FindSlotByFieldsNext
+    sta $FE
+    sty $FF
+FindSlotByFieldsNext:
+    iny
+    cpy #$10
+    bne FindSlotByFieldsLoop
+    ldy $FF
+    cpy #$FF
+    bne FindSlotCoordinatesSelected
+    tya
+    rts
+
+; Initialize and advance the three-byte $19-$1B state. The update also reads
+; from ($1E), advances and masks that pointer, and conditionally flips bit 7.
+InitializeState19To1B:
+    lda #$FD                     ; CONTROL_INIT_STATE_19
+    sta $19
+    lda #$43
+    sta $1A
+    lda #$03
+    sta $1B
+    rts
+AdvanceState19To1B:
+    lda $19                      ; CONTROL_ADVANCE_STATE_19
+    clc
+    adc #$C3
+    sta $19
+    lda $1A
+    adc #$9E
+    sta $1A
+    lda $1B
+    adc #$26
+    sta $1B
+    ldy #$00
+    lda ($1E),y
+    clc
+    adc $1B
+    sta $1B
+    pha
+    lda $1E
+    clc
+    adc #$01
+    sta $1E
+    and #$01
+    tay
+    lda $1F
+    adc #$00
+    ora #$80
+    and #$BF
+    sta $1F
+    pla
+    cpy #$00
+    beq AdvanceStateReturn
+    eor #$80
+AdvanceStateReturn:
+    rts
+
+; Query the offset first; if $8A4C returns zero, copy the calculated position
+; into the current slot, update bounds and optionally check its mode.
+ApplySlotOffsetIfClear:
+    jsr TestSlotOffset           ; CONTROL_APPLY_SLOT_OFFSET
+    bne ApplySlotOffsetReturn
+    lda $03A6
+    sta $0580,x
+    lda $03A7
+    sta $0590,x
+    jsr UpdateSlotBounds
+    lda $0620,x
+    and #$40
+    beq ApplySlotOffsetSuccess
+    jsr ScriptCheckSlotMode
+ApplySlotOffsetSuccess:
+    lda #$00
+ApplySlotOffsetReturn:
+    rts
+.assert (* - BankStart) = $7424, error, "bank 0 coordinate helper end"
+
+
 ; Apply signed X/Y offsets to the current slot's fields with saturation, then
 ; query $8A4C and return its zero/nonzero result with X restored to the slot.
 TestSlotOffset:

@@ -33,9 +33,9 @@ independent source trees or treat one version's evidence as verifying the rest.
 `make audit-all` checks reference integrity for all targets without requiring
 simultaneous reconstruction. Keep progress and completion evidence per target.
 
-The v1.5 build now assembles and links to the exact reference, with 7,615 bytes
+The v1.5 build now assembles and links to the exact reference, with 8,449 bytes
 of source code and 840 bytes of structured data across the physical PRG banks.
-It still includes 57,081 local PRG bytes and 65,536 local CHR bytes. Two hundred fifty-three
+It still includes 56,247 local PRG bytes and 65,536 local CHR bytes. Two hundred sixty-nine
 independent source-change controls verify every listed reconstructed region.
 Passing input audits or whole-ROM equality alone is not reconstruction
 completion. The developer identifies BOGUS as the
@@ -133,6 +133,13 @@ modes. An isolated instruction-subset check executed the assembled arithmetic
 against all 65,536 eight-bit multiplication pairs, 4,080 valid division cases
 and all 256 byte negations. This is focused arithmetic evidence, not an NES
 emulator or gameplay test.
+
+The slot-record loader at `$F0D8` fetches ten bytes, reads packed dimensions
+and calls several still-unconverted placement routines. Its table-address
+helper computes `$9F06 + 4*index + low(2*index)`; for indices at or above
+`$80` this differs from six times the index because the first carry is lost.
+That is an observed arithmetic property, not evidence those indices are used.
+Coordinate selection and the related direction-flag update are now source.
 
 The [source map](../config/source-us-v1.5.json) records bank, CPU address, size,
 classification and control for every owned region. `make build` retains the
