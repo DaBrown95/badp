@@ -119,6 +119,7 @@ local, along with the extracted inputs and control builds.
 | `make progress` | Rebuild and update the per-version tracker. |
 | `make position-records` | Decode v1.5 position records to ignored local analysis. |
 | `make script-entries` | Inventory candidate v1.5 script entry points locally. |
+| `make script-flow` | Trace reviewed v1.5 script paths to local analysis. |
 | `make test` | Test the tooling using synthetic data; no game ROM needed. |
 
 Other versions have pinned reference identities but do not have builds yet.

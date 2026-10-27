@@ -205,6 +205,11 @@ are valid. Bank mapping is a static inference and the tool does not follow
 branches or prove execution. Its output is ignored local analysis and does not
 count as reconstructed PRG.
 
+The [script-flow inventory](SCRIPT_FLOW.md) follows reviewed successor rules
+from those candidates. It finds 653 candidate commands and stops at 78 nodes
+with dynamic or unreviewed handlers, with no physical-byte overlaps. Branches
+and resumes remain unverified possibilities; this analysis adds no PRG credit.
+
 Controller handlers now express slot actions, pause toggling and signed motion
 updates, including the original stack-unwinding gates and overflow checks. The
 frame motion and slot draw-coordinate paths are source, with synthetic checks

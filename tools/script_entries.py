@@ -101,24 +101,30 @@ def inventory(bank0: bytes, bank1: bytes, descriptor_offset: int,
             'entries': list(entries.values())}
 
 
+def load_audited_banks() -> tuple[dict, bytes, bytes, bytes]:
+    """Read the pinned primary ROM and its identical command length tables."""
+    if os.environ.get('BADP_TARGET') not in (None, '', 'us-v1.5'):
+        raise ValueError('script analysis currently supports us-v1.5 only')
+    target = load_target(ROOT, 'us-v1.5')
+    rom = input_path(ROOT, target, os.environ.get('BADP_ROM') or None).read_bytes()
+    actual = inspect_rom(rom)
+    mismatches = [part for part in IDENTITY_PARTS if actual[part] != target['reference'][part]]
+    if mismatches:
+        raise ValueError(f'reference audit failed: {mismatches}')
+    prg = target['reference']['prg']
+    payload = rom[prg['offset']:prg['offset'] + prg['size']]
+    if len(payload) != 2 * BANK_SIZE:
+        raise ValueError('unexpected PRG size')
+    bank0, bank1 = payload[:BANK_SIZE], payload[BANK_SIZE:]
+    lengths = bank0[LENGTH_TABLE:LENGTH_TABLE + LENGTH_COUNT]
+    if lengths != bank1[LENGTH_TABLE:LENGTH_TABLE + LENGTH_COUNT]:
+        raise ValueError('command length tables differ across banks')
+    return target, bank0, bank1, lengths
+
+
 def main() -> int:
     try:
-        if os.environ.get('BADP_TARGET') not in (None, '', 'us-v1.5'):
-            raise ValueError('script-entry inventory currently supports us-v1.5 only')
-        target = load_target(ROOT, 'us-v1.5')
-        rom = input_path(ROOT, target, os.environ.get('BADP_ROM') or None).read_bytes()
-        actual = inspect_rom(rom)
-        mismatches = [part for part in IDENTITY_PARTS if actual[part] != target['reference'][part]]
-        if mismatches:
-            raise ValueError(f'reference audit failed: {mismatches}')
-        prg = target['reference']['prg']
-        payload = rom[prg['offset']:prg['offset'] + prg['size']]
-        if len(payload) != 2 * BANK_SIZE:
-            raise ValueError('unexpected PRG size')
-        bank0, bank1 = payload[:BANK_SIZE], payload[BANK_SIZE:]
-        lengths = bank0[LENGTH_TABLE:LENGTH_TABLE + LENGTH_COUNT]
-        if lengths != bank1[LENGTH_TABLE:LENGTH_TABLE + LENGTH_COUNT]:
-            raise ValueError('command length tables differ across banks')
+        target, bank0, bank1, lengths = load_audited_banks()
         result = inventory(bank0, bank1, DESCRIPTORS, DESCRIPTOR_COUNT, lengths)
         result.update({'target': 'us-v1.5', 'reference_sha256': target['reference']['file']['sha256'],
                        'interpretation': 'static candidate entry points only; no control-flow or runtime verification',
