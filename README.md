@@ -16,8 +16,9 @@ full-file hashes and separate PRG/CHR identities are recorded in
 
 The v1.5 build matches the reference ROM byte for byte. Its source covers reset
 and startup, NMI frame and controller handling, PPU and sprite-buffer setup,
-palette streams, scroll updates, bank switching, sprite animation and audio
-voice and command handling, frame and slot updates, map queries and redraw
+palette streams, scroll updates, bank switching, sprite allocation and animation,
+audio voice and command handling, map initialization, frame and slot updates,
+map queries and redraw
 queueing, arithmetic, and shared banked record and data-copy routines. The
 script command dispatcher, its record-length and handler tables, and source at
 all 197 handler entries are also reconstructed. Slot descriptors and a related
@@ -41,7 +42,7 @@ are not measures of gameplay completion.
 <!-- BEGIN GENERATED PROGRESS -->
 | Version | Reconstructed PRG | Status |
 | --- | ---: | --- |
-| USA v1.5 | **29.07%** (19,052 / 65,536 bytes) | In progress |
+| USA v1.5 | **30.33%** (19,878 / 65,536 bytes) | In progress |
 | USA v1.4 | **0.00%** (0 / 65,536 bytes) | Not started |
 | USA v1.3 | **0.00%** (0 / 65,536 bytes) | Not started |
 | USA v1.2 | **0.00%** (0 / 65,536 bytes) | Not started |

@@ -1231,7 +1231,80 @@ AudioVoiceIsActive:
     rts
 .assert (* - BankStart) = $0517, error, "bank 0 audio voice stop and query end"
 
-    .incbin "bank0_8517_85b7.bin"
+; Install map pointer Y:X, read its dimensions and draw the initial visible
+; columns. Each column is flushed to the PPU before advancing the tile X index.
+; A zero-width header starts the original 8-bit loop at zero, giving 256 passes.
+InitializeMapDrawing:
+    jsr PrepareDirectPpuWrites   ; CONTROL_INITIALIZE_MAP_DRAWING
+    stx $F4
+    sty $F5
+    jsr ReadMapDimensions
+    lda #$FF
+    sta $03A4
+    jsr FlushPpuUpdates
+    jsr ClampScrollTargets
+    jsr SetInitialMapTilePosition
+    ldx #$21
+    lda $039F
+    bne InitialMapColumnLoop
+    cpx $039E
+    bcc InitialMapColumnLoop
+    ldx $039E
+InitialMapColumnLoop:
+    txa                          ; CONTROL_INITIAL_MAP_COLUMN_LOOP
+    pha
+    jsr ResolveMapChunk
+    jsr QueueMapTileColumn
+    jsr FlushPpuUpdates
+    lda $039A
+    clc
+    adc #$01
+    sta $039A
+    bcc InitialMapColumnAdvanceDone
+    inc $039B
+InitialMapColumnAdvanceDone:
+    pla
+    tax
+    dex
+    bne InitialMapColumnLoop
+; Synchronize current scroll coordinates to the clamped targets and prepare
+; the PPU scroll mirrors before saving the map workspace.
+    lda $03EE                    ; CONTROL_INITIAL_MAP_SYNC_SCROLL
+    sta $03F3
+    lda $03EF
+    sta $03F4
+    lda $03F0
+    sta $03F5
+    lda $03F1
+    sta $03F6
+    jsr UpdatePpuScrollMirror
+; Save map pointer and chunk workspace for later use. Fall through to the
+; existing PPU NMI enable routine exactly as the original does.
+    lda $EC                      ; CONTROL_INITIAL_MAP_SAVE_WORKSPACE
+    sta $03AC
+    lda $ED
+    sta $03AD
+    lda $EE
+    sta $03AE
+    lda $EF
+    sta $03AF
+    lda $F0
+    sta $03B0
+    lda $F1
+    sta $03B1
+    lda $F2
+    sta $03B2
+    lda $F3
+    sta $03B3
+    lda $03F7
+    sta $03B4
+    lda $03F8
+    sta $03B5
+    lda $03F9
+    sta $03B6
+    lda $03FA
+    sta $03B7
+.assert (* - BankStart) = $05B7, error, "bank 0 initial map drawing end"
 ; Writes the PPUCTRL mirror with the NMI bit set; the mirror itself is not
 ; updated here. This routine is a shared tail return from the NMI frame work.
 EnablePpuNmi:
@@ -1241,7 +1314,107 @@ EnablePpuNmi:
     rts
 .assert (* - BankStart) = $05C0, error, "bank 0 NMI enable routine size"
 
-    .incbin "bank0_85c0_867f.bin"
+; Restore the PPU control mirror, wait for vblank and write mask $06 before
+; direct PPU writes. Precise hardware timing remains to be verified.
+PrepareDirectPpuWrites:
+    jsr RestorePpuCtrl           ; CONTROL_PREPARE_DIRECT_PPU_WRITES
+    jsr WaitVBlank
+    lda #$06
+    sta PPUMASK
+    rts
+; Convert the target pixel coordinates to tile coordinates for initial drawing.
+SetInitialMapTilePosition:
+    ldx $03EE                    ; CONTROL_SET_INITIAL_MAP_TILE_POSITION
+    ldy $03EF
+    jsr ShiftXYRight3
+    sty $039B
+    stx $039A
+    ldx $03F0
+    ldy $03F1
+    jsr ShiftXYRight3
+    stx $039C
+    rts
+; The two-byte map header gives width and height in eight-tile units. Compute
+; the tile dimensions and the scroll bounds, then advance F4/F5 past it.
+ReadMapDimensions:
+    lda $F4                      ; CONTROL_READ_MAP_DIMENSIONS
+    sta $FE
+    lda $F5
+    sta $FF
+    jsr ReadBankedPointer
+    lda $FE
+    sta $03AA
+    tay
+    ldx #$08
+    jsr MultiplyUnsigned8
+    stx $039E
+    sty $039F
+    txa
+    sec
+    sbc #$20
+    sta $03A0
+    sta $03A2
+    tya
+    sbc #$00
+    sta $03A1
+    sta $03A3
+    asl $03A2
+    rol $03A3
+    asl $03A2
+    rol $03A3
+    asl $03A2
+    rol $03A3
+; Height uses the low byte of height*8. A height smaller than 30 tiles
+; produces a zero vertical bound, as in the original.
+    lda $FF                      ; CONTROL_READ_MAP_HEIGHT
+    tay
+    ldx #$08
+    jsr MultiplyUnsigned8
+    stx $0396
+    txa
+    sec
+    sbc #$1E
+    bcs MapHeightBoundReady
+    lda #$00
+MapHeightBoundReady:
+    sta $0399
+    sta $03A8
+    lda #$00
+    sta $03A9
+    asl $03A8
+    rol $03A9
+    asl $03A8
+    rol $03A9
+    asl $03A8
+    rol $03A9
+    lda $F4                      ; CONTROL_ADVANCE_MAP_HEADER
+    clc
+    adc #$02
+    sta $F4
+    lda $F5
+    adc #$00
+    sta $F5
+    rts
+; Move the current map index by two bytes, with 16-bit carry or borrow.
+AdvanceMapIndexTwo:
+    lda $EC                      ; CONTROL_ADVANCE_MAP_INDEX_TWO
+    clc
+    adc #$02
+    sta $EC
+    bcc AdvanceMapIndexTwoReturn
+    inc $ED
+AdvanceMapIndexTwoReturn:
+    rts
+RetreatMapIndexTwo:
+    lda $EC                      ; CONTROL_RETREAT_MAP_INDEX_TWO
+    sec
+    sbc #$02
+    sta $EC
+    bcs RetreatMapIndexTwoReturn
+    dec $ED
+RetreatMapIndexTwoReturn:
+    rts
+.assert (* - BankStart) = $067F, error, "bank 0 map setup and index helpers end"
 ; Copy two bytes from the banked pointer in $FE/$FF onto the stack, install
 ; those bytes as the new pointer, and restore the previous $03E0 count.
 ReadBankedPointer:
@@ -1347,7 +1520,299 @@ LoadMapChunkPointer:
     rts
 .assert (* - BankStart) = $072F, error, "bank 0 map chunk helper end"
 
-    .incbin "bank0_872f_890a.bin"
+; Queue horizontal or vertical scroll work only while a map is active.
+RequestHorizontalScroll:
+    lda #$01                     ; CONTROL_REQUEST_HORIZONTAL_SCROLL
+RequestScrollBits:
+    ldx $03A4
+    beq RequestScrollReturn
+    ora $03EB
+    sta $03EB
+RequestScrollReturn:
+    rts
+RequestVerticalScroll:
+    lda #$02                     ; CONTROL_REQUEST_VERTICAL_SCROLL
+    jmp RequestScrollBits
+; Install the two palette-stream pointers and set their pending setup bits.
+SetBackgroundPaletteStream:
+    stx $F8                      ; CONTROL_SET_BACKGROUND_PALETTE_STREAM
+    sty $F9
+    lda #$01
+    jmp SetPaletteStreamPending
+SetSpritePaletteStream:
+    stx $FA                      ; CONTROL_SET_SPRITE_PALETTE_STREAM
+    sty $FB
+    lda #$02
+SetPaletteStreamPending:
+    ora $0387
+    sta $0387
+    rts
+; Rotate up to $20 bytes of shadow OAM to the end of its $FC-byte region.
+; The flags select whether rotation is needed; reserve stack space and hold
+; $03F2 nonzero during the operation.
+RotateShadowOam:
+    lda $03AB                    ; CONTROL_ROTATE_SHADOW_OAM
+    bne RotateShadowOamStart
+    lda $03ED
+    beq RotateShadowOamSkip
+    lda $0381
+    bne RotateShadowOamStart
+RotateShadowOamSkip:
+    jmp RotateShadowOamDone
+RotateShadowOamStart:
+    lda #$FF                     ; CONTROL_ROTATE_SHADOW_OAM_START
+    sta $03F2
+    tsx
+    txa
+    sec
+    sbc #$20
+    tax
+    txs
+    inx
+    stx $FF
+    lda $03AB
+    beq RotateShadowOamMaximum
+    cmp #$20
+    bcc RotateShadowOamSaveCount
+RotateShadowOamMaximum:
+    lda #$20
+RotateShadowOamSaveCount:
+    sta $FE
+    sta $03E0
+    ldy #$00
+RotateShadowOamSave:
+    lda $0204,y
+    sta $0100,x
+    iny
+    inx
+    dec $FE
+    bne RotateShadowOamSave
+; Move the remaining bytes down and append the saved prefix from the stack.
+    ldx #$00                     ; CONTROL_ROTATE_SHADOW_OAM_MOVE
+    lda #$FC
+    sec
+    sbc $03E0
+    sta $FE
+RotateShadowOamMove:
+    lda $0204,y
+    sta $0204,x
+    iny
+    inx
+    dec $FE
+    bne RotateShadowOamMove
+    lda $03E0
+    sta $FE
+    ldy $FF
+RotateShadowOamAppend:
+    lda $0100,y
+    sta $0204,x
+    iny
+    inx
+    dec $FE
+    bne RotateShadowOamAppend
+; Adjust all sixteen record offsets and $03AB, skipping the reserved $FC
+; entry on borrow, then restore the original stack pointer and clear $03F2.
+    lda #$10                     ; CONTROL_ROTATE_SHADOW_OAM_RECORDS
+    sta $FE
+    ldx #$00
+RotateShadowOamRecordLoop:
+    lda $0404,x
+    sec
+    sbc $03E0
+    bcs RotateShadowOamRecordStore
+    sec
+    sbc #$04
+RotateShadowOamRecordStore:
+    sta $0404,x
+    txa
+    clc
+    adc #$0B
+    tax
+    dec $FE
+    bne RotateShadowOamRecordLoop
+    lda $03AB
+    sec
+    sbc $03E0
+    bcs RotateShadowOamStoreOffset
+    sec
+    sbc #$04
+RotateShadowOamStoreOffset:
+    sta $03AB
+    tsx
+    txa
+    clc
+    adc #$20
+    tax
+    txs
+RotateShadowOamDone:
+    lda #$00                     ; CONTROL_ROTATE_SHADOW_OAM_DONE
+    sta $03F2
+    rts
+.assert (* - BankStart) = $07FA, error, "bank 0 scroll, palette and OAM controls end"
+
+; Allocate sprite record A with data pointer Y:X. Reject invalid or occupied
+; records; an initial $4F byte returns success without claiming the record.
+AllocateSpriteRecord:
+    stx $FE                      ; CONTROL_ALLOCATE_SPRITE_RECORD
+    sty $FF
+    jsr SlotRecordOffset
+    beq AllocateSpriteRecordCheck
+    rts
+AllocateSpriteRecordCheck:
+    lda $0400,x                  ; CONTROL_ALLOCATE_SPRITE_RECORD_CHECK
+    beq AllocateSpriteRecordPointer
+    lda #$01
+    rts
+AllocateSpriteRecordPointer:
+    lda $FE                      ; CONTROL_ALLOCATE_SPRITE_RECORD_POINTER
+    sta $0402,x
+    lda $FF
+    sta $0403,x
+    lda $0401,x
+    and #$C0
+    sta $0401,x
+    ldy #$00
+    lda ($FE),y
+    cmp #$4F
+    bne AllocateSpriteRecordMode
+    lda #$00
+    rts
+; Header $53 selects indexed frames and initializes their timer; other
+; headers select the direct frame. $0404 temporarily holds the record flags.
+AllocateSpriteRecordMode:
+    cmp #$53                     ; CONTROL_ALLOCATE_SPRITE_RECORD_MODE
+    beq AllocateSpriteAnimated
+    lda #$C1
+    sta $0404,x
+    jmp AllocateSpriteFindSpace
+AllocateSpriteAnimated:
+    lda #$82                     ; CONTROL_ALLOCATE_SPRITE_ANIMATED
+    sta $0404,x
+    lda #$00
+    sta $0406,x
+    ldy #$02
+    lda ($FE),y
+    sta $0407,x
+    sta $0408,x
+    iny
+    lda ($FE),y
+    iny
+    pha
+    lda ($FE),y
+    sta $FF
+    pla
+    sta $FE
+; Compute the number of tiles from the packed dimensions. Search the OAM
+; attribute bytes for a consecutive free range, skipping offset $FC.
+AllocateSpriteFindSpace:
+    lda $040A,x                  ; CONTROL_ALLOCATE_SPRITE_FIND_SPACE
+    sta $04DC
+    txa
+    pha
+    ldy #$01
+    lda ($FE),y
+    lsr a
+    lsr a
+    lsr a
+    lsr a
+    tax
+    lda ($FE),y
+    and #$0F
+    tay
+    jsr MultiplyUnsigned8
+    stx $03E3
+    ldy #$00
+    lda ($FE),y
+    and #$7F
+    asl a
+    asl a
+    clc
+    adc $03AB
+    bcs AllocateSpriteSkipReserved
+    cmp #$FC
+    bne AllocateSpriteSearchStart
+AllocateSpriteSkipReserved:
+    clc
+    adc #$04
+AllocateSpriteSearchStart:
+    sta $03E2
+    tay
+AllocateSpriteSearchCandidate:
+    ldx $04DC                    ; CONTROL_ALLOCATE_SPRITE_SEARCH
+    bne AllocateSpriteSearchCount
+    ldx $03E3
+AllocateSpriteSearchCount:
+    sty $03E0
+AllocateSpriteSearchSlot:
+    lda $0206,y
+    sta $03E1
+AllocateSpriteNextSlot:
+    iny
+    iny
+    iny
+    iny
+    cpy #$FC
+    beq AllocateSpriteNextSlot
+    tya
+    eor $03E2
+    beq AllocateSpriteNoSpace
+    lda $03E1
+    and #$08
+    bne AllocateSpriteSearchCandidate
+    dex
+    bne AllocateSpriteSearchSlot
+    jmp AllocateSpriteClaim
+AllocateSpriteNoSpace:
+    pla
+    lda #$02
+    rts
+; Save the range and optionally reserve the requested number of OAM entries.
+; Commit the temporary mode flags, update the PPU sprite-size mirror, and
+; load tile/attribute data for the first frame.
+AllocateSpriteClaim:
+    ldy $03E0                    ; CONTROL_ALLOCATE_SPRITE_CLAIM
+    pla
+    tax
+    lda $03E3
+    sta $0405,x
+    lda $0404,x
+    sta $03E0
+    tya
+    sta $0404,x
+    lda $04DC
+    beq AllocateSpriteSize
+    lda #$08
+AllocateSpriteReserve:
+    sta $0206,y
+AllocateSpriteReserveNext:
+    iny
+    iny
+    iny
+    iny
+    cpy #$FC
+    beq AllocateSpriteReserveNext
+    dec $04DC
+    bne AllocateSpriteReserve
+AllocateSpriteSize:
+    lda $03FF                    ; CONTROL_ALLOCATE_SPRITE_SIZE
+    and #$DF
+    ldy #$00
+    pha
+    lda ($FE),y
+    asl a
+    pla
+    bcc AllocateSpriteSizeStore
+    ora #$20
+AllocateSpriteSizeStore:
+    sta $03FF
+    and #$20
+    sta $0397
+    lda $03E0
+    sta $0400,x
+    jsr LoadSpriteFrame
+    lda #$00
+    rts
+.assert (* - BankStart) = $090A, error, "bank 0 sprite record allocation end"
 ; Resolve the indexed slot record, save the supplied coordinates and examine
 ; its low mode bits. Mode zero returns 1; mode three returns 0 immediately.
 PlaceSlotSprites:
@@ -4609,7 +5074,7 @@ ApplySecondRelatedPointer:
     stx $03CC
     sty $03CD
 ApplySecondPointerCall:
-    jsr $874B
+    jsr SetSpritePaletteStream
     rts
 SelectFirstRelatedPointer:
     ldx $02                       ; CONTROL_SELECT_FIRST_POINTER
@@ -4622,13 +5087,13 @@ ApplyFirstRelatedPointer:
     stx $03CA
     sty $03CB
 ApplyFirstPointerCall:
-    jsr $8742
+    jsr SetBackgroundPaletteStream
     rts
 
 ; Initialize two PPU address ranges with $40. The 240 iterations write four
-; bytes each. Timing and the preceding $85C0 setup remain unverified.
+; bytes each. The direct-write setup is recovered; hardware timing remains unverified.
 ClearTwoPpuRanges:
-    jsr $85C0                     ; CONTROL_CLEAR_TWO_PPU_RANGES
+    jsr PrepareDirectPpuWrites    ; CONTROL_CLEAR_TWO_PPU_RANGES
     ldy #$20
     jsr FillPpuRange
     ldy #$24
@@ -4659,7 +5124,7 @@ UpdateGameFrame:
 UpdateGameFrameReturn:
     rts
 UpdateGameFrameStart:
-    jsr $8758
+    jsr RotateShadowOam
     dec $14
     jsr $F6F3
     jsr $F784
@@ -4667,11 +5132,11 @@ UpdateGameFrameStart:
     jsr UpdateSlotDrawPositions
     lda $36
     beq UpdateFrameSecondFlag
-    jsr $872F
+    jsr RequestHorizontalScroll
 UpdateFrameSecondFlag:
     lda $31
     beq UpdateFrameRefreshSlots
-    jsr $873D
+    jsr RequestVerticalScroll
 UpdateFrameRefreshSlots:
     jsr RefreshAllSlotRecords
     lda $5D
@@ -9652,7 +10117,7 @@ SlotRecordWidth:
 SlotRecordLeftReady:
     sta $0580,x
 
-; Temporarily mark the slot inactive while $87FA attempts to load the record.
+; Temporarily mark the slot inactive while AllocateSpriteRecord loads it.
 SlotRecordAllocate:
     lda $04E0,x                  ; CONTROL_SLOT_RECORD_ALLOCATE
     pha
@@ -9663,7 +10128,7 @@ SlotRecordAllocate:
     ldy $FF
     ldx $FE
     lda $10
-    jsr $87FA
+    jsr AllocateSpriteRecord
     beq SlotRecordPlace
     pla
     pha
