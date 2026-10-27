@@ -4,7 +4,9 @@
 candidates. For each possible descriptor base and script entry, it follows the
 reviewed rules in the [script-flow inventory](SCRIPT_FLOW.md), then records
 candidate `$00` and `$63` accesses. A zero-mode access can install another
-script pointer and schedule another candidate context. Results and fetched bytes
+script pointer and schedule another candidate context. If its script-pointer
+high byte is `$FF`, a normal return can retain the following command instead;
+this is also traced as a candidate, not a guaranteed continuation. Results and fetched bytes
 are written only to ignored local analysis.
 
 The loader adds an unsigned offset in nonnegative modes and subtracts it in
@@ -21,14 +23,16 @@ script remains associated with a descriptor base is not proven for every
 caller or slot lifecycle. Conditional paths, indexed-jump bounds and the bank
 mapping remain provisional. The tool reports incomplete context traversals,
 script traversal limits and overlapping decodes; it does not mark source as
-owned. On the pinned v1.5 input it finds 141 contexts, 458 references and 186
+owned. On the pinned v1.5 input it finds 163 contexts, 607 references and 199
 distinct candidate addresses, with no unprocessed contexts or per-context
-script overlaps. The union of those script entries contains 2,209 candidate
+script overlaps. The union of those script entries contains 2,416 candidate
 commands and 13 physical bytes with conflicting decodes across contexts. They
 fall within the existing `$BD1B` and `$DC35` script regions. The competing
 entries depend on possible record accesses at `$DA40` and `$ED71`, respectively;
 their assumed descriptor associations and interpretations remain unverified.
 The overlaps do not establish which path actually executes.
+The retained-pointer expansion also reaches one candidate decode in an unclassified
+local region near `$811D`; its command interpretation has not been accepted.
 
 In the 12,000-frame Noah interaction run, descriptor index `$0E` (base
 `$DA1C`) reached `$EA28` 18 times with slot flag `$D0` equal to `$80`. The
@@ -56,8 +60,10 @@ does not establish that the paths are unreachable.
 
 The tool also compares candidate command and table bytes against the fields a
 record access would actually read, excluding unused bytes in the ten-byte fetch.
-This finds 24 physical bytes with possible record/script conflicts: nine at
-the existing `$ED71` script and 15 in five other candidate paths. Their slot
+This finds 29 physical bytes with possible record/script conflicts: nine at
+the existing `$ED71` script and 20 in six other candidate paths. The five
+additional bytes at `$D57C-$D580` depend on a possible descriptor `$5D`
+association at command `$D828`; that association and access are unverified. Their slot
 contexts and interpretations require review.
 
 The maintained source includes 95 additionally reviewed records: 51 full
@@ -66,6 +72,9 @@ descriptor and command recorded alongside it. The selections were checked
 against all candidate script paths and existing physical ownership; ambiguous
 forms, conflicting ranges and resource payloads remain local. These findings
 and byte matches do not establish gameplay reachability or hardware behavior.
+Seventeen later candidate locations represent only the fields consumed by the
+reviewed mode and sentinel checks. They have no observed runtime access yet;
+their descriptor associations are provisional.
 
 Twenty additional script regions from the merged trace are represented as
 named commands. Their physical bytes do not overlap the reported conflicting

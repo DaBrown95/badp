@@ -181,6 +181,10 @@ compareRangeReturn:
 .macro BogusSetSlot0630Bit04UnlessFF value
     .byte $A4, value
 .endmacro
+; Selects a slot value from state-indexed tables; table roles remain provisional.
+.macro BogusSelectStateTableValue selector
+    .byte $AF, selector
+.endmacro
 .macro BogusCopyLinkedMotionFields
     .byte $A2
 .endmacro
@@ -14313,7 +14317,16 @@ PathScriptAFDE:
 DirectedScriptAFDF:
     BogusBranchIfSlot0620Bit10 RuntimeScriptAFED ; CONTROL_DIRECTED_SCRIPT_AFDF
 .assert (* - BankStart) = $2FE2, error, "bank 1 directed script $AFDF end"
-    .incbin "bank1_afe2_afed.bin"
+; Candidate successors after reviewed handler returns; reachability is unverified.
+ExpandedScriptAFE2:
+    BogusBranchIfSelectedFlagsClear RuntimeScriptAF9E, $80 ; CONTROL_EXPANDED_SCRIPT_AFE2
+ExpandedScriptAFE6:
+    BogusApplyAndClearSelected3E
+ExpandedScriptAFE7:
+    BogusBranchIfSlot0620Bit10 RuntimeScriptAFED
+ExpandedScriptAFEA:
+    BogusJumpBank1 RuntimeScriptAF9E
+.assert (* - BankStart) = $2FED, error, "bank 1 candidate successor $AFE2 end"
 ; Observed at the bank-0 command fetcher during the opening scenarios.
 ; Names describe handler behaviour; independent entry points are retained.
 RuntimeScriptAFED:
@@ -14605,7 +14618,10 @@ DirectedScriptB17B:
 DirectedScriptB17E:
     BogusJumpBank1 DirectedScriptB184
 .assert (* - BankStart) = $3181, error, "bank 1 directed script $B157 end"
-    .incbin "bank1_b181_b184.bin"
+; Candidate successors after reviewed handler returns; reachability is unverified.
+ExpandedScriptB181:
+    BogusSetSlotValue $0027 ; CONTROL_EXPANDED_SCRIPT_B181
+.assert (* - BankStart) = $3184, error, "bank 1 candidate successor $B181 end"
 ; Command entries observed during the directed-input exploration.
 DirectedScriptB184:
     BogusStoreSlotValueArray $3D ; CONTROL_DIRECTED_SCRIPT_B184
@@ -14861,7 +14877,10 @@ DirectedScriptB2C7:
 DirectedScriptB2C9:
     BogusMarkSlot05A0AndYield
 .assert (* - BankStart) = $32CA, error, "bank 1 directed script $B2C2 end"
-    .incbin "bank1_b2ca_b2cc.bin"
+; Candidate successors after reviewed handler returns; reachability is unverified.
+ExpandedScriptB2CA:
+    BogusLoadRecordAndClearSavedState $12 ; CONTROL_EXPANDED_SCRIPT_B2CA
+.assert (* - BankStart) = $32CC, error, "bank 1 candidate successor $B2CA end"
 ; Candidate successors of opening-observed scripts, from reviewed handler rules.
 ; Independent labels preserve alternate entries; reachability remains unproven.
 SuccessorScriptB2CC:
@@ -14962,7 +14981,63 @@ SuccessorScriptB358:
 ExtendedScriptB35B:
     BogusStoreSlotLowAtIndexedPage ; CONTROL_EXTENDED_SCRIPT_B35B
 .assert (* - BankStart) = $335C, error, "bank 1 extended script $B35B end"
-    .incbin "bank1_b35c_b3c7.bin"
+; Candidate successors after reviewed handler returns; reachability is unverified.
+ExpandedScriptB35C:
+    BogusSwapSlotValueBytes
+ExpandedScriptB35D:
+    BogusStoreSlotValueArray $2A ; CONTROL_EXPANDED_SCRIPT_B35C
+ExpandedScriptB35F:
+    BogusMarkRelatedSlotAtDepth $48, $01
+ExpandedScriptB362:
+    BogusWait $02
+ExpandedScriptB364:
+    BogusSetDispatchCounter $06
+ExpandedScriptB366:
+    BogusSetSlotValue $2C00
+ExpandedScriptB369:
+    BogusStoreSlotLowAtIndexedPage
+ExpandedScriptB36A:
+    BogusSwapSlotValueBytes
+ExpandedScriptB36B:
+    BogusStoreSlotValueArray $2A
+ExpandedScriptB36D:
+    BogusMarkRelatedSlotAtDepth $48, $02
+ExpandedScriptB370:
+    BogusWait $02
+ExpandedScriptB372:
+    BogusSetDispatchCounter $06
+ExpandedScriptB374:
+    BogusSetSlotValue $2D00
+ExpandedScriptB377:
+    BogusStoreSlotLowAtIndexedPage
+ExpandedScriptB378:
+    BogusSwapSlotValueBytes
+ExpandedScriptB379:
+    BogusStoreSlotValueArray $2A
+ExpandedScriptB37B:
+    BogusMarkRelatedSlotAtDepth $48, $03
+ExpandedScriptB37E:
+    BogusWait $02
+ExpandedScriptB380:
+    BogusSetDispatchCounter $06
+ExpandedScriptB382:
+    BogusSetSlotValue $2E00
+ExpandedScriptB385:
+    BogusStoreSlotLowAtIndexedPage
+ExpandedScriptB386:
+    BogusSwapSlotValueBytes
+ExpandedScriptB387:
+    BogusStoreSlotValueArray $2A
+ExpandedScriptB389:
+    BogusMarkRelatedSlotAtDepth $48, $04
+ExpandedScriptB38C:
+    BogusWait $02
+ExpandedScriptB38E:
+    BogusCallNativeEncoded $B51B
+ExpandedScriptB391:
+    BogusLoadSlotRecordAtPointer $2D3C
+.assert (* - BankStart) = $3394, error, "bank 1 candidate successor $B35C end"
+    .incbin "bank1_b394_b3c7.bin"
 ; Candidate descriptor $B3E5, command $B67F, mode $FF.
 SlotFlowB3C7:
     SlotCompactRecord $BF1B, $00 ; CONTROL_SLOT_FLOW_B3C7
@@ -16615,12 +16690,67 @@ ScriptD4B8:
 SlotRuntimeD4C1:
     SlotRuntimeRecord $BFD3, $551B, $00, $FF, $00, $00, $00 ; CONTROL_SLOT_RUNTIME_D4C1
 .assert (* - BankStart) = $54CA, error, "bank 1 slot record D4C1 end"
-    .incbin "bank1_d4ca_d509.bin"
+    .incbin "bank1_d4ca_d4d4.bin"
+; Candidate descriptor-context access; runtime reachability remains unverified.
+; Resource high byte $FF skips visual fields and low pointer byte.
+ContextResourceSentinelD4D3:
+    .byte $FF ; CONTROL_CONTEXT_FIELDS_D4D4
+.assert (* - BankStart) = $54D5, error, "bank 1 candidate record field $D4D4 end"
+; Candidate descriptor-context access; runtime reachability remains unverified.
+; Script pointer is installed in mode $00.
+ContextScriptPointerD4D3:
+    .word $5970 ; CONTROL_CONTEXT_FIELDS_D4D5
+.assert (* - BankStart) = $54D7, error, "bank 1 candidate record field $D4D5 end"
+    .incbin "bank1_d4d7_d4e6.bin"
+; Candidate descriptor-context access; runtime reachability remains unverified.
+; Resource high byte $FF skips visual fields and low pointer byte.
+ContextResourceSentinelD4E5:
+    .byte $FF ; CONTROL_CONTEXT_FIELDS_D4E6
+.assert (* - BankStart) = $54E7, error, "bank 1 candidate record field $D4E6 end"
+; Candidate descriptor-context access; runtime reachability remains unverified.
+; Script pointer is installed in mode $00.
+ContextScriptPointerD4E5:
+    .word (LongScriptD98E - BankStart) ; CONTROL_CONTEXT_FIELDS_D4E7
+.assert (* - BankStart) = $54E9, error, "bank 1 candidate record field $D4E7 end"
+    .incbin "bank1_d4e9_d4f8.bin"
+; Candidate descriptor-context access; runtime reachability remains unverified.
+; Resource high byte $FF skips visual fields and low pointer byte.
+ContextResourceSentinelD4F7:
+    .byte $FF ; CONTROL_CONTEXT_FIELDS_D4F8
+.assert (* - BankStart) = $54F9, error, "bank 1 candidate record field $D4F8 end"
+    .incbin "bank1_d4f9_d4fa.bin"
+; Candidate descriptor-context access; runtime reachability remains unverified.
+; Script high sentinel; any following bytes are consumed visual fields.
+ContextRecordFieldsD4F7:
+    .byte $FF ; CONTROL_CONTEXT_FIELDS_D4FA
+.assert (* - BankStart) = $54FB, error, "bank 1 candidate record field $D4FA end"
+    .incbin "bank1_d4fb_d500.bin"
+; Candidate descriptor-context access; runtime reachability remains unverified.
+; Resource pointer is consumed when its high byte is not $FF.
+ContextResourceD500:
+    .word $B6E1 ; CONTROL_CONTEXT_FIELDS_D500
+.assert (* - BankStart) = $5502, error, "bank 1 candidate record field $D500 end"
+    .incbin "bank1_d502_d503.bin"
+; Candidate descriptor-context access; runtime reachability remains unverified.
+; Script high sentinel; any following bytes are consumed visual fields.
+ContextRecordFieldsD500:
+    .byte $FF, $00, $FF, $00, $00, $00 ; CONTROL_CONTEXT_FIELDS_D503
+.assert (* - BankStart) = $5509, error, "bank 1 candidate record field $D503 end"
 ; Candidate descriptor $D4C1, command $D607, mode $00.
 SlotFlowD509:
     SlotRuntimeRecord $B6E8, $577B, $23, $FE, $61, $61, $32 ; CONTROL_SLOT_FLOW_D509
 .assert (* - BankStart) = $5512, error, "bank 1 slot record flow D509 end"
-    .incbin "bank1_d512_d51b.bin"
+; Candidate descriptor-context access; runtime reachability remains unverified.
+; Resource pointer is consumed when its high byte is not $FF.
+ContextResourceD512:
+    .word $B6F1 ; CONTROL_CONTEXT_FIELDS_D512
+.assert (* - BankStart) = $5514, error, "bank 1 candidate record field $D512 end"
+    .incbin "bank1_d514_d515.bin"
+; Candidate descriptor-context access; runtime reachability remains unverified.
+; Script high sentinel; any following bytes are consumed visual fields.
+ContextRecordFieldsD512:
+    .byte $FF, $40, $FF, $00, $00, $00 ; CONTROL_CONTEXT_FIELDS_D515
+.assert (* - BankStart) = $551B, error, "bank 1 candidate record field $D515 end"
 ; Candidate script entries from the reviewed slot-record context trace.
 ContextScriptD51B:
     BogusBranchIfMatchingSlotReady ContextScriptD51B, $01, $5D, $00 ; CONTROL_CONTEXT_D51B
@@ -16632,7 +16762,52 @@ ContextScriptD51B:
 SlotRuntimeD52B:
     SlotRuntimeRecord $C587, $557C, $40, $FE, $45, $62, $31 ; CONTROL_SLOT_RUNTIME_D52B
 .assert (* - BankStart) = $5534, error, "bank 1 slot record D52B end"
-    .incbin "bank1_d534_d573.bin"
+    .incbin "bank1_d534_d53e.bin"
+; Candidate descriptor-context access; runtime reachability remains unverified.
+; Resource high byte $FF skips visual fields and low pointer byte.
+ContextResourceSentinelD53D:
+    .byte $FF ; CONTROL_CONTEXT_FIELDS_D53E
+.assert (* - BankStart) = $553F, error, "bank 1 candidate record field $D53E end"
+; Candidate descriptor-context access; runtime reachability remains unverified.
+; Script pointer is installed in mode $00.
+ContextScriptPointerD53D:
+    .word $5970 ; CONTROL_CONTEXT_FIELDS_D53F
+.assert (* - BankStart) = $5541, error, "bank 1 candidate record field $D53F end"
+    .incbin "bank1_d541_d550.bin"
+; Candidate descriptor-context access; runtime reachability remains unverified.
+; Resource high byte $FF skips visual fields and low pointer byte.
+ContextResourceSentinelD54F:
+    .byte $FF ; CONTROL_CONTEXT_FIELDS_D550
+.assert (* - BankStart) = $5551, error, "bank 1 candidate record field $D550 end"
+; Candidate descriptor-context access; runtime reachability remains unverified.
+; Script pointer is installed in mode $00.
+ContextScriptPointerD54F:
+    .word (LongScriptD98E - BankStart) ; CONTROL_CONTEXT_FIELDS_D551
+.assert (* - BankStart) = $5553, error, "bank 1 candidate record field $D551 end"
+    .incbin "bank1_d553_d562.bin"
+; Candidate descriptor-context access; runtime reachability remains unverified.
+; Resource high byte $FF skips visual fields and low pointer byte.
+ContextResourceSentinelD561:
+    .byte $FF ; CONTROL_CONTEXT_FIELDS_D562
+.assert (* - BankStart) = $5563, error, "bank 1 candidate record field $D562 end"
+    .incbin "bank1_d563_d564.bin"
+; Candidate descriptor-context access; runtime reachability remains unverified.
+; Script high sentinel; any following bytes are consumed visual fields.
+ContextRecordFieldsD561:
+    .byte $FF ; CONTROL_CONTEXT_FIELDS_D564
+.assert (* - BankStart) = $5565, error, "bank 1 candidate record field $D564 end"
+    .incbin "bank1_d565_d56a.bin"
+; Candidate descriptor-context access; runtime reachability remains unverified.
+; Resource pointer is consumed when its high byte is not $FF.
+ContextResourceD56A:
+    .word $C587 ; CONTROL_CONTEXT_FIELDS_D56A
+.assert (* - BankStart) = $556C, error, "bank 1 candidate record field $D56A end"
+    .incbin "bank1_d56c_d56d.bin"
+; Candidate descriptor-context access; runtime reachability remains unverified.
+; Script high sentinel; any following bytes are consumed visual fields.
+ContextRecordFieldsD56A:
+    .byte $FF, $40, $FE, $45, $62, $31 ; CONTROL_CONTEXT_FIELDS_D56D
+.assert (* - BankStart) = $5573, error, "bank 1 candidate record field $D56D end"
 ; Candidate descriptor $D52B, command $D607, mode $00.
 SlotFlowD573:
     SlotRuntimeRecord $B927, $577B, $23, $FE, $45, $62, $31 ; CONTROL_SLOT_FLOW_D573
@@ -16660,7 +16835,19 @@ LongRecordD5A8:
 LongRecordD5B1:
     SlotRuntimeRecord $B94E, (LongScriptD92D - BankStart), $40, $FE, $25, $61, $11
 .assert (* - BankStart) = $55BA, error, "bank 1 long-run records $D5A8 end"
-    .incbin "bank1_d5ba_d5c3.bin"
+    .incbin "bank1_d5ba_d5bb.bin"
+; Candidate descriptor-context access; runtime reachability remains unverified.
+; Resource high byte $FF skips visual fields and low pointer byte.
+ContextResourceSentinelD5BA:
+    .byte $FF ; CONTROL_CONTEXT_FIELDS_D5BB
+.assert (* - BankStart) = $55BC, error, "bank 1 candidate record field $D5BB end"
+    .incbin "bank1_d5bc_d5bd.bin"
+; Candidate descriptor-context access; runtime reachability remains unverified.
+; Script high sentinel; any following bytes are consumed visual fields.
+ContextRecordFieldsD5BA:
+    .byte $FF ; CONTROL_CONTEXT_FIELDS_D5BD
+.assert (* - BankStart) = $55BE, error, "bank 1 candidate record field $D5BD end"
+    .incbin "bank1_d5be_d5c3.bin"
 ; Zero-mode record observed in longer exploratory gameplay.
 ; Fields after a $FFFF resource pointer may be skipped by the loader.
 LongRecordD5C3:
@@ -16670,7 +16857,10 @@ LongRecordD5C3:
 SlotFlowD5CC:
     SlotRuntimeRecord $B96E, $577B, $23, $FE, $35, $61, $11 ; CONTROL_SLOT_FLOW_D5CC
 .assert (* - BankStart) = $55D5, error, "bank 1 slot record flow D5CC end"
-    .incbin "bank1_d5d5_d5de.bin"
+; Candidate descriptor-context access; runtime reachability remains unverified.
+ContextRecordD5D5:
+    SlotRuntimeRecord $B95E, $5835, $40, $00, $60, $08, $12 ; CONTROL_CONTEXT_FIELDS_D5D5
+.assert (* - BankStart) = $55DE, error, "bank 1 candidate record field $D5D5 end"
 ScriptD5DE:
     BogusSetSlotD0Bits $02 ; CONTROL_BOGUS_D5DE
     BogusReadSlotValue $02
@@ -16855,7 +17045,10 @@ ExtendedScriptD733:
 ExtendedScriptD738:
     BogusRelinkToLastRelatedSlot ; CONTROL_EXTENDED_SCRIPT_D738
 .assert (* - BankStart) = $5739, error, "bank 1 extended script $D738 end"
-    .incbin "bank1_d739_d73c.bin"
+; Candidate successors after reviewed handler returns; reachability is unverified.
+ExpandedScriptD739:
+    BogusJumpBank1 ExtendedScriptE7B2 ; CONTROL_EXPANDED_SCRIPT_D739
+.assert (* - BankStart) = $573C, error, "bank 1 candidate successor $D739 end"
 ; Candidate successor of a longer-run command; control flow remains provisional.
 ; Labels preserve independent branch and resume entries.
 ExtendedScriptD73C:
@@ -17050,7 +17243,32 @@ ExtendedScriptD82F:
 ExtendedScriptD832:
     BogusJumpBank1 LongScriptD90E
 .assert (* - BankStart) = $5835, error, "bank 1 extended script $D80D end"
-    .incbin "bank1_d835_d856.bin"
+; Possible continuation after a retained script pointer; reachability is unverified.
+RetainedScriptD835:
+    BogusWait $07 ; CONTROL_RETAINED_SCRIPT_D835
+RetainedScriptD837:
+    BogusMarkRelatedSlotAtDepth $38, $02
+RetainedScriptD83A:
+    BogusFindLinkedSlot
+RetainedScriptD83B:
+    BogusBranchIfSlotValueEqual RetainedScriptD854, $FF, $FF
+RetainedScriptD840:
+    BogusLoadSlotRecord $03, $FF
+RetainedScriptD843:
+    BogusSetDirectionalSlotFields40 $10, $D8
+RetainedScriptD846:
+    BogusMarkRelatedSlotAtDepth $1A, $01
+RetainedScriptD849:
+    BogusRestartVoice4 $277A
+RetainedScriptD84C:
+    BogusSetSlotFields80 $00, $00
+RetainedScriptD84F:
+    BogusWait $05
+RetainedScriptD851:
+    BogusMarkRelatedSlotAtDepth $1A, $01
+RetainedScriptD854:
+    BogusLoadRecordAndClearSavedState $48
+.assert (* - BankStart) = $5856, error, "bank 1 candidate successor $D835 end"
 ; Candidate successor of a longer-run command; control flow remains provisional.
 ; Labels preserve independent branch and resume entries.
 ExtendedScriptD856:
@@ -17220,7 +17438,10 @@ ExtendedScriptD926:
 ExtendedScriptD928:
     BogusLoadRecordAndClearSavedState $2D
 .assert (* - BankStart) = $592A, error, "bank 1 extended script $D91B end"
-    .incbin "bank1_d92a_d92d.bin"
+; Possible continuation after a retained script pointer; reachability is unverified.
+RetainedScriptD92A:
+    BogusSetSlotFields80 $3C, $D8 ; CONTROL_RETAINED_SCRIPT_D92A
+.assert (* - BankStart) = $592D, error, "bank 1 candidate successor $D92A end"
 ; Observed at the bank-0 command fetcher during longer exploratory runs.
 ; Names describe handler behaviour; independent entry points are retained.
 LongScriptD92D:
@@ -17241,7 +17462,52 @@ ExtendedScriptD939:
 ExtendedScriptD93B:
     BogusLoadRecordAndClearSavedState $48
 .assert (* - BankStart) = $593D, error, "bank 1 extended script $D939 end"
-    .incbin "bank1_d93d_d970.bin"
+; Possible continuation after a retained script pointer; reachability is unverified.
+RetainedScriptD93D:
+    BogusSetSlotFields80 $20, $00 ; CONTROL_RETAINED_SCRIPT_D93D
+RetainedScriptD940:
+    BogusSetSlotFields80 $20, $00
+RetainedScriptD943:
+    BogusSetSlotFields80 $08, $00
+RetainedScriptD946:
+    BogusCheckSlotFlagsAndRestorePointer
+RetainedScriptD947:
+    BogusRestartVoice4 $2724
+RetainedScriptD94A:
+    BogusSetState03BC $01
+RetainedScriptD94C:
+    BogusWait $01
+RetainedScriptD94E:
+    BogusSetState03BC $05
+RetainedScriptD950:
+    BogusWait $01
+RetainedScriptD952:
+    BogusSetState03BC $01
+RetainedScriptD954:
+    BogusWait $01
+RetainedScriptD956:
+    BogusSetState03BC $05
+RetainedScriptD958:
+    BogusWait $01
+RetainedScriptD95A:
+    BogusSetState03BC $03
+RetainedScriptD95C:
+    BogusBranchAndClearSlot0620Bit08 RetainedScriptD961
+RetainedScriptD95F:
+    BogusLoadRecordAndClearSavedState $48
+RetainedScriptD961:
+    BogusSetDispatchCounter $82
+RetainedScriptD963:
+    BogusSetSlotFields80 $00, $FF
+RetainedScriptD966:
+    BogusSetDirectionalSlotFields40 $01, $FF
+RetainedScriptD969:
+    BogusLoadSlotRecord $3F, $02
+RetainedScriptD96C:
+    BogusWait $14
+RetainedScriptD96E:
+    BogusLoadRecordAndClearSavedState $48
+.assert (* - BankStart) = $5970, error, "bank 1 candidate successor $D93D end"
 ; Candidate script entries from the reviewed slot-record context trace.
 ContextScriptD970:
     BogusSetDispatchCounter $03 ; CONTROL_CONTEXT_D970
@@ -18963,7 +19229,16 @@ PathScriptE7D8:
 PathScriptE7DB:
     BogusSetSlot0640PairBits $04, $00
 .assert (* - BankStart) = $67DE, error, "bank 1 candidate successor $E7D1 end"
-    .incbin "bank1_e7de_e7e6.bin"
+; Candidate successors after reviewed handler returns; reachability is unverified.
+ExpandedScriptE7DE:
+    BogusSetSlotMode $03 ; CONTROL_EXPANDED_SCRIPT_E7DE
+ExpandedScriptE7E0:
+    BogusRelinkSlots
+ExpandedScriptE7E1:
+    BogusSetSlot05E0Bit40 $FF
+ExpandedScriptE7E3:
+    BogusJumpBank1 SweepScriptE84D
+.assert (* - BankStart) = $67E6, error, "bank 1 candidate successor $E7DE end"
 ; Static candidate successors; independent entries do not prove reachability.
 PathScriptE7E6:
     BogusBranchIfSlot0360Above (BankStart + $67CD), $A0 ; CONTROL_PATH_SCRIPT_E7E6
@@ -19114,7 +19389,82 @@ SuccessorScriptE871:
 ExtendedScriptE872:
     BogusSetSlot05E0Bit40 $FF ; CONTROL_EXTENDED_SCRIPT_E872
 .assert (* - BankStart) = $6874, error, "bank 1 extended script $E872 end"
-    .incbin "bank1_e874_e8e8.bin"
+; Candidate successors after reviewed handler returns; reachability is unverified.
+ExpandedScriptE874:
+    BogusSetDispatchCounter $8F ; CONTROL_EXPANDED_SCRIPT_E874
+ExpandedScriptE876:
+    BogusSetSlot07F0 $44
+ExpandedScriptE878:
+    BogusReadSlotValue $13
+ExpandedScriptE87A:
+    BogusSetSlotMode $00
+ExpandedScriptE87C:
+    BogusSetSlotMode $02
+ExpandedScriptE87E:
+    BogusSetSlotC0 $FF
+ExpandedScriptE880:
+    BogusSetSlot0790Bits $FF
+ExpandedScriptE882:
+    BogusSetUnlinkedFields $00, $00
+ExpandedScriptE885:
+    BogusSetSlot05F0Pair $60, $60
+ExpandedScriptE888:
+    BogusReadSlotValue $0F
+ExpandedScriptE88A:
+    BogusBranchIfSlotValueEqual ExpandedScriptE8B0, $13, $00
+ExpandedScriptE88F:
+    BogusSetVoicePointers $278C, $2795, $0000, $0000
+ExpandedScriptE898:
+    BogusSetSlotPositionFromOperands $60, $A7
+ExpandedScriptE89B:
+    BogusSetSlot0660LowBits $00
+ExpandedScriptE89D:
+    BogusLoadSlotRecord $06, $FF
+ExpandedScriptE8A0:
+    BogusSetSlotFields80 $01, $00
+ExpandedScriptE8A3:
+    BogusWait $09
+ExpandedScriptE8A5:
+    BogusSetSlotFields80 $40, $00
+ExpandedScriptE8A8:
+    BogusWait $0C
+ExpandedScriptE8AA:
+    BogusSetSpriteAttribute20 $20
+ExpandedScriptE8AC:
+    BogusWait $06
+ExpandedScriptE8AE:
+    BogusYieldAndSlotAction $01
+ExpandedScriptE8B0:
+    BogusSetDispatchCounter $05
+ExpandedScriptE8B2:
+    BogusSetSlotC0 $04
+ExpandedScriptE8B4:
+    BogusSetSlotFields80 $60, $00
+ExpandedScriptE8B7:
+    BogusSetVoicePointers $278C, $2795, $0000, $0000
+ExpandedScriptE8C0:
+    BogusBranchIfSlot0700AtMost ExpandedScriptE8C0, $80
+ExpandedScriptE8C4:
+    BogusSetSlotFields80 $00, $00
+ExpandedScriptE8C7:
+    BogusSetVoicePointers $0000, $0000, $0000, $0000
+ExpandedScriptE8D0:
+    BogusRestartVoice4 $27A0
+ExpandedScriptE8D3:
+    BogusWait $07
+ExpandedScriptE8D5:
+    BogusMarkMatchingSlots $00, $01, $1E, $00
+ExpandedScriptE8DA:
+    BogusWait $09
+ExpandedScriptE8DC:
+    BogusSetSlotFields80 $78, $00
+ExpandedScriptE8DF:
+    BogusBranchIfAbsSlot0700Below ExpandedScriptE8E6, $20
+ExpandedScriptE8E3:
+    BogusJumpBank1 ExpandedScriptE8DF
+ExpandedScriptE8E6:
+    BogusYieldAndSlotAction $00
+.assert (* - BankStart) = $68E8, error, "bank 1 candidate successor $E874 end"
 ; Candidate successors of opening-observed scripts, from reviewed handler rules.
 ; Independent labels preserve alternate entries; reachability remains unproven.
 SuccessorScriptE8E8:
@@ -19131,7 +19481,10 @@ SuccessorScriptE8ED:
 ExtendedScriptE8EE:
     BogusStoreSlotLowAtIndexedPage ; CONTROL_EXTENDED_SCRIPT_E8EE
 .assert (* - BankStart) = $68EF, error, "bank 1 extended script $E8EE end"
-    .incbin "bank1_e8ef_e8f2.bin"
+; Candidate successors after reviewed handler returns; reachability is unverified.
+ExpandedScriptE8EF:
+    BogusJumpBank1 ExtendedScriptE7B2 ; CONTROL_EXPANDED_SCRIPT_E8EF
+.assert (* - BankStart) = $68F2, error, "bank 1 candidate successor $E8EF end"
 ; Candidate script entries from the reviewed slot-record context trace.
 ContextScriptE8F2:
     BogusSetDispatchCounter $04 ; CONTROL_CONTEXT_E8F2
@@ -19796,52 +20149,98 @@ ExtendedScriptEE62:
 SlotRuntimeEE68:
     SlotRuntimeRecord $B6B7, $6E7A, $00, $00, $20, $D9, $11 ; CONTROL_SLOT_RUNTIME_EE68
 .assert (* - BankStart) = $6E71, error, "bank 1 slot record EE68 end"
-    .incbin "bank1_ee71_ee82.bin"
+    .incbin "bank1_ee71_ee7a.bin"
+; Possible continuation after a retained script pointer; reachability is unverified.
+RetainedScriptEE7A:
+    BogusSetSlot0640Pair $00, $40 ; CONTROL_RETAINED_SCRIPT_EE7A
+RetainedScriptEE7D:
+    BogusSetSlotD0Bits $04
+.assert (* - BankStart) = $6E7F, error, "bank 1 candidate successor $EE7A end"
+    .incbin "bank1_ee7f_ee82.bin"
 ; Descriptor-linked slot record; resource data remains local.
 SlotRuntimeEE82:
     SlotRuntimeRecord $BE9D, (ScriptEFDD - BankStart), $00, $00, $20, $D9, $11 ; CONTROL_SLOT_RUNTIME_EE82
 .assert (* - BankStart) = $6E8B, error, "bank 1 slot record EE82 end"
-    .incbin "bank1_ee8b_ee94.bin"
+    .incbin "bank1_ee8b_ee91.bin"
+; Candidate descriptor-context access; runtime reachability remains unverified.
+ContextRecordEE91:
+    SlotCompactRecord $0000, $00 ; CONTROL_CONTEXT_FIELDS_EE91
+.assert (* - BankStart) = $6E94, error, "bank 1 candidate record field $EE91 end"
 ; Descriptor-linked slot record; resource data remains local.
 SlotRuntimeEE94:
     SlotRuntimeRecord $BE99, (ScriptEFE9 - BankStart), $00, $FF, $00, $00, $00 ; CONTROL_SLOT_RUNTIME_EE94
 .assert (* - BankStart) = $6E9D, error, "bank 1 slot record EE94 end"
-    .incbin "bank1_ee9d_eea6.bin"
+    .incbin "bank1_ee9d_eea3.bin"
+; Candidate descriptor-context access; runtime reachability remains unverified.
+ContextRecordEEA3:
+    SlotCompactRecord $0000, $00 ; CONTROL_CONTEXT_FIELDS_EEA3
+.assert (* - BankStart) = $6EA6, error, "bank 1 candidate record field $EEA3 end"
 ; Descriptor-linked slot record; resource data remains local.
 SlotRuntimeEEA6:
     SlotRuntimeRecord $C7C5, (ScriptEFDD - BankStart), $00, $FF, $00, $00, $00 ; CONTROL_SLOT_RUNTIME_EEA6
 .assert (* - BankStart) = $6EAF, error, "bank 1 slot record EEA6 end"
-    .incbin "bank1_eeaf_eeb8.bin"
+    .incbin "bank1_eeaf_eeb5.bin"
+; Candidate descriptor-context access; runtime reachability remains unverified.
+ContextRecordEEB5:
+    SlotCompactRecord $0000, $00 ; CONTROL_CONTEXT_FIELDS_EEB5
+.assert (* - BankStart) = $6EB8, error, "bank 1 candidate record field $EEB5 end"
 ; Descriptor-linked slot record; resource data remains local.
 SlotRuntimeEEB8:
     SlotRuntimeRecord $BAD5, $6ECA, $00, $FF, $00, $00, $00 ; CONTROL_SLOT_RUNTIME_EEB8
 .assert (* - BankStart) = $6EC1, error, "bank 1 slot record EEB8 end"
-    .incbin "bank1_eec1_eed0.bin"
+    .incbin "bank1_eec1_eeca.bin"
+; Possible continuation after a retained script pointer; reachability is unverified.
+RetainedScriptEECA:
+    BogusSetSlot0640Pair $00, $44 ; CONTROL_RETAINED_SCRIPT_EECA
+.assert (* - BankStart) = $6ECD, error, "bank 1 candidate successor $EECA end"
+    .incbin "bank1_eecd_eed0.bin"
 ; Descriptor-linked slot record; resource data remains local.
 SlotRuntimeEED0:
     SlotRuntimeRecord $C7D5, $6EE2, $00, $00, $20, $D9, $11 ; CONTROL_SLOT_RUNTIME_EED0
 .assert (* - BankStart) = $6ED9, error, "bank 1 slot record EED0 end"
-    .incbin "bank1_eed9_eee8.bin"
+    .incbin "bank1_eed9_eee2.bin"
+; Possible continuation after a retained script pointer; reachability is unverified.
+RetainedScriptEEE2:
+    BogusSetSlot0640Pair $40, $40 ; CONTROL_RETAINED_SCRIPT_EEE2
+.assert (* - BankStart) = $6EE5, error, "bank 1 candidate successor $EEE2 end"
+    .incbin "bank1_eee5_eee8.bin"
 ; Descriptor-linked slot record; resource data remains local.
 SlotRuntimeEEE8:
     SlotRuntimeRecord $B74E, $6EFA, $00, $00, $20, $D9, $11 ; CONTROL_SLOT_RUNTIME_EEE8
 .assert (* - BankStart) = $6EF1, error, "bank 1 slot record EEE8 end"
-    .incbin "bank1_eef1_ef00.bin"
+    .incbin "bank1_eef1_eefa.bin"
+; Possible continuation after a retained script pointer; reachability is unverified.
+RetainedScriptEEFA:
+    BogusSetSlot0640Pair $00, $42 ; CONTROL_RETAINED_SCRIPT_EEFA
+.assert (* - BankStart) = $6EFD, error, "bank 1 candidate successor $EEFA end"
+    .incbin "bank1_eefd_ef00.bin"
 ; Descriptor-linked slot record; resource data remains local.
 SlotRuntimeEF00:
     SlotRuntimeRecord $C393, (ScriptEFE9 - BankStart), $00, $FF, $00, $00, $00 ; CONTROL_SLOT_RUNTIME_EF00
 .assert (* - BankStart) = $6F09, error, "bank 1 slot record EF00 end"
-    .incbin "bank1_ef09_ef12.bin"
+    .incbin "bank1_ef09_ef0f.bin"
+; Candidate descriptor-context access; runtime reachability remains unverified.
+ContextRecordEF0F:
+    SlotCompactRecord $0000, $00 ; CONTROL_CONTEXT_FIELDS_EF0F
+.assert (* - BankStart) = $6F12, error, "bank 1 candidate record field $EF0F end"
 ; Descriptor-linked slot record; resource data remains local.
 SlotRuntimeEF12:
     SlotRuntimeRecord $C397, (ScriptEFE9 - BankStart), $00, $FF, $00, $00, $00 ; CONTROL_SLOT_RUNTIME_EF12
 .assert (* - BankStart) = $6F1B, error, "bank 1 slot record EF12 end"
-    .incbin "bank1_ef1b_ef24.bin"
+    .incbin "bank1_ef1b_ef21.bin"
+; Candidate descriptor-context access; runtime reachability remains unverified.
+ContextRecordEF21:
+    SlotCompactRecord $0000, $00 ; CONTROL_CONTEXT_FIELDS_EF21
+.assert (* - BankStart) = $6F24, error, "bank 1 candidate record field $EF21 end"
 ; Descriptor-linked slot record; resource data remains local.
 SlotRuntimeEF24:
     SlotRuntimeRecord $BAAF, (ScriptEFE9 - BankStart), $00, $FF, $00, $00, $00 ; CONTROL_SLOT_RUNTIME_EF24
 .assert (* - BankStart) = $6F2D, error, "bank 1 slot record EF24 end"
-    .incbin "bank1_ef2d_ef36.bin"
+    .incbin "bank1_ef2d_ef33.bin"
+; Candidate descriptor-context access; runtime reachability remains unverified.
+ContextRecordEF33:
+    SlotCompactRecord $0000, $00 ; CONTROL_CONTEXT_FIELDS_EF33
+.assert (* - BankStart) = $6F36, error, "bank 1 candidate record field $EF33 end"
 ; Descriptor-linked slot record; resource data remains local.
 SlotRuntimeEF36:
     SlotRuntimeRecord $BAB3, (ScriptEFF0 - BankStart), $00, $FF, $00, $00, $00 ; CONTROL_SLOT_RUNTIME_EF36
@@ -20020,7 +20419,32 @@ BranchScriptF061:
 BranchScriptF063:
     BogusSetSlot05E0Bit40 $FF
 .assert (* - BankStart) = $7065, error, "bank 1 branch script $F058 end"
-    .incbin "bank1_f065_f08a.bin"
+; Candidate successors after reviewed handler returns; reachability is unverified.
+ExpandedScriptF065:
+    BogusSetSlot05F0Pair $60, $60 ; CONTROL_EXPANDED_SCRIPT_F065
+ExpandedScriptF068:
+    BogusSetVoicePointers $278C, $2795, $0000, $0000
+ExpandedScriptF071:
+    BogusSetSlot0730 $80
+ExpandedScriptF073:
+    BogusSetSlotPositionFromOperands $60, $A7
+ExpandedScriptF076:
+    BogusSetSlot0660LowBits $00
+ExpandedScriptF078:
+    BogusSelectStateTableValue $4E
+ExpandedScriptF07A:
+    BogusSetSpritePalettePointer $0000
+ExpandedScriptF07D:
+    BogusSetSlotFields80 $40, $A0
+ExpandedScriptF080:
+    BogusBranchIfSlot0620Bit10Clear ExpandedScriptF080
+ExpandedScriptF083:
+    BogusWait $01
+ExpandedScriptF085:
+    BogusBranchIfSlot0620Bit10Clear ExpandedScriptF080
+ExpandedScriptF088:
+    BogusYieldAndSlotAction $01
+.assert (* - BankStart) = $708A, error, "bank 1 candidate successor $F065 end"
 ; Candidate path from a literal branch target in maintained source.
 ; Independent entries are labelled; runtime reachability is not implied.
 BranchScriptF08A:
@@ -20038,7 +20462,10 @@ BranchScriptF09E:
 BranchScriptF0A1:
     BogusRelinkToLastRelatedSlot
 .assert (* - BankStart) = $70A2, error, "bank 1 branch script $F08A end"
-    .incbin "bank1_f0a2_f0a5.bin"
+; Candidate successors after reviewed handler returns; reachability is unverified.
+ExpandedScriptF0A2:
+    BogusJumpBank1 BranchScriptF04B ; CONTROL_EXPANDED_SCRIPT_F0A2
+.assert (* - BankStart) = $70A5, error, "bank 1 candidate successor $F0A2 end"
 ; Candidate path from a literal branch target in maintained source.
 ; Independent entries are labelled; runtime reachability is not implied.
 BranchScriptF0A5:
@@ -20114,7 +20541,28 @@ BranchScriptF100:
 BranchScriptF102:
     BogusSetSlot0640PairBits $00, $40
 .assert (* - BankStart) = $7105, error, "bank 1 branch script $F0FB end"
-    .incbin "bank1_f105_f11f.bin"
+; Candidate successors after reviewed handler returns; reachability is unverified.
+ExpandedScriptF105:
+    BogusRelinkSlots
+ExpandedScriptF106:
+    BogusSetSlot07F0 $44 ; CONTROL_EXPANDED_SCRIPT_F105
+ExpandedScriptF108:
+    BogusSetSlot05E0Bit40 $FF
+ExpandedScriptF10A:
+    BogusClearSlot0790Bits $01
+ExpandedScriptF10C:
+    BogusBranchIfSlot0620Bit10Clear ExpandedScriptF10C
+ExpandedScriptF10F:
+    BogusStartVoice4 $2724
+ExpandedScriptF112:
+    BogusBranchIfSlotD0BitsClear (BankStart + $6FF3), $04
+ExpandedScriptF116:
+    BogusSetBackgroundPalettePointer $FFFF
+ExpandedScriptF119:
+    BogusSetSpritePalettePointer $FFFF
+ExpandedScriptF11C:
+    BogusJumpBank1 (BankStart + $6FF3)
+.assert (* - BankStart) = $711F, error, "bank 1 candidate successor $F105 end"
 ; Candidate path from a literal branch target in maintained source.
 ; Independent entries are labelled; runtime reachability is not implied.
 BranchScriptF11F:
@@ -20150,7 +20598,10 @@ BranchScriptF142:
 BranchScriptF143:
     BogusStoreSlotLowAtIndexedPage
 .assert (* - BankStart) = $7144, error, "bank 1 branch script $F11F end"
-    .incbin "bank1_f144_f147.bin"
+; Candidate successors after reviewed handler returns; reachability is unverified.
+ExpandedScriptF144:
+    BogusJumpBank1 BranchScriptF04B ; CONTROL_EXPANDED_SCRIPT_F144
+.assert (* - BankStart) = $7147, error, "bank 1 candidate successor $F144 end"
 ; Static candidate successors; independent entries do not prove reachability.
 PathScriptF147:
     BogusSetSlotMode $FF ; CONTROL_PATH_SCRIPT_F147

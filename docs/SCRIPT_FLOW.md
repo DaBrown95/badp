@@ -38,6 +38,11 @@ The `$8A` stack-buffer operation has a possible normal-return successor. Its
 address in that range, so the walk does not model every possible outcome.
 The `$79`, `$84`, `$8D/$8E`, `$A4`, `$BC` and `$BD` handlers also have normal
 return successors; that does not prove their execution or termination.
+The `$11/$12` selectors have a possible next or yield path; `$65`, `$A2`,
+`$AF`, `$B2` and `$B8-$BA` can return to the next command. Opcode `$AD` can
+write into the active stack page, so only its normal-return edge is modeled. The `$B8`
+linked-slot scan can loop indefinitely, so this edge assumes a return. The
+`$77` voice check can branch to its encoded target or continue.
 The `$0F`, `$98` and `$99` main-state changes stop the walk because later
 scheduling is unproven. In particular, treating the bytes after `$0F` as an
 automatic continuation produced a speculative command decode over a

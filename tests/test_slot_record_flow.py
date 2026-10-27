@@ -37,7 +37,7 @@ class SlotRecordFlowTests(unittest.TestCase):
         b0, b1, lengths = fixture()
         lengths[0x00], lengths[0x63] = 2, 3
         b1[0x20:0x22] = bytes([0x00, 9])
-        b1[0x30:0x34] = bytes([0x63, 3, 0xff, 0x11])
+        b1[0x30:0x34] = bytes([0x63, 3, 0xff, 0x16])
         b1[0x109:0x113] = bytes([0x34, 0x81, 0x30, 0, 0x40, 1, 2, 3, 4, 0x11])
         b1[0xfd:0x107] = bytes([0x22, 0x82, 0x33, 0, 0, 0, 0, 0, 0, 0])
         result = trace(bytes(b0), bytes(b1), bytes(lengths), [(0x100, 0x20)])
@@ -50,16 +50,30 @@ class SlotRecordFlowTests(unittest.TestCase):
         limited = trace(bytes(b0), bytes(b1), bytes(lengths), [(0x100, 0x20)], limit=1)
         self.assertEqual(limited['unprocessed_contexts'], [{'base': '0x0100', 'entry': '0x0030'}])
 
-    def test_script_sentinel_does_not_schedule_another_context(self):
+    def test_script_sentinel_can_resume_the_existing_pointer(self):
         b0, b1, lengths = fixture()
         lengths[0x00] = 2
-        b1[0x20:0x22] = bytes([0, 0])
+        b1[0x20:0x23] = bytes([0, 0, 0x16])
         b1[0x100:0x10a] = bytes([0, 0x81, 0x30, 0xff, 0, 0, 0, 0, 0, 0])
         result = trace(bytes(b0), bytes(b1), bytes(lengths), [(0x100, 0x20)])
-        self.assertEqual(len(result['contexts']), 1)
+        self.assertEqual(len(result['contexts']), 2)
         self.assertFalse(result['references'][0]['fields']['script_installable_in_zero_mode'])
+        self.assertEqual(result['possible_retained_pointer_resumes'], [
+            {'base': '0x0100', 'command': '0x0020', 'next_entry': '0x0022'}])
         with self.assertRaises(ValueError):
             trace(bytes(b0), bytes(b1), bytes(lengths), [], limit=0)
+
+    def test_zero_mode_63_can_retain_pointer_after_sentinel(self):
+        b0, b1, lengths = fixture()
+        lengths[0x63] = 3
+        b1[0x20:0x24] = bytes([0x63, 4, 0, 0x16])
+        b1[0x104:0x10e] = bytes([0, 0xff, 0, 0xff, 0, 0, 0, 0, 0, 0])
+        result = trace(bytes(b0), bytes(b1), bytes(lengths), [(0x100, 0x20)])
+        self.assertEqual(result['possible_retained_pointer_resumes'], [
+            {'base': '0x0100', 'command': '0x0020', 'next_entry': '0x0023'}])
+        limited = trace(bytes(b0), bytes(b1), bytes(lengths), [(0x100, 0x20)], limit=1)
+        self.assertEqual(limited['unprocessed_contexts'], [
+            {'base': '0x0100', 'entry': '0x0023'}])
 
     def test_merged_graph_reports_conflicting_context_decodes(self):
         b0, b1, lengths = fixture()

@@ -34,9 +34,9 @@ independent source trees or treat one version's evidence as verifying the rest.
 simultaneous reconstruction. Keep progress and completion evidence per target.
 
 The v1.5 build now assembles and links to the exact reference, with 21,474 bytes
-of source code and 18,209 bytes of structured data across the physical PRG banks.
-It still includes 25,853 local PRG bytes and 65,536 local CHR bytes. A total of
-1,161 independent source-change controls verify every listed reconstructed region.
+of source code and 18,650 bytes of structured data across the physical PRG banks.
+It still includes 25,412 local PRG bytes and 65,536 local CHR bytes. A total of
+1,207 independent source-change controls verify every listed reconstructed region.
 Passing input audits or whole-ROM equality alone is not reconstruction
 completion. The developer identifies BOGUS as the
 state-machine engine in the [Vance Kozik interview](https://www.nesworld.com/kozik.php);
@@ -218,7 +218,7 @@ The merged contextual script trace exposes 13 physical bytes with conflicting
 decodes across different possible entries in the existing `$BD1B` and `$DC35`
 script regions. The competing entries depend on unverified descriptor
 associations at `$DA40` and `$ED71`; those conflicts remain unresolved.
-Another 24 physical bytes overlap possible record reads and candidate script
+Another 29 physical bytes overlap possible record reads and candidate script
 decodes, including nine in the existing `$ED71` script; these associations
 also remain unverified. Twenty non-overlapping script regions are now
 represented as named commands; their context and gameplay roles remain
@@ -439,6 +439,19 @@ remain excluded from the new source.
 The `$67` yield and `$89` relative-position path also allow possible later
 resumes. Two continuations contain 24 further commands represented in source;
 resumption, especially after `$89` changes state, is not guaranteed.
+Reviewed return and conditional-branch rules for additional slot and voice
+handlers exposed 100 more candidate commands in 12 nonconflicting regions.
+The `$B8` chain scan can fail to terminate, so its next command is only a
+possible successor. A new potential record/script conflict at `$D57C-$D580`
+remains local; the descriptor association causing it is unverified.
+Seventeen additional nonconflicting candidate record locations expose 69
+consumed bytes. Where sentinels cause the loader to skip fields, those bytes
+remain local. Their descriptor associations and runtime reachability are still
+provisional.
+The context walker now follows a possible normal return when a `$FF` script
+pointer sentinel leaves the prior pointer in place. Forty nonconflicting
+commands reached through those candidate continuations are source; a separate
+decode in an unclassified local region remains excluded.
 A different 16,000-frame input sequence reached 31 further commands and five
 record locations. A separate mapping probe paired 136,835, 133,793 and 151,587
 script fetches, and 2,451, 1,900 and 3,276 record fetches, for Noah, Moses and

@@ -106,6 +106,7 @@ def trace(bank0: bytes, bank1: bytes, lengths: bytes, seeds: list[tuple[int, int
             queued.add((base, entry))
             pending.append((base, entry))
     references: list[dict] = []
+    possible_retained_pointer_resumes = []
     contexts = []
     cached_flows: dict[int, dict] = {}
     while pending and len(contexts) < limit:
@@ -135,6 +136,18 @@ def trace(bank0: bytes, bank1: bytes, lengths: bytes, seeds: list[tuple[int, int
                 if successor not in queued:
                     queued.add(successor)
                     pending.append(successor)
+            elif (access['status'] == 'candidate' and mode == 0
+                  and not access['fields']['script_installable_in_zero_mode']):
+                # The $FF high byte skips script installation. If the loader
+                # returns normally with $53/$54 intact, the next command is possible.
+                next_entry = (int(node['encoded_pointer'], 16) + node['length']) & 0xffff
+                possible_retained_pointer_resumes.append({
+                    'base': f'0x{base:04x}', 'command': node['encoded_pointer'],
+                    'next_entry': f'0x{next_entry:04x}'})
+                successor = (base, next_entry)
+                if successor not in queued:
+                    queued.add(successor)
+                    pending.append(successor)
     # Per-context walks can each be internally consistent while different
     # candidate entries decode the same physical bytes incompatibly. Rewalk
     # their union to expose those cross-context overlaps explicitly.
@@ -142,7 +155,9 @@ def trace(bank0: bytes, bank1: bytes, lengths: bytes, seeds: list[tuple[int, int
                   sorted({int(context['entry'], 16) for context in contexts}),
                   indexed_jumps=indexed_jumps)
     overlaps = record_script_overlaps(references, merged)
-    return {'contexts': contexts, 'references': references, 'merged_script_flow': merged,
+    return {'contexts': contexts, 'references': references,
+            'possible_retained_pointer_resumes': possible_retained_pointer_resumes,
+            'merged_script_flow': merged,
             'record_script_overlaps': overlaps,
             'unprocessed_contexts': [{'base': f'0x{base:04x}', 'entry': f'0x{entry:04x}'}
                                      for base, entry in pending], 'context_limit': limit}
