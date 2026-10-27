@@ -1192,7 +1192,7 @@ ScriptLoopContinue:
     lda $0530,x                  ; CONTROL_SCRIPT_LOOP_WAIT
     beq FetchAndDispatchCommand
     dec $0530,x
-    jmp $EBBB
+    jmp UpdateSlotAfterScript
 .assert (* - BankStart) = $554E, error, "bank 0 script loop entry"
 
 ; Fetch the next variable-length command, advance the script pointer by the
@@ -1216,11 +1216,11 @@ ScriptPointerAdvanced:
     bpl ScriptCountNonnegative
     dec $48
     bmi ScriptLoopContinue
-    jmp $EBBB
+    jmp UpdateSlotAfterScript
 ScriptCountNonnegative:
     dec $48
     bpl ScriptLoopContinue
-    jmp $EBBB
+    jmp UpdateSlotAfterScript
 DispatchScriptCommand:
     ldy $60                     ; CONTROL_SCRIPT_DISPATCH
     lda ScriptHandlerHigh,y
@@ -2874,7 +2874,7 @@ ScriptOp69:
     lda $10
     pha
     sty $10
-    jsr $EFA0
+    jsr UpdateLinkedSlotPosition
     pla
     sta $10
     rts
@@ -3150,7 +3150,7 @@ ScriptOp7CCall:
     jsr UpdateSlotFieldsModeC0
     jmp ScriptYieldIfNonnegative
 ScriptOp7E:
-    jsr $EF68                    ; CONTROL_SCRIPT_OP7E
+    jsr ComputeSlotScaledPosition                    ; CONTROL_SCRIPT_OP7E
     lda $11
     sta $70,x
     lda $12
@@ -4296,7 +4296,391 @@ SelectSlotFlagsReturn:
     rts
 .assert (* - BankStart) = $6BBB, error, "bank 0 script selector helpers end"
 
-    .incbin "bank0_ebbb_f057.bin"
+; After script processing, skip slots when the global state is active or their
+; $04E0 entry is $FF. Unattached slots apply two signed field adjustments;
+; attached slots go directly to the shared update at $EC51.
+UpdateSlotAfterScript:
+    lda $00                       ; CONTROL_SLOT_UPDATE_ENTRY
+    bne SelectSlotFlagsReturn
+    lda $04E0,x
+    cmp #$FF
+    bne SlotUpdateCheckLink
+    rts
+SlotUpdateCheckLink:
+    lda $06D0,x
+    bmi SlotUpdateFirstDamping
+    jmp SlotUpdateApplyLimits
+SlotUpdateFirstDamping:
+    lda #$FF                      ; CONTROL_SLOT_UPDATE_FIRST
+    sta $03
+    lda $05D0,x
+    and #$01
+    bne SlotUpdateFirstCounter
+    lda $0620,x
+    and #$10
+    bne SlotUpdateFirstCounter
+    lda #$00
+    sta $03
+SlotUpdateFirstCounter:
+    lda $0750,x
+    and #$0F
+    beq SlotUpdateFirstAdjust
+    dec $0750,x
+    jmp SlotUpdateSecondCounter
+SlotUpdateFirstAdjust:
+    lda $03
+    beq SlotUpdateSecondCounter
+    lda $0500,x
+    beq SlotUpdateSecondCounter
+    bmi SlotUpdateFirstNegative
+    sec
+    sbc $0710,x
+    beq SlotUpdateFirstPositiveFloor
+    bpl SlotUpdateFirstStore
+SlotUpdateFirstPositiveFloor:
+    lda #$01
+SlotUpdateFirstStore:
+    sta $0500,x
+    jmp SlotUpdateSecondCounter
+SlotUpdateFirstNegative:
+    clc
+    adc $0710,x
+    bmi SlotUpdateFirstNegativeStore
+    lda #$FF
+SlotUpdateFirstNegativeStore:
+    sta $0500,x
+SlotUpdateSecondCounter:
+    lda $0750,x                   ; CONTROL_SLOT_UPDATE_SECOND
+    and #$F0
+    beq SlotUpdateSecondAdjust
+    lda $0750,x
+    sec
+    sbc #$10
+    sta $0750,x
+    jmp SlotUpdateApplyLimits
+SlotUpdateSecondAdjust:
+    lda $03
+    beq SlotUpdateApplyLimits
+    lda $0510,x
+    beq SlotUpdateApplyLimits
+    bmi SlotUpdateSecondNegative
+    sec
+    sbc $0720,x
+    beq SlotUpdateSecondPositiveFloor
+    bpl SlotUpdateSecondStore
+SlotUpdateSecondPositiveFloor:
+    lda #$01
+SlotUpdateSecondStore:
+    sta $0510,x
+    jmp SlotUpdateApplyLimits
+SlotUpdateSecondNegative:
+    clc
+    adc $0720,x
+    bmi SlotUpdateSecondNegativeStore
+    lda #$FF
+SlotUpdateSecondNegativeStore:
+    sta $0510,x
+
+; Add $C0 to the second field only if signed overflow is clear. Then clamp
+; both signed fields to the magnitudes in $05F0/$0600, preserving signs.
+SlotUpdateApplyLimits:
+    lda $C0,x                     ; CONTROL_SLOT_UPDATE_LIMITS
+    clc
+    adc $0510,x
+    bvs SlotUpdateLimitFirst
+    sta $0510,x
+SlotUpdateLimitFirst:
+    ldy #$00
+    lda $0500,x
+    bpl SlotUpdateFirstMagnitude
+    jsr NegateA
+    ldy #$01
+SlotUpdateFirstMagnitude:
+    cmp $05F0,x
+    bcc SlotUpdateFirstSign
+    lda $05F0,x
+SlotUpdateFirstSign:
+    cpy #$00
+    beq SlotUpdateFirstLimited
+    jsr NegateA
+SlotUpdateFirstLimited:
+    sta $0500,x
+    ldy #$00
+    lda $0510,x
+    bpl SlotUpdateSecondMagnitude
+    jsr NegateA
+    ldy #$01
+SlotUpdateSecondMagnitude:
+    cmp $0600,x
+    bcc SlotUpdateSecondSign
+    lda $0600,x
+SlotUpdateSecondSign:
+    cpy #$00
+    beq SlotUpdateSecondLimited
+    jsr NegateA
+SlotUpdateSecondLimited:
+    sta $0510,x
+    lda $06D0,x
+    bmi SlotUpdateUnlinked
+    jsr UpdateLinkedSlotPosition
+    jmp TrackSlotPositionChanges
+; The unlinked movement path at $ECA3 remains local input for now.
+SlotUpdateUnlinked = BankStart + $6CA3
+.assert (* - BankStart) = $6CA3, error, "bank 0 slot update prefix end"
+
+    .incbin "bank0_eca3_eea6.bin"
+; When $05D0 is negative, calculate three values and call $D067 only if one
+; differs from its saved copy. The downstream consumer is not yet recovered.
+TrackSlotPositionChanges:
+    ldx $10                       ; CONTROL_TRACK_SLOT_POSITION
+    lda $05D0,x
+    bpl TrackSlotPositionReturn
+    jsr ComputeSlotScaledPosition
+    lda $11
+    cmp $07D0,x
+    bne TrackSlotPositionStore
+    lda $12
+    cmp $07E0,x
+    bne TrackSlotPositionStore
+    lda $04
+    cmp $05A0,x
+    beq TrackSlotPositionReturn
+TrackSlotPositionStore:
+    lda $11
+    sta $07D0,x
+    lda $12
+    sta $07E0,x
+    lda $04
+    sta $05A0,x
+    jsr $D067
+TrackSlotPositionReturn:
+    rts
+
+; Select bits $80/$40 of $0660 based on mode bits in $07F0, slot flags or the
+; signs of $0500/$0510. The bit operations and carry state are preserved.
+UpdateSlotDirectionBits:
+    ldx $10                       ; CONTROL_SLOT_DIRECTION_BITS
+    lda $07F0,x
+    bpl SlotDirectionMode
+    jmp SyncSlotDirectionReturn
+SlotDirectionMode:
+    tay
+    and #$40
+    bne SlotDirectionFirstSign
+    tya
+    and #$10
+    bne SlotDirectionFirstFlag
+    tya
+    and #$03
+    beq SlotDirectionSecond
+    lsr a
+    jmp SlotDirectionStoreFirst
+SlotDirectionFirstFlag:
+    ldy $06D0,x
+    bmi SlotDirectionCurrentFlag
+    lda $0630,y
+    jmp SlotDirectionTestFlag
+SlotDirectionCurrentFlag:
+    lda $0630,x
+SlotDirectionTestFlag:
+    and #$10
+    bne SlotDirectionFirstOne
+    lda #$00
+    jmp SlotDirectionStoreFirst
+SlotDirectionFirstSign:
+    lda #$00
+    ldy $0500,x
+    bpl SlotDirectionStoreFirst
+SlotDirectionFirstOne:
+    lda #$01
+SlotDirectionStoreFirst:
+    asl $0660,x
+    ror a
+    ror $0660,x
+SlotDirectionSecond:
+    ldx $10
+    lda $07F0,x
+    tay
+    and #$20
+    bne SlotDirectionSecondSign
+    tya
+    and #$0C
+    beq SlotDirectionBitsReturn
+    jsr ShiftARight3
+    jmp SlotDirectionStoreSecond
+SlotDirectionSecondSign:
+    lda #$00
+    ldy $0510,x
+    bpl SlotDirectionStoreSecond
+    lda #$01
+SlotDirectionStoreSecond:
+    clc
+    ror a
+    ror a
+    ror a
+    sta $11
+    lda $0660,x
+    and #$BF
+    ora $11
+    sta $0660,x
+SlotDirectionBitsReturn:
+    rts
+
+; Apply the two direction bits via the still-unconverted $8D32/$8D59 paths.
+SyncSlotDirection:
+    ldx $10                       ; CONTROL_SYNC_SLOT_DIRECTION
+    lda $0660,x
+    and #$80
+    tax
+    lda $10
+    jsr $8D32
+    ldx $10
+    lda $0660,x
+    and #$40
+    tax
+    lda $10
+    jsr $8D59
+    ldx $10
+SyncSlotDirectionReturn:
+    rts
+.assert (* - BankStart) = $6F68, error, "bank 0 slot direction helpers end"
+
+
+; Derive a 16-bit value from $0700 and $03EE/$03EF, then shift it right by
+; three. $D0B3 is still unconverted and its return in $11 is saved to $04.
+ComputeSlotScaledPosition:
+    jsr $D0B3                     ; CONTROL_SLOT_SCALED_POSITION
+    lda $11
+    sta $04
+    lda $0700,x
+    clc
+    adc $03EE
+    sta $11
+    lda $03EF
+    adc #$00
+    sta $12
+    jsr ShiftPositionRight
+    jsr ShiftPositionRight
+    jsr ShiftPositionRight
+    rts
+ShiftPositionRight:
+    lsr $12                       ; CONTROL_SLOT_POSITION_SHIFT
+    ror $11
+    rts
+SetSlotFlag02:
+    lda $0620,x                   ; CONTROL_SLOT_FLAG02
+    ora #$02
+    sta $0620,x
+    rts
+SetSlotFlag01:
+    lda $0620,x                   ; CONTROL_SLOT_FLAG01
+    ora #$01
+    sta $0620,x
+    rts
+
+; Resolve the linked slot in $06D0,x. If it exists, copy or calculate mode
+; bits and update the current slot's position from the linked slot and offsets.
+UpdateLinkedSlotPosition:
+    ldx $10                       ; CONTROL_LINKED_SLOT_POSITION
+    ldy $06D0,x
+    jsr ScriptCheckSlotPresent
+    bne LinkedSlotValid
+    sta $06D0,x
+    rts
+LinkedSlotValid:
+    lda $0630,x
+    and #$04
+    beq LinkedSlotCopyMode
+    jsr UpdateSlotDirectionBits
+    jmp LinkedSlotPosition
+LinkedSlotCopyMode:
+    lda $0660,y
+    and #$C0
+    sta $11
+    lda $0660,x
+    and #$3F
+    ora $11
+    sta $0660,x
+LinkedSlotPosition:
+    jsr SyncSlotDirection
+    ldy $06D0,x
+    lda $0660,y
+    sta $11
+    lda $0710,x
+    cmp #$80
+    bne LinkedSlotFirstOffset
+    lda $0570,x
+    lsr a
+    sta $12
+    lda $0700,y
+    sec
+    sbc $12
+    bcs LinkedSlotFirstStore
+    lda #$00
+    jmp LinkedSlotFirstStore
+LinkedSlotFirstOffset:
+    lda $11
+    rol a
+    lda $0710,x
+    bcc LinkedSlotFirstAdd
+    jsr NegateA
+    clc
+    adc $0570,y
+    sec
+    sbc $0570,x
+LinkedSlotFirstAdd:
+    clc
+    adc $0580,y
+LinkedSlotFirstStore:
+    sta $0580,x
+    lda $0720,x
+    rol $11
+    rol $11
+    bcc LinkedSlotSecondAdd
+    jsr NegateA
+    clc
+    adc $0560,y
+    sec
+    sbc $0560,x
+LinkedSlotSecondAdd:
+    clc
+    adc $0590,y
+    sta $0590,x
+    jsr UpdateSlotBounds
+    rts
+
+; Transform a signed byte using the slot's $0730 parameter. The precise role
+; of the resulting value is unresolved; preserve $FF and zero edge behavior.
+TransformSlotSignedValue:
+    sta $12                       ; CONTROL_TRANSFORM_SLOT_SIGNED
+    bpl TransformSlotMagnitude
+    jsr NegateA
+TransformSlotMagnitude:
+    sta $11
+    lda $0730,x
+    beq TransformSlotZeroScale
+    tax
+    ldy $11
+    inx
+    beq TransformSlotSignedReady
+    jsr MultiplyUnsigned8
+TransformSlotSignedReady:
+    tya
+    ldy $12
+    bmi TransformSlotReturn
+    jsr NegateA
+TransformSlotReturn:
+    ldx $10
+    rts
+TransformSlotZeroScale:
+    lda $12
+    and #$80
+    beq TransformSlotReturn
+    lda #$FF
+    jmp TransformSlotReturn
+.assert (* - BankStart) = $7057, error, "bank 0 linked slot helpers end"
+
+
 ; Four entries select mode bits for the shared two-field update. Depending on
 ; the mode, the routine transforms operands via $F2D6 or stores/adds them to
 ; $0500/$0510. Additions that set overflow retain the original field value.
@@ -4725,7 +5109,7 @@ DirectionFlagsMode3:
     and #$03
     eor #$03
     bne DirectionFlagsReturn
-    jsr $EF68
+    jsr ComputeSlotScaledPosition
     ldy #$00
     lda $90,x
     sec
