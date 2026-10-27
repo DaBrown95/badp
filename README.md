@@ -41,7 +41,7 @@ are not measures of gameplay completion.
 <!-- BEGIN GENERATED PROGRESS -->
 | Version | Reconstructed PRG | Status |
 | --- | ---: | --- |
-| USA v1.5 | **35.45%** (23,235 / 65,536 bytes) | In progress |
+| USA v1.5 | **36.19%** (23,717 / 65,536 bytes) | In progress |
 | USA v1.4 | **0.00%** (0 / 65,536 bytes) | Not started |
 | USA v1.3 | **0.00%** (0 / 65,536 bytes) | Not started |
 | USA v1.2 | **0.00%** (0 / 65,536 bytes) | Not started |
@@ -121,6 +121,7 @@ local, along with the extracted inputs and control builds.
 | `make position-records` | Decode v1.5 position records to ignored local analysis. |
 | `make script-entries` | Inventory candidate v1.5 script entry points locally. |
 | `make script-flow` | Trace reviewed v1.5 script paths to local analysis. |
+| `make packed-text` | Decode v1.5 packed text to local analysis. |
 | `make test` | Test the tooling using synthetic data; no game ROM needed. |
 
 Other versions have pinned reference identities but do not have builds yet.

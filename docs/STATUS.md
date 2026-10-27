@@ -33,10 +33,10 @@ independent source trees or treat one version's evidence as verifying the rest.
 `make audit-all` checks reference integrity for all targets without requiring
 simultaneous reconstruction. Keep progress and completion evidence per target.
 
-The v1.5 build now assembles and links to the exact reference, with 20,842 bytes
-of source code and 2,393 bytes of structured data across the physical PRG banks.
-It still includes 42,301 local PRG bytes and 65,536 local CHR bytes. A total of
-677 independent source-change controls verify every listed reconstructed region.
+The v1.5 build now assembles and links to the exact reference, with 21,025 bytes
+of source code and 2,692 bytes of structured data across the physical PRG banks.
+It still includes 41,819 local PRG bytes and 65,536 local CHR bytes. A total of
+682 independent source-change controls verify every listed reconstructed region.
 Passing input audits or whole-ROM equality alone is not reconstruction
 completion. The developer identifies BOGUS as the
 state-machine engine in the [Vance Kozik interview](https://www.nesworld.com/kozik.php);
@@ -206,7 +206,7 @@ branches or prove execution. Its output is ignored local analysis and does not
 count as reconstructed PRG.
 
 The [script-flow inventory](SCRIPT_FLOW.md) follows reviewed successor rules
-from those candidates. It finds 1,460 candidate commands and stops at 69 nodes
+from those candidates. It finds 1,523 candidate commands and stops at 66 nodes
 with dynamic or unreviewed handlers, with no physical-byte overlaps. Branches
 and resumes remain unverified possibilities; this analysis adds no PRG credit.
 
@@ -237,6 +237,18 @@ shift, advance and character tables are structured data. A local mathematical
 check compared all 65,536 synthetic byte pairs at each of the eight phases with
 an independent bitstream extraction; the phase advances total five bytes.
 This confirms the bit extraction, not runtime bank switching or message rendering.
+
+The decoder's indexed table has 52 ordered bank-1 text pointers. The local
+`make packed-text` analysis decodes all 52 records through their terminating
+symbols, each within the next record boundary, and finds 423 line-break commands.
+It re-encodes each record byte for byte, retaining character-table choices and
+padding bits. Decoded message content remains ignored locally. The pointer table is structured
+source, while the message payloads are still local inputs and receive no PRG
+credit. The connected script paths and their `$B1` remapping table are source.
+
+The other observed `$9B` native target is a bank-0 palette fade at `$B51C`.
+Its four palette passes, VBlank polling and register writes are reconstructed;
+there is no runtime evidence yet for PPU timing or the resulting display.
 
 Controller handlers now express slot actions, pause toggling and signed motion
 updates, including the original stack-unwinding gates and overflow checks. The

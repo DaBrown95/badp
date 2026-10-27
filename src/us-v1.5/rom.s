@@ -347,6 +347,75 @@ compareRangeReturn:
     .byte $AB
     .word pointer
 .endmacro
+.macro BogusStoreSlotLowAt address
+    .byte $91
+    .word address
+.endmacro
+.macro BogusSwapSlotValueBytes
+    .byte $8F
+.endmacro
+.macro BogusCallNativeBank1 target
+    .byte $9B
+    .word target - $8000 - 1
+.endmacro
+.macro BogusCallNativeEncoded address
+    .byte $9B
+    .word address
+.endmacro
+.macro BogusBranchIfSelectedFlags target, mask
+    .byte $15
+    .word target - $8000
+    .byte mask
+.endmacro
+.macro BogusClearSelected3E
+    .byte $13
+.endmacro
+.macro BogusClearSelected40
+    .byte $14
+.endmacro
+.macro BogusClampSlotValueAtMost value
+    .byte $80
+    .word value
+.endmacro
+.macro BogusBranchIfSlotValueAtLeastArray selector, target
+    .byte $58, selector
+    .word target - $8000
+.endmacro
+.macro BogusLoadPage0140BySlotHigh
+    .byte $AC
+.endmacro
+.macro BogusMaskSlotValue value
+    .byte $40
+    .word value
+.endmacro
+.macro BogusBranchIfSlotD0BitsClear target, mask
+    .byte $60
+    .word target - $8000
+    .byte mask
+.endmacro
+.macro BogusOrSlotValue value
+    .byte $C0
+    .word value
+.endmacro
+.macro BogusRemapSlotValue
+    .byte $B1
+.endmacro
+.macro BogusRemapCase value, replacement
+    .word value, replacement
+.endmacro
+.macro BogusRemapEnd
+    .word $0000
+.endmacro
+.macro BogusBranchIfState27Set target
+    .byte $9A
+    .word target - $8000
+.endmacro
+.macro BogusSetMainState value
+    .byte $0F, value
+.endmacro
+.macro BogusInitializeSplitAndMainState
+    .byte $99
+.endmacro
 
 ; A command byte indexes three parallel tables: record length, and the low and
 ; high bytes of an RTS dispatch address. Handler addresses below are actual
@@ -5167,7 +5236,101 @@ PositionRecordPointersB:
     .word $B4C8 ; index $15
 .assert (* - BankStart) = $2444, error, "bank 0 second position pointers end"
 
-    .incbin "bank0_a444_cbff.bin"
+    .incbin "bank0_a444_b51c.bin"
+; Opcode $9B calls this palette fade through the native-call wrapper. Preserve
+; the polling, palette order, four passes and restoration of scroll and PPU
+; registers; timing and mapper behaviour still require runtime verification.
+FadeOutPalettes:
+    lda $03FF
+    sta PPUCTRL
+    ldy #$00
+    sty $0380
+    ldx #$0F                    ; CONTROL_FADE_PALETTE_LOAD
+FadeLoadPalettes:
+    lda ($F8),y
+    sta $03D0,x
+    lda ($FA),y
+    sta $0140,x
+    iny
+    dex
+    bpl FadeLoadPalettes
+    ldx #$03
+    lda $03FF
+    and #$FE
+    sta $03FF
+    lda $03F4
+    and #$01
+    ora $03FF
+    sta $03FF
+FadePalettePass:
+    jsr FadeWaitVBlank
+    lda #$06
+    sta PPUMASK
+    lda PPUSTATUS
+    lda #$3F
+    sta PPUADDR
+    lda #$00
+    sta PPUADDR
+    ldy #$0F
+FadeWriteBackground:
+    lda $03D0,y
+    sta PPUDATA
+    dey
+    bpl FadeWriteBackground
+    lda $03DF
+    sta PPUDATA
+    ldy #$0E
+FadeWriteSprites:
+    lda $0140,y
+    sta PPUDATA
+    dey
+    bpl FadeWriteSprites
+    lda $03FE
+    sta PPUMASK
+    lda $03FF
+    sta PPUCTRL
+    lda $03FC
+    sta PPUSCROLL
+    lda $03FD
+    sta PPUSCROLL
+    ldy #$02
+FadeWaitFrames:
+    lda PPUSTATUS
+    bmi FadeWaitFrames
+    jsr FadeWaitVBlank
+    dey
+    bpl FadeWaitFrames
+    ldy #$0F
+FadeDarkenPalettes:
+    lda $03D0,y
+    sec
+    sbc #$10
+    bpl FadeStoreBackground
+    lda #$0E
+FadeStoreBackground:
+    sta $03D0,y
+    lda $0140,y
+    sec
+    sbc #$10
+    bpl FadeStoreSprite
+    lda #$0E
+FadeStoreSprite:
+    sta $0140,y
+    dey
+    bpl FadeDarkenPalettes
+    dex
+    bpl FadePalettePass
+    lda $03FF
+    ora #$80
+    sta PPUCTRL
+    rts
+.assert (* - BankStart) = $35CD, error, "bank 0 palette fade end"
+FadeWaitVBlank:
+    lda PPUSTATUS               ; CONTROL_FADE_WAIT_VBLANK
+    bpl FadeWaitVBlank
+    rts
+.assert (* - BankStart) = $35D3, error, "bank 0 palette fade wait end"
+    .incbin "bank0_b5d3_cbff.bin"
 ; Select the two position-record streams using the byte index in $02, reset
 ; shared state, and optionally scan the initial 32-position window.
 InitializePositionStreams:
@@ -12348,11 +12511,54 @@ ScriptBE2F:
     BogusBranchIfSlotValueAtLeast ScriptCFC7, $00F8
     BogusMultiplySlotValueByArray $FF
 .assert (* - BankStart) = $3E3F, error, "bank 1 script BE03 partial graph end"
-; The indexed data base is local; its layout and bounds are not yet decoded.
-DataBE82 = BankStart + $3E82
     BogusLoadSlotValueIndexedBank1 DataBE82 ; CONTROL_BOGUS_BE3F
 .assert (* - BankStart) = $3E42, error, "bank 1 script BE3F end"
-    .incbin "bank1_be42_beea.bin"
+; Set the two-byte text pointer, call the banked decoder until the selected
+; array reaches $00FF, then wait for the selected input flags.
+    BogusStoreSlotLowAt $0055   ; CONTROL_BOGUS_BE42
+    BogusSwapSlotValueBytes
+    BogusStoreSlotLowAt $0056
+    BogusSetSlotValue $0000
+    BogusStoreSlotValueArray $00
+ScriptBE4E:
+    BogusCallNativeBank1 DecodePackedText
+    BogusRestartVoice4 $28AD
+    BogusWait $03
+    BogusLoadSlotValueArray $00
+    BogusBranchIfSlotValueNotEqual ScriptBE4E, $00FF
+    BogusRestartVoice4 $0000
+ScriptBE60:
+    BogusBranchIfSelectedFlags ScriptBE67, $F0
+    BogusJumpBank1 ScriptBE60
+ScriptBE67:
+    BogusClearSelected3E
+    BogusClearSelected40
+    BogusCallNativeEncoded Bank0::FadeOutPalettes - 1
+    BogusBranchIfState27Set ScriptBE81
+    BogusLoadSlotValueArray $23
+    BogusBranchIfSlotValueEqual ScriptBE81, $FF, $FF
+    BogusSetVoicePointers $0000, $0000, $0000, $0000
+    BogusSetMainState $00
+ScriptBE81:
+    BogusInitializeSplitAndMainState
+.assert (* - BankStart) = $3E82, error, "bank 1 script BE42 end"
+; Fifty-two CPU addresses select packed-text records in bank 1. The index is
+; supplied by the script; runtime bounds and exact message roles are unknown.
+DataBE82:
+    .word $C03E, $C071, $C0AF, $C0EB ; CONTROL_PACKED_TEXT_POINTERS
+    .word $C11A, $C160, $C179, $C19C
+    .word $C1BE, $C1F4, $C24B, $C326
+    .word $C364, $C399, $C40E, $C469
+    .word $C494, $C4F1, $C540, $C666
+    .word $C69A, $C6B7, $C701, $C73C
+    .word $C7A2, $C7EF, $C832, $C872
+    .word $C8B2, $C91C, $C966, $C9F9
+    .word $CA51, $CAA4, $CAEE, $CB3D
+    .word $CB87, $CBB7, $CBF2, $CC37
+    .word $CC70, $CC93, $CD14, $CD69
+    .word $CE92, $CEF8, $CF17, $CF2D
+    .word $CF52, $CF6E, $CF8E, $CF9C
+.assert (* - BankStart) = $3EEA, error, "bank 1 packed text pointer table end"
 ; Native helper reached by opcode $9B: consume packed five-bit symbols from
 ; ($55), fill the stack-page buffer, and queue it as a $BF state update.
 ; The exact higher-level message and control meanings remain provisional.
@@ -12511,7 +12717,67 @@ ScriptCFD7:
 ScriptCFDA:
     BogusMultiplySlotValueByArray $FF
 .assert (* - BankStart) = $4FDC, error, "bank 1 script CFC7 end"
-    .incbin "bank1_cfdc_d6e0.bin"
+; Continue the shared value-selection path. The referenced data bases remain
+; local while their wider consumers are investigated.
+DataD09D = BankStart + $509D
+    BogusClampSlotValueAtMost $0008 ; CONTROL_BOGUS_CFDC
+    BogusLoadSlotValueIndexedBank1 DataD05F
+    BogusQueueStateAB $0000
+    BogusQueueStateAB $5099
+    BogusSetSlotValue $FFFF
+    BogusStoreSlotValueArray $3D
+    BogusSetSlotValue $0000
+ScriptCFF0:
+    BogusSetDispatchCounter $8F
+    BogusStoreSlotValueArray $FF
+    BogusBranchIfSlotValueAtLeastArray $32, ScriptD052
+    BogusAddSlotValue $0033
+    BogusSwapSlotValueBytes
+    BogusLoadPage0140BySlotHigh
+    BogusMaskSlotValue $00FF
+    BogusBranchIfSlotD0BitsClear ScriptD039, $01
+    BogusBranchIfSlotValueEqual ScriptD00D, $07, $00
+    BogusSwapSlotValueBytes
+    BogusStoreSlotValueArray $3D
+    BogusSwapSlotValueBytes
+ScriptD00D:
+    BogusOrSlotValue $8000
+    BogusRemapSlotValue
+    BogusRemapCase $8000, $50C9
+    BogusRemapCase $8001, $50D2
+    BogusRemapCase $8002, $50DB
+    BogusRemapCase $8003, $50E4
+    BogusRemapCase $8004, $50ED
+    BogusRemapCase $8005, $50F6
+    BogusRemapCase $8006, $50FF
+    BogusRemapCase $8007, $5108
+    BogusRemapEnd
+    BogusQueueStateAB $0000
+    BogusJumpBank1 ScriptD048
+ScriptD039:
+    BogusBranchIfSlotValueEqual ScriptD042, $06, $00
+    BogusSwapSlotValueBytes
+    BogusStoreSlotValueArray $3D
+    BogusSwapSlotValueBytes
+ScriptD042:
+    BogusLoadSlotValueIndexedBank1 DataD09D
+    BogusQueueStateAB $0000
+ScriptD048:
+    BogusSetDispatchCounter $8F
+    BogusLoadSlotValueArray $FF
+    BogusAddSlotValue $0001
+    BogusJumpBank1 ScriptCFF0
+ScriptD052:
+    BogusBranchIfSelectedFlags ScriptD059, $B0
+    BogusJumpBank1 ScriptD052
+ScriptD059:
+    BogusClearSelected3E
+    BogusClearSelected40
+    BogusCallNativeEncoded Bank0::FadeOutPalettes - 1
+    BogusInitializeSplitAndMainState
+.assert (* - BankStart) = $505F, error, "bank 1 script CFDC end"
+DataD05F:
+    .incbin "bank1_d05f_d6e0.bin"
 ; A slot-field comparison gates three matching-slot updates and waits.
 ScriptD6E0:
     BogusSetSlot0640Pair $04, $00
