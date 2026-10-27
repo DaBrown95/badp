@@ -1,0 +1,15 @@
+{
+  "schema_version": 1,
+  "name": "MesenCE",
+  "release": "2.2.1",
+  "revision": "20ba206cef5ba207c21203176d02cb9f43dda9fb",
+  "platform": "darwin-arm64",
+  "archive_url": "https://github.com/nesdev-org/MesenCE/releases/download/2.2.1/Mesen_2.2.1_macOS_ARM64_AppleSilicon.zip",
+  "archive_name": "Mesen_2.2.1_macOS_ARM64_AppleSilicon.zip",
+  "archive_sha256": "9c230cc25ad0bae79fed810c9eeb21c1c507b96b1ce795bbd22ca4331ffb6e48",
+  "install_dir": "mesence-2.2.1",
+  "executable_sha256": "ce4446a92096a024145e6ed2793cce8b489460bb3ac034cd9d1d77d96109fced",
+  "core_sha256": "8352f498c2dd48e3bc97941b4e101356e589b91ea5716f657c300351d4728b1d",
+  "database_sha256": "7eee6516f351ccc7db286587917bec415a1d8042ff5ef87c279f38200a3418dd",
+  "licence": "GPL-3.0-or-later"
+}

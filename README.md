@@ -108,15 +108,31 @@ ROM and its components, and runs the source-change controls. Output and proof:
 `build/us-v1.5/bible-adventures.nes` and `build/us-v1.5/proof.json`. They remain
 local, along with the extracted inputs and control builds.
 
+On macOS with Apple silicon and Homebrew's SDL2 installed, an optional emulator
+check exercises the opening of each adventure:
+
+```sh
+make setup-mesen
+make verify-gameplay
+```
+
+The check runs the reference and matching build under the same inputs, comparing
+screenshots, state, mapper writes, NMI, OAM DMA and audio-register writes. It
+keeps its evidence in the ignored `reports/us-v1.5/runtime/` directory. These
+short opening scenarios do not establish full gameplay completion or physical
+cartridge behaviour.
+
 | Command | Purpose |
 | --- | --- |
 | `make help` | Show available commands. |
 | `make setup` | Download and build the pinned cc65 tools locally. |
+| `make setup-mesen` | Download the pinned optional MesenCE emulator locally. |
 | `make targets` | Show the primary target and version order. |
 | `make identify` | Inspect the primary ROM, or a selected target/file. |
 | `make audit` | Verify the primary input; `TARGET=<id>` selects another. |
 | `make audit-all` | Verify all six input identities. |
 | `make build` | Build and compare v1.5; retain source-change controls. |
+| `make verify-gameplay` | Compare the v1.5 opening scenarios in MesenCE. |
 | `make progress` | Rebuild and update the per-version tracker. |
 | `make position-records` | Decode v1.5 position records to ignored local analysis. |
 | `make script-entries` | Inventory candidate v1.5 script entry points locally. |
@@ -162,12 +178,13 @@ publisher or Nintendo.
 
 ### Tools and dependencies
 
-The tooling uses Python's standard library and builds the following dependency
-locally. No third-party game code or emulator is bundled.
+The tooling uses Python's standard library and downloads these dependencies
+locally when requested. No third-party game code or emulator is bundled.
 
 | Dependency | Use | Licence |
 | --- | --- | --- |
 | [cc65 V2.19](https://github.com/cc65/cc65/tree/555282497c3ecf8b313d87d5973093af19c35bd5) | ca65 assembler, ld65 linker and da65 disassembler | [zlib](https://github.com/cc65/cc65/blob/555282497c3ecf8b313d87d5973093af19c35bd5/LICENSE) |
+| [MesenCE 2.2.1](https://github.com/nesdev-org/MesenCE/releases/tag/2.2.1) | Optional opening-gameplay comparisons | [GPL-3.0-or-later](https://github.com/nesdev-org/MesenCE/blob/20ba206cef5ba207c21203176d02cb9f43dda9fb/LICENSE) |
 
 ### References and inspiration
 

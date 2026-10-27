@@ -30,6 +30,13 @@ entries depend on possible record accesses at `$DA40` and `$ED71`, respectively;
 their assumed descriptor associations and interpretations remain unverified.
 The overlaps do not establish which path actually executes.
 
+The three bounded v1.5 opening-gameplay runs observed 10,404, 10,822 and
+11,102 entries to the bank-0 command fetcher, and 124, 83 and 145 entries to
+the bank-0 record loader. None of the selected nine conflicting script
+pointers or seven competing record pointers occurred at those entry points.
+This does not rule out their use later, through another entry point, or under
+different inputs; the emulator evidence is limited to those opening scenarios.
+
 The tool also compares candidate command and table bytes against the fields a
 record access would actually read, excluding unused bytes in the ten-byte fetch.
 This finds 24 physical bytes with possible record/script conflicts: nine at
