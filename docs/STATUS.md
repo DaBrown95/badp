@@ -34,9 +34,9 @@ independent source trees or treat one version's evidence as verifying the rest.
 simultaneous reconstruction. Keep progress and completion evidence per target.
 
 The v1.5 build now assembles and links to the exact reference, with 20,575 bytes
-of source code and 1,838 bytes of structured data across the physical PRG banks.
-It still includes 43,123 local PRG bytes and 65,536 local CHR bytes. A total of
-660 independent source-change controls verify every listed reconstructed region.
+of source code and 1,934 bytes of structured data across the physical PRG banks.
+It still includes 43,027 local PRG bytes and 65,536 local CHR bytes. A total of
+664 independent source-change controls verify every listed reconstructed region.
 Passing input audits or whole-ROM equality alone is not reconstruction
 completion. The developer identifies BOGUS as the
 state-machine engine in the [Vance Kozik interview](https://www.nesworld.com/kozik.php);
@@ -214,7 +214,13 @@ Two descriptor-derived candidate graphs at PRG bank 1 CPU `$BCC0-$BCE2` and
 `$BDBF-$BDCC` are now structured BOGUS source. Their command lengths and
 successors follow the reconstructed interpreter, with branch targets expressed
 as bank-relative labels. Their gameplay roles and execution remain unverified;
-the rest of the script inventory is still local analysis.
+most of the script inventory is still local analysis.
+
+Additional descriptor-derived entries at bank 1 `$B900`, `$B968` and `$BA53`
+are structured, including the separately targeted command at `$B934`. The
+three bytes after `$B92E`'s record-loading command remain local because its
+continuation has not been fully traced. These are static command decodes; their
+gameplay roles and execution have not been established.
 
 Controller handlers now express slot actions, pause toggling and signed motion
 updates, including the original stack-unwinding gates and overflow checks. The

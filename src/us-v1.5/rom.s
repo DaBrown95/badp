@@ -182,6 +182,51 @@ compareRangeReturn:
     .byte $27
     .word target - $8000
 .endmacro
+.macro BogusSetSlot0360 value
+    .byte $1A, value
+.endmacro
+.macro BogusSetSlot07F0 value
+    .byte $4C, value
+.endmacro
+.macro BogusBranchIfSlot0360Above target, value
+    .byte $93
+    .word target - $8000
+    .byte value
+.endmacro
+.macro BogusYieldAndSlotAction mode
+    .byte $1E, mode
+.endmacro
+.macro BogusSetSlot0670Pair first, second
+    .byte $0C, first, second
+.endmacro
+.macro BogusSetSlot0730 value
+    .byte $32, value
+.endmacro
+.macro BogusRestartVoice4 pointer
+    .byte $49
+    .word pointer
+.endmacro
+.macro BogusStartVoice4 pointer
+    .byte $50
+    .word pointer
+.endmacro
+.macro BogusBranchIfSlot0700AtMost target, value
+    .byte $51
+    .word target - $8000
+    .byte value
+.endmacro
+.macro BogusBranchIfAbsSlot0700Below target, value
+    .byte $94
+    .word target - $8000
+    .byte value
+.endmacro
+.macro BogusBranchIfSlot0620Bit10 target
+    .byte $20
+    .word target - $8000
+.endmacro
+.macro BogusLoadSlotRecord offset, mode
+    .byte $63, offset, mode
+.endmacro
 
 ; A command byte indexes three parallel tables: record length, and the low and
 ; high bytes of an RTS dispatch address. Handler addresses below are actual
@@ -11955,7 +12000,66 @@ ScriptRecordLengths:
 .segment "PRG1"
 .scope Bank1
 BankStart:
-    .incbin "bank1_8000_bcc0.bin"
+    .incbin "bank1_8000_b900.bin"
+; Descriptor-derived script. The record-loading command at the end may have
+; further effects; its following bytes remain local pending flow verification.
+ScriptB900:
+    BogusSetSlot0670Pair $01, $00
+    BogusSetSlot0730 $DC         ; CONTROL_BOGUS_B900
+    BogusSetUnlinkedFields $00, $00
+    BogusRestartVoice4 $289B
+    BogusBranchIfSlot0700AtMost ScriptB915, $80
+    BogusSetSlotFields80 $E8, $00
+    BogusJumpBank1 ScriptB918
+ScriptB915:
+    BogusSetSlotFields80 $18, $00
+ScriptB918:
+    BogusWait $04
+ScriptB91A:
+    BogusSetSlot0620Bit20
+    BogusBranchIfAbsSlot0700Below ScriptB934, $0C
+    BogusBranchIfSlot0620Bit10 ScriptB928
+    BogusBranchAndClearSlot0620Bit08 ScriptB92E
+    BogusJumpBank1 ScriptB91A
+ScriptB928:
+    BogusStartVoice4 $289B
+    BogusJumpBank1 ScriptB91A
+ScriptB92E:
+    BogusLoadSlotRecord $09, $02
+.assert (* - BankStart) = $3931, error, "bank 1 script B900 partial graph end"
+    .incbin "bank1_b931_b934.bin"
+ScriptB934:
+    BogusYieldAndSlotAction $00  ; CONTROL_BOGUS_B934
+.assert (* - BankStart) = $3936, error, "bank 1 script B934 end"
+    .incbin "bank1_b936_b968.bin"
+; Eight slot-field updates form a loop while $0360 is above the threshold.
+; Slot action $00 yields and releases the current slot.
+ScriptB968:
+    BogusSetSlotC0 $00
+    BogusSetSlot0360 $14         ; CONTROL_BOGUS_B968
+    BogusSetSlot07F0 $01
+    BogusSetSlotBit40 $01
+ScriptB970:
+    BogusSetSlotFields80 $F0, $F0
+    BogusSetSlotFields80 $F8, $E8
+    BogusSetSlotFields80 $F8, $E8
+    BogusSetSlotFields80 $10, $F0
+    BogusSetSlotFields80 $10, $F0
+    BogusSetSlotFields80 $08, $E8
+    BogusSetSlotFields80 $08, $E8
+    BogusSetSlotFields80 $F0, $F0
+    BogusBranchIfSlot0360Above ScriptB970, $01
+    BogusYieldAndSlotAction $00
+.assert (* - BankStart) = $398E, error, "bank 1 script B968 end"
+    .incbin "bank1_b98e_ba53.bin"
+; This descriptor-derived entry reaches a self-loop after setting two fields.
+ScriptBA53:
+    BogusSetSlotC0 $00
+    BogusSetSlotBit40 $01       ; CONTROL_BOGUS_BA53
+ScriptBA57:
+    BogusJumpBank1 ScriptBA57
+.assert (* - BankStart) = $3A5A, error, "bank 1 script BA53 end"
+    .incbin "bank1_ba5a_bcc0.bin"
 ; Candidate entry from a slot descriptor. The full graph is contained here;
 ; gameplay role and runtime use are not yet established.
 ScriptBCC0:
