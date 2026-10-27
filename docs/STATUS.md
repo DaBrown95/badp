@@ -34,9 +34,9 @@ independent source trees or treat one version's evidence as verifying the rest.
 simultaneous reconstruction. Keep progress and completion evidence per target.
 
 The v1.5 build now assembles and links to the exact reference, with 21,025 bytes
-of source code and 5,712 bytes of structured data across the physical PRG banks.
-It still includes 38,799 local PRG bytes and 65,536 local CHR bytes. A total of
-701 independent source-change controls verify every listed reconstructed region.
+of source code and 6,651 bytes of structured data across the physical PRG banks.
+It still includes 37,860 local PRG bytes and 65,536 local CHR bytes. A total of
+708 independent source-change controls verify every listed reconstructed region.
 Passing input audits or whole-ROM equality alone is not reconstruction
 completion. The developer identifies BOGUS as the
 state-machine engine in the [Vance Kozik interview](https://www.nesworld.com/kozik.php);
@@ -206,7 +206,7 @@ branches or prove execution. Its output is ignored local analysis and does not
 count as reconstructed PRG.
 
 The [script-flow inventory](SCRIPT_FLOW.md) follows reviewed successor rules
-from those candidates. It finds 1,808 candidate commands and stops at 48 nodes
+from those candidates. It finds 1,842 candidate commands and stops at 45 nodes
 with dynamic or unreviewed handlers, with no physical-byte overlaps. Branches
 and resumes remain unverified possibilities; this analysis adds no PRG credit.
 
@@ -266,6 +266,12 @@ source with map-value cases, slot updates, indexed audio and state setup. Some
 branch destinations and referenced assets remain local, and the object roles
 and gameplay effects are provisional. Temporary local transcriptions were
 retired after integration; the maintained source and matching proof remain.
+
+The `$B532`, `$BD58`, `$D3C9`, `$DB81`, `$E691`, `$EF7E` and `$F24C`
+continuations are structured source, connecting earlier map selection, slot,
+audio, palette and input state paths. Indirect jump tables and some referenced
+data remain local; their runtime behaviour is not established. Temporary local
+transcriptions were retired after integration and verification.
 
 Controller handlers now express slot actions, pause toggling and signed motion
 updates, including the original stack-unwinding gates and overflow checks. The

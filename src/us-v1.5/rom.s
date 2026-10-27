@@ -572,6 +572,58 @@ compareRangeReturn:
     .byte $90
     .word address
 .endmacro
+.macro BogusJumpViaSlotIndexedTable
+    .byte $44
+.endmacro
+.macro BogusSetSlot0370 value
+    .byte $4A, value
+.endmacro
+.macro BogusExchangeSlotValueArray selector
+    .byte $5A, selector
+.endmacro
+.macro BogusDivideSlotValueByByte value
+    .byte $85, value
+.endmacro
+.macro BogusReadSelectedSlot0520 selector
+    .byte $86, selector
+.endmacro
+.macro BogusWriteSelectedSlot0520 selector
+    .byte $87, selector
+.endmacro
+.macro BogusBranchIfSelectedFlagsClear target, mask
+    .byte $92
+    .word target - $8000
+    .byte mask
+.endmacro
+.macro BogusCreateLinkedSlot first, second, third, fourth
+    .byte $69, first, second, third, fourth
+.endmacro
+.macro BogusLoadSlotRecordAtPointer pointer
+    .byte $16
+    .word pointer
+.endmacro
+.macro BogusBranchIfSelectedFieldEqual target, value
+    .byte $24
+    .word target - $8000
+    .byte value
+.endmacro
+.macro BogusSetLinkedFieldsAndYield first, second
+    .byte $6C, first, second
+.endmacro
+.macro BogusRefreshSlotDrawPosition
+    .byte $C3
+.endmacro
+.macro BogusFollowLinkedSlotsAndYield first, second, third, fourth, fifth
+    .byte $B6, first, second, third, fourth, fifth
+.endmacro
+.macro BogusRelinkSlots
+    .byte $B7
+.endmacro
+.macro BogusBranchIfSlot0780Equal target, value
+    .byte $2B
+    .word target - $8000
+    .byte value
+.endmacro
 
 ; A command byte indexes three parallel tables: record length, and the low and
 ; high bytes of an RTS dispatch address. Handler addresses below are actual
@@ -12461,26 +12513,6 @@ ScriptRecordLengths:
 BankStart:
     .incbin "bank1_8000_b3ee.bin"
 ; Map and slot selection script; unconverted branch targets remain address aliases.
-ScriptB538 = BankStart + $3538
-ScriptB53E = BankStart + $353E
-ScriptB544 = BankStart + $3544
-ScriptB54A = BankStart + $354A
-ScriptB56D = BankStart + $356D
-ScriptB573 = BankStart + $3573
-ScriptB579 = BankStart + $3579
-ScriptB57F = BankStart + $357F
-ScriptB5A2 = BankStart + $35A2
-ScriptB5A8 = BankStart + $35A8
-ScriptB5AE = BankStart + $35AE
-ScriptB5B4 = BankStart + $35B4
-ScriptB5D9 = BankStart + $35D9
-ScriptB5DF = BankStart + $35DF
-ScriptB5E5 = BankStart + $35E5
-ScriptB5EB = BankStart + $35EB
-ScriptB60E = BankStart + $360E
-ScriptB614 = BankStart + $3614
-ScriptB61A = BankStart + $361A
-ScriptB620 = BankStart + $3620
 ScriptB3EE:
     BogusSetSlotC0 $00 ; CONTROL_BOGUS_B3EE
     BogusSetSlotPositionFromOperands $10, $5F
@@ -12587,6 +12619,7 @@ ScriptB50F:
     BogusJumpBank1 ScriptB4EA
 ScriptB515:
     BogusSetSlotValue $0000
+ScriptB518:
     BogusSetDispatchCounter $0D
     BogusBranchIfSlotD0BitsClear ScriptB4BF, $08
     BogusAddSlotValueFromArray $FF
@@ -12600,7 +12633,133 @@ ScriptB515:
     BogusSwapSlotValueBytes
     BogusLoadSlotLowFromByteArray $2F
 .assert (* - BankStart) = $3532, error, "bank 1 script B3EE end"
-    .incbin "bank1_b532_b6ee.bin"
+; Map-selection continuation; indexed jump-table data remains local.
+ScriptB532:
+    BogusCreateSlotFromValue $51, $AA ; CONTROL_BOGUS_B532
+    BogusJumpBank1 ScriptB4BF
+ScriptB538:
+    BogusSetSlotValue $FFF8
+    BogusJumpBank1 ScriptB518
+ScriptB53E:
+    BogusSetSlotValue $F800
+    BogusJumpBank1 ScriptB518
+ScriptB544:
+    BogusSetSlotValue $F7F8
+    BogusJumpBank1 ScriptB518
+ScriptB54A:
+    BogusSetSlotValue $E000
+ScriptB54D:
+    BogusSetDispatchCounter $0D
+    BogusBranchIfSlotD0BitsClear ScriptB4BF, $10
+    BogusAddSlotValueFromArray $FF
+    BogusAlignSlotValueToScrollGrid
+    BogusStoreSlotValueArray $2F
+    BogusSwapSlotValueBytes
+    BogusStoreSlotValueArray $30
+    BogusCountSlotsByRecord $55
+    BogusBranchIfSlotValueAtLeast ScriptB4BF, $0002
+    BogusLoadSlotValueArray $30
+    BogusSwapSlotValueBytes
+    BogusLoadSlotLowFromByteArray $2F
+    BogusCreateSlotFromValue $55, $00
+    BogusJumpBank1 ScriptB4BF
+ScriptB56D:
+    BogusSetSlotValue $E0F8
+    BogusJumpBank1 ScriptB54D
+ScriptB573:
+    BogusSetSlotValue $D800
+    BogusJumpBank1 ScriptB54D
+ScriptB579:
+    BogusSetSlotValue $D8F8
+    BogusJumpBank1 ScriptB54D
+ScriptB57F:
+    BogusSetSlotValue $0000
+ScriptB582:
+    BogusSetDispatchCounter $0D
+    BogusBranchIfSlotD0BitsClear ScriptB4BF, $04
+    BogusAddSlotValueFromArray $FF
+    BogusAlignSlotValueToScrollGrid
+    BogusStoreSlotValueArray $2F
+    BogusSwapSlotValueBytes
+    BogusStoreSlotValueArray $30
+    BogusCountSlotsByRecord $6C
+    BogusBranchIfSlotValueAtLeast ScriptB4BF, $0003
+    BogusLoadSlotValueArray $30
+    BogusSwapSlotValueBytes
+    BogusLoadSlotLowFromByteArray $2F
+    BogusCreateSlotFromValue $6C, $00
+    BogusJumpBank1 ScriptB4BF
+ScriptB5A2:
+    BogusSetSlotValue $FFF8
+    BogusJumpBank1 ScriptB582
+ScriptB5A8:
+    BogusSetSlotValue $F800
+    BogusJumpBank1 ScriptB582
+ScriptB5AE:
+    BogusSetSlotValue $F8F8
+    BogusJumpBank1 ScriptB582
+ScriptB5B4:
+    BogusSetSlotValue $E800
+ScriptB5B7:
+    BogusSetDispatchCounter $0E
+    BogusBranchIfSlotD0BitsClear ScriptB4BF, $04
+    BogusExchangeSlotValueArray $FF
+    BogusAlignSlotValueToScrollGrid
+    BogusAddSlotValueFromArray $FF
+    BogusStoreSlotValueArray $2F
+    BogusSwapSlotValueBytes
+    BogusStoreSlotValueArray $30
+    BogusCountSlotsByRecord $70
+    BogusBranchIfSlotValueAtLeast ScriptB4BF, $0002
+    BogusLoadSlotValueArray $30
+    BogusSwapSlotValueBytes
+    BogusLoadSlotLowFromByteArray $2F
+    BogusCreateSlotFromValue $70, $00
+    BogusJumpBank1 ScriptB4BF
+ScriptB5D9:
+    BogusSetSlotValue $E7F8
+    BogusJumpBank1 ScriptB5B7
+ScriptB5DF:
+    BogusSetSlotValue $E000
+    BogusJumpBank1 ScriptB5B7
+ScriptB5E5:
+    BogusSetSlotValue $DFF8
+    BogusJumpBank1 ScriptB5B7
+ScriptB5EB:
+    BogusSetSlotValue $F810
+ScriptB5EE:
+    BogusSetDispatchCounter $0D
+    BogusBranchIfSlotD0BitsClear ScriptB4BF, $04
+    BogusAddSlotValueFromArray $FF
+    BogusAlignSlotValueToScrollGrid
+    BogusStoreSlotValueArray $2F
+    BogusSwapSlotValueBytes
+    BogusStoreSlotValueArray $30
+    BogusCountSlotsByRecord $02
+    BogusBranchIfSlotValueAtLeast ScriptB4BF, $0002
+    BogusLoadSlotValueArray $30
+    BogusSwapSlotValueBytes
+    BogusLoadSlotLowFromByteArray $2F
+    BogusCreateSlotFromValue $02, $00
+    BogusJumpBank1 ScriptB4BF
+ScriptB60E:
+    BogusSetSlotValue $F808
+    BogusJumpBank1 ScriptB5EE
+ScriptB614:
+    BogusSetSlotValue $F010
+    BogusJumpBank1 ScriptB5EE
+ScriptB61A:
+    BogusSetSlotValue $F008
+    BogusJumpBank1 ScriptB5EE
+ScriptB620:
+    BogusSetSlot0370 $0A
+    BogusReadSelectedSlot0520 $00
+    BogusClampSlotValueAtMost $0014
+    BogusAddSlotValue $0001
+    BogusDivideSlotValueByByte $02
+    BogusJumpViaSlotIndexedTable
+.assert (* - BankStart) = $362D, error, "bank 1 script B532 end"
+    .incbin "bank1_b62d_b6ee.bin"
 ; Connected slot-action script with coordinate checks, linked-slot search and
 ; original wait/loop behaviour. The gameplay object is not yet identified.
 ScriptB6EE:
@@ -12991,7 +13150,44 @@ ScriptBCC0Loop:
     BogusSetDispatchCounter $01
     BogusJumpBank1 ScriptBCC0Loop
 .assert (* - BankStart) = $3CE3, error, "bank 1 script BCC0 end"
-    .incbin "bank1_bce3_bdbf.bin"
+    .incbin "bank1_bce3_bd58.bin"
+; Connected slot, audio and fade state sequence.
+ScriptBD58:
+    BogusSetSlotC0 $00 ; CONTROL_BOGUS_BD58
+    BogusSetInvertedState18 $FF
+    BogusSetUnlinkedFields $00, $00
+    BogusSetSlotAssociation $00
+    BogusSetSlotFields80 $00, $08
+    BogusSetVoicePointers $2944, $29F4, $0000, $0000
+ScriptBD6D:
+    BogusBranchIfRemainingVerticalOffsetAtMost ScriptBD75, $002C
+    BogusJumpBank1 ScriptBD6D
+ScriptBD75:
+    BogusSetSlotFields80 $00, $00
+    BogusMarkMatchingSlots $00, $01, $17, $00
+    BogusSetBackgroundPalettePointer $C8E2
+    BogusInitializeOtherSlotAbsolute $26, $67, $B4, $00
+    BogusSetSlotPositionFromOperands $00, $8C
+    BogusSetSlotFields80 $00, $F8
+ScriptBD8B:
+    BogusBranchIfSlotB0AtMost ScriptBD92, $10
+    BogusJumpBank1 ScriptBD8B
+ScriptBD92:
+    BogusMarkMatchingSlots $20, $01, $17, $00
+ScriptBD97:
+    BogusBranchIfSelectedFlagsClear ScriptBD97, $F0
+    BogusSetSlotValue $001E
+    BogusStoreSlotValueArray $3D
+    BogusSetSlotValue $FFFF
+    BogusStoreSlotValueArray $23
+    BogusRestartVoice4 $0000
+    BogusSetVoicePointers $0000, $0000, $0000, $0000
+    BogusCallNativeEncoded Bank0::FadeOutPalettes - 1
+    BogusSetMainState $10
+    BogusCreateLinkedSlot $C2, $BF, $3D, $00
+    BogusLoadRecordAndClearSavedState $00
+.assert (* - BankStart) = $3DBD, error, "bank 1 script BD58 end"
+    .incbin "bank1_bdbd_bdbf.bin"
 ; Another descriptor-derived graph: set a slot bit, then branch when bit $08
 ; is set and clear it. Both destinations are local loops.
 ScriptBDBF:
@@ -13315,7 +13511,53 @@ ScriptD059:
     BogusInitializeSplitAndMainState
 .assert (* - BankStart) = $505F, error, "bank 1 script CFDC end"
 DataD05F:
-    .incbin "bank1_d05f_d6e0.bin"
+    .incbin "bank1_d05f_d3c9.bin"
+; Linked-slot update and position sequence.
+ScriptD3C9:
+    BogusSetSlot0640Pair $00, $40 ; CONTROL_BOGUS_D3C9
+    BogusSetSlot05F0Pair $FF, $7E
+    BogusSetSlotBit40 $01
+ScriptD3D1:
+    BogusBranchIfSlot0760Equal ScriptD3D8, $01
+    BogusJumpBank1 ScriptD3D1
+ScriptD3D8:
+    BogusBranchIfSelectedFieldEqual ScriptD3DF, $10
+    BogusJumpBank1 ScriptD3D1
+ScriptD3DF:
+    BogusSetSlotBit40 $FF
+    BogusFollowLinkedSlotsAndYield $FF, $FF, $01, $01, $00
+    BogusRestartVoice4 $26FA
+    BogusSetLinkedFieldsAndYield $FF, $FE
+    BogusSetLinkedFieldsAndYield $FF, $FC
+    BogusSetLinkedFieldsAndYield $FF, $F8
+    BogusSetLinkedFieldsAndYield $FF, $F4
+    BogusSetLinkedFieldsAndYield $80, $F2
+    BogusSetDispatchCounter $86
+    BogusSetSlotC0 $00
+    BogusSetSlotFields80 $00, $00
+    BogusRelinkSlots
+    BogusSetSlotMode $FF
+    BogusSetUnlinkedFields $00, $00
+ScriptD406:
+    BogusSetDispatchCounter $F0
+    BogusAdjustSlotBounds $00, $FF
+    BogusRefreshSlotDrawPosition
+    BogusBranchIfSlotB0AtMost ScriptD41D, $10
+    BogusSetSlotValue $0100
+ScriptD413:
+    BogusDivideSlotValueByByte $02
+    BogusBranchIfSlotValueAtLeast ScriptD413, $0002
+    BogusJumpBank1 ScriptD406
+ScriptD41D:
+    BogusSetDispatchCounter $F0
+    BogusReadSelectedSlot0520 $00
+    BogusAddSlotValue $0004
+    BogusClampSlotValueAtMost $00FF
+    BogusWriteSelectedSlot0520 $00
+    BogusStoreSlotValueArray $26
+    BogusLoadSlotRecordAtPointer $53C0
+.assert (* - BankStart) = $542E, error, "bank 1 script D3C9 end"
+    .incbin "bank1_d42e_d6e0.bin"
 ; A slot-field comparison gates three matching-slot updates and waits.
 ScriptD6E0:
     BogusSetSlot0640Pair $04, $00
@@ -13330,7 +13572,46 @@ ScriptD6EA:
     BogusRestartVoice4 $289B
     BogusYieldAndSlotAction $00
 .assert (* - BankStart) = $5702, error, "bank 1 script D6E0 end"
-    .incbin "bank1_d702_dc35.bin"
+    .incbin "bank1_d702_db81.bin"
+; Slot movement and contact state sequence.
+ScriptDBE9 = BankStart + $5BE9
+ScriptDB81:
+    BogusSetDispatchCounter $86 ; CONTROL_BOGUS_DB81
+    BogusSetSlot0640Pair $04, $00
+    BogusSetSlot0670Pair $F8, $00
+    BogusSetSlotValue $0000
+    BogusStoreSlotValueArray $FF
+    BogusSetSlotD0Bits $40
+    BogusSetSlot05F0Pair $20, $FF
+    BogusClearSlot0790Bits $01
+    BogusSetUnlinkedFields $00, $00
+    BogusBranchIfSlotD0Bits ScriptDBC8, $20
+    BogusSetSlot0660LowBits $01
+    BogusSetSlot0360 $28
+ScriptDBA0:
+    BogusAddSlotFields00 $08, $00
+    BogusSetDispatchCounter $03
+    BogusBranchIfSlotCoordinates01 ScriptDBE9, $0C, $08
+    BogusBranchIfSlotCoordinates01 ScriptDBBE, $10, $08
+    BogusBranchIfSlot0700AtMost ScriptDBA0, $FC
+    BogusBranchIfSlot0360Above ScriptDBA0, $01
+    BogusBranchIfSlotCoordinatesA3 ScriptDBA0, $C8, $20
+    BogusYieldAndSlotAction $00
+ScriptDBBE:
+    BogusSetDispatchCounter $83
+    BogusSetSlotFields80 $00, $FF
+    BogusSetDirectionalSlotFields40 $01, $FF
+    BogusLoadRecordAndClearSavedState $12
+ScriptDBC8:
+    BogusClearSlotD0Bits $20
+    BogusSetSlot05F0Pair $60, $FF
+    BogusSetSlotFields40Signed $60, $FF
+    BogusSetSlotFields80 $FF, $C0
+    BogusStartVoice4 $277A
+    BogusWait $0A
+    BogusLoadRecordAndClearSavedState $00
+.assert (* - BankStart) = $5BDA, error, "bank 1 script DB81 end"
+    .incbin "bank1_dbda_dc35.bin"
 ; Connected movement and interaction state-machine paths. The byte-level
 ; conditions are reconstructed; the associated gameplay role remains unknown.
 ScriptDC35:
@@ -13949,7 +14230,71 @@ ScriptE51C:
     BogusWait $0A
     BogusJumpBank1 ScriptE51C
 .assert (* - BankStart) = $6527, error, "bank 1 script E47C end"
-    .incbin "bank1_e527_e9ba.bin"
+    .incbin "bank1_e527_e691.bin"
+; Movement and indexed-audio state sequence.
+ScriptE745 = BankStart + $6745
+ScriptE691:
+    BogusSetDispatchCounter $06 ; CONTROL_BOGUS_E691
+    BogusSetSlotValue $8001
+    BogusStoreSlotValueArray $FF
+    BogusSetSlot0640Pair $04, $00
+    BogusSetUnlinkedFields $00, $00
+    BogusSetSlot05F0Pair $60, $60
+    BogusLoadSlotRecord $06, $FF
+ScriptE6A4:
+    BogusClearSlot0790Bits $01
+    BogusAdvanceAndBranchState1B ScriptE6C2, $D4
+    BogusSetDispatchCounter $83
+    BogusSetSlotFields80 $00, $FF
+    BogusSetDirectionalSlotFields40 $01, $FF
+    BogusLoadSlotRecord $12, $01
+    BogusLoadSlotValueArray $FF
+    BogusMaskSlotValue $7FFF
+    BogusSetVoicesFromIndexedRecord $26E4
+    BogusWait $0A
+    BogusLoadSlotRecord $06, $FF
+ScriptE6C2:
+    BogusSetSlot0670Pair $28, $00
+    BogusBranchIfSlotCoordinatesA3 ScriptE6CD, $E0, $28
+    BogusJumpBank1 ScriptE6DC
+ScriptE6CD:
+    BogusBranchIfSlotCoordinatesA3 ScriptE6DA, $20, $10
+    BogusSetSlot0660LowBits $01
+    BogusSetSlotFields80 $18, $FF
+    BogusJumpBank1 ScriptE745
+ScriptE6DA:
+    BogusLoadRecordAndClearSavedState $1B
+ScriptE6DC:
+    BogusSetSlot0670Pair $01, $00
+    BogusBranchIfSlotCoordinatesA3 ScriptE6E7, $60, $10
+    BogusJumpBank1 ScriptE705
+ScriptE6E7:
+    BogusSetSlotFields40Signed $40, $00
+    BogusSetSlot0360 $12
+ScriptE6EC:
+    BogusBranchIfSlotCoordinates01 ScriptE703, $38, $20
+    BogusBranchIfSlot0360Above ScriptE6EC, $00
+    BogusSetDispatchCounter $83
+    BogusSetSlotFields80 $00, $FF
+    BogusSetSlotFields40Signed $01, $00
+    BogusLoadSlotRecord $06, $FF
+    BogusJumpBank1 ScriptE6A4
+ScriptE703:
+    BogusLoadRecordAndClearSavedState $24
+ScriptE705:
+    BogusSetDispatchCounter $83
+    BogusSetSlotFields80 $00, $FF
+    BogusSetDirectionalSlotFields40 $01, $FF
+    BogusBranchIfAbsSlot0700Below ScriptE714, $20
+    BogusJumpBank1 ScriptE717
+ScriptE714:
+    BogusSetSlotFields40Signed $02, $FF
+ScriptE717:
+    BogusReadSlotValue $05
+    BogusMaskSlotValue $0007
+    BogusJumpViaSlotIndexedTable
+.assert (* - BankStart) = $671D, error, "bank 1 script E691 end"
+    .incbin "bank1_e71d_e9ba.bin"
 ; Linked slot and movement state graph; gameplay role remains unverified.
 ScriptB98E = BankStart + $398E
 ScriptE9BA:
@@ -14205,7 +14550,60 @@ ScriptEDEF:
 ScriptEDFC:
     BogusLoadRecordAndClearSavedState $1B
 .assert (* - BankStart) = $6DFE, error, "bank 1 script ED71 end"
-    .incbin "bank1_edfe_eff0.bin"
+    .incbin "bank1_edfe_ef7e.bin"
+; Slot sequence joining the existing $EFF3 path.
+ScriptEF7E:
+    BogusSetSlot0640Pair $00, $40 ; CONTROL_BOGUS_EF7E
+    BogusSetSlotC0 $0C
+    BogusBranchIfSlot0780Equal ScriptEFF3, $00
+ScriptEF87:
+    BogusSetSlot0640Pair $20, $40
+    BogusSetDispatchCounter $8C
+    BogusSetSlot05F0Pair $60, $60
+    BogusSetSlot0670Pair $01, $00
+    BogusSetSlot0660LowBits $01
+    BogusSetSlot0730 $80
+    BogusLoadSlotValueArray $3C
+    BogusSetSlotMode $00
+    BogusSetSlotFields80 $00, $A0
+    BogusRelinkSlots
+    BogusBranchIfSlotCoordinatesA3 ScriptEFB6, $10, $FF
+    BogusAddSlotFields00 $10, $00
+    BogusBranchIfSlotCoordinatesA3 ScriptEFB6, $30, $FF
+    BogusAddSlotFields00 $10, $00
+    BogusBranchIfSlotCoordinatesA3 ScriptEFB6, $60, $FF
+    BogusAddSlotFields00 $20, $00
+ScriptEFB6:
+    BogusSetSlot0620Bit20
+    BogusBranchIfSlotCoordinatesA3 ScriptEFC5, $FF, $20
+    BogusBranchIfSlot0620Bit10 ScriptEFC5
+    BogusBranchIfSlotB0AtMost ScriptEFB6, $E6
+    BogusYieldAndSlotAction $00
+ScriptEFC5:
+    BogusSetDispatchCounter $03
+    BogusReadSlotValue $13
+    BogusSetSlotMode $00
+    BogusSetSlotMode $02
+    BogusSetSlot0620Bit20
+    BogusClearSlot0790Bits $01
+    BogusWait $01
+    BogusSetSlot0620Bit20
+    BogusWait $19
+    BogusSetSlotMode $FF
+ScriptEFD7:
+    BogusBranchIfSlotB0AtMost ScriptEFD7, $E6
+    BogusYieldAndSlotAction $00
+ScriptEFDD:
+    BogusSetSlot0640Pair $08, $40
+    BogusJumpBank1 ScriptEFF3
+ScriptEFE3:
+    BogusSetSlot0640Pair $20, $40
+    BogusJumpBank1 ScriptEFF3
+ScriptEFE9:
+    BogusBranchIfSlot0780Equal ScriptEF87, $2C
+    BogusJumpBank1 ScriptEFE3
+.assert (* - BankStart) = $6FF0, error, "bank 1 script EF7E end"
+
 ; Shared target of several candidate entries. The bit tests and record load
 ; loop here are decoded; the roles of the values remain provisional.
 ScriptEFF0:
@@ -14226,7 +14624,6 @@ ScriptF000:
 .assert (* - BankStart) = $700F, error, "bank 1 script EFF0 end"
     .incbin "bank1_f00f_f176.bin"
 ; State-update and palette setup sequence; data payloads remain local.
-ScriptF27E = BankStart + $727E
 ScriptF176:
     BogusSetDispatchCounter $8F ; CONTROL_BOGUS_F176
     BogusSetState13Bits $0F
@@ -14282,7 +14679,56 @@ ScriptF230:
     BogusSetVoicePointers $2A58, $2AA3, $0000, $0000
     BogusJumpBank1 ScriptF27E
 .assert (* - BankStart) = $724C, error, "bank 1 script F176 end"
-    .incbin "bank1_f24c_fda7.bin"
+; Input-controlled state sequence; downstream targets remain local.
+ScriptF313 = BankStart + $7313
+ScriptF24C:
+    BogusSetSlotPositionFromOperands $58, $78 ; CONTROL_BOGUS_F24C
+    BogusSetVoicePointers $FFFF, $FFFF, $2783, $FFFF
+    BogusReadSlotValue $00
+    BogusBranchIfSlotValueNotEqual ScriptF264, $0000
+    BogusMarkMatchingSlots $00, $01, $06, $00
+ScriptF264:
+    BogusWait $03
+ScriptF266:
+    BogusBranchIfSelectedFlags ScriptF275, $24
+    BogusBranchIfSelectedFlags ScriptF29E, $08
+    BogusBranchIfSelectedFlags ScriptF2C7, $D0
+    BogusJumpBank1 ScriptF266
+ScriptF275:
+    BogusSetVoicePointers $FFFF, $FFFF, $2783, $FFFF
+ScriptF27E:
+    BogusSetSlotPositionFromOperands $58, $88
+    BogusReadSlotValue $00
+    BogusBranchIfSlotValueNotEqual ScriptF28D, $0000
+    BogusMarkMatchingSlots $10, $01, $06, $00
+ScriptF28D:
+    BogusWait $03
+ScriptF28F:
+    BogusBranchIfSelectedFlags ScriptF29E, $24
+    BogusBranchIfSelectedFlags ScriptF24C, $08
+    BogusBranchIfSelectedFlags ScriptF2C7, $D0
+    BogusJumpBank1 ScriptF28F
+ScriptF29E:
+    BogusSetSlotPositionFromOperands $58, $98
+    BogusSetVoicePointers $FFFF, $FFFF, $2783, $FFFF
+    BogusReadSlotValue $00
+    BogusBranchIfSlotValueNotEqual ScriptF2B6, $0000
+    BogusMarkMatchingSlots $20, $01, $06, $00
+ScriptF2B6:
+    BogusWait $03
+ScriptF2B8:
+    BogusBranchIfSelectedFlags ScriptF24C, $24
+    BogusBranchIfSelectedFlags ScriptF275, $08
+    BogusBranchIfSelectedFlags ScriptF2C7, $D0
+    BogusJumpBank1 ScriptF2B8
+ScriptF2C7:
+    BogusReadSlotValue $00
+    BogusBranchIfSlotValueEqual ScriptF313, $00, $00
+    BogusSetDispatchCounter $8F
+    BogusSetVoicePointers $0000, $0000, $0000, $0000
+    BogusClearSlotBitset $FF
+.assert (* - BankStart) = $72DB, error, "bank 1 script F24C end"
+    .incbin "bank1_f2db_fda7.bin"
 ScriptRecordLengths:
     ScriptTable 0
 .assert (* - BankStart) = $7E6C, error, "bank 1 common helpers offset"
