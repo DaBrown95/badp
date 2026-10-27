@@ -23,7 +23,18 @@ mapping remain provisional. The tool reports incomplete context traversals,
 script traversal limits and overlapping decodes; it does not mark source as
 owned. On the pinned v1.5 input it finds 141 contexts, 458 references and 186
 distinct candidate addresses, with no unprocessed contexts or per-context
-script overlaps.
+script overlaps. The union of those script entries contains 2,209 candidate
+commands and 13 physical bytes with conflicting decodes across contexts. They
+fall within the existing `$BD1B` and `$DC35` script regions. The competing
+entries depend on possible record accesses at `$DA40` and `$ED71`, respectively;
+their assumed descriptor associations and interpretations remain unverified.
+The overlaps do not establish which path actually executes.
+
+The tool also compares candidate command and table bytes against the fields a
+record access would actually read, excluding unused bytes in the ten-byte fetch.
+This finds 24 physical bytes with possible record/script conflicts: nine at
+the existing `$ED71` script and 15 in five other candidate paths. Their slot
+contexts and interpretations require review.
 
 The maintained source includes 95 additionally reviewed records: 51 full
 zero-mode entries and 44 compact negative-mode entries. Each has a candidate
@@ -31,3 +42,10 @@ descriptor and command recorded alongside it. The selections were checked
 against all candidate script paths and existing physical ownership; ambiguous
 forms, conflicting ranges and resource payloads remain local. These findings
 and byte matches do not establish gameplay reachability or hardware behavior.
+
+Twenty additional script regions from the merged trace are represented as
+named commands. Their physical bytes do not overlap the reported conflicting
+decodes, possible record reads or previously owned records. Independent entry
+labels are retained after commands that change the script pointer or main
+state; the static graph does not prove that execution falls through between
+those entries.

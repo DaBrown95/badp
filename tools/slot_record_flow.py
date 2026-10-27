@@ -42,6 +42,52 @@ def resolve_access(bank0: bytes, bank1: bytes, base: int, offset: int, mode: int
     return result
 
 
+def record_script_overlaps(references: list[dict], graph: dict) -> dict:
+    """Find semantic record reads that collide with candidate script bytes.
+
+    The ten-byte fetch includes lookahead, so only bytes actually inspected by
+    the loader in the selected mode are compared with command and table bytes.
+    """
+    coverage: set[tuple[int, int]] = set()
+    for node in graph['nodes']:
+        loc = node['location']
+        length = node.get('length', 0)
+        if loc['bank_offset'] + length <= BANK_SIZE:
+            coverage.update((loc['bank'], loc['bank_offset'] + i) for i in range(length))
+        for key in ('lookup_records', 'jump_records'):
+            for record in node.get(key, []):
+                loc = record['location']
+                coverage.update((loc['bank'], loc['bank_offset'] + i)
+                                for i in range(record.get('size', 2)))
+    physical: set[tuple[int, int]] = set()
+    conflicts = []
+    for ref in references:
+        if ref['status'] != 'candidate':
+            continue
+        fields, mode, loc = ref['fields'], ref['mode'], ref['location']
+        used = {1}  # The resource pointer's high byte gates the remaining fields.
+        if mode == 0:
+            used.add(3)
+            if fields['script_installable_in_zero_mode']:
+                used.add(2)
+        if fields['sprite_fields_present']:
+            used.add(0)
+            if mode & 0x80:
+                used.add(2)
+            elif mode == 1:
+                used.add(4)
+            else:
+                used.update(range(4, 9))
+        overlap = sorted((loc['bank'], loc['bank_offset'] + i)
+                         for i in used if (loc['bank'], loc['bank_offset'] + i) in coverage)
+        if overlap:
+            physical.update(overlap)
+            conflicts.append({'record': ref['encoded_pointer'], 'base': ref['base'],
+                              'command': ref['command'], 'mode': mode,
+                              'locations': [_location(bank, offset) for bank, offset in overlap]})
+    return {'physical_bytes': len(physical), 'references': conflicts}
+
+
 def trace(bank0: bytes, bank1: bytes, lengths: bytes, seeds: list[tuple[int, int]],
           indexed_jumps: dict[int, int] | None = None, limit: int = 10000) -> dict:
     """Explore candidate (descriptor base, script entry) contexts with a hard limit."""
@@ -89,7 +135,15 @@ def trace(bank0: bytes, bank1: bytes, lengths: bytes, seeds: list[tuple[int, int
                 if successor not in queued:
                     queued.add(successor)
                     pending.append(successor)
-    return {'contexts': contexts, 'references': references,
+    # Per-context walks can each be internally consistent while different
+    # candidate entries decode the same physical bytes incompatibly. Rewalk
+    # their union to expose those cross-context overlaps explicitly.
+    merged = walk(bank0, bank1, lengths,
+                  sorted({int(context['entry'], 16) for context in contexts}),
+                  indexed_jumps=indexed_jumps)
+    overlaps = record_script_overlaps(references, merged)
+    return {'contexts': contexts, 'references': references, 'merged_script_flow': merged,
+            'record_script_overlaps': overlaps,
             'unprocessed_contexts': [{'base': f'0x{base:04x}', 'entry': f'0x{entry:04x}'}
                                      for base, entry in pending], 'context_limit': limit}
 
@@ -121,6 +175,10 @@ def main() -> int:
                           'distinct_records': len({r['encoded_pointer'] for r in result['references']}),
                           'contexts_with_unprocessed_nodes': sum(bool(c['unprocessed_script_nodes']) for c in result['contexts']),
                           'contexts_with_overlaps': sum(bool(c['overlapping_script_bytes']) for c in result['contexts']),
+                          'merged_script_nodes': len(result['merged_script_flow']['nodes']),
+                          'merged_script_overlap_bytes': result['merged_script_flow']['overlapping_physical_bytes'],
+                          'merged_script_unprocessed': len(result['merged_script_flow']['unprocessed']),
+                          'record_script_overlap_bytes': result['record_script_overlaps']['physical_bytes'],
                           'unprocessed_contexts': len(result['unprocessed_contexts']),
                           'output': 'analysis/us-v1.5/slot-record-flow.json'}, indent=2))
     except (OSError, ValueError, KeyError, TypeError) as exc:

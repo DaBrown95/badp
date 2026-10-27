@@ -2,7 +2,7 @@
 import unittest
 
 from tools.script_entries import BANK_SIZE
-from tools.slot_record_flow import resolve_access, trace
+from tools.slot_record_flow import record_script_overlaps, resolve_access, trace
 
 
 def fixture():
@@ -60,6 +60,28 @@ class SlotRecordFlowTests(unittest.TestCase):
         self.assertFalse(result['references'][0]['fields']['script_installable_in_zero_mode'])
         with self.assertRaises(ValueError):
             trace(bytes(b0), bytes(b1), bytes(lengths), [], limit=0)
+
+    def test_merged_graph_reports_conflicting_context_decodes(self):
+        b0, b1, lengths = fixture()
+        lengths[0x09] = lengths[0x00] = 2
+        b1[0x20:0x23] = bytes([0x09, 0x00, 0x11])
+        result = trace(bytes(b0), bytes(b1), bytes(lengths),
+                       [(0x100, 0x20), (0x120, 0x21)])
+        self.assertTrue(all(c['overlapping_script_bytes'] == 0 for c in result['contexts']))
+        self.assertEqual(result['merged_script_flow']['overlapping_physical_bytes'], 2)
+        self.assertFalse(result['merged_script_flow']['unprocessed'])
+
+    def test_record_script_overlap_ignores_fetched_but_unused_bytes(self):
+        b0, b1, _ = fixture()
+        b1[0x100:0x10a] = bytes([0x34, 0x81, 0x40, 0x55, 0x66, 1, 2, 3, 4, 5])
+        ref = resolve_access(bytes(b0), bytes(b1), 0x100, 0, 0xff)
+        ref.update({'base': '0x0100', 'command': '0x0020'})
+        graph = {'nodes': [{'location': {'bank': 1, 'bank_offset': 0x102}, 'length': 2}]}
+        result = record_script_overlaps([ref], graph)
+        self.assertEqual(result['physical_bytes'], 1)
+        self.assertEqual(result['references'][0]['locations'][0]['bank_offset'], 0x102)
+        graph['nodes'][0]['location']['bank_offset'] = 0x103
+        self.assertEqual(record_script_overlaps([ref], graph)['physical_bytes'], 0)
 
 
 if __name__ == '__main__':

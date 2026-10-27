@@ -34,9 +34,9 @@ independent source trees or treat one version's evidence as verifying the rest.
 simultaneous reconstruction. Keep progress and completion evidence per target.
 
 The v1.5 build now assembles and links to the exact reference, with 21,443 bytes
-of source code and 9,410 bytes of structured data across the physical PRG banks.
-It still includes 34,683 local PRG bytes and 65,536 local CHR bytes. A total of
-875 independent source-change controls verify every listed reconstructed region.
+of source code and 10,106 bytes of structured data across the physical PRG banks.
+It still includes 33,987 local PRG bytes and 65,536 local CHR bytes. A total of
+895 independent source-change controls verify every listed reconstructed region.
 Passing input audits or whole-ROM equality alone is not reconstruction
 completion. The developer identifies BOGUS as the
 state-machine engine in the [Vance Kozik interview](https://www.nesworld.com/kozik.php);
@@ -187,6 +187,16 @@ zero-mode full records. Another 95 reviewed records are structured source;
 ambiguous accesses remain local. These relationships are static candidates,
 not proof of slot identity or gameplay execution. The temporary classification
 and transcription files were retired after integration.
+
+The merged contextual script trace exposes 13 physical bytes with conflicting
+decodes across different possible entries in the existing `$BD1B` and `$DC35`
+script regions. The competing entries depend on unverified descriptor
+associations at `$DA40` and `$ED71`; those conflicts remain unresolved.
+Another 24 physical bytes overlap possible record reads and candidate script
+decodes, including nine in the existing `$ED71` script; these associations
+also remain unverified. Twenty non-overlapping script regions are now
+represented as named commands; their context and gameplay roles remain
+provisional. Temporary transcriptions were retired after integration.
 
 The map lookup uses 146 two-byte offsets, each a multiple of 68, into locally
 supplied map-chunk data. The offset table and state-indexed vertical-base seeds

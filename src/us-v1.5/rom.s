@@ -617,6 +617,14 @@ compareRangeReturn:
     .word target - $8000
     .byte first, second, third
 .endmacro
+.macro BogusBranchIfSlotRecord06AtLeast target, value
+    .byte $28
+    .word target - $8000
+    .byte value
+.endmacro
+.macro BogusClearMatchingSlotFlag20 first, second, third
+    .byte $AE, first, second, third
+.endmacro
 .macro BogusJumpViaSlotIndexedTable
     .byte $44
 .endmacro
@@ -13226,7 +13234,20 @@ CandidateB6A8:
     BogusClearSlot0790Bits $01
     BogusLoadRecordAndClearSavedState $12
 .assert (* - BankStart) = $36B1, error, "bank 1 candidate script B6A0 end"
-    .incbin "bank1_b6b1_b6d3.bin"
+    .incbin "bank1_b6b1_b6b8.bin"
+; Candidate script entries from the reviewed slot-record context trace.
+ContextScriptB6B8:
+    BogusSetSlot0660LowBits $01 ; CONTROL_CONTEXT_B6B8
+    BogusSetSlotFields80 $01, $00
+    BogusBranchIfSlotRecord06AtLeast ContextScriptB6C4, $07
+    BogusJumpBank1 ContextScriptB6B8
+ContextScriptB6C4:
+    BogusCreateLinkedSlot $6D, $12, $00, $FF
+    BogusStartVoice4 $277A
+    BogusCheckSlotFlagsAndRestorePointer
+    BogusLoadSlotRecord $00, $02
+    BogusJumpBank1 (BankStart + $36AB)
+.assert (* - BankStart) = $36D3, error, "bank 1 contextual script B6B8 end"
 ; Descriptor-linked slot record; resource data remains local.
 SlotRuntimeB6D3:
     SlotRuntimeRecord $B693, (ScriptB6EE - BankStart), $00, $FF, $00, $00, $00 ; CONTROL_SLOT_RUNTIME_B6D3
@@ -13354,7 +13375,42 @@ CandidateB82D:
     BogusSetDirectionalSlotFields40 $FF, $09
     BogusLoadRecordAndClearSavedState $12
 .assert (* - BankStart) = $3833, error, "bank 1 candidate script B809 end"
-    .incbin "bank1_b833_b88a.bin"
+; Candidate script entries from the reviewed slot-record context trace.
+ContextScriptB833:
+    BogusReadSlotValue $12 ; CONTROL_CONTEXT_B833
+    BogusBranchIfSlotValueAtLeast ContextScriptB857, $0080
+    BogusBranchIfPositiveOffsetProbe ContextScriptB874, $03
+    BogusBranchIfSlotB0AtMost ContextScriptB845, $DC
+    BogusJumpBank1 ContextScriptB874
+ContextScriptB845:
+    BogusSetSlotValue $2404
+    BogusReadMapAtSlotOffset
+    BogusLookupSlotValue
+    BogusLookupCaseBank1 ContextScriptB86D, $008C
+    BogusLookupCaseBank1 ContextScriptB86D, $008D
+    BogusLookupEnd
+    BogusJumpBank1 ContextScriptB833
+ContextScriptB857:
+    BogusBranchIfSlotB0AtMost ContextScriptB874, $30
+    BogusSetSlotValue $FF04
+    BogusReadMapAtSlotOffset
+    BogusLookupSlotValue
+    BogusLookupCaseBank1 ContextScriptB86D, $006C
+    BogusLookupCaseBank1 ContextScriptB86D, $006D
+    BogusLookupEnd
+    BogusJumpBank1 ContextScriptB833
+ContextScriptB86D:
+    BogusSetSlot07F0 $80
+    BogusSetSlotFields80 $00, $00
+    BogusLoadRecordAndClearSavedState $1B
+ContextScriptB874:
+    BogusSetDirectionalSlotFields40 $FF, $E0
+    BogusJumpBank1 ContextScriptB833
+ContextScriptB87A:
+    BogusCheckSlotFlagsAndRestorePointer
+    BogusYieldAndSlotAction $00
+.assert (* - BankStart) = $387D, error, "bank 1 contextual script B833 end"
+    .incbin "bank1_b87d_b88a.bin"
 ; Descriptor-linked slot record; resource data remains local.
 SlotRuntimeB88A:
     SlotRuntimeRecord $B5FD, (ScriptB89C - BankStart), $00, $00, $20, $D9, $11 ; CONTROL_SLOT_RUNTIME_B88A
@@ -13440,7 +13496,17 @@ ScriptB934:
 SlotRuntimeB93F:
     SlotRuntimeRecord $BC79, $3948, $00, $FF, $00, $00, $00 ; CONTROL_SLOT_RUNTIME_B93F
 .assert (* - BankStart) = $3948, error, "bank 1 slot record B93F end"
-    .incbin "bank1_b948_b95f.bin"
+; Candidate script entries from the reviewed slot-record context trace.
+ContextScriptB948:
+    BogusSetSlotC0 $00 ; CONTROL_CONTEXT_B948
+    BogusInitializeOtherSlotRelative $04, $00, $00, $00
+    BogusWait $05
+    BogusInitializeOtherSlotRelative $04, $00, $00, $00
+    BogusWait $05
+    BogusInitializeSlotMotionFields
+    BogusSetSlotFields80 $00, $00
+    BogusLoadSlotRecordAtPointer $395F
+.assert (* - BankStart) = $395F, error, "bank 1 contextual script B948 end"
 ; Descriptor-linked slot record; resource data remains local.
 SlotRuntimeB95F:
     SlotRuntimeRecord $C7DB, (ScriptB968 - BankStart), $00, $FF, $00, $00, $00 ; CONTROL_SLOT_RUNTIME_B95F
@@ -13639,7 +13705,12 @@ ScriptBB19:
 SlotRuntimeBB52:
     SlotRuntimeRecord $B977, $3B5B, $40, $FF, $00, $00, $00 ; CONTROL_SLOT_RUNTIME_BB52
 .assert (* - BankStart) = $3B5B, error, "bank 1 slot record BB52 end"
-    .incbin "bank1_bb5b_bb60.bin"
+; Candidate script entries from the reviewed slot-record context trace.
+ContextScriptBB5B:
+    BogusSetSlotC0 $00 ; CONTROL_CONTEXT_BB5B
+    BogusCheckSlotFlagsAndRestorePointer
+    BogusYieldAndSlotAction $01
+.assert (* - BankStart) = $3B60, error, "bank 1 contextual script BB5B end"
 ; Descriptor-linked slot record; resource data remains local.
 SlotRuntimeBB60:
     SlotRuntimeRecord $C69B, (ScriptBB69 - BankStart), $00, $00, $00, $F0, $11 ; CONTROL_SLOT_RUNTIME_BB60
@@ -14214,7 +14285,15 @@ DataD05F:
 SlotRuntimeD21C:
     SlotRuntimeRecord $BF27, $522E, $40, $FF, $00, $00, $00 ; CONTROL_SLOT_RUNTIME_D21C
 .assert (* - BankStart) = $5225, error, "bank 1 slot record D21C end"
-    .incbin "bank1_d225_d3b7.bin"
+    .incbin "bank1_d225_d22e.bin"
+; Candidate script entries from the reviewed slot-record context trace.
+ContextScriptD22E:
+    BogusClearMatchingSlotFlag20 $01, $01, $00 ; CONTROL_CONTEXT_D22E
+    BogusClearSlot0790Bits $01
+ContextScriptD234:
+    BogusJumpBank1 ContextScriptD234
+.assert (* - BankStart) = $5237, error, "bank 1 contextual script D22E end"
+    .incbin "bank1_d237_d3b7.bin"
 ; Descriptor-linked slot record; resource data remains local.
 SlotRuntimeD3B7:
     SlotRuntimeRecord $C70D, (ScriptD3C9 - BankStart), $00, $FF, $00, $00, $00 ; CONTROL_SLOT_RUNTIME_D3B7
@@ -14335,7 +14414,14 @@ SlotRuntimeD4C1:
 SlotFlowD509:
     SlotRuntimeRecord $B6E8, $577B, $23, $FE, $61, $61, $32 ; CONTROL_SLOT_FLOW_D509
 .assert (* - BankStart) = $5512, error, "bank 1 slot record flow D509 end"
-    .incbin "bank1_d512_d52b.bin"
+    .incbin "bank1_d512_d51b.bin"
+; Candidate script entries from the reviewed slot-record context trace.
+ContextScriptD51B:
+    BogusBranchIfMatchingSlotReady ContextScriptD51B, $01, $5D, $00 ; CONTROL_CONTEXT_D51B
+    BogusSetSlotD0Bits $52
+    BogusCreateLinkedSlot $28, $1C, $FE, $00
+    BogusJumpBank1 (BankStart + $55F8)
+.assert (* - BankStart) = $552B, error, "bank 1 contextual script D51B end"
 ; Descriptor-linked slot record; resource data remains local.
 SlotRuntimeD52B:
     SlotRuntimeRecord $C587, $557C, $40, $FE, $45, $62, $31 ; CONTROL_SLOT_RUNTIME_D52B
@@ -14396,7 +14482,36 @@ ScriptD6EA:
     BogusRestartVoice4 $289B
     BogusYieldAndSlotAction $00
 .assert (* - BankStart) = $5702, error, "bank 1 script D6E0 end"
-    .incbin "bank1_d702_da1c.bin"
+    .incbin "bank1_d702_d77b.bin"
+; Candidate script entries from the reviewed slot-record context trace.
+ContextScriptD77B:
+    BogusSetDispatchCounter $06 ; CONTROL_CONTEXT_D77B
+    BogusSetSlot07F0 $44
+    BogusClearSlot0790Bits $FF
+    BogusSetSlot0670Pair $01, $00
+    BogusSetSlot0660LowBits $01
+    BogusBranchIfSlot0620Bit10 (BankStart + $5794)
+    BogusLoadRecordAndClearSavedState $12
+.assert (* - BankStart) = $578B, error, "bank 1 contextual script D77B end"
+    .incbin "bank1_d78b_d970.bin"
+; Candidate script entries from the reviewed slot-record context trace.
+ContextScriptD970:
+    BogusSetDispatchCounter $03 ; CONTROL_CONTEXT_D970
+    BogusLoadSlotValueArray $29
+    BogusSetSlotMode $00
+    BogusSetSlotMode $02
+ContextScriptD978:
+    BogusBranchIfSlot0620Bit10 ContextScriptD981
+    BogusBranchIfSlotB0AtMost ContextScriptD978, $E1
+    BogusYieldAndSlotAction $01
+ContextScriptD981:
+    BogusSetSlot05F0Pair $3C, $60
+    BogusBranchIfSlotCoordinates01 ContextScriptD98B, $28, $10
+    BogusLoadRecordAndClearSavedState $48
+ContextScriptD98B:
+    BogusJumpBank1 (BankStart + $590E)
+.assert (* - BankStart) = $598E, error, "bank 1 contextual script D970 end"
+    .incbin "bank1_d98e_da1c.bin"
 ; Descriptor-linked slot record; resource data remains local.
 SlotRuntimeDA1C:
     SlotRuntimeRecord $B65B, (ScriptE9BC - BankStart), $22, $FF, $00, $00, $00 ; CONTROL_SLOT_RUNTIME_DA1C
@@ -14530,7 +14645,16 @@ ScriptDBC8:
     BogusWait $0A
     BogusLoadRecordAndClearSavedState $00
 .assert (* - BankStart) = $5BDA, error, "bank 1 script DB81 end"
-    .incbin "bank1_dbda_dbe9.bin"
+; Candidate script entries from the reviewed slot-record context trace.
+ContextScriptDBDA:
+    BogusReadSlotValue $0F ; CONTROL_CONTEXT_DBDA
+    BogusBranchIfSlotValueEqual ContextScriptDBE3, $03, $00
+    BogusClearSlotD0Bits $40
+ContextScriptDBE3:
+    BogusWait $28
+    BogusSetSlotD0Bits $40
+    BogusLoadRecordAndClearSavedState $00
+.assert (* - BankStart) = $5BE9, error, "bank 1 contextual script DBDA end"
 ; Candidate script path; object role and execution remain unverified.
 CandidateDBE9:
     BogusSetDispatchCounter $83 ; CONTROL_BOGUS_DBE9
@@ -14841,7 +14965,32 @@ ScriptDEBC:
     BogusBranchIfSlotCoordinatesA3 ScriptDEBC, $18, $FF
     BogusJumpBank1 ScriptDE58
 .assert (* - BankStart) = $5EC7, error, "bank 1 script DE0D end"
-    .incbin "bank1_dec7_deee.bin"
+; Candidate script entries from the reviewed slot-record context trace.
+ContextScriptDEC7:
+    BogusSetSlot0670Pair $40, $00 ; CONTROL_CONTEXT_DEC7
+    BogusSetSlot0620Bit20
+    BogusWait $3C
+    BogusSetSlot0620Bit20
+    BogusLoadRecordAndClearSavedState $00
+ContextScriptDED0:
+    BogusSetDispatchCounter $84
+    BogusSetSlotFields80 $FF, $B0
+    BogusSetSlotMode $03
+    BogusLoadSlotRecord $09, $FF
+    BogusSetSlot0620Bit20
+    BogusWait $01
+    BogusSetSlot0620Bit20
+    BogusWait $01
+    BogusSetSlot0620Bit20
+    BogusWait $01
+    BogusSetSlot0620Bit20
+    BogusWait $01
+    BogusSetSlot0620Bit20
+    BogusWait $01
+ContextScriptDEE9:
+    BogusBranchIfSlot0620Bit10Clear ContextScriptDEE9
+    BogusLoadRecordAndClearSavedState $00
+.assert (* - BankStart) = $5EEE, error, "bank 1 contextual script DEC7 end"
 ; Candidate descriptor $DEF4, command $DF34, mode $FF.
 SlotFlowDEEE:
     SlotCompactRecord $B7B3, $23 ; CONTROL_SLOT_FLOW_DEEE
@@ -15452,7 +15601,128 @@ ScriptE51C:
     BogusWait $0A
     BogusJumpBank1 ScriptE51C
 .assert (* - BankStart) = $6527, error, "bank 1 script E47C end"
-    .incbin "bank1_e527_e691.bin"
+    .incbin "bank1_e527_e562.bin"
+; Candidate script entries from the reviewed slot-record context trace.
+ContextScriptE562:
+    BogusSetDispatchCounter $83 ; CONTROL_CONTEXT_E562
+    BogusClearSlotD0Bits $20
+    BogusSetSlotFields40Signed $40, $00
+    BogusRestartVoice4 $277A
+    BogusLoadRecordAndClearSavedState $24
+.assert (* - BankStart) = $656E, error, "bank 1 contextual script E562 end"
+    .incbin "bank1_e56e_e590.bin"
+; Candidate script entries from the reviewed slot-record context trace.
+ContextScriptE590:
+    BogusLoadRecordAndClearSavedState $3F ; CONTROL_CONTEXT_E590
+ContextScriptE592:
+    BogusSetDispatchCounter $04
+    BogusLoadSlotValueArray $3C
+    BogusSetSlotMode $00
+    BogusBranchIfSlotB0AtMost ContextScriptE5A8, $40
+    BogusSetSlotFields80 $FF, $A0
+    BogusSetSlotFields80 $FF, $A0
+    BogusSetSlotFields80 $FF, $A0
+    BogusSetSlotFields80 $FF, $A0
+ContextScriptE5A8:
+    BogusLoadRecordAndClearSavedState $12
+ContextScriptE5AA:
+    BogusSetDispatchCounter $89
+    BogusSetSlot0670Pair $01, $00
+    BogusSetSlot0660LowBits $01
+    BogusSetSlotFields80 $01, $00
+    BogusBranchIfSlotD0Bits ContextScriptE5F2, $02
+    BogusReadSlotValue $0F
+    BogusBranchIfSlotValueNotEqual ContextScriptE5EC, $0003
+    BogusReadSlotValue $02
+    BogusBranchIfSlotValueNotEqual ContextScriptE5E6, $002C
+    BogusAdvanceAndBranchState1B ContextScriptE5DE, $80
+    BogusAdvanceAndBranchState1B ContextScriptE5D6, $80
+    BogusCreateLinkedSlot $10, $10, $10, $2C
+    BogusCheckSlotFlagsAndRestorePointer
+    BogusLoadRecordAndClearSavedState $3F
+ContextScriptE5D6:
+    BogusCreateLinkedSlot $5E, $10, $10, $2C
+    BogusCheckSlotFlagsAndRestorePointer
+    BogusLoadRecordAndClearSavedState $3F
+ContextScriptE5DE:
+    BogusCreateLinkedSlot $5A, $10, $10, $2C
+    BogusCheckSlotFlagsAndRestorePointer
+    BogusLoadRecordAndClearSavedState $3F
+ContextScriptE5E6:
+    BogusSetSlotValue $005B
+    BogusJumpBank1 ContextScriptE5F5
+ContextScriptE5EC:
+    BogusSetSlotValue $0021
+    BogusJumpBank1 ContextScriptE5F5
+ContextScriptE5F2:
+    BogusSetSlotValue $003A
+ContextScriptE5F5:
+    BogusSetSlot0790Bits $01
+    BogusCreateLinkedSlot $00, $10, $10, $00
+    BogusCheckSlotFlagsAndRestorePointer
+    BogusBranchIfSlotD0Bits ContextScriptE603, $04
+    BogusWait $0A
+ContextScriptE603:
+    BogusLoadRecordAndClearSavedState $3F
+ContextScriptE605:
+    BogusLoadSlotValueArray $FF
+    BogusStartVoice4FromIndexedPair $26D0
+    BogusSetSlot0670Pair $01, $00
+ContextScriptE60D:
+    BogusBranchIfAbsSlot0700Below ContextScriptE619, $30
+    BogusSetSlot0660LowBits $02
+    BogusSetSlotFields80 $40, $FF
+    BogusJumpBank1 ContextScriptE622
+ContextScriptE619:
+    BogusSetSlotFields40Signed $40, $FF
+    BogusAdvanceAndBranchState1B ContextScriptE622, $C8
+    BogusLoadRecordAndClearSavedState $24
+ContextScriptE622:
+    BogusBranchIfOffsetProbe ContextScriptE63B, $05
+    BogusBranchIfDirectionalOffsetClear ContextScriptE63E, $10
+    BogusBranchIfSlotCoordinates01 ContextScriptE63E, $20, $10
+    BogusBranchIfSlotCoordinatesA3 ContextScriptE636, $40, $10
+    BogusLoadRecordAndClearSavedState $00
+ContextScriptE636:
+    BogusBranchIfSlot0620Bit10 ContextScriptE60D
+    BogusLoadRecordAndClearSavedState $12
+ContextScriptE63B:
+    BogusSetSlotFields80 $00, $FF
+ContextScriptE63E:
+    BogusLoadRecordAndClearSavedState $24
+ContextScriptE640:
+    BogusClearSlot0790Bits $01
+    BogusBranchIfSlot0620Bit10 ContextScriptE647
+    BogusLoadRecordAndClearSavedState $12
+ContextScriptE647:
+    BogusBranchIfSlotD0Bits ContextScriptE647, $01
+    BogusAdvanceAndBranchState1B ContextScriptE669, $80
+    BogusLoadSlotValueArray $FF
+    BogusStartVoice4FromIndexedPair $26D0
+    BogusSetSlot0670Pair $10, $00
+    BogusReadSlotValue $08
+    BogusBranchIfSlotValueNotEqual ContextScriptE669, $0000
+    BogusBranchIfSlotCoordinatesA3 ContextScriptE669, $01, $FF
+    BogusSetSlotMode $FF
+    BogusWait $01
+    BogusLoadRecordAndClearSavedState $12
+ContextScriptE669:
+    BogusWait $14
+    BogusSetSlot0670Pair $01, $00
+    BogusReadSlotValue $08
+    BogusBranchIfSlotValueNotEqual ContextScriptE685, $0000
+    BogusBranchIfSlotCoordinatesA3 ContextScriptE687, $30, $28
+    BogusBranchIfSlotCoordinatesA3 ContextScriptE685, $FF, $10
+    BogusAdvanceAndBranchState1B ContextScriptE647, $80
+    BogusLoadRecordAndClearSavedState $2D
+ContextScriptE685:
+    BogusLoadRecordAndClearSavedState $00
+ContextScriptE687:
+    BogusBranchIfSlotB0AtMost ContextScriptE68F, $40
+    BogusBranchIfOffsetProbe ContextScriptE63E, $05
+ContextScriptE68F:
+    BogusLoadRecordAndClearSavedState $36
+.assert (* - BankStart) = $6691, error, "bank 1 contextual script E590 end"
 ; Movement and indexed-audio state sequence.
 ScriptE691:
     BogusSetDispatchCounter $06 ; CONTROL_BOGUS_E691
@@ -15544,7 +15814,33 @@ ScriptE745:
     BogusWait $04
     BogusJumpBank1 ScriptE6A4
 .assert (* - BankStart) = $674D, error, "bank 1 indexed script table E71D end"
-    .incbin "bank1_e74d_e9ba.bin"
+; Candidate script entries from the reviewed slot-record context trace.
+ContextScriptE74D:
+    BogusSetSlot0660LowBits $01 ; CONTROL_CONTEXT_E74D
+    BogusSetSlotFields80 $01, $FF
+    BogusBranchIfSlotCoordinatesA3 ContextScriptE74D, $20, $10
+    BogusLoadSlotRecord $06, $FF
+    BogusJumpBank1 (BankStart + $66A4)
+ContextScriptE75D:
+    BogusSetDirectionalSlotFields40 $10, $A0
+    BogusWait $09
+    BogusLoadRecordAndClearSavedState $00
+.assert (* - BankStart) = $6764, error, "bank 1 contextual script E74D end"
+    .incbin "bank1_e764_e8f2.bin"
+; Candidate script entries from the reviewed slot-record context trace.
+ContextScriptE8F2:
+    BogusSetDispatchCounter $04 ; CONTROL_CONTEXT_E8F2
+    BogusReadSlotValue $13
+    BogusSetSlotMode $00
+    BogusSetSlotMode $02
+ContextScriptE8FA:
+    BogusBranchIfSlot0620Bit10 ContextScriptE903
+    BogusBranchIfSlotB0AtMost ContextScriptE8FA, $E6
+    BogusYieldAndSlotAction $00
+ContextScriptE903:
+    BogusLoadRecordAndClearSavedState $00
+.assert (* - BankStart) = $6905, error, "bank 1 contextual script E8F2 end"
+    .incbin "bank1_e905_e9ba.bin"
 ; Linked slot and movement state graph; gameplay role remains unverified.
 ScriptB98E = BankStart + $398E
 ScriptE9BA:
@@ -15643,7 +15939,34 @@ ScriptEA9D:
     BogusWait $04
     BogusJumpBank1 ScriptE9CC
 .assert (* - BankStart) = $6AA2, error, "bank 1 script E9BA end"
-    .incbin "bank1_eaa2_eae4.bin"
+; Candidate script entries from the reviewed slot-record context trace.
+ContextScriptEAA2:
+    BogusSetSlot0660LowBits $01 ; CONTROL_CONTEXT_EAA2
+    BogusSetSlotFields80 $01, $FF
+    BogusBranchIfSlotCoordinatesA3 ContextScriptEAB7, $14, $FF
+    BogusBranchIfSlotCoordinatesA3 ContextScriptEAA2, $1E, $10
+    BogusLoadSlotRecord $00, $02
+    BogusJumpBank1 (BankStart + $69CC)
+ContextScriptEAB7:
+    BogusLoadSlotRecord $00, $02
+    BogusReadSlotValue $11
+    BogusBranchIfSlotValueAtLeast ContextScriptEACC, $0080
+ContextScriptEAC1:
+    BogusAdjustSlotBounds $FF, $00
+    BogusBranchIfSlotCoordinatesA3 ContextScriptEAC1, $14, $FF
+    BogusJumpBank1 ContextScriptEAD4
+ContextScriptEACC:
+    BogusAdjustSlotBounds $01, $00
+    BogusBranchIfSlotCoordinatesA3 ContextScriptEACC, $14, $FF
+ContextScriptEAD4:
+    BogusLoadSlotRecord $1B, $02
+    BogusJumpBank1 ContextScriptEAA2
+ContextScriptEADA:
+    BogusSetDirectionalSlotFields40 $40, $FF
+    BogusWait $08
+    BogusSetSlotFields80 $00, $00
+    BogusLoadRecordAndClearSavedState $00
+.assert (* - BankStart) = $6AE4, error, "bank 1 contextual script EAA2 end"
 ; Candidate descriptor $EAED, command $EC74, mode $FF.
 SlotFlowEAE4:
     SlotCompactRecord $B608, $22 ; CONTROL_SLOT_FLOW_EAE4
@@ -15850,7 +16173,14 @@ ScriptED0A:
     BogusBranchIfSlotCoordinates01 ScriptED0A, $1E, $10
     BogusLoadRecordAndClearSavedState $00
 .assert (* - BankStart) = $6D11, error, "bank 1 script EC2B end"
-    .incbin "bank1_ed11_ed21.bin"
+; Candidate script entries from the reviewed slot-record context trace.
+ContextScriptED11:
+    BogusSetSlotD0Bits $02 ; CONTROL_CONTEXT_ED11
+    BogusSetSlotValue $0001
+    BogusSetSlotD0Bits $01
+    BogusJumpBank1 (BankStart + $6D7F)
+.assert (* - BankStart) = $6D1B, error, "bank 1 contextual script ED11 end"
+    .incbin "bank1_ed1b_ed21.bin"
 ; Descriptor-linked slot record; resource data remains local.
 SlotRuntimeED21:
     SlotRuntimeRecord $BA0A, $6D45, $22, $FF, $00, $00, $00 ; CONTROL_SLOT_RUNTIME_ED21
@@ -15860,7 +16190,14 @@ SlotRuntimeED21:
 SlotFlowED3C:
     SlotRuntimeRecord $BA13, $6E0D, $00, $FF, $00, $00, $00 ; CONTROL_SLOT_FLOW_ED3C
 .assert (* - BankStart) = $6D45, error, "bank 1 slot record flow ED3C end"
-    .incbin "bank1_ed45_ed56.bin"
+; Candidate script entries from the reviewed slot-record context trace.
+ContextScriptED45:
+    BogusSetSlotValue $0000 ; CONTROL_CONTEXT_ED45
+    BogusSetSlotD0Bits $02
+    BogusSetSlot05F0Pair $08, $60
+    BogusJumpBank1 (BankStart + $6D7F)
+.assert (* - BankStart) = $6D50, error, "bank 1 contextual script ED45 end"
+    .incbin "bank1_ed50_ed56.bin"
 ; Descriptor-linked slot record; resource data remains local.
 SlotRuntimeED56:
     SlotRuntimeRecord $B68A, (ScriptED71 - BankStart), $22, $FF, $00, $00, $00 ; CONTROL_SLOT_RUNTIME_ED56
@@ -15923,7 +16260,21 @@ ScriptEDEF:
 ScriptEDFC:
     BogusLoadRecordAndClearSavedState $1B
 .assert (* - BankStart) = $6DFE, error, "bank 1 script ED71 end"
-    .incbin "bank1_edfe_ee1a.bin"
+; Candidate script entries from the reviewed slot-record context trace.
+ContextScriptEDFE:
+    BogusSetDispatchCounter $82 ; CONTROL_CONTEXT_EDFE
+    BogusSetSlotFields80 $00, $FF
+    BogusSetDirectionalSlotFields40 $01, $FF
+    BogusWait $28
+    BogusSetDirectionalSlotFields40 $18, $FF
+    BogusLoadRecordAndClearSavedState $00
+ContextScriptEE0D:
+    BogusSetSlotFields80 $00, $FF
+    BogusSetDirectionalSlotFields40 $01, $FF
+    BogusWait $28
+    BogusSetDirectionalSlotFields40 $18, $FF
+    BogusLoadRecordAndClearSavedState $00
+.assert (* - BankStart) = $6E1A, error, "bank 1 contextual script EDFE end"
 ; Candidate script path; object role and execution remain unverified.
 CandidateEE1A:
     BogusLoadSlotValueArray $FF ; CONTROL_BOGUS_EE1A
@@ -16290,12 +16641,28 @@ CandidateF349:
     BogusSetSlotValue $000B
     BogusJumpBank1 (BankStart + $7401)
 .assert (* - BankStart) = $7354, error, "bank 1 candidate script F2DB end"
-    .incbin "bank1_f354_f419.bin"
+    .incbin "bank1_f354_f401.bin"
+; Candidate script entries from the reviewed slot-record context trace.
+ContextScriptF401:
+    BogusCallNativeEncoded $B51B ; CONTROL_CONTEXT_F401
+    BogusSetState03BC $03
+    BogusStoreSlotValueArray $23
+    BogusSetMainState $10
+.assert (* - BankStart) = $740A, error, "bank 1 contextual script F401 end"
+    .incbin "bank1_f40a_f419.bin"
 ; Descriptor-linked slot record; resource data remains local.
 SlotRuntimeF419:
     SlotRuntimeRecord $BC89, $742B, $00, $FF, $00, $00, $00 ; CONTROL_SLOT_RUNTIME_F419
 .assert (* - BankStart) = $7422, error, "bank 1 slot record F419 end"
-    .incbin "bank1_f422_fc58.bin"
+    .incbin "bank1_f422_f42b.bin"
+; Candidate script entries from the reviewed slot-record context trace.
+ContextScriptF42B:
+    BogusSetSlotC0 $00 ; CONTROL_CONTEXT_F42B
+    BogusClearSlot0790Bits $01
+ContextScriptF42F:
+    BogusJumpBank1 ContextScriptF42F
+.assert (* - BankStart) = $7432, error, "bank 1 contextual script F42B end"
+    .incbin "bank1_f432_fc58.bin"
 ; Descriptor-linked slot record; resource data remains local.
 SlotRuntimeFC58:
     SlotRuntimeRecord $BF6B, (CandidateFC6A - BankStart), $00, $FF, $00, $00, $00 ; CONTROL_SLOT_RUNTIME_FC58
