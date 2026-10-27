@@ -666,6 +666,8 @@
     {"id": "bank0-nmi", "bank": 0, "cpu": "0xffc7", "size": 34, "kind": "code", "control": "nmi"},
     {"id": "bank0-reset", "bank": 0, "cpu": "0xffe9", "size": 11, "kind": "code", "control": "reset"},
     {"id": "bank0-vectors", "bank": 0, "cpu": "0xfffa", "size": 6, "kind": "data", "control": "vectors"},
+    {"id": "bank1-script-bcc0", "bank": 1, "cpu": "0xbcc0", "size": 35, "kind": "data", "control": "bogus_bcc0"},
+    {"id": "bank1-script-bdbf", "bank": 1, "cpu": "0xbdbf", "size": 14, "kind": "data", "control": "bogus_bdbf"},
     {"id": "bank1-script-record-lengths", "bank": 1, "cpu": "0xfda7", "size": 197, "kind": "data", "control": "script_lengths"},
     {"id": "bank1-fetch-variable-record", "bank": 1, "cpu": "0xfe6c", "size": 51, "kind": "code", "control": "record_fetch"},
     {"id": "bank1-restore-bank", "bank": 1, "cpu": "0xfe9f", "size": 10, "kind": "code", "control": "restore_bank"},

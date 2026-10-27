@@ -677,6 +677,8 @@ MUTATIONS = {
     "linear_copy": ("CONTROL_LINEAR_COPY", "adc #$01", "adc #$02"),
     "bit_copy": ("CONTROL_BIT_COPY", "ror a", "asl a"),
     "wait": ("CONTROL_WAIT", "lda PPUSTATUS", "ldx PPUSTATUS"),
+    "bogus_bcc0": ("CONTROL_BOGUS_BCC0", "BogusWait $05", "BogusWait $06"),
+    "bogus_bdbf": ("CONTROL_BOGUS_BDBF", "BogusSetSpriteAttribute20 $20", "BogusSetSpriteAttribute20 $21"),
     "switch": ("CONTROL_SWITCH", "sta BankValues,y", "sta BankValues,x"),
     "table": ("CONTROL_TABLE", "$0C |", "$08 |"),
     "nmi": ("CONTROL_NMI", "ldy NmiSavedIndex", "ldx NmiSavedIndex"),

@@ -141,6 +141,48 @@ compareRangeReturn:
     .byte field_05d0, field_0610, field_05e0, field_0520
 .endmacro
 
+; BOGUS command forms below name only the behaviour established by handlers.
+; Script targets in PRG bank 1 are encoded as offsets below $8000.
+.macro BogusSetSlotC0 value
+    .byte $09, value
+.endmacro
+.macro BogusSetVoicePointers voice0, voice1, voice2, voice3
+    .byte $31
+    .word voice0, voice1, voice2, voice3
+.endmacro
+.macro BogusSetUnlinkedFields first, second
+    .byte $1C, first, second
+.endmacro
+.macro BogusSetSlotBit40 value
+    .byte $6A, value
+.endmacro
+.macro BogusClearSlot0790Bits mask
+    .byte $30, mask
+.endmacro
+.macro BogusWait frames
+    .byte $07, frames
+.endmacro
+.macro BogusSetSlotFields80 first, second
+    .byte $2D, first, second
+.endmacro
+.macro BogusSetDispatchCounter value
+    .byte $2C, value
+.endmacro
+.macro BogusJumpBank1 target
+    .byte $04
+    .word target - $8000
+.endmacro
+.macro BogusSetSpriteAttribute20 value
+    .byte $29, value
+.endmacro
+.macro BogusSetSlot0620Bit20
+    .byte $26
+.endmacro
+.macro BogusBranchAndClearSlot0620Bit08 target
+    .byte $27
+    .word target - $8000
+.endmacro
+
 ; A command byte indexes three parallel tables: record length, and the low and
 ; high bytes of an RTS dispatch address. Handler addresses below are actual
 ; entry points; the stored pointer is entry minus one because RTS increments it.
@@ -11913,7 +11955,38 @@ ScriptRecordLengths:
 .segment "PRG1"
 .scope Bank1
 BankStart:
-    .incbin "bank1_8000_fda7.bin"
+    .incbin "bank1_8000_bcc0.bin"
+; Candidate entry from a slot descriptor. The full graph is contained here;
+; gameplay role and runtime use are not yet established.
+ScriptBCC0:
+    BogusSetSlotC0 $00
+    BogusSetVoicePointers $0000, $0000, $0000, $0000
+    BogusSetUnlinkedFields $00, $00
+    BogusSetSlotBit40 $01
+    BogusClearSlot0790Bits $01
+    BogusWait $05                ; CONTROL_BOGUS_BCC0
+ScriptBCC0Loop:
+    BogusSetSlotFields80 $FF, $F8
+    BogusWait $02
+    BogusSetSlotFields80 $FF, $08
+    BogusWait $01
+    BogusSetDispatchCounter $01
+    BogusJumpBank1 ScriptBCC0Loop
+.assert (* - BankStart) = $3CE3, error, "bank 1 script BCC0 end"
+    .incbin "bank1_bce3_bdbf.bin"
+; Another descriptor-derived graph: set a slot bit, then branch when bit $08
+; is set and clear it. Both destinations are local loops.
+ScriptBDBF:
+    BogusSetSlotC0 $00
+    BogusSetSpriteAttribute20 $20 ; CONTROL_BOGUS_BDBF
+ScriptBDBFLoop:
+    BogusSetSlot0620Bit20
+    BogusBranchAndClearSlot0620Bit08 ScriptBDBFDone
+    BogusJumpBank1 ScriptBDBFLoop
+ScriptBDBFDone:
+    BogusJumpBank1 ScriptBDBFDone
+.assert (* - BankStart) = $3DCD, error, "bank 1 script BDBF end"
+    .incbin "bank1_bdcd_fda7.bin"
 ScriptRecordLengths:
     ScriptTable 0
 .assert (* - BankStart) = $7E6C, error, "bank 1 common helpers offset"
