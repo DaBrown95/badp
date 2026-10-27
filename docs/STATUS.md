@@ -33,10 +33,10 @@ independent source trees or treat one version's evidence as verifying the rest.
 `make audit-all` checks reference integrity for all targets without requiring
 simultaneous reconstruction. Keep progress and completion evidence per target.
 
-The v1.5 build now assembles and links to the exact reference, with 14,781 bytes
+The v1.5 build now assembles and links to the exact reference, with 15,835 bytes
 of source code and 1,671 bytes of structured data across the physical PRG banks.
-It still includes 49,084 local PRG bytes and 65,536 local CHR bytes. A total of
-417 independent source-change controls verify every listed reconstructed region.
+It still includes 48,030 local PRG bytes and 65,536 local CHR bytes. A total of
+438 independent source-change controls verify every listed reconstructed region.
 Passing input audits or whole-ROM equality alone is not reconstruction
 completion. The developer identifies BOGUS as the
 state-machine engine in the [Vance Kozik interview](https://www.nesworld.com/kozik.php);
@@ -181,6 +181,14 @@ selects direct or indexed frame pointers and writes tile and attribute data
 for all four flip combinations. A separate synthetic instruction-subset check
 covered those paths and the reserved offset. PPU timing and gameplay still
 need separate verification.
+
+Palette-stream setup and animation now queue the matching background and sprite
+palette writes. The scroll dispatcher, target clamps and both axis workers are
+also source; map redraw routines remain local. Synthetic checks covered palette
+queues and timing, scroll snapping and tile-boundary steps, and queue capacity.
+They stubbed redraw and sound calls and do not verify PPU timing or gameplay.
+The background palette loop retains Y from its offset calculation, unlike the
+sprite loop; a high-offset synthetic case preserves that original behavior.
 
 The sprite animation update now advances timers and handles loop or hold-on-
 last-frame behavior. The audio voice start, stop, arbitration and command

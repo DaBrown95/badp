@@ -1013,8 +1013,8 @@ FrameEngineWork:
     lda a:$28                    ; Original uses absolute addressing for $0028.
     bne RestoreNmiState
     jsr $F48A
-    jsr $95D1
-    jsr $9414
+    jsr UpdateScrollWork
+    jsr UpdatePaletteStreams
     lda $03F2
     bne SkipFrameRoutine
     jsr AdvanceSpriteAnimations
@@ -2795,7 +2795,557 @@ AudioVoiceOffsetInvalid:
     rts
 .assert (* - BankStart) = $1414, error, "bank 0 audio voice helpers end"
 
-    .incbin "bank0_9414_9e3c.bin"
+; Process pending palette-stream setup or advance the two palette streams.
+; $F8/$F9 select the background stream, $FA/$FB the sprite stream. New
+; headers contain a group count, frame count and tick interval.
+UpdatePaletteStreams:
+    lda $0387                    ; CONTROL_UPDATE_PALETTE_STREAMS
+    and #$01
+    beq PaletteCheckSpriteSetup
+    eor $0387
+    sta $0387
+    ldy #$00
+    lda ($F8),y
+    sta $0382
+    iny
+    lda ($F8),y
+    sta $0383
+    iny
+    lda #$01
+    sta $0385
+    lda ($F8),y
+    sta $0384
+    sta $0386
+    clc
+    lda $F8
+    adc #$03
+    sta $F8
+    lda $F9
+    adc #$00
+    sta $F9
+; Enqueue the first sixteen background palette bytes at PPU address $3F00.
+    ldx $0380
+    lda #$00
+    sta $0300,x
+    inx
+    lda #$3F
+    sta $0300,x
+    inx
+    lda #$00
+    sta $0300,x
+    inx
+    lda #$10
+    sta $0300,x
+    inx
+    sta $03D0
+    ldy #$00
+PaletteSetupBackgroundCopy:
+    lda ($F8),y
+    iny
+    sta $0300,x
+    inx
+    dec $03D0
+    bne PaletteSetupBackgroundCopy
+    stx $0380
+    rts
+; The other pending flag installs the sprite stream and enqueues fifteen bytes
+; from offset 1 at $3F11, leaving the shared background color untouched.
+PaletteCheckSpriteSetup:
+    lda $0387                    ; CONTROL_PALETTE_SPRITE_SETUP
+    beq PaletteAdvanceBackground
+    lda #$00
+    sta $0387
+    ldy #$00
+    lda ($FA),y
+    sta $0388
+    iny
+    lda ($FA),y
+    sta $0389
+    iny
+    lda #$01
+    sta $038B
+    lda ($FA),y
+    sta $038A
+    sta $038C
+    clc
+    lda $FA
+    adc #$03
+    sta $FA
+    lda $FB
+    adc #$00
+    sta $FB
+    ldx $0380
+    lda #$00
+    sta $0300,x
+    inx
+    lda #$3F
+    sta $0300,x
+    inx
+    lda #$11
+    sta $0300,x
+    inx
+    lda #$0F
+    sta $0300,x
+    inx
+    sta $03D0
+    ldy #$01
+PaletteSetupSpriteCopy:
+    lda ($FA),y
+    iny
+    sta $0300,x
+    inx
+    dec $03D0
+    bne PaletteSetupSpriteCopy
+    stx $0380
+    rts
+; Each active stream advances when its countdown reaches zero. Its group
+; count selects a multiple of four bytes, placed at the end of the palette.
+PaletteAdvanceBackground:
+    lda $0382                    ; CONTROL_PALETTE_ADVANCE_BACKGROUND
+    beq PaletteAdvanceSprite
+    dec $0386
+    bne PaletteAdvanceSprite
+    lda $0384
+    sta $0386
+    lda $0382
+    asl a
+    asl a
+    sta $03D0
+    tax
+    ldy $0385
+    jsr MultiplyUnsigned8
+    lda #$10
+    sec
+    sbc $03D0
+    sta $03D1
+    jsr AddAToXY
+    stx $F6
+    sty $F7
+    lda $F8
+    clc
+    adc $F6
+    sta $F6
+    lda $F9
+    adc $F7
+    sta $F7
+    ldx $0380
+    lda #$00
+    sta $0300,x
+    inx
+    lda #$3F
+    sta $0300,x
+    inx
+    lda $03D1
+    sta $0300,x
+    inx
+    lda $03D0
+    sta $0300,x
+    inx
+; Y is intentionally retained from AddAToXY in the background loop.
+PaletteAdvanceBackgroundCopy:
+    lda ($F6),y
+    sta $0300,x
+    iny
+    inx
+    dec $03D0
+    bne PaletteAdvanceBackgroundCopy
+    stx $0380
+    inc $0385
+    lda $0385
+    cmp $0383
+    bne PaletteAdvanceSprite
+    lda #$00
+    sta $0385
+PaletteAdvanceSprite:
+    lda $0388                    ; CONTROL_PALETTE_ADVANCE_SPRITE
+    beq PaletteStreamsReturn
+    dec $038C
+    bne PaletteStreamsReturn
+    lda $038A
+    sta $038C
+    lda $0388
+    asl a
+    asl a
+    sta $03D0
+    tax
+    ldy $038B
+    jsr MultiplyUnsigned8
+    lda #$10
+    sec
+    sbc $03D0
+    sta $03D1
+    jsr AddAToXY
+    stx $F6
+    sty $F7
+    lda $FA
+    clc
+    adc $F6
+    sta $F6
+    lda $FB
+    adc $F7
+    sta $F7
+    ldx $0380
+    lda #$00
+    sta $0300,x
+    inx
+    lda #$3F
+    sta $0300,x
+    inx
+    lda $03D1
+    clc
+    adc #$10
+    sta $0300,x
+    inx
+    lda $03D0
+    sta $0300,x
+    inx
+    ldy #$00
+PaletteAdvanceSpriteCopy:
+    lda ($F6),y
+    sta $0300,x
+    iny
+    inx
+    dec $03D0
+    bne PaletteAdvanceSpriteCopy
+    stx $0380
+    inc $038B
+    lda $038B
+    cmp $0389
+    bne PaletteStreamsReturn
+    lda #$00
+    sta $038B
+PaletteStreamsReturn:
+    rts
+.assert (* - BankStart) = $15D1, error, "bank 0 palette stream update end"
+
+; If scroll work is pending, run both axis workers in alternating order.
+; Each axis worker updates its scroll position and may enqueue a map redraw.
+UpdateScrollWork:
+    lda $03EB                    ; CONTROL_UPDATE_SCROLL_WORK
+    bne ScrollWorkPending
+    rts
+ScrollWorkPending:
+    jsr ClampScrollTargets
+    lda $0398
+    bne ScrollWorkVerticalFirst
+    lda #$FF
+    sta $0398
+    jsr UpdateHorizontalScroll
+    jsr UpdateVerticalScroll
+    rts
+ScrollWorkVerticalFirst:
+    lda #$00
+    sta $0398
+    jsr UpdateVerticalScroll
+    jsr UpdateHorizontalScroll
+    rts
+.assert (* - BankStart) = $15F7, error, "bank 0 scroll dispatcher end"
+
+; Compare the current X scroll with its target. Snap and clear the pending
+; bit if no tile boundary must be crossed; otherwise step at most eight pixels.
+UpdateHorizontalScroll:
+    lda $03EB ; CONTROL_HORIZONTAL_SCROLL
+    and #$01
+    beq HorizontalScrollReturn
+    lda #$08
+    sta $03E9
+    lda $03F3
+    sec
+    sbc $03EE
+    tay
+    lda $03F4
+    sbc $03EF
+    bcc HorizontalScrollBelowTarget
+    bne HorizontalScrollStepNegative
+    tya
+    beq HorizontalScrollClearPending
+    cmp #$08
+    bcs HorizontalScrollStepNegative
+    sta $03E9
+    lda $03EE
+    and #$07
+    sta $FE
+    lda $03F3
+    and #$07
+    sec
+    sbc $FE
+    bcs HorizontalScrollSnap
+    jmp HorizontalScrollStepNegative
+HorizontalScrollBelowTarget:
+    cmp #$FF ; CONTROL_HORIZONTAL_SCROLL_BELOW
+    beq HorizontalScrollNearBelow
+    jmp HorizontalScrollStepPositive
+HorizontalScrollNearBelow:
+    tya
+    cmp #$F9
+    bcc HorizontalScrollStepPositiveJump
+    eor #$FF
+    adc #$00
+    sta $03E9
+    lda $03F3
+    and #$07
+    sta $FE
+    lda $03EE
+    and #$07
+    sec
+    sbc $FE
+    bcs HorizontalScrollSnap
+HorizontalScrollStepPositiveJump:
+    jmp HorizontalScrollStepPositive
+HorizontalScrollSnap:
+    lda $03EE ; CONTROL_HORIZONTAL_SCROLL_SNAP
+    sta $03F3
+    lda $03EF
+    sta $03F4
+HorizontalScrollClearPending:
+    lda $03EB
+    and #$FE
+    sta $03EB
+HorizontalScrollReturn:
+    rts
+; Moving toward lower X needs $50 bytes free in the PPU update queue.
+; Calculate the newly exposed column and pass it to the local map/queue code.
+HorizontalScrollStepNegative:
+    jsr PpuQueueRemaining ; CONTROL_HORIZONTAL_SCROLL_NEGATIVE
+    cmp #$50
+    bcs HorizontalScrollNegativeQueue
+    rts
+HorizontalScrollNegativeQueue:
+    jsr ScrollXTileCoordinate
+    txa
+    sec
+    sbc #$01
+    sta $039A
+    tya
+    sbc #$00
+    sta $039B
+    lda $03F3
+    sec
+    sbc $03E9
+    sta $03F3
+    lda $03F4
+    sbc #$00
+    sta $03F4
+    jsr ScrollYTileCoordinate
+    stx $039C
+    jsr $869F
+    jsr $9B22
+    jmp HorizontalScrollStepReturn
+; Moving toward higher X similarly queues a column when within map bounds.
+HorizontalScrollStepPositive:
+    jsr PpuQueueRemaining ; CONTROL_HORIZONTAL_SCROLL_POSITIVE
+    cmp #$50
+    bcs HorizontalScrollPositiveQueue
+    rts
+HorizontalScrollPositiveQueue:
+    jsr ScrollYTileCoordinate
+    stx $039C
+    jsr ScrollXTileCoordinate
+    txa
+    clc
+    adc #$21
+    sta $039A
+    tya
+    adc #$00
+    sta $039B
+    lda $039A
+    sec
+    sbc $039E
+    lda $039B
+    sbc $039F
+    bcs HorizontalScrollPositiveApply
+    jsr $869F
+    jsr $9B22
+HorizontalScrollPositiveApply:
+    lda $03F3
+    clc
+    adc $03E9
+    sta $03F3
+    lda $03F4
+    adc #$00
+    sta $03F4
+HorizontalScrollStepReturn:
+    rts
+; Repeat the signed-distance and tile-boundary check for Y, using pending bit 2.
+UpdateVerticalScroll:
+    lda $03EB ; CONTROL_VERTICAL_SCROLL
+    and #$02
+    beq VerticalScrollReturn
+    lda #$08
+    sta $03E9
+    lda $03F5
+    sec
+    sbc $03F0
+    tay
+    lda $03F6
+    sbc $03F1
+    bcc VerticalScrollBelowTarget
+    bne VerticalScrollStepNegative
+    tya
+    beq VerticalScrollClearPending
+    cmp #$08
+    bcs VerticalScrollStepNegative
+    sta $03E9
+    lda $03F0
+    and #$07
+    sta $FE
+    lda $03F5
+    and #$07
+    sec
+    sbc $FE
+    bcs VerticalScrollSnap
+    jmp VerticalScrollStepNegative
+VerticalScrollBelowTarget:
+    cmp #$FF ; CONTROL_VERTICAL_SCROLL_BELOW
+    beq VerticalScrollNearBelow
+    jmp VerticalScrollStepPositive
+VerticalScrollNearBelow:
+    tya
+    cmp #$F9
+    bcc VerticalScrollStepPositiveJump
+    eor #$FF
+    adc #$00
+    sta $03E9
+    lda $03F5
+    and #$07
+    sta $FE
+    lda $03F0
+    and #$07
+    sec
+    sbc $FE
+    bcs VerticalScrollSnap
+VerticalScrollStepPositiveJump:
+    jmp VerticalScrollStepPositive
+VerticalScrollSnap:
+    lda $03F0 ; CONTROL_VERTICAL_SCROLL_SNAP
+    sta $03F5
+    lda $03F1
+    sta $03F6
+VerticalScrollClearPending:
+    lda $03EB
+    and #$FD
+    sta $03EB
+VerticalScrollReturn:
+    rts
+; A vertical redraw needs $3C free queue bytes before changing position.
+VerticalScrollStepNegative:
+    jsr PpuQueueRemaining ; CONTROL_VERTICAL_SCROLL_NEGATIVE
+    cmp #$3C
+    bcs VerticalScrollNegativeQueue
+    rts
+VerticalScrollNegativeQueue:
+    jsr ScrollYTileCoordinate
+    txa
+    sec
+    sbc #$01
+    sta $039C
+    lda $03F5
+    sec
+    sbc $03E9
+    sta $03F5
+    lda $03F6
+    sbc #$00
+    sta $03F6
+    jsr QueueScrollRow
+    jmp VerticalScrollStepReturn
+VerticalScrollStepPositive:
+    jsr PpuQueueRemaining ; CONTROL_VERTICAL_SCROLL_POSITIVE
+    cmp #$3C
+    bcs VerticalScrollPositiveQueue
+    rts
+VerticalScrollPositiveQueue:
+    jsr ScrollYTileCoordinate
+    txa
+    clc
+    adc #$1E
+    sta $039C
+    jsr QueueScrollRow
+    lda $03F5
+    clc
+    adc $03E9
+    sta $03F5
+    lda $03F6
+    adc #$00
+    sta $03F6
+VerticalScrollStepReturn:
+    rts
+; Resolve the current X tile coordinate and queue the exposed row through
+; the still-local map routines.
+QueueScrollRow:
+    jsr ScrollXTileCoordinate ; CONTROL_QUEUE_SCROLL_ROW
+    stx $039A
+    sty $039B
+    jsr $869F
+    jsr $97FD
+    rts
+.assert (* - BankStart) = $17C8, error, "bank 0 scroll axis workers end"
+
+    .incbin "bank0_97c8_9dd2.bin"
+; Return the space remaining in the $60-byte PPU update queue.
+PpuQueueRemaining:
+    lda #$60                     ; CONTROL_PPU_QUEUE_REMAINING
+    sec
+    sbc $0380
+    rts
+; Clamp desired X/Y scroll positions to their respective upper bounds. When
+; Y is clamped, run script opcode $18's sound restart exactly as the original.
+ClampScrollTargets:
+    lda $03A2                    ; CONTROL_CLAMP_SCROLL_TARGETS
+    sec
+    sbc $03EE
+    lda $03A3
+    sbc $03EF
+    bcs ClampScrollY
+    lda $03A2
+    sta $03EE
+    lda $03A3
+    sta $03EF
+ClampScrollY:
+    lda $03A8
+    sec
+    sbc $03F0
+    lda $03A9
+    sbc $03F1
+    bcs ClampScrollReturn
+    lda $03A8
+    sta $03F0
+    lda $03A9
+    sta $03F1
+    jsr ScriptOp18
+ClampScrollReturn:
+    rts
+; Divide the current X or Y scroll position by eight, returning Y:X.
+ScrollXTileCoordinate:
+    ldx $03F3                    ; CONTROL_SCROLL_X_TILE_COORDINATE
+    ldy $03F4
+ShiftXYRight3:
+    jsr ShiftXYRight1
+    jsr ShiftXYRight1
+ShiftXYRight1:
+    tya
+    lsr a
+    tay
+    txa
+    ror a
+    tax
+    rts
+ScrollYTileCoordinate:
+    ldx $03F5                    ; CONTROL_SCROLL_Y_TILE_COORDINATE
+    ldy $03F6
+    jmp ShiftXYRight3
+ShiftXYLeft3:
+    jsr ShiftXYLeft1             ; CONTROL_SHIFT_XY_LEFT3
+    jsr ShiftXYLeft1
+ShiftXYLeft1:
+    txa
+    asl a
+    tax
+    tya
+    rol a
+    tay
+    rts
+.assert (* - BankStart) = $1E3C, error, "bank 0 scroll and queue helpers end"
+
 ; Eight rounds of shift/add multiplication. The original returns the low byte
 ; in X and high byte in Y, using $03E2-$03E4 as scratch.
 MultiplyUnsigned8:
@@ -8719,7 +9269,7 @@ UpdateSlotBounds:
 .assert (* - BankStart) = $748A, error, "bank 0 slot coordinate helpers end"
 
     .incbin "bank0_f48a_fd29.bin"
-; Opcode $18 invokes the same two unconverted $84xx routines used by $49.
+; Opcode $18 restarts voice 4 with the same sound pointer used by $49.
 ScriptOp18:
     lda #$04                     ; CONTROL_SCRIPT_OP18
     jsr StopAudioVoice
