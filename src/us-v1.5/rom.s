@@ -1017,9 +1017,9 @@ FrameEngineWork:
     jsr $9414
     lda $03F2
     bne SkipFrameRoutine
-    jsr $8F10
+    jsr AdvanceSpriteAnimations
 SkipFrameRoutine:
-    jsr $8FBA
+    jsr UpdateAudioVoices
 RestoreNmiState:
     jsr SwapNmiWorkspace
     pla
@@ -2115,7 +2115,377 @@ SpriteFrameRowReady:
     rts
 .assert (* - BankStart) = $0F10, error, "bank 0 sprite frame loading end"
 
-    .incbin "bank0_8f10_9e3c.bin"
+; Advance animation timers in sixteen eleven-byte sprite records. Modes 0 and
+; 1 do not advance. Bits $70 in the record flags also suppress advancement.
+AdvanceSpriteAnimations:
+    ldx #$00                     ; CONTROL_ADVANCE_SPRITE_ANIMATIONS
+    ldy #$10
+AdvanceSpriteAnimationLoop:
+    tya
+    pha
+    lda $0400,x
+    and #$03
+    tay
+    bne AdvanceSpriteAnimationActive
+AdvanceSpriteAnimationNext:
+    pla
+    tay
+    txa
+    clc
+    adc #$0B
+    tax
+    dey
+    bne AdvanceSpriteAnimationLoop
+    rts
+AdvanceSpriteAnimationActive:
+    tya                          ; CONTROL_ADVANCE_SPRITE_ANIMATION_ACTIVE
+    cmp #$01
+    beq AdvanceSpriteAnimationNext
+    lda $0400,x
+    and #$70
+    beq AdvanceSpriteAnimationTick
+    tya
+    jmp AdvanceSpriteAnimationDone
+AdvanceSpriteAnimationTick:
+    dec $0407,x
+    bne AdvanceSpriteAnimationDone
+    tya
+    cmp #$03
+    bne AdvanceSpriteAnimationFrame
+    lda $0405,x
+    ora #$80
+    sta $0405,x
+; Reload the timer and advance the frame index. At the end, bit $10 chooses
+; between looping to frame zero and holding the final frame with flag $40 set.
+AdvanceSpriteAnimationFrame:
+    lda $0408,x                  ; CONTROL_ADVANCE_SPRITE_ANIMATION_FRAME
+    sta $0407,x
+    lda $0402,x
+    sta $F6
+    lda $0403,x
+    sta $F7
+    inc $0406,x
+    lda $0406,x
+    ldy #$01
+    cmp ($F6),y
+    bne AdvanceSpriteAnimationLoad
+    lda $0401,x
+    and #$10
+    beq AdvanceSpriteAnimationLoopFrame
+    lda $0400,x
+    ora #$40
+    sta $0400,x
+    dec $0406,x
+    jmp AdvanceSpriteAnimationNext
+AdvanceSpriteAnimationLoopFrame:
+    lda #$00
+    sta $0406,x
+AdvanceSpriteAnimationLoad:
+    lda $0400,x
+    and #$03
+    cmp #$02
+    bne AdvanceSpriteAnimationDone
+    jsr LoadSpriteFrame
+AdvanceSpriteAnimationDone:
+    jmp AdvanceSpriteAnimationNext
+.assert (* - BankStart) = $0F90, error, "bank 0 sprite animation update end"
+
+    .incbin "bank0_8f90_8fba.bin"
+; Reserve six stack bytes for a command buffer and visit five eight-byte voice
+; records. A negative record flag marks an active voice; its timer is decremented.
+UpdateAudioVoices:
+    tsx                          ; CONTROL_UPDATE_AUDIO_VOICES
+    txa
+    sec
+    sbc #$06
+    tax
+    txs
+    inx
+    stx $03DD
+    ldx #$00
+    stx $03E7
+AudioVoiceLoop:
+    lda $04B0,x
+    bpl AudioNextVoice
+    sta $03E7
+    dec $04B1,x
+    beq AudioReadCommand
+AudioNextVoice:
+    txa
+    clc
+    adc #$08
+    tax
+    cmp #$28
+    bcc AudioVoiceLoop
+    lda $03E7
+    bne AudioUpdateReturn
+    lda #$00
+    sta $03FB
+    sta $03E8
+    sta $4015
+AudioUpdateReturn:
+    tsx
+    txa
+    clc
+    adc #$06
+    tax
+    txs
+    rts
+; Copy five bytes from the voice command pointer into the stack buffer, then
+; dispatch notes below $A0 and leave higher commands to the remaining handler.
+AudioReadCommand:
+    lda $04B4,x                  ; CONTROL_AUDIO_READ_COMMAND
+    sta $FE
+    lda $04B5,x
+    sta $FF
+    stx $03DC
+    lda #$05
+    sta $03E0
+    jsr CopyToStack
+    ldx $03DC
+    ldy $03DD
+    lda $0100,y
+    and #$E0
+    cmp #$A0
+    bcs AudioHighCommand
+    lda $0100,y
+    jsr PrepareAudioNote
+    bne AudioFinishNote
+    lda $F6
+    cmp #$1F
+    beq AudioPresetNote
+    lda $04B6,x
+    asl a
+    tay
+    lda $9302,y                  ; Local period-table pointer list.
+    sta $F6
+    lda $9303,y
+    sta $F7
+    ldy $03DD
+    lda $0100,y
+    and #$1F
+    cmp #$1F
+    beq AudioFinishNote
+    asl a
+    tay
+    lda ($F6),y
+    sta $03E0
+    iny
+    lda ($F6),y
+    sta $03E1
+    jsr WriteAudioVoicePeriod
+AudioFinishNote:
+    jsr AdvanceAudioCommandOne   ; CONTROL_AUDIO_FINISH_NOTE
+    jmp AudioNextVoice
+; Special register-offset $1F uses five-byte presets, gated by $03FB. Keep
+; both identical AND instructions: they are present in the original program.
+AudioPresetNote:
+    txa
+    pha
+    lda $0100,y
+    and #$1F
+    and #$1F
+    cmp #$1F
+    beq AudioPresetDone
+    sta $03E1
+    asl a
+    asl a
+    clc
+    adc $03E1
+    tax
+    lda $9271,x
+    sta $F6
+    inx
+    jsr AudioOffsetChannelMask
+    and $03FB
+    bne AudioPresetDone
+    ldy #$00
+AudioPresetCopy:
+    lda $9271,x
+    sta ($F6),y
+    inx
+    iny
+    cpy #$04
+    bne AudioPresetCopy
+AudioPresetDone:
+    pla
+    tax
+    jmp AudioFinishNote
+; $A0-$BF select an instrument; unconverted commands continue at $90B3.
+AudioHighCommand:
+    cmp #$A0                     ; CONTROL_AUDIO_HIGH_COMMAND
+    bne AudioOtherCommand
+    lda $0100,y
+    and #$1F
+    sta $04B6,x
+    lda $04B0,x
+    and #$60
+    bne AudioFinishControlCommand
+    jsr WriteAudioVoiceInstrument
+AudioFinishControlCommand:
+    jsr AdvanceAudioCommandOne
+    lda #$01
+    sta $04B1,x
+    jmp AudioNextVoice
+.assert (* - BankStart) = $10B3, error, "bank 0 audio update partial end"
+
+AudioOtherCommand:
+    .incbin "bank0_90b3_922c.bin"
+; Derive the APU channel bit from the voice record's register offset. The
+; special offset $1F maps to the four non-DMC channels instead of one bit.
+EnableAudioVoiceChannel:
+    jsr AudioVoiceChannelMask    ; CONTROL_ENABLE_AUDIO_VOICE_CHANNEL
+    ora $03E8
+    sta $03E8
+    sta $4015
+    rts
+; Temporarily clear a voice's channel enable before restoring the stored mask.
+; The $0F special case is left untouched.
+RestartAudioVoiceChannel:
+    jsr AudioVoiceChannelMask    ; CONTROL_RESTART_AUDIO_VOICE_CHANNEL
+    cmp #$0F
+    beq RestartAudioVoiceReturn
+    eor #$FF
+    and $03E8
+    sta $4015
+    lda $03E8
+    sta $4015
+RestartAudioVoiceReturn:
+    rts
+AudioVoiceChannelMask:
+    lda $04B0,x                  ; CONTROL_AUDIO_VOICE_CHANNEL_MASK
+    and #$1F
+    cmp #$1F
+    beq AudioAllToneChannels
+; Alternate entry accepts an APU register offset directly in A.
+AudioOffsetChannelMask:
+    lsr a                        ; CONTROL_AUDIO_OFFSET_CHANNEL_MASK
+    lsr a
+    tay
+    lda AudioChannelBits,y
+    rts
+AudioChannelBits:
+    .byte $01, $02, $04, $08, $10 ; CONTROL_AUDIO_CHANNEL_BITS
+AudioAllToneChannels:
+    lda #$0F                     ; CONTROL_AUDIO_ALL_TONE_CHANNELS
+    rts
+.assert (* - BankStart) = $1267, error, "bank 0 audio channel helpers end"
+
+; Note duration and envelope bits, indexed in pairs from the command's upper
+; bits. The values are independent of the still-local instrument presets.
+AudioNoteTiming:
+    .byte $08, $01, $10, $05, $20, $08, $40, $0F, $80, $1F ; CONTROL_AUDIO_NOTE_TIMING
+.assert (* - BankStart) = $1271, error, "bank 0 audio note timing end"
+
+    .incbin "bank0_9271_92c1.bin"
+; Load the duration from the note command's upper bits. Unless voice flags
+; $60 suppress writes, combine timing bits with the selected instrument pair
+; and write the first two APU registers. Return Z set for the write path.
+PrepareAudioNote:
+    jsr ShiftARight4             ; CONTROL_PREPARE_AUDIO_NOTE
+    and #$FE
+    tay
+    lda AudioNoteTiming,y
+    sta $04B1,x
+    jsr AudioVoiceFlags
+    bne PrepareAudioNoteReturn
+    iny
+    lda AudioNoteTiming,y
+    sta $03D0
+    jsr AudioVoiceRegisterAddress
+    lda $04B6,x
+    asl a
+    tay
+    lda $8F91,y
+    pha
+    lda $8F90,y
+    ora $03D0
+    ldy #$00
+    sta ($F6),y
+    iny
+    pla
+    sta ($F6),y
+    ldy #$00
+PrepareAudioNoteReturn:
+    rts
+.assert (* - BankStart) = $12F6, error, "bank 0 audio note preparation end"
+
+; Form the selected voice's APU-register address in $F6/$F7.
+AudioVoiceRegisterAddress:
+    lda $04B0,x                  ; CONTROL_AUDIO_VOICE_REGISTER_ADDRESS
+    and #$1F
+    sta $F6
+    lda #$40
+    sta $F7
+    rts
+.assert (* - BankStart) = $1302, error, "bank 0 audio register address end"
+
+    .incbin "bank0_9302_93b2.bin"
+; For an enabled voice, write the selected period's low and high bytes to its
+; third and fourth APU registers. The high byte has bit $08 set.
+WriteAudioVoicePeriod:
+    jsr AudioVoiceFlags          ; CONTROL_WRITE_AUDIO_VOICE_PERIOD
+    bne AudioVoicePeriodReturn
+    jsr AudioVoiceRegisterAddress
+    ldy #$02
+    lda $03E0
+    sta ($F6),y
+    iny
+    lda $03E1
+    ora #$08
+    sta ($F6),y
+AudioVoicePeriodReturn:
+    rts
+; Two entry points advance the voice's little-endian command pointer by two
+; or one byte respectively, carrying into the high byte.
+AdvanceAudioCommandTwo:
+    jsr AdvanceAudioCommandOne   ; CONTROL_ADVANCE_AUDIO_COMMAND_TWO
+AdvanceAudioCommandOne:
+    inc $04B4,x                  ; CONTROL_ADVANCE_AUDIO_COMMAND_ONE
+    bne AdvanceAudioCommandReturn
+    inc $04B5,x
+AdvanceAudioCommandReturn:
+    rts
+AudioVoiceFlags:
+    lda $04B0,x                  ; CONTROL_AUDIO_VOICE_FLAGS
+    and #$60
+    rts
+; Use the voice's instrument index to copy a two-byte register setting from
+; the still-local table at $8F90 to the voice's first two APU registers.
+WriteAudioVoiceInstrument:
+    lda $04B6,x                  ; CONTROL_WRITE_AUDIO_VOICE_INSTRUMENT
+    asl a
+    sta $03E1
+    lda $04B0,x
+    and #$1F
+    sta $FE
+    lda #$40
+    sta $FF
+    ldy $03E1
+    lda $8F90,y
+    ldy #$00
+    sta ($FE),y
+    ldy $03E1
+    iny
+    lda $8F90,y
+    ldy #$01
+    sta ($FE),y
+    rts
+; Valid voice indices 0-4 map to eight-byte record offsets in X.
+AudioVoiceOffset:
+    cmp #$05                     ; CONTROL_AUDIO_VOICE_OFFSET
+    bcs AudioVoiceOffsetInvalid
+    tax
+    ldy #$08
+    jsr MultiplyUnsigned8
+    lda #$00
+    rts
+AudioVoiceOffsetInvalid:
+    lda #$FF
+    rts
+.assert (* - BankStart) = $1414, error, "bank 0 audio voice helpers end"
+
+    .incbin "bank0_9414_9e3c.bin"
 ; Eight rounds of shift/add multiplication. The original returns the low byte
 ; in X and high byte in Y, using $03E2-$03E4 as scratch.
 MultiplyUnsigned8:
