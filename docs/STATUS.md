@@ -34,9 +34,9 @@ independent source trees or treat one version's evidence as verifying the rest.
 simultaneous reconstruction. Keep progress and completion evidence per target.
 
 The v1.5 build now assembles and links to the exact reference, with 21,474 bytes
-of source code and 17,288 bytes of structured data across the physical PRG banks.
-It still includes 26,774 local PRG bytes and 65,536 local CHR bytes. A total of
-1,068 independent source-change controls verify every listed reconstructed region.
+of source code and 17,947 bytes of structured data across the physical PRG banks.
+It still includes 26,115 local PRG bytes and 65,536 local CHR bytes. A total of
+1,134 independent source-change controls verify every listed reconstructed region.
 Passing input audits or whole-ROM equality alone is not reconstruction
 completion. The developer identifies BOGUS as the
 state-machine engine in the [Vance Kozik interview](https://www.nesworld.com/kozik.php);
@@ -424,6 +424,31 @@ script and record access counts for the same inputs. The local proof is in
 ignored `reports/us-v1.5/runtime-interaction/`. Every command byte observed in
 these inputs is covered by a source region; other gameplay inputs and later
 paths remain unverified. Logs and screenshots remain ignored locally.
+
+Following nine previously unowned literal branch targets in maintained source
+found 104 candidate nodes with no internal overlaps or pending nodes. After
+excluding existing ownership, candidate record reads and competing decodes,
+81 commands in 12 groups are now source. Their reachability remains provisional.
+The `$A4` command clears bit `$04` of slot field `$0630` when its operand is
+`$FF` and sets that bit for every other operand.
+Five records observed in modes `$01` or `$02` now represent only the resource
+pointer and fields actually read in those modes; unexamined neighboring bytes
+remain local rather than being assumed to be record fields.
+
+A separate 16,000-frame exploratory input sweep reached 106 further command
+entries, now source along with two inline lookup tables and 18 record locations.
+The recorded inputs exercised all three adventures, but do not demonstrate
+complete progression. No previously unowned native instruction addresses were
+observed in these runs. A follow-up probe checked every script and record fetch
+after bank switching: 144,150 and 2,794 for Noah, 137,694 and 2,083 for Moses,
+and 154,156 and 3,113 for David; no mapped-bank disagreements were observed.
+One record is used in four loader modes, which interpret its bytes differently.
+For records observed only in modes `$01` or `$02`, fields not read in those
+modes remain local. These observations describe the tested emulator paths.
+The reference and verified build also agreed for these inputs on seven sampled
+frame screenshots and state snapshots per adventure, hardware activity counts,
+and script and record access counts. The comparison proof remains local under
+`reports/us-v1.5/runtime-sweep/`; it does not demonstrate full gameplay.
 
 Three further connected state-machine regions at `$DE0D`, `$E118` and `$EC2B`
 and four entry points into `$E120` are structured source. They retain the

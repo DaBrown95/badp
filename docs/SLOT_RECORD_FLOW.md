@@ -30,6 +30,15 @@ entries depend on possible record accesses at `$DA40` and `$ED71`, respectively;
 their assumed descriptor associations and interpretations remain unverified.
 The overlaps do not establish which path actually executes.
 
+In the 12,000-frame Noah interaction run, descriptor index `$0E` (base
+`$DA1C`) reached `$EA28` 18 times with slot flag `$D0` equal to `$80`. The
+`$60` command there tests bit `$01` and branches to `$EA49` when it is clear,
+so those observed iterations did not reach the `$EA3E` record load. The only
+observed `$EA3E` entry used descriptor `$19`, base `$DA79`, with flag `$81`;
+its offset `$24` selects the already represented `$DA9D` record. This is
+context-specific emulator evidence, not proof that `$DA40` is unreachable
+under other inputs or slot-state changes. The context trace remains local.
+
 The three bounded v1.5 opening-gameplay runs observed 10,404, 10,822 and
 11,102 entries to the bank-0 command fetcher, and 124, 83 and 145 entries to
 the bank-0 record loader. None of the selected nine conflicting script
