@@ -1855,7 +1855,138 @@ SlotRelatedAddressTable:
     .word $A34E ; index $15
 .assert (* - BankStart) = $21DE, error, "bank 0 related address table end"
 
-    .incbin "bank0_a1de_cc82.bin"
+    .incbin "bank0_a1de_a3ec.bin"
+; Each table has 22 two-byte starting addresses selected by $02. The target
+; streams and valid runtime indices still require separate verification.
+PositionRecordPointersA:
+    .word $A444 ; CONTROL_POSITION_POINTERS_A
+    .word $A5A4 ; index $01
+    .word $A7CC ; index $02
+    .word $A8C0 ; index $03
+    .word $A678 ; index $04
+    .word $AAF0 ; index $05
+    .word $ABAC ; index $06
+    .word $ACA0 ; index $07
+    .word $AD64 ; index $08
+    .word $AE80 ; index $09
+    .word $AF64 ; index $0A
+    .word $B14C ; index $0B
+    .word $B210 ; index $0C
+    .word $B29C ; index $0D
+    .word $B320 ; index $0E
+    .word $B3EC ; index $0F
+    .word $A458 ; index $10
+    .word $B4A0 ; index $11
+    .word $A46C ; index $12
+    .word $B4B4 ; index $13
+    .word $B4D4 ; index $14
+    .word $B4F8 ; index $15
+.assert (* - BankStart) = $2418, error, "bank 0 first position pointers end"
+PositionRecordPointersB:
+    .word $A444 ; CONTROL_POSITION_POINTERS_B
+    .word $A480 ; index $01
+    .word $A480 ; index $02
+    .word $A480 ; index $03
+    .word $A480 ; index $04
+    .word $AAA4 ; index $05
+    .word $AAB8 ; index $06
+    .word $AAD4 ; index $07
+    .word $AAB8 ; index $08
+    .word $AAA4 ; index $09
+    .word $AAD4 ; index $0A
+    .word $B0C0 ; index $0B
+    .word $B0FC ; index $0C
+    .word $B110 ; index $0D
+    .word $B124 ; index $0E
+    .word $B140 ; index $0F
+    .word $B4C8 ; index $10
+    .word $B4C8 ; index $11
+    .word $B4C8 ; index $12
+    .word $B4C8 ; index $13
+    .word $B4C8 ; index $14
+    .word $B4C8 ; index $15
+.assert (* - BankStart) = $2444, error, "bank 0 second position pointers end"
+
+    .incbin "bank0_a444_cbff.bin"
+; Select the two position-record streams using the byte index in $02, reset
+; shared state, and optionally scan the initial 32-position window.
+InitializePositionStreams:
+    ldx $02                       ; CONTROL_INITIALIZE_POSITION_STREAMS
+    lda PositionRecordPointersA,x
+    sta $E2
+    lda PositionRecordPointersA+1,x
+    sta $E3
+    lda PositionRecordPointersB,x
+    sta $E4
+    lda PositionRecordPointersB+1,x
+    sta $E5
+    lda #$00
+    sta $28
+    sta $36
+    sta $35
+    sta $34
+    sta $31
+    sta $30
+    sta $2F
+    sta $E7
+    sta $5D
+    sta $14
+    lda $0A
+    beq InitializePositionScan
+    lda #$00
+    sta $0A
+    jsr ScriptCompareState27
+    beq InitializePositionScan
+    lda #$FF
+    sta $27
+    jmp InitializePositionFinish
+InitializePositionScan:
+    jsr ScanPositionWindow
+InitializePositionFinish:
+    lda #$00
+    sta $00
+    jsr EnablePpuNmi
+    rts
+
+; Subtract $FE/$FF from a slot's position only when X is valid and $F981
+; returns nonzero. The exact role of the callee remains to be investigated.
+TranslateSlotPosition:
+    cpx #$FF                      ; CONTROL_TRANSLATE_SLOT_POSITION
+    beq TranslateSlotReturn
+    jsr $F981
+    beq TranslateSlotReturn
+    lda $0580,x
+    sec
+    sbc $FE
+    sta $0580,x
+    lda $0590,x
+    sec
+    sbc $FF
+    sta $0590,x
+TranslateSlotReturn:
+    rts
+
+; Add A to $03EE/$03EF, shift the resulting 16-bit value right three times,
+; and return its low/high bytes in X/Y.
+ScaleWorldCoordinate:
+    clc                           ; CONTROL_SCALE_WORLD_COORDINATE
+    adc $03EE
+    sta $11
+    lda $03EF
+    adc #$00
+    jsr ScaleWorldShiftRight
+    jsr ScaleWorldShiftRight
+    jsr ScaleWorldShiftRight
+    ldx $11
+    tay
+    rts
+ScaleWorldShiftRight:
+    lsr a                         ; CONTROL_SCALE_WORLD_SHIFT
+    ror $11
+    rts
+.assert (* - BankStart) = $4C82, error, "bank 0 position stream setup end"
+
+
 ; Entry points share shift tails: CC82 shifts left four, CC83 shifts left
 ; three, CC87 shifts right four, and CC88 shifts right three.
 ShiftALeft4:
@@ -1874,7 +2005,372 @@ ShiftARight3:
     rts
 .assert (* - BankStart) = $4C8C, error, "bank 0 shift helper end"
 
-    .incbin "bank0_cc8c_cf02.bin"
+; The table at $A37E selects bank-control values from the current state. A
+; direct entry at $CC95 accepts the table byte in A; the $FF table value skips.
+ConfigureBanksFromState:
+    ldx $01                       ; CONTROL_BANKS_FROM_STATE
+    lda $A37E,x
+    cmp #$FF
+    beq ConfigureBanksReturn
+ConfigureBanksFromValue:
+    pha                           ; CONTROL_BANKS_FROM_VALUE
+    jsr ScriptCompareState27
+    bne ConfigureBanksSkipSaved
+    pla
+    pha
+    sta $E6
+ConfigureBanksSkipSaved:
+    pla
+    pha
+    and #$01
+    jsr ShiftALeft4
+    ora #$08
+    sta $03BD
+    pla
+    rol a
+    rol a
+    rol a
+    and #$F0
+    pha
+    jsr ComputeBankSelection
+    sta $03C0
+    stx $03C1
+    pla
+    ora #$01
+    jsr ComputeBankSelection
+    sta $03C2
+    stx $03C3
+ConfigureBanksReturn:
+    rts
+
+; These entries select encoded pointers from $A3C0/$A394 and call separate
+; consumers. The command handlers may enter after the table lookup.
+SelectBothRelatedPointers:
+    jsr SelectFirstRelatedPointer ; CONTROL_SELECT_BOTH_POINTERS
+SelectSecondRelatedPointer:
+    ldx $02                       ; CONTROL_SELECT_SECOND_POINTER
+    ldy $A3C1,x
+    lda $A3C0,x
+    tax
+ApplySecondRelatedPointer:
+    jsr ScriptCompareState27      ; CONTROL_APPLY_SECOND_POINTER
+    bne ApplySecondPointerCall
+    stx $03CC
+    sty $03CD
+ApplySecondPointerCall:
+    jsr $874B
+    rts
+SelectFirstRelatedPointer:
+    ldx $02                       ; CONTROL_SELECT_FIRST_POINTER
+    ldy $A395,x
+    lda $A394,x
+    tax
+ApplyFirstRelatedPointer:
+    jsr ScriptCompareState27      ; CONTROL_APPLY_FIRST_POINTER
+    bne ApplyFirstPointerCall
+    stx $03CA
+    sty $03CB
+ApplyFirstPointerCall:
+    jsr $8742
+    rts
+
+; Initialize two PPU address ranges with $40. The 240 iterations write four
+; bytes each. Timing and the preceding $85C0 setup remain unverified.
+ClearTwoPpuRanges:
+    jsr $85C0                     ; CONTROL_CLEAR_TWO_PPU_RANGES
+    ldy #$20
+    jsr FillPpuRange
+    ldy #$24
+FillPpuRange:
+    ldx #$00                      ; CONTROL_FILL_PPU_RANGE
+    lda PPUSTATUS
+    sty PPUADDR
+    stx PPUADDR
+    ldx #$F0
+    lda #$40
+FillPpuRangeLoop:
+    sta PPUDATA
+    sta PPUDATA
+    sta PPUDATA
+    sta PPUDATA
+    dex
+    bne FillPpuRangeLoop
+    rts
+
+; The frame routine gates on $28/$14, calls shared subsystems and iterates the
+; 16 slots through UpdateCurrentSlot. Several callees remain unconverted.
+UpdateGameFrame:
+    lda $28                       ; CONTROL_UPDATE_GAME_FRAME
+    bne UpdateGameFrameReturn
+    lda $14
+    and #$01
+    bne UpdateGameFrameStart
+UpdateGameFrameReturn:
+    rts
+UpdateGameFrameStart:
+    jsr $8758
+    dec $14
+    jsr $F6F3
+    jsr $F784
+    jsr UpdateFramePositionBases
+    jsr UpdateSlotDrawPositions
+    lda $36
+    beq UpdateFrameSecondFlag
+    jsr $872F
+UpdateFrameSecondFlag:
+    lda $31
+    beq UpdateFrameRefreshSlots
+    jsr $873D
+UpdateFrameRefreshSlots:
+    jsr RefreshAllSlotRecords
+    lda $5D
+    beq UpdateFrameSlotLoopStart
+    lda $25
+    sta $5E
+    lda $26
+    sta $5F
+    jsr ProcessPositionRecord
+    lda #$00
+    sta $5D
+UpdateFrameSlotLoopStart:
+    lda #$00
+    sta $10
+UpdateFrameSlotLoop:
+    jsr UpdateCurrentSlot
+    lda $00
+    bne UpdateFrameDone
+    lda $14
+    beq UpdateFrameNextSlot
+    ora #$80
+    sta $14
+UpdateFrameNextSlot:
+    inc $10
+    lda $10
+    cmp #$10
+    bcc UpdateFrameSlotLoop
+    lda $14
+    and #$7F
+    bne UpdateFrameDone
+    sta $14
+UpdateFrameDone:
+    rts
+RefreshAllSlotRecords:
+    ldx #$00                      ; CONTROL_REFRESH_ALL_SLOT_RECORDS
+RefreshSlotRecordsLoop:
+    jsr RefreshSlotRecordPosition
+    inx
+    cpx #$10
+    bne RefreshSlotRecordsLoop
+    rts
+RefreshSlotRecordPosition:
+    lda $04E0,x                   ; CONTROL_REFRESH_SLOT_RECORD_POSITION
+    cmp #$FF
+    beq RefreshSlotRecordReturn
+    lda $0620,x
+    bmi RefreshSlotRecordReturn
+    lda $0630,x
+    and #$20
+    bne RefreshSlotRecordReturn
+    stx $10
+    lda $0590,x
+    tay
+    lda $0580,x
+    tax
+    lda $10
+    jsr $890A
+    ldx $10
+RefreshSlotRecordReturn:
+    rts
+UpdateSlotDrawPositions:
+    ldx #$00                      ; CONTROL_UPDATE_SLOT_DRAW_POSITIONS
+    stx $10
+    lda $36
+    ora $31
+    beq UpdateSlotDrawReturn
+UpdateSlotDrawLoop:
+    stx $10
+    jsr $F941
+    ldx $10
+    inx
+    cpx #$10
+    bne UpdateSlotDrawLoop
+UpdateSlotDrawReturn:
+    rts
+.assert (* - BankStart) = $4DCF, error, "bank 0 frame dispatch end"
+
+; Update position bases from $36/$31, recalculating references and marking
+; $5D when the first reference changes. Zero values bypass their components.
+UpdateFramePositionBases:
+    lda $36                      ; CONTROL_UPDATE_FRAME_POSITION_BASES
+    ora $31
+    bne UpdateFrameFirstBase
+    jmp UpdateFrameBasesReturn
+UpdateFrameFirstBase:
+    lda #$00
+    sta $FF
+    lda $36
+    beq UpdateFrameSecondBase
+    jsr NegateA
+    sta $FE
+    bpl UpdateFrameFirstAdd
+    lda #$FF
+    sta $FF
+UpdateFrameFirstAdd:
+    clc
+    lda $03EE
+    adc $FE
+    sta $03EE
+    lda $03EF
+    adc $FF
+    sta $03EF
+    lda $0E
+    sta $FE
+    lda $0F
+    sta $FF
+    jsr UpdatePositionReference
+    lda $0E
+    sec
+    sbc $FE
+    sta $FE
+    lda $0F
+    sbc $FF
+    bcc UpdateFrameMarkLow
+    bne UpdateFrameMarkHigh
+    lda $FE
+    beq UpdateFrameSecondBase
+UpdateFrameMarkHigh:
+    lda $0E
+    clc
+    adc #$1F
+    sta $25
+    lda $0F
+    adc #$00
+    sta $26
+    jmp UpdateFrameMarkChanged
+UpdateFrameMarkLow:
+    lda $0E
+    sta $25
+    lda $0F
+    sta $26
+UpdateFrameMarkChanged:
+    lda #$FF
+    sta $5D
+UpdateFrameSecondBase:
+    lda #$00                     ; CONTROL_UPDATE_FRAME_SECOND_BASE
+    sta $FF
+    lda $31
+    beq UpdateFrameBasesReturn
+    jsr NegateA
+    sta $FE
+    bpl UpdateFrameSecondAdd
+    lda #$FF
+    sta $FF
+    lda $03F1
+    bne UpdateFrameSecondAdd
+    lda $03F0
+    cmp $31
+    bcs UpdateFrameSecondAdd
+    lda $03F0
+    sta $31
+    lda #$00
+    sta $03F0
+    jmp UpdateFrameRecalculate
+UpdateFrameSecondAdd:
+    clc
+    lda $03F0
+    adc $FE
+    sta $03F0
+    lda $03F1
+    adc $FF
+    sta $03F1
+UpdateFrameRecalculate:
+    jsr UpdatePositionReference
+UpdateFrameBasesReturn:
+    rts
+
+; Examine 32 consecutive position keys beginning at $0E/$0F.
+ScanPositionWindow:
+    lda #$00                     ; CONTROL_SCAN_POSITION_WINDOW
+ScanPositionWindowLoop:
+    pha
+    clc
+    adc $0E
+    sta $5E
+    lda $0F
+    adc #$00
+    sta $5F
+    jsr ProcessPositionRecord
+    pla
+    tax
+    inx
+    txa
+    cmp #$20
+    bne ScanPositionWindowLoop
+    rts
+
+; Only record type $F0 invokes the slot creation path. The matching helper
+; may unwind the caller on an already-present slot without the required flag.
+ProcessPositionRecord:
+    jsr LookupPositionRecordsA   ; CONTROL_PROCESS_POSITION_RECORD
+    cmp #$F0
+    bne ProcessPositionReturn
+    jsr CreateSlotFromPositionRecord
+ProcessPositionReturn:
+    rts
+CreateSlotFromPositionRecord:
+    jsr RequireMatchingSlotFlag  ; CONTROL_CREATE_POSITION_SLOT
+    jsr FindAvailableSlot
+    bne ProcessPositionReturn
+    stx $10
+    lda $5E
+    sta $90,x
+    sta $07D0,x
+    lda $5F
+    sta $A0,x
+    sta $07E0,x
+    lda #$00
+    sta $05A0,x
+    lda $5E
+    sta $11
+    lda $5F
+    sta $12
+    ldy $2B
+    lda #$00
+    sta $50
+    sta $51
+    jsr ConvertSlotPosition
+    bcc CreatePositionStoreCoordinates
+    lda $2D
+    cmp #$FF
+    bne CreatePositionStoreCoordinates
+    lda #$FE
+    sta $2D
+    ldy #$00
+CreatePositionStoreCoordinates:
+    txa
+    ldx $10
+    sta $0580,x
+    tya
+    sta $0590,x
+    lda $2C
+    sta $0780,x
+    ldy #$00
+    lda $2B
+    sta $80,x
+    lda $2D
+    sta $70,x
+    cmp #$FF
+    beq CreatePositionStoreFlags
+    ldy #$80
+CreatePositionStoreFlags:
+    tya
+    sta $0620,x
+    lda $2E
+    sta $07B0,x
+; Fall through into InitializeCurrentSlot at $CF02.
+.assert (* - BankStart) = $4F02, error, "bank 0 frame position handlers end"
+
+
 ; Initialize the current slot unless its $07B0 bit is already set in the
 ; stack-page bitset. Defaults and repeated stores are preserved exactly.
 InitializeCurrentSlot:
@@ -3921,10 +4417,10 @@ ScriptOp4D:
     ldy $62
     cpy #$FF
     bne ScriptOp4DPair
-    jmp $CCE3
+    jmp SelectFirstRelatedPointer
 ScriptOp4DPair:
     jsr ScriptResolvePair
-    jmp $CCEC
+    jmp ApplyFirstRelatedPointer
 ScriptResolvePair:
     cpy #$00
     bne ScriptResolvePairReturn
@@ -3941,10 +4437,10 @@ ScriptOp4E:
     ldy $62
     cpy #$FF
     bne ScriptOp4EPair
-    jmp $CCCB
+    jmp SelectSecondRelatedPointer
 ScriptOp4EPair:
     jsr ScriptResolvePair
-    jmp $CCD4
+    jmp ApplySecondRelatedPointer
 ScriptOp4F:
     lda $61                     ; CONTROL_SCRIPT_OP4F
     sta $03BC
@@ -5274,9 +5770,9 @@ ScriptOpAA:
     jsr ScriptOperand61OrSlot   ; CONTROL_SCRIPT_OPAA
     ora #$00
     bpl ScriptOpAANonnegative
-    jmp $CC8C
+    jmp ConfigureBanksFromState
 ScriptOpAANonnegative:
-    jmp $CC95
+    jmp ConfigureBanksFromValue
 
 ; $AB and $BF share this busy-state handler and write their command byte to
 ; $04D9 when the state is available.
@@ -5615,7 +6111,7 @@ ScriptOpC2:
 ScriptOpC2Return:
     rts
 ScriptOpC3:
-    jsr $CD93                     ; CONTROL_SCRIPT_OPC3
+    jsr RefreshSlotRecordPosition                     ; CONTROL_SCRIPT_OPC3
     rts
 ScriptOpC4:
     lda $10                       ; CONTROL_SCRIPT_OPC4
@@ -5633,7 +6129,24 @@ ScriptOpC4:
     jmp ScriptOp63
 .assert (* - BankStart) = $6AF6, error, "bank 0 script handlers through opcode $C4"
 
-    .incbin "bank0_eaf6_eb8b.bin"
+    .incbin "bank0_eaf6_eb7a.bin"
+; Convert a packed state byte into the mapper selection value in A and the
+; associated index in X. The incoming value is retained in Y during shifting.
+ComputeBankSelection:
+    tay                           ; CONTROL_COMPUTE_BANK_SELECTION
+    and #$01
+    sta $11
+    tya
+    jsr ShiftARight3
+    ora $11
+    tax
+    tya
+    ora #$0C
+    tay
+    rts
+.assert (* - BankStart) = $6B8B, error, "bank 0 bank selection helper end"
+
+
 ; Select one of two indexed fields from $61, or use the current/related
 ; slot's $0630 flags. A nonzero result indicates an unavailable selection.
 SelectScriptField:
