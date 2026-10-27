@@ -34,9 +34,9 @@ independent source trees or treat one version's evidence as verifying the rest.
 simultaneous reconstruction. Keep progress and completion evidence per target.
 
 The v1.5 build now assembles and links to the exact reference, with 21,025 bytes
-of source code and 4,630 bytes of structured data across the physical PRG banks.
-It still includes 39,881 local PRG bytes and 65,536 local CHR bytes. A total of
-696 independent source-change controls verify every listed reconstructed region.
+of source code and 5,712 bytes of structured data across the physical PRG banks.
+It still includes 38,799 local PRG bytes and 65,536 local CHR bytes. A total of
+701 independent source-change controls verify every listed reconstructed region.
 Passing input audits or whole-ROM equality alone is not reconstruction
 completion. The developer identifies BOGUS as the
 state-machine engine in the [Vance Kozik interview](https://www.nesworld.com/kozik.php);
@@ -206,7 +206,7 @@ branches or prove execution. Its output is ignored local analysis and does not
 count as reconstructed PRG.
 
 The [script-flow inventory](SCRIPT_FLOW.md) follows reviewed successor rules
-from those candidates. It finds 1,660 candidate commands and stops at 61 nodes
+from those candidates. It finds 1,808 candidate commands and stops at 48 nodes
 with dynamic or unreviewed handlers, with no physical-byte overlaps. Branches
 and resumes remain unverified possibilities; this analysis adds no PRG credit.
 
@@ -260,6 +260,12 @@ and four entry points into `$E120` are structured source. They retain the
 observed slot, coordinate, audio and timing operations; their object identities
 and in-game execution remain to be verified. Their temporary local transcription
 files were retired after integration; the maintained source and build proof remain.
+
+The `$B3EE`, `$E47C`, `$E9BA`, `$ED71` and `$F176` regions extend the script
+source with map-value cases, slot updates, indexed audio and state setup. Some
+branch destinations and referenced assets remain local, and the object roles
+and gameplay effects are provisional. Temporary local transcriptions were
+retired after integration; the maintained source and matching proof remain.
 
 Controller handlers now express slot actions, pause toggling and signed motion
 updates, including the original stack-unwinding gates and overflow checks. The

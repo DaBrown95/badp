@@ -178,10 +178,13 @@ class ScriptFlowTests(unittest.TestCase):
     def test_main_state_change_stops_before_following_data(self):
         b0, b1, lengths = fixture()
         b1[0x10:0x12] = bytes([0x99, 0x3e])
-        nodes = by_pointer(walk(bytes(b0), bytes(b1), bytes(lengths), [0x10]))
+        b1[0x20:0x22] = bytes([0x98, 0x3e])
+        nodes = by_pointer(walk(bytes(b0), bytes(b1), bytes(lengths), [0x10, 0x20]))
         self.assertEqual(nodes['0x0010']['status'], 'reviewed_main_state_change')
         self.assertEqual(nodes['0x0010']['successors'], [])
         self.assertNotIn('0x0011', nodes)
+        self.assertEqual(nodes['0x0020']['status'], 'reviewed_main_state_change')
+        self.assertNotIn('0x0021', nodes)
 
     def test_offset_probe_branches_and_indexed_voice_restores_pointer(self):
         b0, b1, lengths = fixture()
@@ -194,6 +197,18 @@ class ScriptFlowTests(unittest.TestCase):
             {'kind': 'fallthrough', 'encoded_pointer': '0x0014'}])
         self.assertEqual(nodes['0x0014']['successors'], [
             {'kind': 'next', 'encoded_pointer': '0x0017'}])
+
+    def test_state_gate_branches_and_slot_initialization_may_continue(self):
+        b0, b1, lengths = fixture()
+        lengths[0x3d], lengths[0x1f] = 3, 5
+        b1[0x10:0x18] = bytes([0x3d, 0x30, 0, 0x1f, 1, 2, 3, 4])
+        b1[0x18] = b1[0x30] = 0xc4
+        nodes = by_pointer(walk(bytes(b0), bytes(b1), bytes(lengths), [0x10]))
+        self.assertEqual(nodes['0x0010']['successors'], [
+            {'kind': 'target', 'encoded_pointer': '0x0030'},
+            {'kind': 'fallthrough', 'encoded_pointer': '0x0013'}])
+        self.assertEqual(nodes['0x0013']['successors'], [
+            {'kind': 'next', 'encoded_pointer': '0x0018'}])
 
     def test_encoded_bank_transition(self):
         b0, b1, lengths = fixture()
