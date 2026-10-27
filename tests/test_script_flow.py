@@ -222,6 +222,31 @@ class ScriptFlowTests(unittest.TestCase):
         self.assertEqual(nodes['0x0011']['successors'], [
             {'kind': 'possible_next', 'encoded_pointer': '0x0013'}])
 
+    def test_indexed_jump_requires_explicit_bounds_and_tracks_table_bytes(self):
+        b0, b1, lengths = fixture()
+        b1[0x10:0x15] = bytes([0x44, 0x20, 0, 0x30, 0])
+        b1[0x20] = b1[0x30] = 0x11
+        unbounded = by_pointer(walk(bytes(b0), bytes(b1), bytes(lengths), [0x10]))
+        self.assertEqual(unbounded['0x0010']['status'], 'unreviewed_or_dynamic_handler')
+        result = walk(bytes(b0), bytes(b1), bytes(lengths), [0x10], indexed_jumps={0x10: 2})
+        nodes = by_pointer(result)
+        self.assertEqual(nodes['0x0010']['successors'], [
+            {'kind': 'bounded_index_target', 'encoded_pointer': '0x0020'},
+            {'kind': 'bounded_index_target', 'encoded_pointer': '0x0030'}])
+        self.assertEqual(len(nodes['0x0010']['jump_records']), 2)
+        self.assertEqual(result['overlapping_physical_bytes'], 0)
+        with self.assertRaisesRegex(ValueError, 'entry count'):
+            walk(bytes(b0), bytes(b1), bytes(lengths), [0x10], indexed_jumps={0x10: 129})
+
+    def test_indexed_jump_stops_at_a_bank_boundary(self):
+        b0, b1, lengths = fixture()
+        b1[0x7ffe] = 0x44
+        result = walk(bytes(b0), bytes(b1), bytes(lengths), [0x7ffe],
+                      indexed_jumps={0x7ffe: 1})
+        node = by_pointer(result)['0x7ffe']
+        self.assertEqual(node['status'], 'indexed_jump_crosses_bank_boundary')
+        self.assertEqual(node['successors'], [])
+
     def test_encoded_bank_transition(self):
         b0, b1, lengths = fixture()
         b1[-1] = 0x21

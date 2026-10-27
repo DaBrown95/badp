@@ -34,9 +34,9 @@ independent source trees or treat one version's evidence as verifying the rest.
 simultaneous reconstruction. Keep progress and completion evidence per target.
 
 The v1.5 build now assembles and links to the exact reference, with 21,025 bytes
-of source code and 6,651 bytes of structured data across the physical PRG banks.
-It still includes 37,860 local PRG bytes and 65,536 local CHR bytes. A total of
-708 independent source-change controls verify every listed reconstructed region.
+of source code and 7,099 bytes of structured data across the physical PRG banks.
+It still includes 37,412 local PRG bytes and 65,536 local CHR bytes. A total of
+717 independent source-change controls verify every listed reconstructed region.
 Passing input audits or whole-ROM equality alone is not reconstruction
 completion. The developer identifies BOGUS as the
 state-machine engine in the [Vance Kozik interview](https://www.nesworld.com/kozik.php);
@@ -126,6 +126,14 @@ call unconverted routines, so covering their entry points does not establish
 the behavior of all commands. The loop entry at `$D4F8` restores the pointer,
 updates counters and handles pending slot state. The `$F2CC` helper increments
 the 16-bit script pointer twice; `$95` and `$B1` invoke it twice per record.
+
+Three indexed script jumps at bank-1 CPU addresses `$B62C`, `$D48F` and
+`$E71C` have candidate table bounds of 11, 4 and 8 entries from their
+immediately preceding arithmetic or mask operations. Their tables and nearby
+slot, palette, audio and movement scripts are represented in source. These
+predecessor bounds do not establish all possible callers or runtime behavior.
+The temporary batch transcription script was retired after integration; the
+maintained source and current build proof remain.
 
 Shared routines now include arithmetic, bit shifts, field selection and
 conditional stack unwinding, slot coordinate calculations, and field update
