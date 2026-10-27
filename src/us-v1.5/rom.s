@@ -981,7 +981,73 @@ EnablePpuNmi:
     rts
 .assert (* - BankStart) = $05C0, error, "bank 0 NMI enable routine size"
 
-    .incbin "bank0_85c0_9e97.bin"
+    .incbin "bank0_85c0_9e3c.bin"
+; Eight rounds of shift/add multiplication. The original returns the low byte
+; in X and high byte in Y, using $03E2-$03E4 as scratch.
+MultiplyUnsigned8:
+    sty $03E2                     ; CONTROL_MUL_UNSIGNED8
+    stx $03E4
+    lda #$00
+    sta $03E3
+    ldx #$08
+MultiplyUnsigned8Loop:
+    asl a
+    rol $03E3
+    asl $03E2
+    bcc MultiplyUnsigned8Next
+    clc
+    adc $03E4
+    bcc MultiplyUnsigned8Next
+    inc $03E3
+MultiplyUnsigned8Next:
+    dex
+    bne MultiplyUnsigned8Loop
+    tax
+    ldy $03E3
+    rts
+
+; Eight rounds of shift/subtract division. A is the divisor, Y:X the input;
+; the routine returns X and Y. The quotient must fit in one byte for the usual
+; unsigned quotient/remainder interpretation; zero divisor behavior is unverified.
+DivideUnsigned16By8:
+    sta $03E4                     ; CONTROL_DIV_UNSIGNED16_8
+    stx $03E5
+    tya
+    ldx #$08
+DivideUnsigned16Loop:
+    asl $03E5
+    rol a
+    bcs DivideUnsigned16Subtract
+    cmp $03E4
+    bcc DivideUnsigned16Next
+DivideUnsigned16Subtract:
+    sbc $03E4
+    inc $03E5
+DivideUnsigned16Next:
+    dex
+    bne DivideUnsigned16Loop
+    tay
+    ldx $03E5
+    rts
+
+; Add A and X, returning the low byte in X and incrementing Y on carry.
+AddAToXY:
+    stx $03E2                     ; CONTROL_ADD_A_TO_XY
+    clc
+    adc $03E2
+    tax
+    bcc AddAToXYReturn
+    iny
+AddAToXYReturn:
+    rts
+NegateA:
+    eor #$FF                      ; CONTROL_NEGATE_A
+    clc
+    adc #$01
+    rts
+.assert (* - BankStart) = $1E97, error, "bank 0 arithmetic helper end"
+
+
 .assert (* - BankStart) = $1E97, error, "bank 0 PPU queue offset"
 ; Records in $0300 contain PPUCTRL, address high/low, length, then data.
 ; $0380 is the queue's end offset. The entry at RestorePpuCtrl is also called
@@ -1047,7 +1113,26 @@ AdvanceSpriteOffset:
     rts
 .assert (* - BankStart) = $1EFA, error, "bank 0 shadow OAM initializer size"
 
-    .incbin "bank0_9efa_d4da.bin"
+    .incbin "bank0_9efa_cc82.bin"
+; Entry points share shift tails: CC82 shifts left four, CC83 shifts left
+; three, CC87 shifts right four, and CC88 shifts right three.
+ShiftALeft4:
+    asl a                         ; CONTROL_SHIFT_LEFT4
+ShiftALeft3:
+    asl a                         ; CONTROL_SHIFT_LEFT3
+    asl a
+    asl a
+    rts
+ShiftARight4:
+    lsr a                         ; CONTROL_SHIFT_RIGHT4
+ShiftARight3:
+    lsr a                         ; CONTROL_SHIFT_RIGHT3
+    lsr a
+    lsr a
+    rts
+.assert (* - BankStart) = $4C8C, error, "bank 0 shift helper end"
+
+    .incbin "bank0_cc8c_d4da.bin"
 ; $D4DA transfers fields from the current slot to another slot and sets a
 ; pending value unless bit 0 of its $0790 field is set. Several script
 ; commands call this helper with a temporary value in $06B0,x.
@@ -1206,7 +1291,7 @@ ScriptCheckFirstDistance:
     sbc $0700,x
     cpy #$00
     beq ScriptFirstDistanceReady
-    jsr $9E91
+    jsr NegateA
 ScriptFirstDistanceReady:
     cmp $03E0
     bcs ScriptConditionalReturn
@@ -1227,7 +1312,7 @@ ScriptSecondDirectionReady:
     sbc $B0,x
     cpy #$00
     beq ScriptSecondDistanceReady
-    jsr $9E91
+    jsr NegateA
 ScriptSecondDistanceReady:
     cmp $03E1
     bcs ScriptConditionalReturn
@@ -1242,10 +1327,10 @@ ScriptOp02:
     asl a
     asl a
     asl a
-    jsr $9E91
+    jsr NegateA
     tay
     ldx #$00                     ; CONTROL_SCRIPT_OP02
-    jsr $F424
+    jsr TestSlotOffset
     bne ScriptSetPointerFromOperands
     dec $63
     bne ScriptOp02
@@ -1257,11 +1342,11 @@ ScriptOp03:
     adc $0570,x
     ldy $0660,x
     bpl ScriptOp03DirectionReady
-    jsr $9E91
+    jsr NegateA
 ScriptOp03DirectionReady:
     tax
     ldy #$02                     ; CONTROL_SCRIPT_OP03
-    jsr $F424
+    jsr TestSlotOffset
     beq ScriptSetPointerFromOperands
     rts
 
@@ -1337,7 +1422,7 @@ ScriptYieldIfNonnegative:
     rts
 
 ScriptOp08:
-    jsr $F057                    ; CONTROL_SCRIPT_OP08
+    jsr UpdateSlotFieldsMode00                    ; CONTROL_SCRIPT_OP08
     jmp ScriptYieldIfNonnegative
 
 ; Opcode $09 stores its operand, substituting $10 for $FF.
@@ -1505,17 +1590,17 @@ ScriptOp10Return:
 ; $EBAC selects an index used for these state bytes; its full calling convention
 ; is pending. The two paths share the call at $D95A.
 ScriptOp11:
-    jsr $EBAC
+    jsr SelectSlotFlagsOrAbort
     lda $3E,y                    ; CONTROL_SCRIPT_OP11
     sta $61
     lda #$00
     sta $62
     sta $3E,y
 ScriptApplyOperandPair:
-    jsr $F066
+    jsr UpdateSlotFieldsMode40
     jmp ScriptYieldIfNonnegative
 ScriptOp12:
-    jsr $EBAC
+    jsr SelectSlotFlagsOrAbort
     lda $40,y                    ; CONTROL_SCRIPT_OP12
     sta $62
     lda #$00
@@ -1523,17 +1608,17 @@ ScriptOp12:
     sta $40,y
     jmp ScriptApplyOperandPair
 ScriptOp13:
-    jsr $EBAC
+    jsr SelectSlotFlagsOrAbort
     lda #$00
     sta $3E,y                    ; CONTROL_SCRIPT_OP13
     rts
 ScriptOp14:
-    jsr $EBAC
+    jsr SelectSlotFlagsOrAbort
     lda #$00
     sta $40,y                    ; CONTROL_SCRIPT_OP14
     rts
 ScriptOp15:
-    jsr $EBAC
+    jsr SelectSlotFlagsOrAbort
     lda $63
     and $038D,y                  ; CONTROL_SCRIPT_OP15
     beq ScriptOp10Return
@@ -1662,7 +1747,7 @@ ScriptOp1DSecond:
     adc #$01
     sta $0590,x
 ScriptOp1DFinish:
-    jmp $F479
+    jmp UpdateSlotBounds
 
 ; Opcode $1E yields and may set a bit in a stack-page buffer. The helper uses
 ; $CC88 to select the buffer byte; its wider role remains unverified.
@@ -1684,7 +1769,7 @@ ScriptOp1EReturn:
     rts
 ScriptSlotBitMask:
     pha
-    jsr $CC88
+    jsr ShiftARight3
     tay
     pla
     and #$07
@@ -1786,19 +1871,19 @@ ScriptGetFieldValue:
     asl a
     sta $FE
     pla
-    jsr $CC87
+    jsr ShiftARight4
     clc
     adc $FE
     rts
 ScriptOp25:
     lda $0500,x                   ; CONTROL_SCRIPT_OP25
     bpl ScriptOp25FirstReady
-    jsr $9E91
+    jsr NegateA
 ScriptOp25FirstReady:
     sta $05
     lda $0510,x
     bpl ScriptOp25SecondReady
-    jsr $9E91
+    jsr NegateA
 ScriptOp25SecondReady:
     sta $06
     lda $63
@@ -1859,7 +1944,7 @@ ScriptOp2C:
     sta $48
     rts
 ScriptOp2D:
-    jsr $F05C                     ; CONTROL_SCRIPT_OP2D
+    jsr UpdateSlotFieldsMode80                     ; CONTROL_SCRIPT_OP2D
     jmp ScriptYieldIfNonnegative
 ScriptOp2E:
     lda #$FF                      ; CONTROL_SCRIPT_OP2E
@@ -1919,7 +2004,7 @@ ScriptOp32:
 ; Opcodes $33 and $34 transfer one indexed field to an operand, clear it and
 ; call $F061. $EBAC and the called routine need further tracing.
 ScriptOp33:
-    jsr $EBAC                     ; CONTROL_SCRIPT_OP33
+    jsr SelectSlotFlagsOrAbort                     ; CONTROL_SCRIPT_OP33
     lda $3E,y
     sta $61
     lda #$FF
@@ -1927,10 +2012,10 @@ ScriptOp33:
     lda #$00
     sta $3E,y
 ScriptCallF061AndYield:
-    jsr $F061
+    jsr UpdateSlotFieldsModeC0
     jmp ScriptYieldIfNonnegative
 ScriptOp34:
-    jsr $EBAC                     ; CONTROL_SCRIPT_OP34
+    jsr SelectSlotFlagsOrAbort                     ; CONTROL_SCRIPT_OP34
     lda $40,y
     sta $62
     lda #$FF
@@ -2059,7 +2144,7 @@ ScriptOp36ScanNext:
 ; Opcodes $37-$3A share this handler. After $EB8B selects an indexed field,
 ; it adds the resolved operand and clamps on carry according to its sign.
 ScriptOp37To3A:
-    jsr $EB8B                    ; CONTROL_SCRIPT_OP37
+    jsr SelectScriptField                    ; CONTROL_SCRIPT_OP37
     bne ScriptOp37Return
     jsr ScriptOperand62OrSlot
     clc
@@ -2078,14 +2163,14 @@ ScriptOp37Negative:
     bcc ScriptOp37Clamp
     rts
 ScriptOp3B:
-    jsr $EB8B                    ; CONTROL_SCRIPT_OP3B
+    jsr SelectScriptField                    ; CONTROL_SCRIPT_OP3B
     bne ScriptOp3BReturn
     jsr ScriptOperand62OrSlot
     sta $46,y
 ScriptOp3BReturn:
     rts
 ScriptOp3C:
-    jsr $EB8B                    ; CONTROL_SCRIPT_OP3C
+    jsr SelectScriptField                    ; CONTROL_SCRIPT_OP3C
     bne ScriptOp3CReturn
     lda $46,y
     cmp $62
@@ -2255,7 +2340,7 @@ ScriptCoordinateDifferenceY:
     sbc $B0,x
 ScriptCoordinateMagnitude:
     bpl ScriptCoordinateStore
-    jsr $9E91
+    jsr NegateA
 ScriptCoordinateStore:
     jmp ScriptStoreSlotLow
 ScriptCoordinateDifferenceX:
@@ -2560,7 +2645,7 @@ ScriptOp57Compare:
 ScriptOp59:
     jsr ScriptResolveOperand61  ; CONTROL_SCRIPT_OP59
     jsr ScriptResolveOperand62
-    jsr $F057
+    jsr UpdateSlotFieldsMode00
     jmp ScriptYieldIfNonnegative
 
 ; Opcode $5A exchanges the slot value with the selected array value.
@@ -2657,16 +2742,16 @@ ScriptOp62Positive:
 ScriptOp62Test:
     ldy #$00
     stx $05
-    jsr $F424
+    jsr TestSlotOffset
     beq ScriptOp66Return
     lda $63
     asl a
     asl a
     asl a
-    jsr $9E91
+    jsr NegateA
     tay
     ldx $05
-    jsr $F424
+    jsr TestSlotOffset
     bne ScriptOp66Return
 ScriptOp62Jump:
     jmp ScriptSetPointerFromOperands
@@ -2700,7 +2785,7 @@ ScriptOp66:
     asl a
     tay
     ldx #$00
-    jsr $F424
+    jsr TestSlotOffset
     bne ScriptOp62Jump
     dec $63
     bne ScriptOp66
@@ -2881,7 +2966,7 @@ ScriptOp70To71:
     lda $70,x
     tax
     pla
-    jsr $9E63
+    jsr DivideUnsigned16By8
     txa
     ldx $10
     sta $70,x
@@ -2898,7 +2983,7 @@ ScriptOp70Pair:
     lda $70,x
     tax
     pla
-    jsr $9E63
+    jsr DivideUnsigned16By8
     txa
     ldx $10
     sta $70,x
@@ -2918,7 +3003,7 @@ ScriptOp72Byte:
 ScriptOp72Calculate:
     ldy $70,x
     tax
-    jsr $9E3C
+    jsr MultiplyUnsigned8
     txa
     ldx $10
     sta $70,x
@@ -2926,7 +3011,7 @@ ScriptOp72Calculate:
     sta $80,x
     rts
 ScriptOp73:
-    jsr $EB8B                    ; CONTROL_SCRIPT_OP73
+    jsr SelectScriptField                    ; CONTROL_SCRIPT_OP73
     bne ScriptOp73Return
     lda $46,y
     jmp ScriptStoreSlotLowAndClearHigh
@@ -3041,7 +3126,7 @@ ScriptOp7ANext:
 ScriptOp7B:
     ldx $63                      ; CONTROL_SCRIPT_OP7B
     ldy $64
-    jsr $F424
+    jsr TestSlotOffset
     beq ScriptOp7BReturn
     jmp ScriptSetPointerFromOperands
 ScriptOp7BReturn:
@@ -3057,10 +3142,10 @@ ScriptOp7CTo7D:
     lda $0660,y
     bpl ScriptOp7CCall
     lda $61
-    jsr $9E91
+    jsr NegateA
     sta $61
 ScriptOp7CCall:
-    jsr $F061
+    jsr UpdateSlotFieldsModeC0
     jmp ScriptYieldIfNonnegative
 ScriptOp7E:
     jsr $EF68                    ; CONTROL_SCRIPT_OP7E
@@ -3118,7 +3203,7 @@ ScriptOp81:
     bne ScriptOp81NegateFirst
     lda #$00
 ScriptOp81NegateFirst:
-    jsr $9E91
+    jsr NegateA
     sta $61
 ScriptOp81Second:
     lda $0660,x
@@ -3129,10 +3214,10 @@ ScriptOp81Second:
     bne ScriptOp81NegateSecond
     lda #$00
 ScriptOp81NegateSecond:
-    jsr $9E91
+    jsr NegateA
     sta $62
 ScriptOp81Call:
-    jsr $F066
+    jsr UpdateSlotFieldsMode40
     jmp ScriptYieldIfNonnegative
 ScriptOp82:
     lda $63
@@ -3158,7 +3243,7 @@ ScriptOp83:
 ScriptOp83Wait:
     jmp ScriptWaitForState
 ScriptOp84:
-    jsr $EBAC                    ; CONTROL_SCRIPT_OP84
+    jsr SelectSlotFlagsOrAbort                    ; CONTROL_SCRIPT_OP84
     lda $61
     sta $15,y
     rts
@@ -3168,7 +3253,7 @@ ScriptOp85:
     lda $70,x
     tax
     lda $61
-    jsr $9E63
+    jsr DivideUnsigned16By8
     txa
     ldx $10
     jsr ScriptStoreSlotLowAndClearHigh
@@ -3181,7 +3266,7 @@ ScriptOp86:
     lda $0520,y
     jmp ScriptStoreSlotLowAndClearHigh
 ScriptGetSelectedIndex:
-    jsr $EB8B
+    jsr SelectScriptField
     bne ScriptGetSelectedAbort
     lda $3C,y
     tay
@@ -3300,15 +3385,15 @@ ScriptOp89Convert:
     lda $61
     sec
     sbc $62
-    jsr $CC83
+    jsr ShiftALeft3
     sta $0590,x
     lda $65
     sec
     sbc $0B
     and #$1F
-    jsr $CC83
+    jsr ShiftALeft3
     sta $0580,x
-    jsr $F479
+    jsr UpdateSlotBounds
     jsr ScriptOp89ShiftHorizontal
     jsr ScriptOp89ShiftHorizontal
     jsr ScriptOp89ShiftHorizontal
@@ -3347,21 +3432,21 @@ ScriptOp89Relative:
     lda $61
     sec
     sbc $62
-    jsr $CC83
+    jsr ShiftALeft3
     tay
     sta $0590,x
     lda $65
     sec
     sbc $0E
     and #$1F
-    jsr $CC83
+    jsr ShiftALeft3
     sta $11
     lda $03EE
     and #$07
     clc
     adc $11
     sta $0580,x
-    jsr $F479
+    jsr UpdateSlotBounds
     jmp ScriptYield
 .assert (* - BankStart) = $6581, error, "bank 0 script handler opcode $89"
 
@@ -3452,7 +3537,7 @@ ScriptSetIndirectOperand:
 ScriptIndirectReturn:
     rts
 ScriptOp92:
-    jsr $EBAC                    ; CONTROL_SCRIPT_OP92
+    jsr SelectSlotFlagsOrAbort                    ; CONTROL_SCRIPT_OP92
     lda $63
     and $038D,y
     bne ScriptIndirectReturn
@@ -3465,7 +3550,7 @@ ScriptOp93:
 ScriptOp94:
     lda $0700,x                  ; CONTROL_SCRIPT_OP94
     bpl ScriptOp94Compare
-    jsr $9E91
+    jsr NegateA
 ScriptOp94Compare:
     cmp $63
     bcs ScriptIndirectReturn
@@ -3497,16 +3582,16 @@ ScriptOp96:
     lda $61                      ; CONTROL_SCRIPT_OP96
     ldy $0700,x
     bpl ScriptOp96FirstReady
-    jsr $9E91
+    jsr NegateA
 ScriptOp96FirstReady:
     sta $61
     lda $62
     ldy $B0,x
     bpl ScriptOp96SecondReady
-    jsr $9E91
+    jsr NegateA
 ScriptOp96SecondReady:
     sta $62
-    jsr $F066
+    jsr UpdateSlotFieldsMode40
     jmp ScriptYieldIfNonnegative
 ScriptOp97:
     jsr ScriptSelectValueArray   ; CONTROL_SCRIPT_OP97
@@ -3772,7 +3857,7 @@ ScriptOpA8:
     clc
     adc $03EE
     and #$07
-    jsr $9E91
+    jsr NegateA
     clc
     adc $70,x
     sta $70,x
@@ -3780,7 +3865,7 @@ ScriptOpA8:
     clc
     adc $03F0
     and #$07
-    jsr $9E91
+    jsr NegateA
     clc
     adc $80,x
     sta $80,x
@@ -3803,7 +3888,7 @@ ScriptOpA9Adjust:
     clc
     adc $62
     sta $0590,x
-    jmp $F479
+    jmp UpdateSlotBounds
 ScriptOpAA:
     jsr ScriptOperand61OrSlot   ; CONTROL_SCRIPT_OPAA
     ora #$00
@@ -4167,7 +4252,128 @@ ScriptOpC4:
     jmp ScriptOp63
 .assert (* - BankStart) = $6AF6, error, "bank 0 script handlers through opcode $C4"
 
-    .incbin "bank0_eaf6_f2cc.bin"
+    .incbin "bank0_eaf6_eb8b.bin"
+; Select one of two indexed fields from $61, or use the current/related
+; slot's $0630 flags. A nonzero result indicates an unavailable selection.
+SelectScriptField:
+    lda $61                       ; CONTROL_SELECT_SCRIPT_FIELD
+    cmp #$02
+    bcc ScriptFieldSelected
+    bne ScriptFieldRelatedSlot
+    lda $0630,x
+    bpl ScriptFieldMask
+ScriptFieldReturn:
+    rts
+ScriptFieldRelatedSlot:
+    lda $0540,x
+    cmp #$FF
+    beq ScriptFieldReturn
+    tay
+    lda $0630,y
+    bmi ScriptFieldReturn
+ScriptFieldMask:
+    and #$01
+ScriptFieldSelected:
+    tay
+    lda #$00
+    rts
+
+; On $0630,x & $81 >= $80 this deliberately discards the caller's return
+; address. Otherwise it returns normally, preserving the incoming A value.
+SelectSlotFlagsOrAbort:
+    pha                           ; CONTROL_SELECT_FLAGS_ABORT
+    lda $0630,x
+    and #$81
+    tay
+    pla
+    cpy #$80
+    bcc SelectSlotFlagsReturn
+    pla
+    pla
+SelectSlotFlagsReturn:
+    rts
+.assert (* - BankStart) = $6BBB, error, "bank 0 script selector helpers end"
+
+    .incbin "bank0_ebbb_f057.bin"
+; Four entries select mode bits for the shared two-field update. Depending on
+; the mode, the routine transforms operands via $F2D6 or stores/adds them to
+; $0500/$0510. Additions that set overflow retain the original field value.
+UpdateSlotFieldsMode00:
+    lda #$00                      ; CONTROL_SLOT_FIELDS_00
+    jmp UpdateSlotFields
+UpdateSlotFieldsMode80:
+    lda #$80                      ; CONTROL_SLOT_FIELDS_80
+    jmp UpdateSlotFields
+UpdateSlotFieldsModeC0:
+    lda #$C0                      ; CONTROL_SLOT_FIELDS_C0
+    jmp UpdateSlotFields
+UpdateSlotFieldsMode40:
+    lda #$40                      ; CONTROL_SLOT_FIELDS_40
+UpdateSlotFields:
+    sta $05                       ; CONTROL_SLOT_FIELDS_COMMON
+    ldx $10
+    lda $0750,x
+    ldy $61
+    sty $03
+    beq UpdateSlotFieldsSecondFlags
+    and #$F0
+    ora #$03
+UpdateSlotFieldsSecondFlags:
+    ldy $62
+    sty $04
+    beq UpdateSlotFieldsStoreFlags
+    and #$0F
+    ora #$20
+UpdateSlotFieldsStoreFlags:
+    sta $0750,x
+    lda $05
+    and #$40
+    bne UpdateSlotFieldsChooseMode
+    jsr $F2D6
+    bpl UpdateSlotFieldsSecondSign
+    lda $61
+    jsr NegateA
+    sta $61
+UpdateSlotFieldsSecondSign:
+    lda $03DE
+    and #$01
+    beq UpdateSlotFieldsChooseMode
+    lda $62
+    jsr NegateA
+    sta $62
+UpdateSlotFieldsChooseMode:
+    lda $05
+    bpl UpdateSlotFieldsAdd
+    lda $03
+    cmp #$FF
+    beq UpdateSlotFieldsStoreSecond
+    lda $61
+    sta $0500,x
+UpdateSlotFieldsStoreSecond:
+    lda $04
+    cmp #$FF
+    beq UpdateSlotFieldsReturn
+    lda $62
+    sta $0510,x
+UpdateSlotFieldsReturn:
+    rts
+UpdateSlotFieldsAdd:
+    lda $61
+    clc
+    adc $0500,x
+    bvs UpdateSlotFieldsAddSecond
+    sta $0500,x
+UpdateSlotFieldsAddSecond:
+    lda $62
+    clc
+    adc $0510,x
+    bvs UpdateSlotFieldsAddReturn
+    sta $0510,x
+UpdateSlotFieldsAddReturn:
+    rts
+.assert (* - BankStart) = $70D8, error, "bank 0 slot field helper end"
+
+    .incbin "bank0_f0d8_f2cc.bin"
 ; Advance the 16-bit script pointer by two bytes. Entry at $F2CF advances
 ; once; $F2CC calls that entry and then falls through for a second increment.
 AdvanceScriptPointerTwice:
@@ -4179,7 +4385,73 @@ AdvanceScriptPointerOnce:
 ScriptPointerIncremented:
     rts
 .assert (* - BankStart) = $72D6, error, "bank 0 script pointer advance helper"
-    .incbin "bank0_f2d6_fd29.bin"
+    .incbin "bank0_f2d6_f424.bin"
+; Apply signed X/Y offsets to the current slot's fields with saturation, then
+; query $8A4C and return its zero/nonzero result with X restored to the slot.
+TestSlotOffset:
+    jsr ClampSlotOffsets          ; CONTROL_TEST_SLOT_OFFSET
+    lda $10
+    jsr $8A4C
+    ldx $10
+    cmp #$00
+    rts
+ClampSlotOffsets:
+    stx $03A6                     ; CONTROL_CLAMP_SLOT_OFFSETS
+    ldx $10
+    clc
+    tya
+    bmi ClampSlotVerticalNegative
+    adc $0590,x
+    bcs ClampSlotVerticalMax
+    cmp #$F0
+    bcc ClampSlotVerticalReady
+ClampSlotVerticalMax:
+    lda #$EF
+    jmp ClampSlotVerticalReady
+ClampSlotVerticalNegative:
+    adc $0590,x
+    bcs ClampSlotVerticalReady
+    lda #$00
+ClampSlotVerticalReady:
+    tay
+    clc
+    lda $03A6
+    bmi ClampSlotHorizontalNegative
+    adc $0580,x
+    bcc ClampSlotHorizontalReady
+    lda #$FF
+    jmp ClampSlotHorizontalReady
+ClampSlotHorizontalNegative:
+    adc $0580,x
+    bcs ClampSlotHorizontalReady
+    lda #$00
+ClampSlotHorizontalReady:
+    tax
+    rts
+
+; Recalculate $0700,x from half $0570 plus $0580, clamping carry to $FF.
+UpdateSlotMidpoint:
+    lda $0570,x                   ; CONTROL_SLOT_MIDPOINT
+    lsr a
+    clc
+    adc $0580,x
+    bcc UpdateSlotMidpointStore
+    lda #$FF
+UpdateSlotMidpointStore:
+    sta $0700,x
+    rts
+UpdateSlotBounds:
+    ldx $10                       ; CONTROL_SLOT_BOUNDS
+    jsr UpdateSlotMidpoint
+    lda $0590,x
+    clc
+    adc $0560,x
+    sta $B0,x
+    dec $B0,x
+    rts
+.assert (* - BankStart) = $748A, error, "bank 0 slot coordinate helpers end"
+
+    .incbin "bank0_f48a_fd29.bin"
 ; Opcode $18 invokes the same two unconverted $84xx routines used by $49.
 ScriptOp18:
     lda #$04                     ; CONTROL_SCRIPT_OP18
