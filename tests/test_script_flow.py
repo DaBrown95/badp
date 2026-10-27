@@ -76,6 +76,28 @@ class ScriptFlowTests(unittest.TestCase):
         self.assertEqual(nodes['0x0018']['successors'], [
             {'kind': 'next', 'encoded_pointer': '0x001b'}])
 
+    def test_record_mode_and_slot_action_control_successors(self):
+        b0, b1, lengths = fixture()
+        lengths[0x63], lengths[0x1e] = 3, 2
+        b1[0x10:0x15] = bytes([0x63, 9, 2, 0x1e, 2])
+        b1[0x15] = 0x80
+        b1[0x20:0x23] = bytes([0x63, 9, 0])
+        b1[0x30:0x32] = bytes([0x1e, 0])
+        b1[0x40:0x42] = bytes([0x1e, 1])
+        b1[0x50:0x54] = bytes([0x63, 3, 0xff, 0x80])
+        nodes = by_pointer(walk(bytes(b0), bytes(b1), bytes(lengths),
+                                [0x10, 0x20, 0x30, 0x40, 0x50]))
+        self.assertEqual(nodes['0x0010']['successors'], [
+            {'kind': 'possible_next', 'encoded_pointer': '0x0013'}])
+        self.assertEqual(nodes['0x0013']['successors'], [
+            {'kind': 'possible_resume', 'encoded_pointer': '0x0015'}])
+        self.assertEqual(nodes['0x0020']['status'], 'unreviewed_or_dynamic_handler')
+        self.assertEqual(nodes['0x0050']['successors'], [
+            {'kind': 'possible_next', 'encoded_pointer': '0x0053'}])
+        for pointer in ('0x0030', '0x0040'):
+            self.assertEqual(nodes[pointer]['status'], 'reviewed_yield_release_slot')
+            self.assertEqual(nodes[pointer]['successors'], [])
+
     def test_encoded_bank_transition(self):
         b0, b1, lengths = fixture()
         b1[-1] = 0x21

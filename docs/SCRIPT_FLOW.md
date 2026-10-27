@@ -12,13 +12,16 @@ fall through. Opcodes that call `ScriptSetPointerFromOperands` conditionally
 produce both a target and a fallthrough candidate; opcode `$04` produces just a
 target. Commands that yield produce a possible later resume, while some helpers
 may either yield or return normally. These edges do not establish that a branch
-is taken, a slot survives, or execution resumes. Unknown, dynamically computed
+is taken, a slot survives, or execution resumes. A nonzero-mode `$63` record
+load preserves the script pointer; zero mode remains dynamic. The `$1E` slot
+action yields, with mode 2 retaining the slot and other modes releasing it;
+later reuse has an unknown entry. Unknown, dynamically computed
 and unreviewed handlers stop their paths. The walker rejects malformed lengths,
 records that cross the physical bank boundary and invalid input, and reports
 physical-byte overlaps and any nodes left by its traversal limit.
 
-On the current pinned v1.5 input the bounded walk finds 703 candidate commands
-starting from the descriptor-derived entries, with 69 nodes stopping at dynamic
+On the current pinned v1.5 input the bounded walk finds 924 candidate commands
+starting from the descriptor-derived entries, with 70 nodes stopping at dynamic
 or unreviewed handlers and no physical-byte overlaps. Those are static candidates,
 not a complete script inventory, gameplay evidence or source ownership. The
 ignored JSON retains operand bytes for local examination; none are added to the

@@ -81,6 +81,19 @@ def walk(bank0: bytes, bank1: bytes, lengths: bytes, seeds: list[int],
         elif opcode in POSSIBLE_YIELD:
             node['status'] = 'reviewed_possible_yield'
             edges.append(('next_or_possible_resume', following))
+        elif opcode == 0x63 and length >= 3 and data[2] != 0:
+            # The record loader restores $53/$54 after its fetch and only
+            # installs a record's script pointer when mode $57 is zero.
+            node['status'] = 'reviewed_nonzero_mode_record_load'
+            edges.append(('possible_next', following))
+        elif opcode == 0x1E and length >= 2:
+            # Mode 2 marks the slot and yields without releasing it. Other
+            # modes yield and release it; later reuse has an unknown entry.
+            if data[1] == 2:
+                node['status'] = 'reviewed_yield_retained_slot'
+                edges.append(('possible_resume', following))
+            else:
+                node['status'] = 'reviewed_yield_release_slot'
         elif opcode in CONDITIONAL_POINTER or opcode in UNCONDITIONAL_POINTER:
             if length < 3:
                 node['status'] = 'missing_pointer_operands'

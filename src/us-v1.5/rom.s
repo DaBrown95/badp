@@ -227,6 +227,40 @@ compareRangeReturn:
 .macro BogusLoadSlotRecord offset, mode
     .byte $63, offset, mode
 .endmacro
+.macro BogusSetSlot0640Pair first, second
+    .byte $0B, first, second
+.endmacro
+.macro BogusReadSlotValue selector
+    .byte $3F, selector
+.endmacro
+.macro BogusBranchIfSlotValueEqual target, first, second
+    .byte $53
+    .word target - $8000
+    .byte first, second
+.endmacro
+.macro BogusBranchIfSlot0760Equal target, value
+    .byte $23
+    .word target - $8000
+    .byte value
+.endmacro
+.macro BogusMarkMatchingSlots value, first, second, third
+    .byte $36, value, first, second, third
+.endmacro
+.macro BogusClearSlotD0Bits mask
+    .byte $5E, mask
+.endmacro
+.macro BogusSetSlotD0Bits mask
+    .byte $5D, mask
+.endmacro
+.macro BogusBranchIfSlotD0Bits target, mask
+    .byte $5F
+    .word target - $8000
+    .byte mask
+.endmacro
+.macro BogusBranchIfSlot0620Bit10Clear target
+    .byte $BB
+    .word target - $8000
+.endmacro
 
 ; A command byte indexes three parallel tables: record length, and the low and
 ; high bytes of an RTS dispatch address. Handler addresses below are actual
@@ -12001,8 +12035,8 @@ ScriptRecordLengths:
 .scope Bank1
 BankStart:
     .incbin "bank1_8000_b900.bin"
-; Descriptor-derived script. The record-loading command at the end may have
-; further effects; its following bytes remain local pending flow verification.
+; Descriptor-derived script. Nonzero record mode preserves the command pointer;
+; the record-loading helper's gameplay effects remain provisional.
 ScriptB900:
     BogusSetSlot0670Pair $01, $00
     BogusSetSlot0730 $DC         ; CONTROL_BOGUS_B900
@@ -12026,8 +12060,8 @@ ScriptB928:
     BogusJumpBank1 ScriptB91A
 ScriptB92E:
     BogusLoadSlotRecord $09, $02
-.assert (* - BankStart) = $3931, error, "bank 1 script B900 partial graph end"
-    .incbin "bank1_b931_b934.bin"
+.assert (* - BankStart) = $3931, error, "bank 1 script B900 block end"
+    BogusJumpBank1 ScriptB91A    ; CONTROL_BOGUS_B931
 ScriptB934:
     BogusYieldAndSlotAction $00  ; CONTROL_BOGUS_B934
 .assert (* - BankStart) = $3936, error, "bank 1 script B934 end"
@@ -12090,7 +12124,61 @@ ScriptBDBFLoop:
 ScriptBDBFDone:
     BogusJumpBank1 ScriptBDBFDone
 .assert (* - BankStart) = $3DCD, error, "bank 1 script BDBF end"
-    .incbin "bank1_bdcd_fda7.bin"
+    .incbin "bank1_bdcd_bdd6.bin"
+; Compare the slot value to $0001, choose a field update, wait, then loop
+; until the magnitude of $0700 is below $10 and release the current slot.
+ScriptBDD6:
+    BogusSetSlotC0 $00
+    BogusSetUnlinkedFields $00, $00
+    BogusReadSlotValue $00
+    BogusBranchIfSlotValueEqual ScriptBDE8, $01, $00
+    BogusSetSlotFields80 $08, $00 ; CONTROL_BOGUS_BDD6
+    BogusJumpBank1 ScriptBDEB
+ScriptBDE8:
+    BogusSetSlotFields80 $F8, $00
+ScriptBDEB:
+    BogusWait $08
+ScriptBDED:
+    BogusBranchIfAbsSlot0700Below ScriptBDF4, $10
+    BogusJumpBank1 ScriptBDED
+ScriptBDF4:
+    BogusYieldAndSlotAction $00
+.assert (* - BankStart) = $3DF6, error, "bank 1 script BDD6 end"
+    .incbin "bank1_bdf6_d6e0.bin"
+; A slot-field comparison gates three matching-slot updates and waits.
+ScriptD6E0:
+    BogusSetSlot0640Pair $04, $00
+    BogusBranchIfSlot0760Equal ScriptD6EA, $66
+    BogusJumpBank1 ScriptD6E0
+ScriptD6EA:
+    BogusMarkMatchingSlots $00, $01, $20, $00
+    BogusWait $04                ; CONTROL_BOGUS_D6E0
+    BogusMarkMatchingSlots $00, $01, $20, $00
+    BogusWait $04
+    BogusMarkMatchingSlots $00, $01, $20, $00
+    BogusRestartVoice4 $289B
+    BogusYieldAndSlotAction $00
+.assert (* - BankStart) = $5702, error, "bank 1 script D6E0 end"
+    .incbin "bank1_d702_eff0.bin"
+; Shared target of several candidate entries. The bit tests and record load
+; loop here are decoded; the roles of the values remain provisional.
+ScriptEFF0:
+    BogusSetSlot0640Pair $10, $40
+ScriptEFF3:
+    BogusSetSlotC0 $FF
+    BogusClearSlot0790Bits $01
+    BogusClearSlotD0Bits $02
+ScriptEFF9:
+    BogusBranchIfSlotD0Bits ScriptF000, $01
+    BogusJumpBank1 ScriptEFF9
+ScriptF000:
+    BogusBranchIfSlot0620Bit10Clear ScriptEFF3
+    BogusBranchIfSlotD0Bits ScriptEFF9, $02
+    BogusSetSlotD0Bits $02       ; CONTROL_BOGUS_EFF0
+    BogusLoadSlotRecord $03, $FF
+    BogusJumpBank1 ScriptEFF9
+.assert (* - BankStart) = $700F, error, "bank 1 script EFF0 end"
+    .incbin "bank1_f00f_fda7.bin"
 ScriptRecordLengths:
     ScriptTable 0
 .assert (* - BankStart) = $7E6C, error, "bank 1 common helpers offset"

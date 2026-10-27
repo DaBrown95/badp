@@ -34,9 +34,9 @@ independent source trees or treat one version's evidence as verifying the rest.
 simultaneous reconstruction. Keep progress and completion evidence per target.
 
 The v1.5 build now assembles and links to the exact reference, with 20,575 bytes
-of source code and 1,934 bytes of structured data across the physical PRG banks.
-It still includes 43,027 local PRG bytes and 65,536 local CHR bytes. A total of
-664 independent source-change controls verify every listed reconstructed region.
+of source code and 2,034 bytes of structured data across the physical PRG banks.
+It still includes 42,927 local PRG bytes and 65,536 local CHR bytes. A total of
+668 independent source-change controls verify every listed reconstructed region.
 Passing input audits or whole-ROM equality alone is not reconstruction
 completion. The developer identifies BOGUS as the
 state-machine engine in the [Vance Kozik interview](https://www.nesworld.com/kozik.php);
@@ -206,7 +206,7 @@ branches or prove execution. Its output is ignored local analysis and does not
 count as reconstructed PRG.
 
 The [script-flow inventory](SCRIPT_FLOW.md) follows reviewed successor rules
-from those candidates. It finds 703 candidate commands and stops at 69 nodes
+from those candidates. It finds 924 candidate commands and stops at 70 nodes
 with dynamic or unreviewed handlers, with no physical-byte overlaps. Branches
 and resumes remain unverified possibilities; this analysis adds no PRG credit.
 
@@ -218,9 +218,10 @@ most of the script inventory is still local analysis.
 
 Additional descriptor-derived entries at bank 1 `$B900`, `$B968` and `$BA53`
 are structured, including the separately targeted command at `$B934`. The
-three bytes after `$B92E`'s record-loading command remain local because its
-continuation has not been fully traced. These are static command decodes; their
-gameplay roles and execution have not been established.
+nonzero-mode record load at `$B92E` preserves the script pointer, so its
+continuation at `$B931` is also represented as a jump. Additional candidate
+graphs at `$BDD6`, `$D6E0` and `$EFF0` are structured. These are static command
+decodes; their gameplay roles and execution have not been established.
 
 Controller handlers now express slot actions, pause toggling and signed motion
 updates, including the original stack-unwinding gates and overflow checks. The
