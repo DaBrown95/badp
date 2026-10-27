@@ -3128,7 +3128,7 @@ HorizontalScrollNegativeQueue:
     sta $03F4
     jsr ScrollYTileCoordinate
     stx $039C
-    jsr $869F
+    jsr ResolveMapChunk
     jsr $9B22
     jmp HorizontalScrollStepReturn
 ; Moving toward higher X similarly queues a column when within map bounds.
@@ -3154,7 +3154,7 @@ HorizontalScrollPositiveQueue:
     lda $039B
     sbc $039F
     bcs HorizontalScrollPositiveApply
-    jsr $869F
+    jsr ResolveMapChunk
     jsr $9B22
 HorizontalScrollPositiveApply:
     lda $03F3
@@ -3275,12 +3275,282 @@ QueueScrollRow:
     jsr ScrollXTileCoordinate ; CONTROL_QUEUE_SCROLL_ROW
     stx $039A
     sty $039B
-    jsr $869F
-    jsr $97FD
+    jsr ResolveMapChunk
+    jsr QueueMapTileRow
     rts
 .assert (* - BankStart) = $17C8, error, "bank 0 scroll axis workers end"
 
-    .incbin "bank0_97c8_9dd2.bin"
+; Update the mirrored horizontal and vertical PPU scroll values when map
+; rendering is active. The vertical calculation adds $03BC, then stores the
+; division routine's remainder for divisor $F0.
+UpdatePpuScrollMirror:
+    lda $03A4                    ; CONTROL_UPDATE_PPU_SCROLL_MIRROR
+    beq PpuScrollMirrorReturn
+    lda $03FF
+    and #$FE
+    sta $03FF
+    lda $03F4
+    and #$01
+    ora $03FF
+    sta $03FF
+    lda $03F3
+    sta $03FC
+    lda $03F5
+    clc
+    adc $03BC
+    tax
+    lda $03F6
+    adc #$00
+    tay
+    lda #$F0
+    jsr DivideUnsigned16By8
+    sty $03FD
+PpuScrollMirrorReturn:
+    rts
+; Prepare a horizontal tile row for the PPU queue. Compute its nametable
+; address and split at the 32-tile boundary, capped by the remaining map width.
+QueueMapTileRow:
+    lda $EC                      ; CONTROL_QUEUE_MAP_TILE_ROW
+    sta $03D8
+    lda $ED
+    sta $03D9
+    lda #$01
+    sta $03D2
+    lda #$00
+    sta $03D3
+    lda $039A
+    and #$1F
+    sta $03DC
+    ldx #$20
+    lda #$20
+    and $039A
+    beq MapTileRowNametable
+    ldx #$24
+MapTileRowNametable:
+    stx $03D7                    ; CONTROL_MAP_TILE_ROW_NAMETABLE
+    ldx $039C
+    ldy #$00
+    lda #$1E
+    jsr DivideUnsigned16By8
+    stx $03DA
+    sty $03DF
+    ldx #$20
+    jsr MultiplyUnsigned8
+    stx $03D6
+    txa
+    clc
+    adc $03DC
+    sta $03D4
+    tya
+    adc $03D7
+    sta $03D5
+    tya
+    clc
+    adc $03D7
+    eor #$04
+    sta $03D7
+    lda $039E
+    sec
+    sbc $039A
+    sta $03DD
+    lda $039F
+    sbc $039B
+    beq MapTileRowWidth
+    lda #$FF
+    sta $03DD
+MapTileRowWidth:
+    lda $03DD                    ; CONTROL_MAP_TILE_ROW_WIDTH
+    cmp #$21
+    bcc MapTileRowWidthBounded
+    lda #$21
+MapTileRowWidthBounded:
+    sta $03DD
+    lda #$20
+    sec
+    sbc $03DC
+    cmp $03DD
+    bcc MapTileRowFirstLength
+    lda $03DD
+MapTileRowFirstLength:
+    sta $03DC                    ; CONTROL_MAP_TILE_ROW_FIRST_LENGTH
+    lda $03DD
+    sec
+    sbc $03DC
+    sta $03DD
+    jsr MapChunkRowPointer       ; Resolve source row in the current chunk.
+    lda $039A
+    and #$07
+    sta $03DB
+    clc
+    adc $F6
+    sta $F6
+    bcc MapTileRowPointerReady
+    inc $F7
+MapTileRowPointerReady:
+    lda #$08
+    sec
+    sbc $03DB
+    sta $03DB
+    ldx $0380
+; Emit a horizontal PPU queue entry and copy spans of up to eight tiles from
+; each chunk. A second entry handles crossing to the adjacent nametable.
+MapTileRowQueue:
+    lda #$00                     ; CONTROL_MAP_TILE_ROW_QUEUE
+    sta $0300,x
+    inx
+    lda $03D5
+    sta $0300,x
+    inx
+    lda $03D4
+    sta $0300,x
+    inx
+    lda $03DC
+    sta $0300,x
+    inx
+MapTileRowCopyNext:
+    lda $03DB
+    bne MapTileRowCopyCount
+    jsr AdvanceMapChunk
+    jsr MapChunkRowPointer
+    lda #$08
+    sta $03DB
+MapTileRowCopyCount:
+    cmp $03DC
+    bcc MapTileRowCopySpan
+    lda $03DC
+    beq MapTileRowMaybeSecond
+MapTileRowCopySpan:
+    jsr MapTileRowConsumeSpan
+    jmp MapTileRowCopyNext
+; Deduct the span from both counts and tail-call the bank-aware linear copier.
+MapTileRowConsumeSpan:
+    sta $03D0                    ; CONTROL_MAP_TILE_ROW_CONSUME_SPAN
+    lda $03DB
+    sec
+    sbc $03D0
+    sta $03DB
+    lda $03DC
+    sec
+    sbc $03D0
+    sta $03DC
+    jmp CopyLinearToBuffer
+MapTileRowMaybeSecond:
+    lda $03DD                    ; CONTROL_MAP_TILE_ROW_SECOND
+    beq MapTileRowAttributes
+    jsr MapQueueSecondNametable ; Switch to the next nametable address.
+    jmp MapTileRowQueue
+MapTileRowAttributes:
+    .incbin "bank0_9916_9a20.bin"
+; Move the remaining count and saved alternate nametable address into the
+; active queue fields before emitting the second entry.
+MapQueueSecondNametable:
+    sta $03DC                    ; CONTROL_MAP_QUEUE_SECOND_NAMETABLE
+    lda #$00
+    sta $03DD
+    lda $03D6
+    sta $03D4
+    lda $03D7
+    sta $03D5
+    rts
+.assert (* - BankStart) = $1A35, error, "bank 0 map queue nametable switch end"
+
+    .incbin "bank0_9a35_9b07.bin"
+MapQueueStoreEnd:
+    stx $0380                    ; CONTROL_MAP_QUEUE_STORE_END
+    rts
+; Convert the row within a chunk to an eight-byte tile-row offset.
+MapChunkRowPointer:
+    lda $039C                    ; CONTROL_MAP_CHUNK_ROW_POINTER
+    and #$07
+    asl a
+    asl a
+    asl a
+    jmp MapChunkOffsetPointer
+; Select one of the two two-byte attribute rows within a chunk.
+MapChunkAttributeRowPointer:
+    lda $039C                    ; CONTROL_MAP_CHUNK_ATTRIBUTE_ROW_POINTER
+    and #$04
+    lsr a
+    clc
+    adc #$40
+    jmp MapChunkOffsetPointer
+.assert (* - BankStart) = $1B22, error, "bank 0 map queue helpers end"
+
+    .incbin "bank0_9b22_9d63.bin"
+; Select a tile-column offset within a map chunk, then resolve its tile pointer.
+MapChunkColumnPointer:
+    lda $039A                    ; CONTROL_MAP_CHUNK_COLUMN_POINTER
+    and #$07
+; A is an offset within the chunk, EC/ED selects its banked index, and X is
+; preserved. Resolve its table entry at $A1DE and return the pointer in F6/F7.
+MapChunkOffsetPointer:
+    pha                          ; CONTROL_MAP_CHUNK_OFFSET_POINTER
+    txa
+    pha
+    lda $EC
+    sta $FE
+    lda $ED
+    sta $FF
+    jsr ReadBankedPointer
+    pla
+    tax
+    pla
+    ldy #$00
+    pha
+    lda $FE
+    sta $F6
+    lda #$00
+    sta $F7
+    asl $F6
+    rol $F7
+    lda #$DE
+    clc
+    adc $F6
+    sta $F6
+    lda #$A1
+    adc $F7
+    sta $F7
+    pla
+    clc
+    adc ($F6),y
+    pha
+    iny
+    lda ($F6),y
+    adc #$00
+    sta $F7
+    pla
+    sta $F6
+    rts
+; Rotate X coordinate bit 2 into carry, then select chunk offset $40 or $41.
+MapChunkAttributePointer:
+    lda $039A                    ; CONTROL_MAP_CHUNK_ATTRIBUTE_POINTER
+    ror a
+    ror a
+    ror a
+    lda #$40
+    adc #$00
+    jmp MapChunkOffsetPointer
+; Advance or retreat the map chunk index by the 16-bit stride in $03D2/$03D3.
+AdvanceMapChunk:
+    lda $EC                      ; CONTROL_ADVANCE_MAP_CHUNK
+    clc
+    adc $03D2
+    sta $EC
+    lda $ED
+    adc $03D3
+    sta $ED
+    rts
+RetreatMapChunk:
+    lda $EC                      ; CONTROL_RETREAT_MAP_CHUNK
+    sec
+    sbc $03D2
+    sta $EC
+    lda $ED
+    sbc $03D3
+    sta $ED
+    rts
+.assert (* - BankStart) = $1DD2, error, "bank 0 redraw map helpers end"
+
 ; Return the space remaining in the $60-byte PPU update queue.
 PpuQueueRemaining:
     lda #$60                     ; CONTROL_PPU_QUEUE_REMAINING
