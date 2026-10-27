@@ -33,10 +33,10 @@ independent source trees or treat one version's evidence as verifying the rest.
 `make audit-all` checks reference integrity for all targets without requiring
 simultaneous reconstruction. Keep progress and completion evidence per target.
 
-The v1.5 build now assembles and links to the exact reference, with 16,328 bytes
+The v1.5 build now assembles and links to the exact reference, with 17,381 bytes
 of source code and 1,671 bytes of structured data across the physical PRG banks.
-It still includes 47,537 local PRG bytes and 65,536 local CHR bytes. A total of
-455 independent source-change controls verify every listed reconstructed region.
+It still includes 46,484 local PRG bytes and 65,536 local CHR bytes. A total of
+480 independent source-change controls verify every listed reconstructed region.
 Passing input audits or whole-ROM equality alone is not reconstruction
 completion. The developer identifies BOGUS as the
 state-machine engine in the [Vance Kozik interview](https://www.nesworld.com/kozik.php);
@@ -184,11 +184,11 @@ need separate verification.
 
 Palette-stream setup and animation now queue the matching background and sprite
 palette writes. The scroll dispatcher, target clamps and both axis workers are
-also source. The scroll mirror, chunk-pointer helpers and tile-row queueing are
-source; row attributes and column redraw remain local. Synthetic checks covered
-palette timing, scroll boundaries and queue capacity. A synthetic row check
-exercised chunk lookup and the nametable split, stopping before the attribute
-tail. These checks do not verify PPU timing or gameplay.
+also source, together with the scroll mirror, chunk-pointer helpers and tile
+row/column redraw queues including attributes. Synthetic checks covered palette
+timing, scroll boundaries, queue capacity, tile and attribute copying,
+nametable splits and attribute-bit merging. They do not verify PPU timing,
+mapper behavior or gameplay.
 The background palette loop retains Y from its offset calculation, unlike the
 sprite loop; a high-offset synthetic case preserves that original behavior.
 

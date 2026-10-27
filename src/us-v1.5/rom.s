@@ -3129,7 +3129,7 @@ HorizontalScrollNegativeQueue:
     jsr ScrollYTileCoordinate
     stx $039C
     jsr ResolveMapChunk
-    jsr $9B22
+    jsr QueueMapTileColumn
     jmp HorizontalScrollStepReturn
 ; Moving toward higher X similarly queues a column when within map bounds.
 HorizontalScrollStepPositive:
@@ -3155,7 +3155,7 @@ HorizontalScrollPositiveQueue:
     sbc $039F
     bcs HorizontalScrollPositiveApply
     jsr ResolveMapChunk
-    jsr $9B22
+    jsr QueueMapTileColumn
 HorizontalScrollPositiveApply:
     lda $03F3
     clc
@@ -3439,8 +3439,139 @@ MapTileRowMaybeSecond:
     beq MapTileRowAttributes
     jsr MapQueueSecondNametable ; Switch to the next nametable address.
     jmp MapTileRowQueue
+; After the tile row, decide whether this row needs attribute bytes. Some
+; row positions skip the attribute update; keep the queue offset in $0380.
 MapTileRowAttributes:
-    .incbin "bank0_9916_9a20.bin"
+    stx $0380 ; CONTROL_MAP_ROW_ATTRIBUTES
+    lda $03DF
+    and #$02
+    beq MapRowAttributesPrepare
+    jmp MapQueueStoreEnd
+; On alternating nametables, adjust the source row and chunk index before
+; selecting the attribute address and splitting at the nametable boundary.
+MapRowAttributesPrepare:
+    lda #$00 ; CONTROL_MAP_ROW_ATTRIBUTES_PREPARE
+    sta $EC
+    sta $ED
+    lda $03DA
+    and #$01
+    beq MapRowAttributesChunkBase
+    lda $039C
+    and #$07
+    cmp #$02
+    bcs MapRowAttributesAdjustY
+    lda $03AA
+    sta $EC
+MapRowAttributesAdjustY:
+    lda $039C
+    sec
+    sbc #$02
+    sta $039C
+MapRowAttributesChunkBase:
+    lda $03D8 ; CONTROL_MAP_ROW_ATTRIBUTES_CHUNK_BASE
+    sec
+    sbc $EC
+    sta $EC
+    lda $03D9
+    sbc $ED
+    sta $ED
+    ldx #$23
+    lda #$20
+    and $039A
+    beq MapRowAttributeAddress
+    ldx #$27
+; Form the $23C0/$27C0 attribute address and count up to nine entries.
+MapRowAttributeAddress:
+    stx $03D7 ; CONTROL_MAP_ROW_ATTRIBUTE_ADDRESS
+    lda $03DF
+    and #$FC
+    asl a
+    clc
+    adc #$C0
+    sta $03D6
+    lda $039A
+    and #$1F
+    lsr a
+    lsr a
+    clc
+    adc $03D6
+    sta $03D4
+    lda $03D7
+    sta $03D5
+    lda $03D7
+    eor #$04
+    sta $03D7
+    lda $039A
+    and #$1F
+    lsr a
+    lsr a
+    jsr NegateA
+    clc
+    adc #$08
+    sta $03DC
+    lda #$09
+    sta $03DD
+    lda $03A0
+    sec
+    sbc $039A
+    bne MapRowAttributesFirst
+    lda $03A1
+    sbc $039B
+    bne MapRowAttributesFirst
+    dec $03DD
+; Copy attribute spans in two-byte chunks, crossing the chunk and nametable
+; boundaries through the same helpers as the tile-row path.
+MapRowAttributesFirst:
+    lda $03DD ; CONTROL_MAP_ROW_ATTRIBUTES_FIRST
+    sec
+    sbc $03DC
+    sta $03DD
+    jsr MapChunkAttributeRowPointer
+    lda #$02
+    sta $03DB
+    lda $039A
+    and #$04
+    beq MapRowAttributesReady
+    dec $03DB
+    inc $F6
+    bne MapRowAttributesReady
+    inc $F7
+MapRowAttributesReady:
+    ldx $0380
+MapRowAttributesQueue:
+    lda #$00 ; CONTROL_MAP_ROW_ATTRIBUTES_QUEUE
+    sta $0300,x
+    inx
+    lda $03D5
+    sta $0300,x
+    inx
+    lda $03D4
+    sta $0300,x
+    inx
+    lda $03DC
+    sta $0300,x
+    inx
+MapRowAttributesCopyNext:
+    lda $03DB
+    bne MapRowAttributesCopyCount
+    jsr AdvanceMapChunk
+    jsr MapChunkAttributeRowPointer
+    lda #$02
+    sta $03DB
+MapRowAttributesCopyCount:
+    cmp $03DC
+    bcc MapRowAttributesCopySpan
+    lda $03DC
+    beq MapRowAttributesMaybeSecond
+MapRowAttributesCopySpan:
+    jsr MapTileRowConsumeSpan
+    jmp MapRowAttributesCopyNext
+MapRowAttributesMaybeSecond:
+    lda $03DD
+    beq MapRowAttributesMerge
+    jsr MapQueueSecondNametable
+    jmp MapRowAttributesQueue
+.assert (* - BankStart) = $1A20, error, "bank 0 map row attribute queue end"
 ; Move the remaining count and saved alternate nametable address into the
 ; active queue fields before emitting the second entry.
 MapQueueSecondNametable:
@@ -3454,7 +3585,108 @@ MapQueueSecondNametable:
     rts
 .assert (* - BankStart) = $1A35, error, "bank 0 map queue nametable switch end"
 
-    .incbin "bank0_9a35_9b07.bin"
+; For the other half of a wrapped row, merge four source bits into each
+; queued attribute byte using the bank-aware bit copier.
+MapRowAttributesMerge:
+    lda $03DA ; CONTROL_MAP_ROW_ATTRIBUTES_MERGE
+    and #$01
+    bne MapRowAttributesPrepareMerge
+    jmp MapQueueStoreEnd
+MapRowAttributesPrepareMerge:
+    stx $03D4 ; CONTROL_MAP_ROW_ATTRIBUTES_PREPARE_MERGE
+    lda $039C
+    clc
+    adc #$02
+    sta $039C
+    lda #$00
+    sta $EC
+    sta $ED
+    lda $039C
+    and #$07
+    cmp #$06
+    bcc MapRowAttributesMergeChunk
+    lda $03AA
+    sta $EC
+MapRowAttributesMergeChunk:
+    lda $03D8 ; CONTROL_MAP_ROW_ATTRIBUTES_MERGE_CHUNK
+    clc
+    adc $EC
+    sta $EC
+    lda $03D9
+    adc $ED
+    sta $ED
+    lda $039C
+    clc
+    adc #$02
+    sta $039C
+    lda $0380
+    clc
+    adc #$04
+    sta $03D6
+    tax
+    dex
+    lda $0300,x
+    sta $03DC
+    clc
+    adc $03D6
+    adc #$04
+    sta $03D7
+    cmp $03D4
+    bcs MapRowAttributesMergeSource
+    tax
+    dex
+    lda $0300,x
+    sta $03DD
+MapRowAttributesMergeSource:
+    jsr MapChunkAttributeRowPointer ; CONTROL_MAP_ROW_ATTRIBUTES_MERGE_SOURCE
+    lda #$02
+    sta $03DB
+    lda $039A
+    and #$04
+    beq MapRowAttributesMergeReady
+    dec $03DB
+    inc $F6
+    bne MapRowAttributesMergeReady
+    inc $F7
+MapRowAttributesMergeReady:
+    ldx $03D6
+MapRowAttributesMergeNext:
+    lda $03DB
+    bne MapRowAttributesMergeCount
+    jsr AdvanceMapChunk
+    jsr MapChunkAttributeRowPointer
+    lda #$02
+    sta $03DB
+MapRowAttributesMergeCount:
+    cmp $03DC
+    bcc MapRowAttributesMergeSpan
+    lda $03DC
+    beq MapRowAttributesMergeNextNametable
+MapRowAttributesMergeSpan:
+    jsr MapConsumeAttributeSpan
+    jsr CopyBitsToBuffer
+    jmp MapRowAttributesMergeNext
+; Deduct a span from the current chunk and remaining nametable counts.
+MapConsumeAttributeSpan:
+    sta $03D0 ; CONTROL_MAP_CONSUME_ATTRIBUTE_SPAN
+    lda $03DB
+    sec
+    sbc $03D0
+    sta $03DB
+    lda $03DC
+    sec
+    sbc $03D0
+    sta $03DC
+    rts
+MapRowAttributesMergeNextNametable:
+    lda $03DD ; CONTROL_MAP_ROW_ATTRIBUTES_MERGE_NEXT
+    beq MapQueueStoreEnd
+    sta $03DC
+    lda #$00
+    sta $03DD
+    ldx $03D7
+    jmp MapRowAttributesMergeNext
+.assert (* - BankStart) = $1B07, error, "bank 0 map row attribute merge end"
 MapQueueStoreEnd:
     stx $0380                    ; CONTROL_MAP_QUEUE_STORE_END
     rts
@@ -3476,7 +3708,285 @@ MapChunkAttributeRowPointer:
     jmp MapChunkOffsetPointer
 .assert (* - BankStart) = $1B22, error, "bank 0 map queue helpers end"
 
-    .incbin "bank0_9b22_9d63.bin"
+; Prepare a vertical tile column, using map width as the chunk stride. Split
+; the queue entry at the 30-tile nametable boundary and the map bottom.
+QueueMapTileColumn:
+    lda $EC ; CONTROL_QUEUE_MAP_TILE_COLUMN
+    sta $03D8
+    lda $ED
+    sta $03D9
+    lda $03AA
+    sta $03D2
+    lda #$00
+    sta $03D3
+    lda $039A
+    and #$1F
+    sta $03D6
+    ldx #$20
+    lda #$20
+    and $039A
+    beq MapColumnNametable
+    ldx #$24
+MapColumnNametable:
+    stx $03D7 ; CONTROL_MAP_COLUMN_NAMETABLE
+    ldx $039C
+    ldy #$00
+    lda #$1E
+    jsr DivideUnsigned16By8
+    stx $03DA
+    sty $03DC
+    sty $03DF
+    ldx #$20
+    jsr MultiplyUnsigned8
+    txa
+    clc
+    adc $03D6
+    sta $03D4
+    tya
+    adc $03D7
+    sta $03D5
+    lda $0396
+    sec
+    sbc $039C
+    cmp #$1E
+    bcc MapColumnFirstLength
+    lda #$1E
+MapColumnFirstLength:
+    sta $03DD ; CONTROL_MAP_COLUMN_FIRST_LENGTH
+    lda #$1E
+    sec
+    sbc $03DC
+    cmp $03DD
+    bcc MapColumnSource
+    lda $03DD
+MapColumnSource:
+    sta $03DC
+    lda $03DD
+    sec
+    sbc $03DC
+    sta $03DD
+    jsr MapChunkColumnPointer
+    lda $039C
+    and #$07
+    sta $03DB
+    asl a
+    asl a
+    asl a
+    clc
+    adc $F6
+    sta $F6
+    bcc MapColumnSourceReady
+    inc $F7
+MapColumnSourceReady:
+    lda #$08
+    sec
+    sbc $03DB
+    sta $03DB
+    ldx $0380
+; Emit vertical-increment PPU entries and copy tile spans with source stride 8.
+MapColumnQueue:
+    lda #$04 ; CONTROL_MAP_COLUMN_QUEUE
+    sta $0300,x
+    inx
+    lda $03D5
+    sta $0300,x
+    inx
+    lda $03D4
+    sta $0300,x
+    inx
+    lda $03DC
+    sta $0300,x
+    inx
+MapColumnCopyNext:
+    lda $03DB
+    bne MapColumnCopyCount
+    jsr AdvanceMapChunk
+    jsr MapChunkColumnPointer
+    lda #$08
+    sta $03DB
+MapColumnCopyCount:
+    cmp $03DC
+    bcc MapColumnCopySpan
+    lda $03DC
+    beq MapColumnMaybeSecond
+MapColumnCopySpan:
+    jsr MapConsumeAttributeSpan
+    lda #$08
+    sta $03D1
+    jsr CopyStridedToBuffer
+    jmp MapColumnCopyNext
+MapColumnMaybeSecond:
+    lda $03DD ; CONTROL_MAP_COLUMN_SECOND
+    beq MapColumnAttributes
+    jsr MapQueueSecondNametable
+    jmp MapColumnQueue
+; Gather the corresponding attribute column into scratch bytes. Some edge
+; cases select the previous chunk or rotate the packed attribute nibbles.
+MapColumnAttributes:
+    stx $0380 ; CONTROL_MAP_COLUMN_ATTRIBUTES
+    lda $03D8
+    sta $EC
+    lda $03D9
+    sta $ED
+    lda $03DA
+    and #$01
+    sta $03D1
+    lda $0396
+    sec
+    sbc $039C
+    cmp #$24
+    bcc MapColumnAttributesCount
+    lda #$24
+MapColumnAttributesCount:
+    clc ; CONTROL_MAP_COLUMN_ATTRIBUTES_COUNT
+    adc #$03
+    lsr a
+    lsr a
+    sta $03D4
+    sta $03DE
+    lda #$02
+    sta $03D0
+    jsr MapChunkAttributePointer
+    lda $03D1
+    beq MapColumnAttributeAlignment
+    lda $039C
+    and #$02
+    bne MapColumnAttributeAlignment
+    lda $039C
+    and #$04
+    bne MapColumnAttributesGather
+    jsr RetreatMapChunk
+    jsr MapChunkAttributePointer
+    jmp MapColumnAttributeOffset
+MapColumnAttributeAlignment:
+    lda $039C
+    and #$04
+    beq MapColumnAttributesGather
+MapColumnAttributeOffset:
+    lda #$01
+    sta $03D0
+    lda $F6
+    clc
+    adc #$02
+    sta $F6
+    bcc MapColumnAttributesGather
+    inc $F7
+MapColumnAttributesGather:
+    ldx #$00 ; CONTROL_MAP_COLUMN_ATTRIBUTES_GATHER
+MapColumnAttributesGatherNext:
+    lda $03D4
+    beq MapColumnAttributeRotateRight
+    sec
+    sbc $03D0
+    sta $03D4
+    jsr CopyIndexedToState
+    jsr AdvanceMapChunk
+    jsr MapChunkAttributePointer
+    lda #$02
+    sta $03D0
+    cmp $03D4
+    bcc MapColumnAttributesGatherNext
+    lda $03D4
+    sta $03D0
+    jmp MapColumnAttributesGatherNext
+; Rotate the scratch attribute bytes right four times when the nametable
+; alignment requires it; carry propagation spans the entire scratch array.
+MapColumnAttributeRotateRight:
+    lda $03D1 ; CONTROL_MAP_COLUMN_ATTRIBUTE_ROTATE_RIGHT
+    beq MapColumnAttributeTrim
+    ldy #$04
+MapColumnAttributeRotateRightLoop:
+    clc
+    ror $03DD
+    ror $03DC
+    ror $03DB
+    ror $03DA
+    ror $03D9
+    ror $03D8
+    ror $03D7
+    ror $03D6
+    ror $03D5
+    dey
+    bne MapColumnAttributeRotateRightLoop
+MapColumnAttributeTrim:
+    lda $03DF ; CONTROL_MAP_COLUMN_ATTRIBUTE_TRIM
+    and #$03
+    bne MapColumnAttributeAddress
+    lda $03DE
+    cmp #$08
+    bcc MapColumnAttributeAddress
+    lda #$08
+    sta $03DE
+; Emit one-byte PPU attribute entries, moving down eight bytes per entry.
+MapColumnAttributeAddress:
+    lda $039A ; CONTROL_MAP_COLUMN_ATTRIBUTE_ADDRESS
+    and #$1F
+    lsr a
+    lsr a
+    sta $03D2
+    lda $03DF
+    and #$FC
+    asl a
+    adc $03D2
+    adc #$C0
+    sta $03D2
+    ldx #$23
+    lda #$20
+    and $039A
+    beq MapColumnAttributeNametable
+    ldx #$27
+MapColumnAttributeNametable:
+    stx $03D3
+    ldx $0380
+    ldy #$00
+MapColumnAttributeQueue:
+    lda #$00 ; CONTROL_MAP_COLUMN_ATTRIBUTE_QUEUE
+    sta $0300,x
+    inx
+    lda $03D3
+    sta $0300,x
+    inx
+    lda $03D2
+    sta $0300,x
+    inx
+    lda #$01
+    sta $0300,x
+    inx
+    lda $03D5,y
+    iny
+    sta $0300,x
+    inx
+    lda $03D2
+    clc
+    adc #$08
+    ora #$C0
+    sta $03D2
+    bcc MapColumnAttributeNext
+    tya
+    pha
+    ldy #$04
+; On address wrap, rotate the scratch array left four times before continuing.
+MapColumnAttributeRotateLeft:
+    clc ; CONTROL_MAP_COLUMN_ATTRIBUTE_ROTATE_LEFT
+    rol $03D5
+    rol $03D6
+    rol $03D7
+    rol $03D8
+    rol $03D9
+    rol $03DA
+    rol $03DB
+    rol $03DC
+    rol $03DD
+    dey
+    bne MapColumnAttributeRotateLeft
+    pla
+    tay
+MapColumnAttributeNext:
+    dec $03DE
+    bne MapColumnAttributeQueue
+    stx $0380
+    rts
+.assert (* - BankStart) = $1D63, error, "bank 0 map column queue end"
 ; Select a tile-column offset within a map chunk, then resolve its tile pointer.
 MapChunkColumnPointer:
     lda $039A                    ; CONTROL_MAP_CHUNK_COLUMN_POINTER
