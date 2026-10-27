@@ -34,9 +34,9 @@ independent source trees or treat one version's evidence as verifying the rest.
 simultaneous reconstruction. Keep progress and completion evidence per target.
 
 The v1.5 build now assembles and links to the exact reference, with 20,575 bytes
-of source code and 2,034 bytes of structured data across the physical PRG banks.
-It still includes 42,927 local PRG bytes and 65,536 local CHR bytes. A total of
-668 independent source-change controls verify every listed reconstructed region.
+of source code and 2,166 bytes of structured data across the physical PRG banks.
+It still includes 42,795 local PRG bytes and 65,536 local CHR bytes. A total of
+670 independent source-change controls verify every listed reconstructed region.
 Passing input audits or whole-ROM equality alone is not reconstruction
 completion. The developer identifies BOGUS as the
 state-machine engine in the [Vance Kozik interview](https://www.nesworld.com/kozik.php);
@@ -206,7 +206,7 @@ branches or prove execution. Its output is ignored local analysis and does not
 count as reconstructed PRG.
 
 The [script-flow inventory](SCRIPT_FLOW.md) follows reviewed successor rules
-from those candidates. It finds 924 candidate commands and stops at 70 nodes
+from those candidates. It finds 971 candidate commands and stops at 73 nodes
 with dynamic or unreviewed handlers, with no physical-byte overlaps. Branches
 and resumes remain unverified possibilities; this analysis adds no PRG credit.
 
@@ -222,6 +222,12 @@ nonzero-mode record load at `$B92E` preserves the script pointer, so its
 continuation at `$B931` is also represented as a jump. Additional candidate
 graphs at `$BDD6`, `$D6E0` and `$EFF0` are structured. These are static command
 decodes; their gameplay roles and execution have not been established.
+
+The interpreter's `$95` command selects an encoded target by a two-byte slot
+value from inline four-byte cases, with a two-byte zero-target terminator.
+Partial graphs at bank 1 `$BA75` and `$BE03` now express their lookup cases and
+local targets as source; other referenced blocks remain local. The fetch reads
+four bytes even for the terminator, an important distinction for boundary checks.
 
 Controller handlers now express slot actions, pause toggling and signed motion
 updates, including the original stack-unwinding gates and overflow checks. The

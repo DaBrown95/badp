@@ -2,7 +2,7 @@
 import unittest
 
 from tools.script_entries import BANK_SIZE
-from tools.script_flow import walk
+from tools.script_flow import scan_lookup_table, walk
 
 
 def fixture():
@@ -47,7 +47,7 @@ class ScriptFlowTests(unittest.TestCase):
     def test_dynamic_handlers_stop_and_possible_yield_remains_uncertain(self):
         b0, b1, lengths = fixture()
         b1[0x10:0x12] = bytes([0x2d, 0x80])
-        for offset, opcode in ((0x20, 0x00), (0x30, 0x19), (0x40, 0x95)):
+        for offset, opcode in ((0x20, 0x00), (0x30, 0x19), (0x40, 0x17)):
             b1[offset] = opcode
         nodes = by_pointer(walk(bytes(b0), bytes(b1), bytes(lengths),
                                 [0x10, 0x20, 0x30, 0x40]))
@@ -97,6 +97,30 @@ class ScriptFlowTests(unittest.TestCase):
         for pointer in ('0x0030', '0x0040'):
             self.assertEqual(nodes[pointer]['status'], 'reviewed_yield_release_slot')
             self.assertEqual(nodes[pointer]['successors'], [])
+
+    def test_inline_lookup_matches_and_two_byte_terminator(self):
+        b0, b1, lengths = fixture()
+        b1[0x10:0x1c] = bytes([0x95, 0x20, 0, 1, 2, 0x30, 0, 3, 4, 0, 0, 0x80])
+        b1[0x20] = b1[0x30] = 0x80
+        result = walk(bytes(b0), bytes(b1), bytes(lengths), [0x10])
+        nodes = by_pointer(result)
+        self.assertEqual(nodes['0x0010']['status'], 'reviewed_inline_lookup_terminated')
+        self.assertEqual(nodes['0x0010']['successors'], [
+            {'kind': 'possible_table_match', 'encoded_pointer': '0x0020'},
+            {'kind': 'possible_table_match', 'encoded_pointer': '0x0030'},
+            {'kind': 'possible_no_match', 'encoded_pointer': '0x001b'}])
+        self.assertEqual(nodes['0x0010']['lookup_records'][-1]['size'], 2)
+        self.assertEqual(result['overlapping_physical_bytes'], 0)
+
+    def test_inline_lookup_stops_at_limit_and_bank_boundary(self):
+        b0, b1, _ = fixture()
+        b1[0x10:0x18] = bytes([0x20, 0, 1, 2, 0x30, 0, 3, 4])
+        limited = scan_lookup_table((bytes(b0), bytes(b1)), 0x10, limit=1)
+        self.assertEqual(limited['status'], 'limit')
+        self.assertEqual(len(limited['records']), 1)
+        crossing = scan_lookup_table((bytes(b0), bytes(b1)), 0x7ffd)
+        self.assertEqual(crossing['status'], 'crosses_bank_boundary')
+        self.assertNotIn('continuation', crossing)
 
     def test_encoded_bank_transition(self):
         b0, b1, lengths = fixture()

@@ -261,6 +261,46 @@ compareRangeReturn:
     .byte $BB
     .word target - $8000
 .endmacro
+; $95 fetches four-byte target/value cases, but consumes only the two-byte
+; zero target at the end before continuing with the next command.
+.macro BogusLookupSlotValue
+    .byte $95
+.endmacro
+.macro BogusLookupCaseBank1 target, value
+    .word target - $8000, value
+.endmacro
+.macro BogusLookupEnd
+    .word $0000
+.endmacro
+.macro BogusSetSlot05F0Pair first, second
+    .byte $06, first, second
+.endmacro
+.macro BogusSetSlot0660LowBits value
+    .byte $0D, value
+.endmacro
+.macro BogusSetSlotValue value
+    .byte $3E
+    .word value
+.endmacro
+.macro BogusStoreSlotValueArray selector
+    .byte $47, selector
+.endmacro
+.macro BogusLoadSlotValueArray selector
+    .byte $46, selector
+.endmacro
+.macro BogusSetSlotFields40Signed first, second
+    .byte $96, first, second
+.endmacro
+.macro BogusSetSlotAssociation value
+    .byte $10, value
+.endmacro
+.macro BogusBranchIfSlotValueAtLeast target, value
+    .byte $41
+    .word target - $8000, value
+.endmacro
+.macro BogusMultiplySlotValueByArray selector
+    .byte $72, selector
+.endmacro
 
 ; A command byte indexes three parallel tables: record length, and the low and
 ; high bytes of an RTS dispatch address. Handler addresses below are actual
@@ -12093,7 +12133,42 @@ ScriptBA53:
 ScriptBA57:
     BogusJumpBank1 ScriptBA57
 .assert (* - BankStart) = $3A5A, error, "bank 1 script BA53 end"
-    .incbin "bank1_ba5a_bcc0.bin"
+    .incbin "bank1_ba5a_ba75.bin"
+; This entry selects offsets using a slot-value lookup. A later branch targets
+; a still-local block at bank 1 CPU $BB11.
+ScriptBB11 = BankStart + $3B11
+ScriptBA75:
+    BogusSetDispatchCounter $8A
+    BogusRestartVoice4 $2745
+    BogusReadSlotValue $0F
+    BogusLookupSlotValue
+    BogusLookupCaseBank1 ScriptBA95, $0005 ; CONTROL_BOGUS_BA75
+    BogusLookupCaseBank1 ScriptBA95, $0006
+    BogusLookupCaseBank1 ScriptBA9B, $0007
+    BogusLookupCaseBank1 ScriptBA9B, $0008
+    BogusLookupEnd
+    BogusSetSlot05F0Pair $18, $7E
+    BogusJumpBank1 ScriptBA9E
+ScriptBA95:
+    BogusSetSlot05F0Pair $08, $7E
+    BogusJumpBank1 ScriptBA9E
+ScriptBA9B:
+    BogusSetSlot05F0Pair $10, $7E
+ScriptBA9E:
+    BogusSetUnlinkedFields $00, $FF
+    BogusSetSlot0640Pair $04, $00
+    BogusSetSlot0660LowBits $00
+    BogusClearSlot0790Bits $01
+    BogusSetSlotValue $0003
+    BogusStoreSlotValueArray $FF
+    BogusSetSlot0670Pair $01, $00
+    BogusSetSlotFields40Signed $18, $00
+    BogusWait $08
+    BogusLoadSlotRecord $00, $02
+    BogusBranchIfAbsSlot0700Below ScriptBB11, $18
+    BogusSetSlot0620Bit20
+.assert (* - BankStart) = $3ABD, error, "bank 1 script BA75 partial graph end"
+    .incbin "bank1_babd_bcc0.bin"
 ; Candidate entry from a slot descriptor. The full graph is contained here;
 ; gameplay role and runtime use are not yet established.
 ScriptBCC0:
@@ -12144,7 +12219,31 @@ ScriptBDED:
 ScriptBDF4:
     BogusYieldAndSlotAction $00
 .assert (* - BankStart) = $3DF6, error, "bank 1 script BDD6 end"
-    .incbin "bank1_bdf6_d6e0.bin"
+    .incbin "bank1_bdf6_be03.bin"
+; The shared target at $CFC7 remains local and is represented by its bank
+; address until that block is decoded.
+ScriptCFC7 = BankStart + $4FC7
+ScriptBE03:
+    BogusLookupSlotValue
+    BogusLookupCaseBank1 ScriptBE26, $0027 ; CONTROL_BOGUS_BE03
+    BogusLookupCaseBank1 ScriptBE26, $0029
+    BogusLookupCaseBank1 ScriptBE26, $002E
+    BogusLookupCaseBank1 ScriptBE26, $0030
+    BogusLookupCaseBank1 ScriptBE26, $0031
+    BogusLookupEnd
+    BogusSetVoicePointers $2AD8, $0000, $0000, $0000
+    BogusJumpBank1 ScriptBE2F
+ScriptBE26:
+    BogusSetVoicePointers $2C58, $2C70, $0000, $0000
+ScriptBE2F:
+    BogusSetSlotAssociation $00
+    BogusSetSlotValue $0002
+    BogusStoreSlotValueArray $FF
+    BogusLoadSlotValueArray $3D
+    BogusBranchIfSlotValueAtLeast ScriptCFC7, $00F8
+    BogusMultiplySlotValueByArray $FF
+.assert (* - BankStart) = $3E3F, error, "bank 1 script BE03 partial graph end"
+    .incbin "bank1_be3f_d6e0.bin"
 ; A slot-field comparison gates three matching-slot updates and waits.
 ScriptD6E0:
     BogusSetSlot0640Pair $04, $00

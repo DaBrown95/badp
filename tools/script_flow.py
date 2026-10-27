@@ -30,6 +30,36 @@ YIELD_RESUME = frozenset({0x07, 0x0F, 0x2E})
 POSSIBLE_YIELD = frozenset({0x08, 0x2D, 0x81, 0x96})
 
 
+def scan_lookup_table(banks: tuple[bytes, bytes], start: int, limit: int = 256) -> dict:
+    """Read $95 cases until the zero pointer, without assuming a match occurs."""
+    if type(limit) is not int or limit <= 0:
+        raise ValueError('invalid lookup-table limit')
+    position = start
+    records = []
+    seen = set()
+    for _ in range(limit):
+        if position in seen:
+            return {'records': records, 'status': 'cycle'}
+        seen.add(position)
+        bank, offset = _locate(position)
+        # The handler fetches four bytes even when the first two are zero.
+        if offset + 4 > BANK_SIZE:
+            return {'records': records, 'status': 'crosses_bank_boundary'}
+        data = banks[bank][offset:offset + 4]
+        target = int.from_bytes(data[:2], 'little')
+        if target == 0:
+            records.append({'encoded_pointer': f'0x{position:04x}',
+                            'location': _location(bank, offset), 'size': 2,
+                            'terminator': True})
+            return {'records': records, 'status': 'terminated',
+                    'continuation': (position + 2) & 0xFFFF}
+        records.append({'encoded_pointer': f'0x{position:04x}',
+                        'location': _location(bank, offset), 'size': 4,
+                        'target': target, 'slot_value': list(data[2:4])})
+        position = (position + 4) & 0xFFFF
+    return {'records': records, 'status': 'limit'}
+
+
 def walk(bank0: bytes, bank1: bytes, lengths: bytes, seeds: list[int],
          limit: int = 10000) -> dict:
     """Explore proven local successor rules, stopping on every unknown opcode."""
@@ -94,6 +124,18 @@ def walk(bank0: bytes, bank1: bytes, lengths: bytes, seeds: list[int],
                 edges.append(('possible_resume', following))
             else:
                 node['status'] = 'reviewed_yield_release_slot'
+        elif opcode == 0x95 and length == 1:
+            table = scan_lookup_table(banks, following)
+            node['status'] = 'reviewed_inline_lookup_' + table['status']
+            node['lookup_records'] = table['records']
+            for record in table['records']:
+                location = record['location']
+                for pos in range(location['bank_offset'], location['bank_offset'] + record['size']):
+                    coverage.setdefault((location['bank'], pos), set()).add(encoded)
+                if not record.get('terminator'):
+                    edges.append(('possible_table_match', record['target']))
+            if table['status'] == 'terminated':
+                edges.append(('possible_no_match', table['continuation']))
         elif opcode in CONDITIONAL_POINTER or opcode in UNCONDITIONAL_POINTER:
             if length < 3:
                 node['status'] = 'missing_pointer_operands'
