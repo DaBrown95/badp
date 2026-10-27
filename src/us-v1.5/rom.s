@@ -861,7 +861,7 @@ ClearPalette:
     sta $03FE
     jsr InitializeShadowOam
     jsr ClearSlotRecords
-    jsr InitializeEngineSlots
+    jsr InitializeAudioVoices
     jsr $CA5D
     jsr EnablePpuNmi
 MainLoop:
@@ -1097,21 +1097,141 @@ ApplyNmiPpuCtrl:
     jmp RestoreDefaultBank
 .assert (* - BankStart) = $044B, error, "bank 0 NMI PPU state size"
 
-    .incbin "bank0_844b_8480.bin"
-; Clear five eight-byte entries in the $04B0 state array.
-InitializeEngineSlots:
+; Start a voice by index A at command pointer Y:X. Invalid or already-active
+; indices return early. An available record receives matching start/current
+; pointers, a one-frame timer, cleared state, and initial flags $C0.
+StartAudioVoice:
+    stx $FE                      ; CONTROL_START_AUDIO_VOICE
+    sty $FF
+    jsr AudioVoiceOffset
+    beq StartAudioVoiceCheck
+    rts
+StartAudioVoiceCheck:
+    lda $04B0,x                  ; CONTROL_START_AUDIO_VOICE_CHECK
+    bpl StartAudioVoiceInitialize
+    lda #$01
+    rts
+StartAudioVoiceInitialize:
+    lda #$01                     ; CONTROL_START_AUDIO_VOICE_INITIALIZE
+    sta $04B1,x
+    lda #$00
+    sta $04B6,x
+    sta $04B7,x
+    lda $FE
+    sta $04B2,x
+    sta $04B4,x
+    lda $FF
+    sta $04B3,x
+    sta $04B5,x
+    lda #$C0
+    sta $04B0,x
+    rts
+.assert (* - BankStart) = $0480, error, "bank 0 audio voice start end"
+
+; Clear five eight-byte voice entries in the $04B0 state array.
+InitializeAudioVoices:
     lda #$00
     sta $03FB
     tax
-ClearEngineSlotBytes:
+ClearAudioVoiceBytes:
     sta $04B0,x
     inx
     cpx #$28                     ; CONTROL_SLOT_INIT
-    bne ClearEngineSlotBytes
+    bne ClearAudioVoiceBytes
     rts
 .assert (* - BankStart) = $048F, error, "bank 0 engine slot initializer size"
 
-    .incbin "bank0_848f_85b7.bin"
+; A=$FF stops each voice until the first invalid index; other values select a
+; voice index. The validated entry below also serves calls from audio commands.
+StopAudioVoice:
+    cmp #$FF                     ; CONTROL_STOP_AUDIO_VOICE
+    bne StopAudioVoiceByIndex
+    lda #$00
+StopAudioVoiceAllLoop:
+    pha
+    jsr StopAudioVoice
+    bne StopAudioVoiceAllDone
+    pla
+    clc
+    adc #$01
+    jmp StopAudioVoiceAllLoop
+StopAudioVoiceAllDone:
+    pla
+    lda #$00
+    rts
+StopAudioVoiceByIndex:
+    jsr AudioVoiceOffset         ; CONTROL_STOP_AUDIO_VOICE_BY_INDEX
+    beq StopAudioVoiceOffset
+    rts
+; X is a voice record offset. Inactive records do nothing; a shadowed voice
+; clears its record without changing the hardware channel.
+StopAudioVoiceOffset:
+    lda $04B0,x                  ; CONTROL_STOP_AUDIO_VOICE_OFFSET
+    bpl StopAudioVoiceReturn
+    tay
+    and #$60
+    beq StopAudioOwnedVoice
+    lda #$00
+    sta $04B0,x
+    jmp StopAudioVoiceReturn
+; Stop the owned channel, then find the first shadowed voice on that channel
+; and restore its instrument, enable bit and ownership flag.
+StopAudioOwnedVoice:
+    jsr RestartAudioVoiceChannel ; CONTROL_STOP_AUDIO_OWNED_VOICE
+    lda $04B0,x
+    pha
+    lda #$00
+    sta $04B0,x
+    pla
+    and #$1F
+    sta $FE
+    cmp #$1F
+    beq StopAudioVoiceReturn
+    ldx #$00
+StopAudioFindShadow:
+    txa                          ; CONTROL_STOP_AUDIO_FIND_SHADOW
+    pha
+    lda $04B0,x
+    bpl StopAudioNextShadow
+    and #$20
+    beq StopAudioNextShadow
+    lda $04B0,x
+    and #$1F
+    eor $FE
+    bne StopAudioNextShadow
+    pla
+    jsr WriteAudioVoiceInstrument
+    jsr EnableAudioVoiceChannel
+    lda $04B0,x
+    and #$DF
+    sta $04B0,x
+    jmp StopAudioVoiceReturn
+StopAudioNextShadow:
+    pla
+    clc
+    adc #$08
+    tax
+    cmp #$28
+    bcc StopAudioFindShadow
+StopAudioVoiceReturn:
+    lda #$00
+    rts
+; A valid active index returns 1; an inactive index returns 0. Invalid indices
+; preserve the $FF error from AudioVoiceOffset.
+IsAudioVoiceActive:
+    jsr AudioVoiceOffset         ; CONTROL_IS_AUDIO_VOICE_ACTIVE
+    bne AudioVoiceActiveReturn
+    lda $04B0,x
+    bmi AudioVoiceIsActive
+    lda #$00
+AudioVoiceActiveReturn:
+    rts
+AudioVoiceIsActive:
+    lda #$01
+    rts
+.assert (* - BankStart) = $0517, error, "bank 0 audio voice stop and query end"
+
+    .incbin "bank0_8517_85b7.bin"
 ; Writes the PPUCTRL mirror with the NMI bit set; the mirror itself is not
 ; updated here. This routine is a shared tail return from the NMI frame work.
 EnablePpuNmi:
@@ -2311,7 +2431,7 @@ AudioPresetDone:
     pla
     tax
     jmp AudioFinishNote
-; $A0-$BF select an instrument; unconverted commands continue at $90B3.
+; $A0-$BF select an instrument; other high commands continue below.
 AudioHighCommand:
     cmp #$A0                     ; CONTROL_AUDIO_HIGH_COMMAND
     bne AudioOtherCommand
@@ -2327,10 +2447,200 @@ AudioFinishControlCommand:
     lda #$01
     sta $04B1,x
     jmp AudioNextVoice
-.assert (* - BankStart) = $10B3, error, "bank 0 audio update partial end"
+.assert (* - BankStart) = $10B3, error, "bank 0 audio update dispatch end"
 
+; $C0 repeats a command stream: initialize/decrement the loop counter, jump
+; to the supplied pointer while nonzero, then skip its four-byte command.
 AudioOtherCommand:
-    .incbin "bank0_90b3_922c.bin"
+    lda $0100,y                   ; CONTROL_AUDIO_LOOP_COMMAND
+    cmp #$C0
+    bne AudioCommandMaskSet
+    lda $04B7,x
+    bne AudioLoopDecrement
+    lda $0101,y
+    sta $04B7,x
+AudioLoopDecrement:
+    dec $04B7,x
+    beq AudioLoopFinished
+    lda $0102,y
+    sta $04B4,x
+    lda $0103,y
+    sta $04B5,x
+    jmp AudioReadCommand
+AudioLoopFinished:
+    jsr AdvanceAudioCommandTwo
+    jsr AdvanceAudioCommandTwo
+    jmp AudioReadCommand
+; $C2 and $C3 respectively set and clear the voice's channel bit in the
+; $03FB mask used when copying the special five-byte note presets.
+AudioCommandMaskSet:
+    cmp #$C2                     ; CONTROL_AUDIO_COMMAND_MASK_SET
+    bne AudioCommandMaskClear
+    jsr AudioVoiceChannelMask
+    ora $03FB
+    sta $03FB
+    jmp AudioFinishControlCommand
+AudioCommandMaskClear:
+    cmp #$C3                     ; CONTROL_AUDIO_COMMAND_MASK_CLEAR
+    bne AudioCommandDispatch
+    jsr AudioVoiceChannelMask
+    pha
+    ora $03FB
+    sta $03FB
+    pla
+    eor $03FB
+    sta $03FB
+    jmp AudioFinishControlCommand
+; All other commands dispatch on their low five bits. Values 0-3 select one
+; of four APU channel offsets and mark an identical previous voice as shadowed.
+AudioCommandDispatch:
+    lda $0100,y                  ; CONTROL_AUDIO_COMMAND_DISPATCH
+    and #$1F
+    cmp #$04
+    bcs AudioCommandRestorePointer
+    and #$03
+    asl a
+    asl a
+    pha
+    lda $04B0,x
+    and #$E0
+    sta $04B0,x
+    pla
+    ora $04B0,x
+    and #$9F
+    sta $03D0
+    sta $04B0,x
+    stx $03D1
+    ldx #$00
+AudioCommandFindConflict:
+    lda $04B0,x
+    eor $03D0
+    bne AudioCommandNextConflict
+    lda $04B0,x
+    ora #$20
+    sta $04B0,x
+AudioCommandNextConflict:
+    txa
+    clc
+    adc #$08
+    tax
+    cmp #$28
+    bcc AudioCommandFindConflict
+    ldx $03D1
+    lda $03D0
+    sta $04B0,x
+    jsr EnableAudioVoiceChannel
+    jmp AudioFinishControlCommand
+; Low values 4-7 restore the stored command pointer; 8-11 stop the current
+; voice by record offset.
+AudioCommandRestorePointer:
+    cmp #$08                     ; CONTROL_AUDIO_COMMAND_RESTORE_POINTER
+    bcs AudioCommandStopVoice
+    lda $04B2,x
+    sta $04B4,x
+    lda $04B3,x
+    sta $04B5,x
+    jmp AudioFinishControlCommand
+AudioCommandStopVoice:
+    cmp #$0C                     ; CONTROL_AUDIO_COMMAND_STOP_VOICE
+    bcs AudioCommandWriteRegister
+    txa
+    pha
+    jsr StopAudioVoiceOffset
+    pla
+    tax
+    jmp AudioFinishControlCommand
+; Values 12-15 write the following byte to the voice register selected by the
+; low two bits, unless voice flags $60 suppress writes. Consume two bytes.
+AudioCommandWriteRegister:
+    cmp #$10                     ; CONTROL_AUDIO_COMMAND_WRITE_REGISTER
+    bcs AudioCommandRestartChannel
+    lda $04B0,x
+    and #$60
+    bne AudioCommandWriteRegisterDone
+    lda $04B0,x
+    and #$1F
+    sta $03E0
+    ldy $03DD
+    lda $0100,y
+    and #$03
+    clc
+    adc $03E0
+    sta $F6
+    lda #$40
+    sta $F7
+    ldy $03DD
+    lda $0101,y
+    ldy #$00
+    sta ($F6),y
+AudioCommandWriteRegisterDone:
+    jsr AdvanceAudioCommandOne
+    jmp AudioFinishControlCommand
+AudioCommandRestartChannel:
+    cmp #$14                     ; CONTROL_AUDIO_COMMAND_RESTART_CHANNEL
+    bcs AudioCommandEnableChannel
+    jsr RestartAudioVoiceChannel
+    jmp AudioFinishControlCommand
+AudioCommandEnableChannel:
+    cmp #$18                     ; CONTROL_AUDIO_COMMAND_ENABLE_CHANNEL
+    bcs AudioCommandSelectAll
+    jsr EnableAudioVoiceChannel
+    jmp AudioFinishControlCommand
+; $18 selects the special $1F register offset and enables the tone channels.
+AudioCommandSelectAll:
+    cmp #$18                     ; CONTROL_AUDIO_COMMAND_SELECT_ALL
+    bne AudioCommandWriteFive
+    lda $04B0,x
+    and #$E0
+    ora #$1F
+    and #$9F
+    sta $04B0,x
+    jsr EnableAudioVoiceChannel
+    jmp AudioFinishControlCommand
+; $19 writes five consecutive APU registers unless voice flags suppress it.
+; BUG: Only five total bytes were copied to the six-byte stack buffer, so the
+; fifth register receives the untouched final stack byte. Five bytes advance.
+AudioCommandWriteFive:
+    cmp #$19                     ; CONTROL_AUDIO_COMMAND_WRITE_FIVE
+    bne AudioCommandDelay
+    lda $04B0,x
+    and #$60
+    bne AudioCommandWriteFiveDone
+    lda $04B0,x
+    and #$1F
+    sta $F6
+    lda #$40
+    sta $F7
+    lda $03DD
+    sta $03DB
+    ldy #$00
+AudioCommandWriteFiveLoop:
+    sty $03DC
+    inc $03DB
+    ldy $03DB
+    lda $0100,y
+    ldy $03DC
+    sta ($F6),y
+    iny
+    cpy #$05
+    bne AudioCommandWriteFiveLoop
+AudioCommandWriteFiveDone:
+    jsr AdvanceAudioCommandTwo
+    jsr AdvanceAudioCommandTwo
+    jmp AudioFinishControlCommand
+; $1B loads an explicit duration and consumes two bytes. Other values use the
+; ordinary one-byte completion path.
+AudioCommandDelay:
+    cmp #$1B                     ; CONTROL_AUDIO_COMMAND_DELAY
+    bne AudioCommandDefault
+    ldy $03DD
+    lda $0101,y
+    sta $04B1,x
+    jsr AdvanceAudioCommandTwo
+    jmp AudioNextVoice
+AudioCommandDefault:
+    jmp AudioFinishControlCommand
+.assert (* - BankStart) = $122C, error, "bank 0 audio command interpreter end"
 ; Derive the APU channel bit from the voice record's register offset. The
 ; special offset $1F maps to the four non-DMC channels instead of one bit.
 EnableAudioVoiceChannel:
@@ -4749,8 +5059,8 @@ ScriptOp30:
     sta $0790,x
     rts
 
-; Opcode $31 processes four pairs of operands. A $FF second byte skips the
-; pair; other meanings depend on the unconverted routines at $848F and $844B.
+; Opcode $31 processes four audio voice pointers. A $FF second byte skips the
+; pair; otherwise it stops the indexed voice and starts it if the high byte is nonzero.
 ScriptOp31:
     lda #$00                      ; CONTROL_SCRIPT_OP31
     sta $03
@@ -4772,14 +5082,14 @@ ScriptOp31Pair:
     cmp #$FF
     beq ScriptOp31Next
     lda $03
-    jsr $848F
+    jsr StopAudioVoice
     lda $12
     beq ScriptOp31Next
     tay
     lda $11
     tax
     lda $03
-    jsr $844B
+    jsr StartAudioVoice
 ScriptOp31Next:
     inc $03
     rts
@@ -5292,7 +5602,7 @@ ScriptOp49:
     cmp #$FF                     ; CONTROL_SCRIPT_OP49
     beq ScriptOp49Return
     lda #$04
-    jsr $848F
+    jsr StopAudioVoice
 ScriptOp50:
     lda $62                      ; CONTROL_SCRIPT_OP50
     beq ScriptOp49Return
@@ -5302,7 +5612,7 @@ ScriptOp50:
     lda $61
     tax
     lda #$04
-    jsr $844B
+    jsr StartAudioVoice
 ScriptOp49Return:
     rts
 ScriptOp4A:
@@ -5812,7 +6122,7 @@ ScriptOp75To76:
     sta $0520,x
     rts
 
-; Opcode $77 examines up to four operands through $8507. The helper discards
+; Opcode $77 examines up to four audio voice states. The helper discards
 ; its return address on a successful test before jumping to the script target.
 ScriptOp77:
     ldx $63                      ; CONTROL_SCRIPT_OP77
@@ -5830,7 +6140,7 @@ ScriptOp77:
 ScriptOp77Test:
     cpx #$FF
     beq ScriptOp77Return
-    jsr $8507
+    jsr IsAudioVoiceActive
     beq ScriptOp77Return
     pla
     pla
@@ -8412,11 +8722,11 @@ UpdateSlotBounds:
 ; Opcode $18 invokes the same two unconverted $84xx routines used by $49.
 ScriptOp18:
     lda #$04                     ; CONTROL_SCRIPT_OP18
-    jsr $848F
+    jsr StopAudioVoice
     ldx #$C8
     ldy #$26
     lda #$04
-    jsr $844B
+    jsr StartAudioVoice
     rts
 .assert (* - BankStart) = $7D38, error, "bank 0 script handler opcode $18"
 

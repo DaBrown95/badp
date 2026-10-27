@@ -33,10 +33,10 @@ independent source trees or treat one version's evidence as verifying the rest.
 `make audit-all` checks reference integrity for all targets without requiring
 simultaneous reconstruction. Keep progress and completion evidence per target.
 
-The v1.5 build now assembles and links to the exact reference, with 14,215 bytes
+The v1.5 build now assembles and links to the exact reference, with 14,781 bytes
 of source code and 1,671 bytes of structured data across the physical PRG banks.
-It still includes 49,650 local PRG bytes and 65,536 local CHR bytes. A total of
-396 independent source-change controls verify every listed reconstructed region.
+It still includes 49,084 local PRG bytes and 65,536 local CHR bytes. A total of
+417 independent source-change controls verify every listed reconstructed region.
 Passing input audits or whole-ROM equality alone is not reconstruction
 completion. The developer identifies BOGUS as the
 state-machine engine in the [Vance Kozik interview](https://www.nesworld.com/kozik.php);
@@ -183,11 +183,16 @@ covered those paths and the reserved offset. PPU timing and gameplay still
 need separate verification.
 
 The sprite animation update now advances timers and handles loop or hold-on-
-last-frame behavior. The audio update's voice scan, note setup, instrument
-selection and channel helpers are source; other command handlers and sound
-tables remain local. Focused instruction-subset checks on synthetic records
-exercise animation states, APU register writes, voice bounds and pointer carry;
-they do not verify hardware timing or sound playback.
+last-frame behavior. The audio voice start, stop, arbitration and command
+interpreter are source; instrument, note-preset and period tables remain local.
+Focused instruction-subset checks on synthetic records exercise animation,
+audio commands, APU register writes, voice bounds and pointer carry; they do
+not verify hardware timing or sound playback.
+
+The original five-register audio command reads its fifth value from the sixth
+stack-buffer byte, although its caller copies only five bytes total. A synthetic
+check confirms the resulting stale stack value and five-byte pointer advance;
+the matching source preserves this apparent bug.
 
 A local decoder reads both pointer tables, deduplicates aliases and round-trips
 32 streams containing 523 eight-byte records plus four-byte terminators through
