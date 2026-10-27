@@ -981,7 +981,61 @@ EnablePpuNmi:
     rts
 .assert (* - BankStart) = $05C0, error, "bank 0 NMI enable routine size"
 
-    .incbin "bank0_85c0_9e3c.bin"
+    .incbin "bank0_85c0_8d7d.bin"
+; Convert an index into an eleven-byte $0400 record, then store $04DC at its
+; offset $0A. Out-of-range indices return without the store.
+StoreSlotRecordField0A:
+    jsr SlotRecordOffset         ; CONTROL_STORE_RECORD_FIELD_0A
+    bne SlotRecordStoreReturn
+    lda $04DC
+    sta $040A,x
+    lda #$00
+SlotRecordStoreReturn:
+    rts
+
+; Look up a valid record's offset $06 and return it in X. The validation
+; helper below may discard this routine's return address on failure.
+GetSlotRecordField06:
+    jsr RequireSlotRecord        ; CONTROL_GET_RECORD_FIELD_06
+    lda $0406,x
+    tax
+    lda #$00
+    rts
+
+; Invalid indices and records with zero $0400 flags return early from the
+; caller: the helper discards its caller's return address and returns the
+; error in A. A nonzero record flag returns normally with its offset in X.
+RequireSlotRecord:
+    jsr SlotRecordOffset         ; CONTROL_REQUIRE_SLOT_RECORD
+    bne SlotRecordAbortCaller
+    lda $0400,x
+    beq SlotRecordEmpty
+    rts
+SlotRecordEmpty:
+    lda #$01
+SlotRecordAbortCaller:
+    tax
+    pla
+    pla
+    txa
+    rts
+
+; Valid indices $00-$0F map to offsets index*11 in X; invalid values return
+; $FF in A. The high multiplication byte is left in Y as in the original.
+SlotRecordOffset:
+    cmp #$10                     ; CONTROL_SLOT_RECORD_OFFSET
+    bcs SlotRecordOffsetInvalid
+    tax
+    ldy #$0B
+    jsr MultiplyUnsigned8
+    lda #$00
+    rts
+SlotRecordOffsetInvalid:
+    lda #$FF
+    rts
+.assert (* - BankStart) = $0DB7, error, "bank 0 slot record index helpers end"
+
+    .incbin "bank0_8db7_9e3c.bin"
 ; Eight rounds of shift/add multiplication. The original returns the low byte
 ; in X and high byte in Y, using $03E2-$03E4 as scratch.
 MultiplyUnsigned8:
@@ -1696,7 +1750,7 @@ ScriptGetSlotPointer:
     rts
 ScriptGetSlotFlags:
     lda $10
-    jsr $8D95
+    jsr RequireSlotRecord
     lda $0400,x
     ldx $10
     rts
@@ -1916,7 +1970,7 @@ ScriptOp27:
     jmp ScriptSetPointerFromOperands
 ScriptOp28:
     lda $10
-    jsr $8D8B
+    jsr GetSlotRecordField06
     cpx $63                       ; CONTROL_SCRIPT_OP28
     bcs ScriptOp25Jump
     rts
@@ -4245,7 +4299,7 @@ ScriptOpC4:
     jsr ScriptOperand61OrSlot
     sta $04DC
     lda $10
-    jsr $8D7D
+    jsr StoreSlotRecordField0A
     lda #$00
     sta $61
     lda #$01
@@ -4424,11 +4478,298 @@ SlotUpdateSecondLimited:
     bmi SlotUpdateUnlinked
     jsr UpdateLinkedSlotPosition
     jmp TrackSlotPositionChanges
-; The unlinked movement path at $ECA3 remains local input for now.
-SlotUpdateUnlinked = BankStart + $6CA3
 .assert (* - BankStart) = $6CA3, error, "bank 0 slot update prefix end"
 
-    .incbin "bank0_eca3_eea6.bin"
+; For an unlinked slot, derive a signed step from $0510, in eighths, and
+; constrain it against the vertical bounds selected by $05D0 bits $08/$20.
+SlotUpdateUnlinked:
+    lda $0510,x                   ; CONTROL_UNLINKED_VERTICAL
+    bpl UnlinkedVerticalMagnitude
+    jsr NegateA
+UnlinkedVerticalMagnitude:
+    jsr ShiftARight3
+    sta $03
+    ldy $0510,x
+    bpl UnlinkedVerticalSigned
+    jsr NegateA
+UnlinkedVerticalSigned:
+    sta $04
+    lda $05D0,x
+    and #$28
+    beq UnlinkedSplitVertical
+    lda $04
+    bpl UnlinkedVerticalPositive
+    lda $0590,x
+    sta $11
+    lda $05D0,x
+    and #$20
+    bne UnlinkedVerticalNegativeLimit
+    lda $B0,x
+    sta $11
+UnlinkedVerticalNegativeLimit:
+    lda $03
+    cmp $11
+    bcc UnlinkedSplitVertical
+    lda $11
+    sta $03
+    jsr NegateA
+    jmp UnlinkedVerticalStoreSigned
+UnlinkedVerticalPositive:
+    lda $05D0,x
+    and #$08
+    bne UnlinkedVerticalBottom
+    lda $04
+    clc
+    adc $0590,x
+    bcs UnlinkedVerticalClampTop
+    cmp #$EF
+    bcc UnlinkedSplitVertical
+UnlinkedVerticalClampTop:
+    lda #$EF
+    sec
+    sbc $0590,x
+    jmp UnlinkedVerticalClampStore
+UnlinkedVerticalBottom:
+    lda $04
+    clc
+    adc $B0,x
+    bcs UnlinkedVerticalClampBottom
+    cmp #$EF
+    bcc UnlinkedSplitVertical
+UnlinkedVerticalClampBottom:
+    lda #$EF
+    sec
+    sbc $B0,x
+UnlinkedVerticalClampStore:
+    sta $03
+UnlinkedVerticalStoreSigned:
+    sta $04
+
+; Split each component into an initial step of at most eight and a remainder.
+; Negative components retain their sign using the original two's complement.
+UnlinkedSplitVertical:
+    lda $04                       ; CONTROL_UNLINKED_SPLIT_VERTICAL
+    sta $06
+    lda #$00
+    sta $04
+    lda $03
+    sec
+    sbc #$08
+    bcc UnlinkedSplitHorizontal
+    beq UnlinkedSplitHorizontal
+    sta $04
+    lda #$08
+    sta $06
+    lda $0510,x
+    bpl UnlinkedSplitHorizontal
+    lda $04
+    jsr NegateA
+    sta $04
+    lda $06
+    jsr NegateA
+    sta $06
+UnlinkedSplitHorizontal:
+    lda #$00
+    sta $03
+    lda $0500,x
+    bpl UnlinkedHorizontalPositive
+    jsr NegateA
+    jsr ShiftARight3
+    ldx #$FF
+    jmp UnlinkedHorizontalSplit
+UnlinkedHorizontalPositive:
+    jsr ShiftARight3
+    sta $05
+    lda $05D0,x
+    and #$10
+    beq UnlinkedHorizontalUseMagnitude
+    lda $0580,x
+    bpl UnlinkedHorizontalUseMagnitude
+    jsr NegateA
+    sec
+    sbc $0570,x
+    bcs UnlinkedHorizontalCompare
+    lda #$00
+    sta $05
+UnlinkedHorizontalCompare:
+    cmp $05
+    bcs UnlinkedHorizontalUseMagnitude
+    sta $05
+UnlinkedHorizontalUseMagnitude:
+    ldx #$00
+    lda $05
+UnlinkedHorizontalSplit:
+    sta $05
+    sec
+    sbc #$08
+    bcc UnlinkedHorizontalSign
+    beq UnlinkedHorizontalSign
+    sta $03
+    lda #$08
+    sta $05
+UnlinkedHorizontalSign:
+    cpx #$00
+    beq UnlinkedMoveSetup
+    lda $03
+    jsr NegateA
+    sta $03
+    lda $05
+    jsr NegateA
+    sta $05
+
+; Try the combined step. If it succeeds, flag moved axes and continue with
+; the remainders. A failed step enters separate horizontal and vertical probes.
+UnlinkedMoveSetup:
+    ldx $10                       ; CONTROL_UNLINKED_MOVE_SETUP
+    lda $0620,x
+    ldy $06
+    bne UnlinkedKeepVerticalFlag
+    and #$FE
+UnlinkedKeepVerticalFlag:
+    ldy $05
+    bne UnlinkedKeepHorizontalFlag
+    and #$FD
+UnlinkedKeepHorizontalFlag:
+    sta $0620,x
+UnlinkedMoveLoop:
+    ldx $05
+    ldy $06
+    txa
+    ora $06
+    bne UnlinkedMoveAttempt
+    jmp UnlinkedMoveFinish
+UnlinkedMoveAttempt:
+    jsr ApplySlotOffsetIfClear
+    bne UnlinkedHorizontalAttempt
+    lda $05
+    beq UnlinkedMovedVertical
+    jsr SetSlotFlag02
+UnlinkedMovedVertical:
+    lda $06
+    beq UnlinkedUseRemainders
+    jsr SetSlotFlag01
+    lda $0620,x
+    and #$EF
+    sta $0620,x
+UnlinkedUseRemainders:
+    lda $04
+    sta $06
+    lda $03
+    sta $05
+    lda #$00
+    sta $03
+    sta $04
+    jmp UnlinkedMoveLoop
+
+; A blocked horizontal component is repeatedly halved while testing offsets.
+; The original sign-extension sequence and its stopping conditions are kept.
+UnlinkedHorizontalAttempt:
+    ldx $05                       ; CONTROL_UNLINKED_HORIZONTAL
+    beq UnlinkedVerticalAttempt
+    ldy #$00
+    jsr ApplySlotOffsetIfClear
+    bne UnlinkedHorizontalBlocked
+    jsr SetSlotFlag02
+    lda $03
+    sta $05
+    lda #$00
+    sta $03
+    jmp UnlinkedHorizontalAttempt
+UnlinkedHorizontalBlocked:
+    lda $0620,x
+    and #$02
+    bne UnlinkedHorizontalReflect
+    lda $0500,x
+    and #$80
+    beq UnlinkedHorizontalStore
+    lda #$FF
+    jmp UnlinkedHorizontalStore
+UnlinkedHorizontalReflect:
+    lda $0500,x
+    jsr TransformSlotSignedValue
+UnlinkedHorizontalStore:
+    sta $0500,x
+UnlinkedHorizontalRetry:
+    lda $05
+    rol a
+    lda $05
+    ror a
+    sta $05
+    tax
+    bne UnlinkedHorizontalProbe
+    inx
+UnlinkedHorizontalProbe:
+    ldy #$00
+    jsr ApplySlotOffsetIfClear
+    bne UnlinkedHorizontalCheckRetry
+    jsr SetSlotFlag02
+    jmp UnlinkedHorizontalRetry
+UnlinkedHorizontalCheckRetry:
+    lda $05
+    beq UnlinkedVerticalAttempt
+    cmp #$FF
+    bne UnlinkedHorizontalRetry
+
+; Apply the same probing strategy vertically, setting bit $10 for positive
+; blocked movement and selecting the original response from $0620 bit 0.
+UnlinkedVerticalAttempt:
+    ldy $06                       ; CONTROL_UNLINKED_VERTICAL_ATTEMPT
+    beq UnlinkedMoveFinish
+    ldx #$00
+    jsr ApplySlotOffsetIfClear
+    bne UnlinkedVerticalBlocked
+    jsr SetSlotFlag01
+    lda $04
+    sta $06
+    lda #$00
+    sta $04
+    jmp UnlinkedVerticalAttempt
+UnlinkedVerticalBlocked:
+    lda $06
+    bmi UnlinkedVerticalResponse
+    lda $0620,x
+    ora #$10
+    sta $0620,x
+UnlinkedVerticalResponse:
+    lda $0620,x
+    and #$01
+    bne UnlinkedVerticalReflect
+    lda $0510,x
+    and #$80
+    beq UnlinkedVerticalStore
+    lda #$FF
+    jmp UnlinkedVerticalStore
+UnlinkedVerticalReflect:
+    lda $0510,x
+    jsr TransformSlotSignedValue
+UnlinkedVerticalStore:
+    sta $0510,x
+UnlinkedVerticalRetry:
+    lda $06
+    rol a
+    lda $06
+    ror a
+    sta $06
+    tay
+    bne UnlinkedVerticalProbe
+    iny
+UnlinkedVerticalProbe:
+    ldx #$00
+    jsr ApplySlotOffsetIfClear
+    bne UnlinkedVerticalCheckRetry
+    jsr SetSlotFlag01
+    jmp UnlinkedVerticalRetry
+UnlinkedVerticalCheckRetry:
+    lda $06
+    beq UnlinkedMoveFinish
+    cmp #$FF
+    bne UnlinkedVerticalRetry
+UnlinkedMoveFinish:
+    jsr UpdateSlotDirectionBits
+    jsr SyncSlotDirection
+.assert (* - BankStart) = $6EA6, error, "bank 0 unlinked movement end"
+
+
 ; When $05D0 is negative, calculate three values and call $D067 only if one
 ; differs from its saved copy. The downstream consumer is not yet recovered.
 TrackSlotPositionChanges:
