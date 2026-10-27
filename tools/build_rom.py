@@ -977,6 +977,60 @@ MUTATIONS = {
     'runtime_record_e353': ('CONTROL_RUNTIME_RECORD_E353', 'SlotRuntimeRecord $FFFF, (RuntimeScriptE764 - BankStart), $00, $FF, $00, $00, $00', 'SlotRuntimeRecord $FFFF, (RuntimeScriptE764 - BankStart + 1), $00, $FF, $00, $00, $00'),
     'runtime_record_f410': ('CONTROL_RUNTIME_RECORD_F410', 'SlotCompactRecord $BA4B, $00', 'SlotCompactRecord $BA4A, $00'),
     'runtime_record_f422': ('CONTROL_RUNTIME_RECORD_F422', 'SlotRuntimeRecord $FFFF, (RuntimeScriptF432 - BankStart), $00, $FF, $00, $00, $00', 'SlotRuntimeRecord $FFFF, (RuntimeScriptF432 - BankStart + 1), $00, $FF, $00, $00, $00'),
+    'successor_script_adcd': ('CONTROL_SUCCESSOR_SCRIPT_ADCD', 'BogusLoadRecordAndClearSavedState $12', 'BogusLoadRecordAndClearSavedState $13'),
+    'successor_script_ae02': ('CONTROL_SUCCESSOR_SCRIPT_AE02', 'BogusSetSlotC0 $FF', 'BogusSetSlotC0 $FE'),
+    'successor_script_ae1d': ('CONTROL_SUCCESSOR_SCRIPT_AE1D', 'BogusSetDispatchCounter $06', 'BogusSetDispatchCounter $07'),
+    'successor_script_ae7c': ('CONTROL_SUCCESSOR_SCRIPT_AE7C', 'BogusSetDispatchCounter $85', 'BogusSetDispatchCounter $84'),
+    'successor_script_aea6': ('CONTROL_SUCCESSOR_SCRIPT_AEA6', 'BogusSetSlotC0 $FF', 'BogusSetSlotC0 $FE'),
+    'successor_script_aef1': ('CONTROL_SUCCESSOR_SCRIPT_AEF1', 'BogusSetSlot0790Bits $FF', 'BogusSetSlot0790Bits $FE'),
+    'successor_script_af59': ('CONTROL_SUCCESSOR_SCRIPT_AF59', 'BogusSetDispatchCounter $02', 'BogusSetDispatchCounter $03'),
+    'successor_script_afbd': ('CONTROL_SUCCESSOR_SCRIPT_AFBD', 'BogusBranchIfSlotD0Bits RuntimeScriptAFED, $80', 'BogusBranchIfSlotD0Bits RuntimeScriptAFED, $81'),
+    'successor_script_b031': ('CONTROL_SUCCESSOR_SCRIPT_B031', 'BogusBranchIfSelectedFlags RuntimeScriptAFF7, $03', 'BogusBranchIfSelectedFlags RuntimeScriptAFF7, $02'),
+    'successor_script_b1bb': ('CONTROL_SUCCESSOR_SCRIPT_B1BB', 'BogusSetDispatchCounter $07', 'BogusSetDispatchCounter $06'),
+    'successor_script_b1f7': ('CONTROL_SUCCESSOR_SCRIPT_B1F7', 'BogusRestartVoice4 $0000', 'BogusRestartVoice4 $0001'),
+    'successor_script_b2b5': ('CONTROL_SUCCESSOR_SCRIPT_B2B5', 'BogusBranchIfSelectedFlagsClear RuntimeScriptB1B5, $04', 'BogusBranchIfSelectedFlagsClear RuntimeScriptB1B5, $05'),
+    'successor_script_b2cc': ('CONTROL_SUCCESSOR_SCRIPT_B2CC', 'BogusSetDispatchCounter $8F', 'BogusSetDispatchCounter $8E'),
+    'successor_script_b324': ('CONTROL_SUCCESSOR_SCRIPT_B324', 'BogusLoadRecordAndClearSavedState $12', 'BogusLoadRecordAndClearSavedState $13'),
+    'successor_script_b34a': ('CONTROL_SUCCESSOR_SCRIPT_B34A', 'BogusSetDispatchCounter $03', 'BogusSetDispatchCounter $02'),
+    'successor_script_e775': ('CONTROL_SUCCESSOR_SCRIPT_E775', 'BogusSetSlotD0Bits $20', 'BogusSetSlotD0Bits $21'),
+    'successor_script_e7b6': ('CONTROL_SUCCESSOR_SCRIPT_E7B6', 'BogusSetSlot0660LowBits $00', 'BogusSetSlot0660LowBits $01'),
+    'successor_script_e7f0': ('CONTROL_SUCCESSOR_SCRIPT_E7F0', 'BogusReadSlotValue $24', 'BogusReadSlotValue $25'),
+    'successor_script_e809': ('CONTROL_SUCCESSOR_SCRIPT_E809', 'BogusJumpBank1 (BankStart + $67B2)', 'BogusJumpBank1 (BankStart + $67B3)'),
+    'successor_script_e835': ('CONTROL_SUCCESSOR_SCRIPT_E835', 'BogusSetDispatchCounter $88', 'BogusSetDispatchCounter $89'),
+    'successor_script_e841': ('CONTROL_SUCCESSOR_SCRIPT_E841', 'BogusSetSlotMode $03', 'BogusSetSlotMode $02'),
+    'successor_script_e864': ('CONTROL_SUCCESSOR_SCRIPT_E864', 'BogusSetDispatchCounter $88', 'BogusSetDispatchCounter $89'),
+    'successor_script_e8e8': ('CONTROL_SUCCESSOR_SCRIPT_E8E8', 'BogusReadSlotValue $02', 'BogusReadSlotValue $03'),
+    'successor_script_e979': ('CONTROL_SUCCESSOR_SCRIPT_E979', 'BogusMaskSlotValue $7FFF', 'BogusMaskSlotValue $7FFE'),
+    'successor_script_e99d': ('CONTROL_SUCCESSOR_SCRIPT_E99D', 'BogusAdjustSlotBounds $02, $00', 'BogusAdjustSlotBounds $02, $01'),
+    'successor_lookup_ae0b': ('CONTROL_SUCCESSOR_LOOKUP_AE0B', 'BogusLookupCaseBank1 SuccessorScriptAE2F, $0001', 'BogusLookupCaseBank1 SuccessorScriptAE2F, $0000'),
+    'successor_lookup_b19b': ('CONTROL_SUCCESSOR_LOOKUP_B19B', 'BogusLookupCaseBank1 SuccessorScriptB218, $0007', 'BogusLookupCaseBank1 SuccessorScriptB218, $0006'),
+    'successor_lookup_e7f3': ('CONTROL_SUCCESSOR_LOOKUP_E7F3', 'BogusLookupCaseBank1 SuccessorScriptE80C, $000E', 'BogusLookupCaseBank1 SuccessorScriptE80C, $000F'),
+    'long_script_ae91': ('CONTROL_LONG_SCRIPT_AE91', 'BogusSetSlotFields80 $FF, $82', 'BogusSetSlotFields80 $FF, $83'),
+    'long_script_af2c': ('CONTROL_LONG_SCRIPT_AF2C', 'BogusSetDispatchCounter $82', 'BogusSetDispatchCounter $83'),
+    'long_script_afc7': ('CONTROL_LONG_SCRIPT_AFC7', 'BogusBranchIfSelectedFlagsClear RuntimeScriptAF9E, $80', 'BogusBranchIfSelectedFlagsClear RuntimeScriptAF9E, $81'),
+    'long_script_b7de': ('CONTROL_LONG_SCRIPT_B7DE', 'BogusStartVoice4 $272F', 'BogusStartVoice4 $272E'),
+    'long_script_d609': ('CONTROL_LONG_SCRIPT_D609', 'BogusSetDispatchCounter $08', 'BogusSetDispatchCounter $09'),
+    'long_script_d668': ('CONTROL_LONG_SCRIPT_D668', 'BogusStartVoice4 $2724', 'BogusStartVoice4 $2725'),
+    'long_script_d78b': ('CONTROL_LONG_SCRIPT_D78B', 'BogusSetSlotFields80 $01, $FF', 'BogusSetSlotFields80 $01, $FE'),
+    'long_script_d7ad': ('CONTROL_LONG_SCRIPT_D7AD', 'BogusBranchIfSlotD0Bits LongScriptD7D6, $10', 'BogusBranchIfSlotD0Bits LongScriptD7D6, $11'),
+    'long_script_d7d1': ('CONTROL_LONG_SCRIPT_D7D1', 'BogusSetSlotValue $0001', 'BogusSetSlotValue $0000'),
+    'long_script_d86d': ('CONTROL_LONG_SCRIPT_D86D', 'BogusBranchIfSlotD0Bits (BankStart + $5877), $60', 'BogusBranchIfSlotD0Bits (BankStart + $5877), $61'),
+    'long_script_d883': ('CONTROL_LONG_SCRIPT_D883', 'BogusSetDispatchCounter $82', 'BogusSetDispatchCounter $83'),
+    'long_script_d89e': ('CONTROL_LONG_SCRIPT_D89E', 'BogusSetSlotValue $0002', 'BogusSetSlotValue $0003'),
+    'long_script_d8c3': ('CONTROL_LONG_SCRIPT_D8C3', 'BogusSetDispatchCounter $04', 'BogusSetDispatchCounter $05'),
+    'long_script_d8d7': ('CONTROL_LONG_SCRIPT_D8D7', 'BogusBranchIfOffsetProbe LongScriptD8FE, $04', 'BogusBranchIfOffsetProbe LongScriptD8FE, $05'),
+    'long_script_d92d': ('CONTROL_LONG_SCRIPT_D92D', 'BogusSetSlotFields80 $20, $00', 'BogusSetSlotFields80 $20, $01'),
+    'long_script_d98e': ('CONTROL_LONG_SCRIPT_D98E', 'BogusSetDispatchCounter $04', 'BogusSetDispatchCounter $05'),
+    'long_script_d9b4': ('CONTROL_LONG_SCRIPT_D9B4', 'BogusSetSlotFields80 $FF, $B0', 'BogusSetSlotFields80 $FF, $B1'),
+    'long_script_d9eb': ('CONTROL_LONG_SCRIPT_D9EB', 'BogusLoadSlotRecord $48, $01', 'BogusLoadSlotRecord $48, $00'),
+    'long_script_e527': ('CONTROL_LONG_SCRIPT_E527', 'BogusSetDispatchCounter $05', 'BogusSetDispatchCounter $04'),
+    'long_script_e543': ('CONTROL_LONG_SCRIPT_E543', 'BogusBranchIfSlotOffset (BankStart + $656E), $0C, $00', 'BogusBranchIfSlotOffset (BankStart + $656E), $0C, $01'),
+    'long_script_e576': ('CONTROL_LONG_SCRIPT_E576', 'BogusSetDispatchCounter $82', 'BogusSetDispatchCounter $83'),
+    'long_record_b7be': ('CONTROL_LONG_RECORD_B7BE', 'SlotRuntimeRecord $BA1A, $FFFF, $00, $FE, $20, $40, $11', 'SlotRuntimeRecord $BA1B, $FFFF, $00, $FE, $20, $40, $11'),
+    'long_record_d58d': ('CONTROL_LONG_RECORD_D58D', 'SlotRuntimeRecord $FFFF, (LongScriptD609 - BankStart), $40, $FF, $00, $00, $00', 'SlotRuntimeRecord $FFFF, (LongScriptD609 - BankStart + 1), $40, $FF, $00, $00, $00'),
+    'long_record_d5a8': ('CONTROL_LONG_RECORD_D5A8', 'SlotRuntimeRecord $FFFF, (LongScriptD98E - BankStart), $40, $FF, $00, $00, $00', 'SlotRuntimeRecord $FFFF, (LongScriptD98E - BankStart + 1), $40, $FF, $00, $00, $00'),
+    'long_record_d5c3': ('CONTROL_LONG_RECORD_D5C3', 'SlotRuntimeRecord $C5F5, $FFFF, $40, $FF, $00, $00, $00', 'SlotRuntimeRecord $C5F4, $FFFF, $40, $FF, $00, $00, $00'),
+    'long_record_e365': ('CONTROL_LONG_RECORD_E365', 'SlotRuntimeRecord $B994, (LongScriptE527 - BankStart), $13, $FF, $00, $00, $00', 'SlotRuntimeRecord $B994, (LongScriptE527 - BankStart + 1), $13, $FF, $00, $00, $00'),
     "switch": ("CONTROL_SWITCH", "sta BankValues,y", "sta BankValues,x"),
     "table": ("CONTROL_TABLE", "$0C |", "$08 |"),
     "nmi": ("CONTROL_NMI", "ldy NmiSavedIndex", "ldx NmiSavedIndex"),
@@ -1080,6 +1134,12 @@ def assemble(work: Path, tools: dict[str, Path], source: Path, prefix: Path) -> 
     return work / result
 
 
+def retire_control_intermediates(directory: Path) -> None:
+    """Keep each control's source and ROM; discard reproducible build intermediates."""
+    for suffix in (".o", ".lst", ".map", ".dbg"):
+        (directory / f"candidate{suffix}").unlink()
+
+
 def build() -> dict:
     if os.environ.get("BADP_TARGET") not in (None, "", TARGET):
         raise ValueError("only us-v1.5 has a ROM build; select TARGET=us-v1.5")
@@ -1138,6 +1198,7 @@ def build() -> dict:
                              "affected_regions": [r["id"] for r in regions if r["control"] == control],
                              "source_sha256": digest(changed_source.encode()),
                              "candidate_sha256": digest(candidate)})
+            retire_control_intermediates(control_dir)
         counts = {kind: sum(r["size"] for r in regions if r["kind"] == kind)
                   for kind in ("code", "data")}
         pin = json.loads((ROOT / "config/cc65-toolchain.json").read_text())

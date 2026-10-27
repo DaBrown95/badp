@@ -36,6 +36,9 @@ the bank-0 record loader. None of the selected nine conflicting script
 pointers or seven competing record pointers occurred at those entry points.
 This does not rule out their use later, through another entry point, or under
 different inputs; the emulator evidence is limited to those opening scenarios.
+An exploratory extension to 8,000 frames per adventure, holding right and
+periodically pressing A, also observed none of these selected pointers. It
+does not establish that the paths are unreachable.
 
 The tool also compares candidate command and table bytes against the fields a
 record access would actually read, excluding unused bytes in the ten-byte fetch.

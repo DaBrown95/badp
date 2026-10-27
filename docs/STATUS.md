@@ -34,9 +34,9 @@ independent source trees or treat one version's evidence as verifying the rest.
 simultaneous reconstruction. Keep progress and completion evidence per target.
 
 The v1.5 build now assembles and links to the exact reference, with 21,474 bytes
-of source code and 15,360 bytes of structured data across the physical PRG banks.
-It still includes 28,702 local PRG bytes and 65,536 local CHR bytes. A total of
-958 independent source-change controls verify every listed reconstructed region.
+of source code and 16,732 bytes of structured data across the physical PRG banks.
+It still includes 27,330 local PRG bytes and 65,536 local CHR bytes. A total of
+1,012 independent source-change controls verify every listed reconstructed region.
 Passing input audits or whole-ROM equality alone is not reconstruction
 completion. The developer identifies BOGUS as the
 state-machine engine in the [Vance Kozik interview](https://www.nesworld.com/kozik.php);
@@ -318,10 +318,38 @@ four bytes even for the terminator, an important distinction for boundary checks
 Three opening-gameplay traces identified 194 previously unowned command entries
 in 18 nonconflicting contiguous groups. They are represented by named commands,
 with independent labels even where neighbouring bytes were also observed. Each
-group has a source-change control; unobserved paths and lookup data remain local.
+group has a source-change control; unclassified paths and lookup data remain local.
 The same runs confirmed the script fetcher's bank mapping in the emulator as
 described in [script-flow notes](SCRIPT_FLOW.md). The probes and logs remain in
 ignored local analysis and do not establish full gameplay coverage.
+
+Following the reviewed successor rules from 808 observed command entries
+produced 1,444 candidate nodes, with no conflicting byte decodes within that
+walk and no pending nodes. Another 249 commands in 25 groups and three
+terminated `$95` lookup tables are now source. The selected bytes were checked
+against the prior static walk, candidate record fetches, observed record
+accesses and existing ownership. The new edges are static possibilities, not
+evidence that their branches or gameplay paths were taken.
+
+Longer reference-ROM exploration held right and periodically pressed A after
+entering each adventure, ending at frame 8,000. It observed another 193 commands
+in 21 nonconflicting groups and seven zero-mode records in five groups, now
+represented as source. Separate probes checked the mapped bank after switching
+for 61,995 Noah, 59,054 Moses and 63,651 David command fetches, and 882, 913
+and 911 record fetches respectively, with no emulator mapping disagreements.
+All seven added record addresses were included in those comparisons. These are
+exploratory runs, not completion of any adventure. A subsequent reference/build
+comparison of the same 8,000-frame inputs matched seven sampled screenshots and
+state snapshots per adventure, mapper/NMI/APU/DMA activity counts, and the
+observed script and record access counts. Its proof remains in ignored
+`reports/us-v1.5/runtime-long/`. Newly encountered records observed only in
+other modes, or in multiple modes, remain local pending review. The probes,
+trace data and screenshots are ignored locally.
+
+One such record at bank 1 `$B936` was accessed in both zero and negative mode.
+The negative path interprets byte 2 as flags, while the zero path checks it as
+part of the script pointer. The same bytes can therefore have different uses;
+the record remains local until those uses and its neighbours are reviewed.
 
 The slot-record loader was also observed reading 17 previously local records
 in nine contiguous groups. Compact negative-mode records and full zero-mode
@@ -439,6 +467,12 @@ actual link map, debug information, source snapshots, local inputs, control
 outputs and hashes under `build/us-v1.5/`. The assembler and linker are built
 from the checksum-pinned cc65 V2.19 release; V2.19 reports itself as V2.18 with
 the release's Git build ID, as documented upstream.
+
+Each accepted source-change control retains its mutated source and candidate
+ROM; the control's reproducible object, listing, map and debug intermediates
+are retired after its byte check. This keeps the previous full proof intact
+until its replacement passes while avoiding a second multi-gigabyte set of
+intermediate files. The primary build's map, listing and debug data are retained.
 
 The repository retains the Sims project's MIT licence, AI disclosure,
 owner-run contribution policy and strict matching standard. The GitHub

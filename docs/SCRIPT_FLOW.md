@@ -59,3 +59,10 @@ with no mapping disagreement. Of the previously unowned observed commands,
 command forms. Other paths and any conflicting interpretations remain local.
 The captured command identities, mapping checks and probe scripts are kept in
 ignored `analysis/us-v1.5/`; these opening sequences do not cover the full game.
+
+A separate local walk from the 808 distinct observed command pointers found
+1,444 possible nodes and no overlapping decodes within that walk. The reviewed
+nonconflicting portions now include 249 additional candidate commands and
+three `$95` lookup tables in source. The inputs and output of this second walk
+remain in ignored local analysis. A successor of an observed command is still
+only a static candidate until that path is exercised.
