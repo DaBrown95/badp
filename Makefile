@@ -5,7 +5,7 @@ export BADP_TARGET = $(TARGET)
 export BADP_ROM = $(ROM)
 .DEFAULT_GOAL := help
 
-.PHONY: help setup setup-mesen targets identify audit audit-all build progress verify-gameplay position-records script-entries script-flow slot-record-flow packed-text test
+.PHONY: help setup setup-mesen targets identify audit audit-all build progress verify-gameplay position-records script-entries script-flow slot-record-flow packed-text trace-audio audio-inventory test
 help:
 	@echo 'make targets   Show the primary target and sequential target order'
 	@echo 'make identify  Inspect a ROM (default: primary target; override TARGET=id or ROM=path)'
@@ -21,6 +21,8 @@ help:
 	@echo 'make script-flow     Trace reviewed v1.5 script control flow locally'
 	@echo 'make slot-record-flow  Trace candidate v1.5 slot-record accesses locally'
 	@echo 'make packed-text     Decode v1.5 packed text to local analysis'
+	@echo 'make trace-audio     Capture v1.5 audio reads locally in MesenCE'
+	@echo 'make audio-inventory Validate and decode the local audio trace'
 	@echo 'make test      Test the tools without a game ROM'
 
 setup:
@@ -64,6 +66,12 @@ slot-record-flow:
 
 packed-text:
 	$(PYTHON) -m tools.packed_text
+
+trace-audio:
+	$(PYTHON) -m tools.trace_audio
+
+audio-inventory:
+	$(PYTHON) -m tools.audio_commands
 
 test:
 	$(PYTHON) -m unittest discover -s tests -v

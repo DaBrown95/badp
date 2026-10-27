@@ -34,9 +34,9 @@ independent source trees or treat one version's evidence as verifying the rest.
 simultaneous reconstruction. Keep progress and completion evidence per target.
 
 The v1.5 build now assembles and links to the exact reference, with 21,474 bytes
-of source code and 17,947 bytes of structured data across the physical PRG banks.
-It still includes 26,115 local PRG bytes and 65,536 local CHR bytes. A total of
-1,134 independent source-change controls verify every listed reconstructed region.
+of source code and 18,025 bytes of structured data across the physical PRG banks.
+It still includes 26,037 local PRG bytes and 65,536 local CHR bytes. A total of
+1,147 independent source-change controls verify every listed reconstructed region.
 Passing input audits or whole-ROM equality alone is not reconstruction
 completion. The developer identifies BOGUS as the
 state-machine engine in the [Vance Kozik interview](https://www.nesworld.com/kozik.php);
@@ -431,6 +431,11 @@ excluding existing ownership, candidate record reads and competing decodes,
 81 commands in 12 groups are now source. Their reachability remains provisional.
 The `$A4` command clears bit `$04` of slot field `$0630` when its operand is
 `$FF` and sets that bit for every other operand.
+A further walk from the 16,000-frame command entries and newly exposed literal
+targets found 25 nonconflicting candidate commands in 13 groups. These use
+reviewed handlers but remain static possibilities, not observed execution.
+The walk also found an overlapping decode and other ambiguous entries, which
+remain excluded from the new source.
 Five records observed in modes `$01` or `$02` now represent only the resource
 pointer and fields actually read in those modes; unexamined neighboring bytes
 remain local rather than being assumed to be record fields.
@@ -496,6 +501,19 @@ bounds remain unverified.
 Focused instruction-subset checks on synthetic records exercise animation,
 audio commands, APU register writes, voice bounds and pointer carry; they do
 not verify hardware timing or sound playback.
+
+A local audio-fetch probe observed 4,639, 4,188 and 4,507 command reads for
+Noah, Moses and David respectively in the 16,000-frame exploratory inputs.
+All 279 distinct observed entries were in physical PRG bank 1. Their decoded
+command extents cover 706 bytes without conflicting observed entries. The probe
+checked the mapped physical address after the bank switch; it does not identify
+complete streams or establish audio playback correctness. Audio payloads stay
+local and receive no source-progress credit. `make trace-audio` reproduces the
+probe with the pinned emulator; `make audio-inventory` validates its local
+`analysis/us-v1.5/audio-sweep.json` observations against the audited ROM and
+writes the decoded inventory to ignored local analysis.
+The command decoder has synthetic tests for dispatch, lengths and truncated
+inputs, including the original five-register write behavior.
 
 In separate MesenCE opening runs, bank-0 reads included instrument-pair bytes
 at `$8F92-$8F93` and `$8FAE-$8FAF` and entries in the period-pointer and

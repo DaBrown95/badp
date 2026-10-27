@@ -42,7 +42,7 @@ are not measures of gameplay completion.
 <!-- BEGIN GENERATED PROGRESS -->
 | Version | Reconstructed PRG | Status |
 | --- | ---: | --- |
-| USA v1.5 | **60.15%** (39,421 / 65,536 bytes) | In progress |
+| USA v1.5 | **60.27%** (39,499 / 65,536 bytes) | In progress |
 | USA v1.4 | **0.00%** (0 / 65,536 bytes) | Not started |
 | USA v1.3 | **0.00%** (0 / 65,536 bytes) | Not started |
 | USA v1.2 | **0.00%** (0 / 65,536 bytes) | Not started |
@@ -139,6 +139,8 @@ cartridge behaviour.
 | `make script-entries` | Inventory candidate v1.5 script entry points locally. |
 | `make script-flow` | Trace reviewed v1.5 script paths to local analysis. |
 | `make packed-text` | Decode v1.5 packed text to local analysis. |
+| `make trace-audio` | Capture audio-command reads during extended v1.5 emulator inputs. |
+| `make audio-inventory` | Validate and decode the local audio trace; payloads remain local. |
 | `make test` | Test the tooling using synthetic data; no game ROM needed. |
 
 Other versions have pinned reference identities but do not have builds yet.

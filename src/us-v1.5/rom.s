@@ -169,6 +169,15 @@ compareRangeReturn:
 
 ; BOGUS command forms below name only the behaviour established by handlers.
 ; Script targets in PRG bank 1 are encoded as offsets below $8000.
+; Opcode $67 selects a slot, stores relative fields and yields.
+.macro BogusSelectRelativeSlotAndYield first, second, selector, match, mode
+    .byte $67, first, second, selector, match, mode
+.endmacro
+; Opcode $89 reads a seven-byte state record at base plus seven times an index.
+.macro BogusLoadIndexedStateRecord base
+    .byte $89
+    .word base
+.endmacro
 .macro BogusSetSlot0630Bit04UnlessFF value
     .byte $A4, value
 .endmacro
@@ -14178,7 +14187,11 @@ SuccessorScriptAF5F:
 SuccessorScriptAF61:
     BogusWait $01
 .assert (* - BankStart) = $2F63, error, "bank 1 candidate successor $AF59 end"
-    .incbin "bank1_af63_af84.bin"
+; Static candidate successors; independent entries do not prove reachability.
+PathScriptAF63:
+    BogusSelectRelativeSlotAndYield $00, $07, $23, $14, $00 ; CONTROL_PATH_SCRIPT_AF63
+.assert (* - BankStart) = $2F69, error, "bank 1 candidate successor $AF63 end"
+    .incbin "bank1_af69_af84.bin"
 ; Observed at the bank-0 command fetcher during the opening scenarios.
 ; Names describe handler behaviour; independent entry points are retained.
 RuntimeScriptAF84:
@@ -14259,7 +14272,11 @@ InteractionScriptAFD7:
 InteractionScriptAFDA:
     BogusBranchIfSelectedFlagsClear RuntimeScriptAF9E, $80 ; CONTROL_INTERACTION_SCRIPT_AFD7
 .assert (* - BankStart) = $2FDE, error, "bank 1 interaction script $AFD7 end"
-    .incbin "bank1_afde_afed.bin"
+; Static candidate successors; independent entries do not prove reachability.
+PathScriptAFDE:
+    BogusApplyAndClearSelected3E ; CONTROL_PATH_SCRIPT_AFDE
+.assert (* - BankStart) = $2FDF, error, "bank 1 candidate successor $AFDE end"
+    .incbin "bank1_afdf_afed.bin"
 ; Observed at the bank-0 command fetcher during the opening scenarios.
 ; Names describe handler behaviour; independent entry points are retained.
 RuntimeScriptAFED:
@@ -14685,7 +14702,11 @@ SuccessorScriptB275:
 SuccessorScriptB278:
     BogusSetSpritePalettePointer $C83E
 .assert (* - BankStart) = $327B, error, "bank 1 candidate successor $B1F7 end"
-    .incbin "bank1_b27b_b2a8.bin"
+; Static candidate successors; independent entries do not prove reachability.
+PathScriptB27B:
+    BogusLoadIndexedStateRecord $332E ; CONTROL_PATH_SCRIPT_B27B
+.assert (* - BankStart) = $327E, error, "bank 1 candidate successor $B27B end"
+    .incbin "bank1_b27e_b2a8.bin"
 ; Observed at the bank-0 command fetcher during the opening scenarios.
 ; Names describe handler behaviour; independent entry points are retained.
 RuntimeScriptB2A8:
@@ -15732,7 +15753,12 @@ SweepScriptBB46:
 SweepScriptBB49:
     BogusJumpBank1 SweepScriptBB46
 .assert (* - BankStart) = $3B4C, error, "bank 1 sweep script $BB2D end"
-    .incbin "bank1_bb4c_bb52.bin"
+; Static candidate successors; independent entries do not prove reachability.
+PathScriptBB4C:
+    BogusSetSlotFields80 $00, $FF ; CONTROL_PATH_SCRIPT_BB4C
+PathScriptBB4F:
+    BogusJumpBank1 RuntimeScriptE764
+.assert (* - BankStart) = $3B52, error, "bank 1 candidate successor $BB4C end"
 ; Descriptor-linked slot record; resource data remains local.
 SlotRuntimeBB52:
     SlotRuntimeRecord $B977, $3B5B, $40, $FF, $00, $00, $00 ; CONTROL_SLOT_RUNTIME_BB52
@@ -16729,7 +16755,11 @@ SweepScriptD752:
 SweepScriptD757:
     BogusBranchIfSlotB0AtMost SweepScriptD74D, $E6
 .assert (* - BankStart) = $575B, error, "bank 1 sweep script $D742 end"
-    .incbin "bank1_d75b_d75e.bin"
+; Static candidate successors; independent entries do not prove reachability.
+PathScriptD75B:
+    BogusLoadRecordAndClearSavedState $1E ; CONTROL_PATH_SCRIPT_D75B
+.assert (* - BankStart) = $575D, error, "bank 1 candidate successor $D75B end"
+    .incbin "bank1_d75d_d75e.bin"
 ; Command entries observed during the 16,000-frame exploratory sweep.
 SweepScriptD75E:
     BogusLoadSlotValueArray $29 ; CONTROL_SWEEP_SCRIPT_D75E
@@ -16744,7 +16774,10 @@ SweepScriptD766:
 SweepScriptD769:
     BogusBranchIfSlotB0AtMost SweepScriptD766, $E6
 .assert (* - BankStart) = $576D, error, "bank 1 sweep script $D75E end"
-    .incbin "bank1_d76d_d76f.bin"
+; Static candidate successors; independent entries do not prove reachability.
+PathScriptD76D:
+    BogusYieldAndSlotAction $01 ; CONTROL_PATH_SCRIPT_D76D
+.assert (* - BankStart) = $576F, error, "bank 1 candidate successor $D76D end"
 ; Command entries observed during the 16,000-frame exploratory sweep.
 SweepScriptD76F:
     BogusStartVoice4 $2724 ; CONTROL_SWEEP_SCRIPT_D76F
@@ -18740,7 +18773,10 @@ SweepScriptE7A5:
 SweepScriptE7AA:
     BogusBranchIfSlotValueNotEqual ExtendedScriptE7B2, $0012
 .assert (* - BankStart) = $67AF, error, "bank 1 sweep script $E78F end"
-    .incbin "bank1_e7af_e7b2.bin"
+; Static candidate successors; independent entries do not prove reachability.
+PathScriptE7AF:
+    BogusSetLinkedFieldsAndYield $80, $E2 ; CONTROL_PATH_SCRIPT_E7AF
+.assert (* - BankStart) = $67B2, error, "bank 1 candidate successor $E7AF end"
 ; Candidate successor of a longer-run command; control flow remains provisional.
 ; Labels preserve independent branch and resume entries.
 ExtendedScriptE7B2:
@@ -18781,7 +18817,25 @@ SweepScriptE7C2:
 SweepScriptE7CD:
     BogusBranchIfSlotD0BitsClear SweepScriptE7BD, $80 ; CONTROL_SWEEP_SCRIPT_E7CD
 .assert (* - BankStart) = $67D1, error, "bank 1 sweep script $E7CD end"
-    .incbin "bank1_e7d1_e7f0.bin"
+; Static candidate successors; independent entries do not prove reachability.
+PathScriptE7D1:
+    BogusReadSlotValue $12 ; CONTROL_PATH_SCRIPT_E7D1
+PathScriptE7D3:
+    BogusBranchIfSlotValueAtLeast PathScriptE7DB, $0080
+PathScriptE7D8:
+    BogusJumpBank1 (BankStart + $67BD)
+PathScriptE7DB:
+    BogusSetSlot0640PairBits $04, $00
+.assert (* - BankStart) = $67DE, error, "bank 1 candidate successor $E7D1 end"
+    .incbin "bank1_e7de_e7e6.bin"
+; Static candidate successors; independent entries do not prove reachability.
+PathScriptE7E6:
+    BogusBranchIfSlot0360Above (BankStart + $67CD), $A0 ; CONTROL_PATH_SCRIPT_E7E6
+PathScriptE7EA:
+    BogusRestartVoice4 $284D
+PathScriptE7ED:
+    BogusJumpBank1 SuccessorScriptE835
+.assert (* - BankStart) = $67F0, error, "bank 1 candidate successor $E7E6 end"
 ; Candidate successors of opening-observed scripts, from reviewed handler rules.
 ; Independent labels preserve alternate entries; reachability remains unproven.
 SuccessorScriptE7F0:
@@ -18885,7 +18939,10 @@ SweepScriptE84F:
 SweepScriptE852:
     BogusBranchIfSlotB0AtMost SweepScriptE84F, $E6
 .assert (* - BankStart) = $6856, error, "bank 1 sweep script $E848 end"
-    .incbin "bank1_e856_e858.bin"
+; Static candidate successors; independent entries do not prove reachability.
+PathScriptE856:
+    BogusYieldAndSlotAction $00 ; CONTROL_PATH_SCRIPT_E856
+.assert (* - BankStart) = $6858, error, "bank 1 candidate successor $E856 end"
 ; Command entries observed during the 16,000-frame exploratory sweep.
 SweepScriptE858:
     BogusStartVoice4 $2724 ; CONTROL_SWEEP_SCRIPT_E858
@@ -19784,7 +19841,12 @@ SweepScriptF03E:
 SweepScriptF041:
     BogusBranchIfSlotD0BitsClear BranchScriptF04B, $04
 .assert (* - BankStart) = $7045, error, "bank 1 sweep script $F02F end"
-    .incbin "bank1_f045_f04b.bin"
+; Static candidate successors; independent entries do not prove reachability.
+PathScriptF045:
+    BogusSetBackgroundPalettePointer $C864 ; CONTROL_PATH_SCRIPT_F045
+PathScriptF048:
+    BogusSetSpritePalettePointer $C818
+.assert (* - BankStart) = $704B, error, "bank 1 candidate successor $F045 end"
 ; Candidate path from a literal branch target in maintained source.
 ; Independent entries are labelled; runtime reachability is not implied.
 BranchScriptF04B:
@@ -19867,7 +19929,14 @@ SweepScriptF0BA:
 SweepScriptF0BC:
     BogusBranchIfSlotD0BitsClear SweepScriptF0C9, $04
 .assert (* - BankStart) = $70C0, error, "bank 1 sweep script $F0AB end"
-    .incbin "bank1_f0c0_f0c9.bin"
+; Static candidate successors; independent entries do not prove reachability.
+PathScriptF0C0:
+    BogusSetBackgroundPalettePointer $FFFF ; CONTROL_PATH_SCRIPT_F0C0
+PathScriptF0C3:
+    BogusSetSpritePalettePointer $FFFF
+PathScriptF0C6:
+    BogusJumpBank1 (BankStart + $70DC)
+.assert (* - BankStart) = $70C9, error, "bank 1 candidate successor $F0C0 end"
 ; Command entries observed during the 16,000-frame exploratory sweep.
 SweepScriptF0C9:
     BogusBranchIfSlotD0BitsClear (BankStart + $70DC), $01 ; CONTROL_SWEEP_SCRIPT_F0C9
@@ -19942,7 +20011,18 @@ BranchScriptF142:
 BranchScriptF143:
     BogusStoreSlotLowAtIndexedPage
 .assert (* - BankStart) = $7144, error, "bank 1 branch script $F11F end"
-    .incbin "bank1_f144_f157.bin"
+    .incbin "bank1_f144_f147.bin"
+; Static candidate successors; independent entries do not prove reachability.
+PathScriptF147:
+    BogusSetSlotMode $FF ; CONTROL_PATH_SCRIPT_F147
+PathScriptF149:
+    BogusSetSlot05F0Pair $FF, $40
+PathScriptF14C:
+    BogusBranchIfRemainingVerticalOffsetAtMost (BankStart + $7157), $0028
+PathScriptF151:
+    BogusBranchIfSecondWorldOffsetAtMost PathScriptF14C, $1EE5
+.assert (* - BankStart) = $7156, error, "bank 1 candidate successor $F147 end"
+    .incbin "bank1_f156_f157.bin"
 ; Candidate script path; object role and execution remain unverified.
 CandidateF157:
     BogusSetDispatchCounter $85 ; CONTROL_BOGUS_F157
