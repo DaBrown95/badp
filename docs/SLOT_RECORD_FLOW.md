@@ -3,14 +3,18 @@
 `make slot-record-flow` starts from the descriptor-derived script and record
 candidates. For each possible descriptor base and script entry, it follows the
 reviewed rules in the [script-flow inventory](SCRIPT_FLOW.md), then records
-candidate `$00` and `$63` accesses. A zero-mode access can install another
+candidate `$00`, `$63` and direct `$16` accesses. A zero-mode access can install another
 script pointer and schedule another candidate context. If its script-pointer
 high byte is `$FF`, a normal return can retain the following command instead;
-this is also traced as a candidate, not a guaranteed continuation. Results and fetched bytes
-are written only to ignored local analysis.
+this is also traced as a candidate, not a guaranteed continuation. For a
+direct `$16` pointer, the mode comes from untracked `$57`; zero, one, other
+nonnegative and negative modes are explored as possible field-selection
+classes. A zero pointer operand instead uses a dynamic slot value. Results and
+fetched bytes are written only to ignored local analysis.
 
-The loader adds an unsigned offset in nonnegative modes and subtracts it in
-negative modes. It fetches ten bytes, but selects fields based on mode and
+The `$00` and `$63` paths add an unsigned offset in nonnegative modes and
+subtract it in negative modes; `$16` passes its pointer directly. The loader
+fetches ten bytes, but selects fields based on mode and
 sentinels. In negative mode it uses the first two bytes as a resource pointer
 and byte 2 as flags; it does not install a script pointer. In zero mode it can
 install bytes 2–3 as a script pointer, then use byte 4 and bytes 5–8 when the
@@ -23,14 +27,27 @@ script remains associated with a descriptor base is not proven for every
 caller or slot lifecycle. Conditional paths, indexed-jump bounds and the bank
 mapping remain provisional. The tool reports incomplete context traversals,
 script traversal limits and overlapping decodes; it does not mark source as
-owned. On the pinned v1.5 input it finds 163 contexts, 607 references and 199
+owned. On the pinned v1.5 input it finds 176 contexts, 679 references and 210
 distinct candidate addresses, with no unprocessed contexts or per-context
-script overlaps. The union of those script entries contains 2,416 candidate
+script overlaps. The union of those script entries contains 2,518 candidate
 commands and 13 physical bytes with conflicting decodes across contexts. They
 fall within the existing `$BD1B` and `$DC35` script regions. The competing
 entries depend on possible record accesses at `$DA40` and `$ED71`, respectively;
 their assumed descriptor associations and interpretations remain unverified.
 The overlaps do not establish which path actually executes.
+A separate `make direct-record-flow` walk seeds every named bank-1 script
+entry and checks direct `$16` targets against the resulting script graph.
+It finds 16 candidate commands with 14 distinct direct targets. The possible
+record at `$B077` overlaps two candidate script bytes; neither interpretation
+is accepted there.
+In the directed 16,000-frame runs, the `$B05D` branch saw slot values `$0001`,
+`$0005` and `$000B` for Noah, Moses and David, respectively, so its `$000F`
+test did not select `$B080`. At `$B076`, the saved-pointer high byte was never
+`$FF`, so those executions did not fall through to `$B077`. This only describes
+the tested inputs; other slot states may take either path.
+The same graph also finds one overlapping script byte at
+`$F156-$F157`, where a candidate fallthrough conflicts with the existing
+`$F157` entry. All of these paths remain provisional.
 The retained-pointer expansion also reaches one candidate decode in an unclassified
 local region near `$811D`; its command interpretation has not been accepted.
 

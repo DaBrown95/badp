@@ -94,6 +94,15 @@ class ScriptFlowTests(unittest.TestCase):
             {'kind': 'target', 'encoded_pointer': '0x0030'},
             {'kind': 'fallthrough', 'encoded_pointer': '0x0026'}])
 
+    def test_saved_script_pointer_can_leave_current_pointer_unchanged(self):
+        b0, b1, lengths = fixture()
+        b1[0x10:0x12] = bytes([0x17, 0x16])
+        nodes = by_pointer(walk(bytes(b0), bytes(b1), bytes(lengths), [0x10]))
+        self.assertEqual(nodes['0x0010']['status'], 'reviewed_saved_pointer_or_next')
+        self.assertEqual(nodes['0x0010']['successors'], [
+            {'kind': 'possible_next_without_saved_pointer', 'encoded_pointer': '0x0011'}])
+        self.assertEqual(nodes['0x0011']['status'], 'unreviewed_or_dynamic_handler')
+
     def test_state_table_selection_returns_to_following_command(self):
         b0, b1, lengths = fixture()
         lengths[0xaf] = 2
@@ -117,7 +126,7 @@ class ScriptFlowTests(unittest.TestCase):
     def test_dynamic_handlers_stop_and_possible_yield_remains_uncertain(self):
         b0, b1, lengths = fixture()
         b1[0x10:0x12] = bytes([0x2d, 0x16])
-        for offset, opcode in ((0x20, 0x00), (0x30, 0x16), (0x40, 0x17)):
+        for offset, opcode in ((0x20, 0x00), (0x30, 0x16), (0x40, 0x18)):
             b1[offset] = opcode
         nodes = by_pointer(walk(bytes(b0), bytes(b1), bytes(lengths),
                                 [0x10, 0x20, 0x30, 0x40]))

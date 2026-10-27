@@ -130,6 +130,11 @@ def walk(bank0: bytes, bank1: bytes, lengths: bytes, seeds: list[int],
             # The setup path can change $00, so its later scheduling is unknown.
             node['status'] = 'reviewed_possible_relative_resume'
             edges.append(('possible_relative_resume', following))
+        elif opcode == 0x17 and length == 1:
+            # A saved high byte of $FF leaves the current pointer intact.
+            # Other values restore a dynamic pointer that is not modeled.
+            node['status'] = 'reviewed_saved_pointer_or_next'
+            edges.append(('possible_next_without_saved_pointer', following))
         elif opcode == 0xAD and length == 1:
             # $0140,Y can reach the active stack page and overwrite a return.
             # Only the ordinary return is represented by this candidate edge.

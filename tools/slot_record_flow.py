@@ -15,6 +15,9 @@ from .script_entries import (BANK_SIZE, DESCRIPTORS, DESCRIPTOR_COUNT, ROOT,
                              load_audited_banks)
 from .script_flow import PRIMARY_INDEXED_JUMPS, walk
 
+DIRECT_MODE_CLASSES = ((0, 'zero'), (1, 'one'),
+                       (2, 'other_nonnegative'), (0xff, 'negative'))
+
 
 def resolve_access(bank0: bytes, bank1: bytes, base: int, offset: int, mode: int) -> dict:
     """Resolve the loader's unsigned add or subtract and bounded ten-byte fetch."""
@@ -107,6 +110,8 @@ def trace(bank0: bytes, bank1: bytes, lengths: bytes, seeds: list[tuple[int, int
             pending.append((base, entry))
     references: list[dict] = []
     possible_retained_pointer_resumes = []
+    possible_direct_pointer_resumes = []
+    dynamic_direct_pointers = []
     contexts = []
     cached_flows: dict[int, dict] = {}
     while pending and len(contexts) < limit:
@@ -120,6 +125,47 @@ def trace(bank0: bytes, bank1: bytes, lengths: bytes, seeds: list[tuple[int, int
                          'overlapping_script_bytes': flow['overlapping_physical_bytes']})
         for node in flow['nodes']:
             opcode, operands = node['opcode'], node.get('operands', [])
+            if opcode == 0x16 and len(operands) == 2:
+                pointer = operands[0] | (operands[1] << 8)
+                next_entry = (int(node['encoded_pointer'], 16) + node['length']) & 0xffff
+                event = {'base': f'0x{base:04x}', 'command': node['encoded_pointer'],
+                         'next_entry': f'0x{next_entry:04x}'}
+                if pointer == 0:
+                    # A zero operand uses the runtime slot value, not address zero.
+                    dynamic_direct_pointers.append(event)
+                    possible_direct_pointer_resumes.append(event)
+                    successor = (base, next_entry)
+                    if successor not in queued:
+                        queued.add(successor)
+                        pending.append(successor)
+                    continue
+                valid_access = False
+                # $57 is not tracked through the script graph. These values are
+                # representatives of distinct field-selection classes, not
+                # evidence that any particular runtime mode occurs here.
+                for mode, mode_class in DIRECT_MODE_CLASSES:
+                    access = resolve_access(bank0, bank1, pointer, 0, mode)
+                    access.update({'base': f'0x{base:04x}', 'entry': f'0x{entry:04x}',
+                                   'command': node['encoded_pointer'], 'opcode': opcode,
+                                   'addressing': 'direct', 'mode_class': mode_class})
+                    references.append(access)
+                    if access['status'] != 'candidate':
+                        continue
+                    valid_access = True
+                    if mode == 0 and access['fields']['script_installable_in_zero_mode']:
+                        successor = (base, access['fields']['encoded_script_pointer'])
+                        if successor not in queued:
+                            queued.add(successor)
+                            pending.append(successor)
+                if valid_access:
+                    # Nonzero modes retain the current pointer if the loader
+                    # returns normally; zero mode can also retain a sentinel.
+                    possible_direct_pointer_resumes.append(event)
+                    successor = (base, next_entry)
+                    if successor not in queued:
+                        queued.add(successor)
+                        pending.append(successor)
+                continue
             if opcode == 0x00 and len(operands) == 1:
                 offset, mode = operands[0], 0
             elif opcode == 0x63 and len(operands) == 2:
@@ -157,6 +203,8 @@ def trace(bank0: bytes, bank1: bytes, lengths: bytes, seeds: list[tuple[int, int
     overlaps = record_script_overlaps(references, merged)
     return {'contexts': contexts, 'references': references,
             'possible_retained_pointer_resumes': possible_retained_pointer_resumes,
+            'possible_direct_pointer_resumes': possible_direct_pointer_resumes,
+            'dynamic_direct_pointers': dynamic_direct_pointers,
             'merged_script_flow': merged,
             'record_script_overlaps': overlaps,
             'unprocessed_contexts': [{'base': f'0x{base:04x}', 'entry': f'0x{entry:04x}'}

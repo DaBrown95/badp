@@ -13777,12 +13777,19 @@ SweepRecordAD0F:
 PartialRecordAD18Resource:
     .word $B725 ; CONTROL_PARTIAL_RESOURCE_AD18
 .assert (* - BankStart) = $2D1A, error, "bank 1 partial record $AD18 end"
-    .incbin "bank1_ad1a_ad1c.bin"
+    .incbin "bank1_ad1a_ad1b.bin"
+; In the observed zero mode, $FF suppresses installing a script pointer.
+ObservedRecordAD18ScriptSentinel:
+    .byte $FF ; CONTROL_AD18_SCRIPT_SENTINEL
+.assert (* - BankStart) = $2D1C, error, "bank 1 record $AD18 script sentinel end"
 ; Mode-specific flags and fields read by the slot-record loader. Unread neighbouring bytes remain local.
 PartialRecordAD18Fields:
     .byte $00 ; CONTROL_PARTIAL_FIELDS_AD18
 .assert (* - BankStart) = $2D1D, error, "bank 1 partial record $AD1C end"
-    .incbin "bank1_ad1d_ad21.bin"
+; The zero-mode loader reads the four visual fields after the flags byte.
+ObservedRecordAD18VisualFields:
+    .byte $FF, $00, $00, $00 ; CONTROL_AD18_VISUAL_FIELDS
+.assert (* - BankStart) = $2D21, error, "bank 1 record $AD18 visual fields end"
 ; Zero-mode record; bytes gated by sentinel values may be skipped.
 DirectedRecordAD21:
     SlotRuntimeRecord $B71E, $FFFF, $13, $FF, $00, $00, $00 ; CONTROL_DIRECTED_RECORD_AD21
@@ -13794,7 +13801,12 @@ RuntimeRecordAD2A:
 RuntimeRecordAD33:
     SlotRuntimeRecord $BFF1, $FFFF, $23, $FF, $00, $00, $00
 .assert (* - BankStart) = $2D3C, error, "bank 1 runtime records $AD2A end"
-    .incbin "bank1_ad3c_ad45.bin"
+; Candidate direct-record target of the script at $B391. The resource pointer
+; is read when the loader returns through this record; mode-dependent bytes stay local.
+CandidateDirectRecordAD3CResource:
+    .word $BFD3 ; CONTROL_AD3C_RESOURCE
+.assert (* - BankStart) = $2D3E, error, "bank 1 direct record $AD3C resource end"
+    .incbin "bank1_ad3e_ad45.bin"
 ; Candidate script path; object role and execution remain unverified.
 CandidateAD45:
     BogusSetDispatchCounter $8F ; CONTROL_BOGUS_AD45
@@ -14457,7 +14469,51 @@ BranchScriptB080:
 BranchScriptB082:
     BogusLoadSlotRecordAtPointer $3077
 .assert (* - BankStart) = $3085, error, "bank 1 branch script $B080 end"
-    .incbin "bank1_b085_b0c0.bin"
+; Possible continuation after a direct-record load; runtime mode and reachability are unverified.
+DirectNextScriptB085:
+    BogusRestartVoice4 $277A ; CONTROL_DIRECT_NEXT_SCRIPT_B085
+DirectNextScriptB088:
+    BogusSetDispatchCounter $84
+DirectNextScriptB08A:
+    BogusLoadSlotValueArray $29
+DirectNextScriptB08C:
+    BogusSetSlotMode $00
+DirectNextScriptB08E:
+    BogusSetSlotMode $02
+DirectNextScriptB090:
+    BogusSetDispatchCounter $8F
+DirectNextScriptB092:
+    BogusBranchIfAbsSlot0700Below DirectNextScriptB0A0, $12
+DirectNextScriptB096:
+    BogusWait $05
+DirectNextScriptB098:
+    BogusCreateLinkedSlot $66, $19, $F8, $00
+DirectNextScriptB09D:
+    BogusCheckSlotFlagsAndRestorePointer
+DirectNextScriptB09E:
+    BogusLoadRecordAndClearSavedState $3F
+DirectNextScriptB0A0:
+    BogusBranchIfSlot0700AtMost DirectNextScriptB0B3, $7F
+DirectNextScriptB0A4:
+    BogusReadSlotValue $4C
+DirectNextScriptB0A6:
+    BogusMaskSlotValue $0080
+DirectNextScriptB0A9:
+    BogusBranchIfSlotValueEqual DirectNextScriptB096, $80, $00
+DirectNextScriptB0AE:
+    BogusLoadRecordAndClearSavedState $00
+.assert (* - BankStart) = $30B0, error, "bank 1 candidate successor $B085 end"
+    .incbin "bank1_b0b0_b0b3.bin"
+; Possible continuation after a direct-record load; runtime mode and reachability are unverified.
+DirectNextScriptB0B3:
+    BogusReadSlotValue $4C ; CONTROL_DIRECT_NEXT_SCRIPT_B0B3
+DirectNextScriptB0B5:
+    BogusMaskSlotValue $0080
+DirectNextScriptB0B8:
+    BogusBranchIfSlotValueEqual DirectNextScriptB096, $00, $00
+DirectNextScriptB0BD:
+    BogusJumpBank1 DirectNextScriptB09D
+.assert (* - BankStart) = $30C0, error, "bank 1 candidate successor $B0B3 end"
 ; Candidate path from a literal branch target in maintained source.
 ; Independent entries are labelled; runtime reachability is not implied.
 BranchScriptB0C0:
@@ -15037,7 +15093,13 @@ ExpandedScriptB38E:
 ExpandedScriptB391:
     BogusLoadSlotRecordAtPointer $2D3C
 .assert (* - BankStart) = $3394, error, "bank 1 candidate successor $B35C end"
-    .incbin "bank1_b394_b3c7.bin"
+; Possible continuation after a direct-record load; runtime mode and reachability are unverified.
+DirectNextScriptB394:
+    BogusSetSpriteAttribute20 $20 ; CONTROL_DIRECT_NEXT_SCRIPT_B394
+DirectNextScriptB396:
+    BogusJumpBank1 DirectNextScriptD253
+.assert (* - BankStart) = $3399, error, "bank 1 candidate successor $B394 end"
+    .incbin "bank1_b399_b3c7.bin"
 ; Candidate descriptor $B3E5, command $B67F, mode $FF.
 SlotFlowB3C7:
     SlotCompactRecord $BF1B, $00 ; CONTROL_SLOT_FLOW_B3C7
@@ -16556,7 +16618,16 @@ ContextScriptD22E:
 ContextScriptD234:
     BogusJumpBank1 ContextScriptD234
 .assert (* - BankStart) = $5237, error, "bank 1 contextual script D22E end"
-    .incbin "bank1_d237_d3b7.bin"
+    .incbin "bank1_d237_d253.bin"
+; Possible continuation after a direct-record load; runtime mode and reachability are unverified.
+DirectNextScriptD253:
+    BogusSetSlotC0 $00 ; CONTROL_DIRECT_NEXT_SCRIPT_D253
+DirectNextScriptD255:
+    BogusSetSlotFields80 $00, $00
+DirectNextScriptD258:
+    BogusSaveStateAndPlaceSlots $12
+.assert (* - BankStart) = $525A, error, "bank 1 candidate successor $D253 end"
+    .incbin "bank1_d25a_d3b7.bin"
 ; Descriptor-linked slot record; resource data remains local.
 SlotRuntimeD3B7:
     SlotRuntimeRecord $C70D, (ScriptD3C9 - BankStart), $00, $FF, $00, $00, $00 ; CONTROL_SLOT_RUNTIME_D3B7

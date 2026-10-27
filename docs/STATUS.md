@@ -34,9 +34,9 @@ independent source trees or treat one version's evidence as verifying the rest.
 simultaneous reconstruction. Keep progress and completion evidence per target.
 
 The v1.5 build now assembles and links to the exact reference, with 21,474 bytes
-of source code and 18,650 bytes of structured data across the physical PRG banks.
-It still includes 25,412 local PRG bytes and 65,536 local CHR bytes. A total of
-1,207 independent source-change controls verify every listed reconstructed region.
+of source code and 18,725 bytes of structured data across the physical PRG banks.
+It still includes 25,337 local PRG bytes and 65,536 local CHR bytes. A total of
+1,214 independent source-change controls verify every listed reconstructed region.
 Passing input audits or whole-ROM equality alone is not reconstruction
 completion. The developer identifies BOGUS as the
 state-machine engine in the [Vance Kozik interview](https://www.nesworld.com/kozik.php);
@@ -452,6 +452,18 @@ The context walker now follows a possible normal return when a `$FF` script
 pointer sentinel leaves the prior pointer in place. Forty nonconflicting
 commands reached through those candidate continuations are source; a separate
 decode in an unclassified local region remains excluded.
+The direct `$16` loader now has an inventory that explores its possible mode
+classes without assuming the inherited `$57` value. A probe of the directed
+inputs paired 582, 503 and 587 `$16` calls with their mapped record fetches
+for Noah, Moses and David, with no mapping disagreements. Modes `$00`, `$01`,
+`$02` and `$FF` occurred across these runs. The source now includes the
+observed zero-mode fields at `$AD18` and the resource pointer at candidate
+direct target `$AD3C`. The low byte skipped by the `$AD18` sentinel and
+mode-dependent `$AD3C` fields remain local. Twenty-five further commands are
+source as possible continuations after direct record loads; their reachability
+and inherited modes remain unverified. The direct-target inventory also
+reports possible conflicts at `$B077` and `$F156-$F157`; neither conflict is
+resolved by the tested inputs.
 A different 16,000-frame input sequence reached 31 further commands and five
 record locations. A separate mapping probe paired 136,835, 133,793 and 151,587
 script fetches, and 2,451, 1,900 and 3,276 record fetches, for Noah, Moses and

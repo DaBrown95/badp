@@ -43,6 +43,8 @@ The `$11/$12` selectors have a possible next or yield path; `$65`, `$A2`,
 write into the active stack page, so only its normal-return edge is modeled. The `$B8`
 linked-slot scan can loop indefinitely, so this edge assumes a return. The
 `$77` voice check can branch to its encoded target or continue.
+Opcode `$17` can continue if its saved-pointer high byte is `$FF`; otherwise
+it restores a dynamic pointer whose target the walker does not infer.
 The `$0F`, `$98` and `$99` main-state changes stop the walk because later
 scheduling is unproven. In particular, treating the bytes after `$0F` as an
 automatic continuation produced a speculative command decode over a

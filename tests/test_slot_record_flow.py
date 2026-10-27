@@ -75,6 +75,28 @@ class SlotRecordFlowTests(unittest.TestCase):
         self.assertEqual(limited['unprocessed_contexts'], [
             {'base': '0x0100', 'entry': '0x0023'}])
 
+    def test_direct_record_pointer_explores_unknown_mode_classes(self):
+        b0, b1, lengths = fixture()
+        lengths[0x16] = 3
+        b1[0x20:0x24] = bytes([0x16, 0x40, 1, 0x17])
+        b1[0x30] = 0x17
+        b1[0x140:0x14a] = bytes([0, 0xff, 0x30, 0, 0, 0, 0, 0, 0, 0])
+        result = trace(bytes(b0), bytes(b1), bytes(lengths), [(0x100, 0x20)])
+        self.assertEqual({r['mode_class'] for r in result['references']},
+                         {'zero', 'one', 'other_nonnegative', 'negative'})
+        self.assertEqual({r['encoded_pointer'] for r in result['references']}, {'0x0140'})
+        self.assertEqual({c['entry'] for c in result['contexts']}, {'0x0020', '0x0023', '0x0030'})
+        self.assertEqual(result['possible_direct_pointer_resumes'][0]['next_entry'], '0x0023')
+
+    def test_zero_direct_operand_uses_runtime_slot_pointer(self):
+        b0, b1, lengths = fixture()
+        lengths[0x16] = 3
+        b1[0x20:0x24] = bytes([0x16, 0, 0, 0x17])
+        result = trace(bytes(b0), bytes(b1), bytes(lengths), [(0x100, 0x20)])
+        self.assertEqual(result['references'], [])
+        self.assertEqual(result['dynamic_direct_pointers'][0]['next_entry'], '0x0023')
+        self.assertEqual({c['entry'] for c in result['contexts']}, {'0x0020', '0x0023'})
+
     def test_merged_graph_reports_conflicting_context_decodes(self):
         b0, b1, lengths = fixture()
         lengths[0x09] = lengths[0x00] = 2
