@@ -13,7 +13,10 @@ The walker has explicit rules only for reviewed handlers in
 fall through. Opcodes that call `ScriptSetPointerFromOperands` conditionally
 produce both a target and a fallthrough candidate; opcode `$04` produces just a
 target. Commands that yield produce a possible later resume, while some helpers
-may either yield or return normally. These edges do not establish that a branch
+may either yield or return normally. Opcode `$67` yields after updating a slot.
+Opcode `$89` has a possible resume through its relative-position path; its
+other path can change the main state, so its scheduling is not assumed.
+These edges do not establish that a branch
 is taken, a slot survives, or execution resumes. A nonzero-mode `$63` record
 load preserves the script pointer; zero mode remains dynamic. The `$1E` slot
 action yields, with mode 2 retaining the slot and other modes releasing it;

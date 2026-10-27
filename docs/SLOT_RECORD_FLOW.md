@@ -38,6 +38,11 @@ observed `$EA3E` entry used descriptor `$19`, base `$DA79`, with flag `$81`;
 its offset `$24` selects the already represented `$DA9D` record. This is
 context-specific emulator evidence, not proof that `$DA40` is unreachable
 under other inputs or slot-state changes. The context trace remains local.
+A second 16,000-frame input sequence reached `$EA28` with descriptor `$0E`
+and flag `$80` 48 times, and reached `$EA3E` twice with descriptor `$19` and
+flag `$81`. Its other `$EA28` observations used descriptor `$18` or `$19`,
+both selecting base `$DA79`. These observations reinforce the tested-context
+distinction but do not rule out the competing access in other states.
 
 The three bounded v1.5 opening-gameplay runs observed 10,404, 10,822 and
 11,102 entries to the bank-0 command fetcher, and 124, 83 and 145 entries to

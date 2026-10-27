@@ -34,9 +34,9 @@ independent source trees or treat one version's evidence as verifying the rest.
 simultaneous reconstruction. Keep progress and completion evidence per target.
 
 The v1.5 build now assembles and links to the exact reference, with 21,474 bytes
-of source code and 18,025 bytes of structured data across the physical PRG banks.
-It still includes 26,037 local PRG bytes and 65,536 local CHR bytes. A total of
-1,147 independent source-change controls verify every listed reconstructed region.
+of source code and 18,209 bytes of structured data across the physical PRG banks.
+It still includes 25,853 local PRG bytes and 65,536 local CHR bytes. A total of
+1,161 independent source-change controls verify every listed reconstructed region.
 Passing input audits or whole-ROM equality alone is not reconstruction
 completion. The developer identifies BOGUS as the
 state-machine engine in the [Vance Kozik interview](https://www.nesworld.com/kozik.php);
@@ -436,6 +436,18 @@ targets found 25 nonconflicting candidate commands in 13 groups. These use
 reviewed handlers but remain static possibilities, not observed execution.
 The walk also found an overlapping decode and other ambiguous entries, which
 remain excluded from the new source.
+The `$67` yield and `$89` relative-position path also allow possible later
+resumes. Two continuations contain 24 further commands represented in source;
+resumption, especially after `$89` changes state, is not guaranteed.
+A different 16,000-frame input sequence reached 31 further commands and five
+record locations. A separate mapping probe paired 136,835, 133,793 and 151,587
+script fetches, and 2,451, 1,900 and 3,276 record fetches, for Noah, Moses and
+David respectively; no mapped-bank disagreements were observed. These inputs
+do not demonstrate complete playthroughs.
+The reference and verified build agreed on seven sampled screenshots and state
+snapshots per adventure, hardware activity counts, and script and record access
+counts for this sequence. Its proof is kept under ignored
+`reports/us-v1.5/runtime-directed/`.
 Five records observed in modes `$01` or `$02` now represent only the resource
 pointer and fields actually read in those modes; unexamined neighboring bytes
 remain local rather than being assumed to be record fields.
@@ -491,6 +503,16 @@ a synthetic check preserves that behavior without asserting a real map uses it.
 Scroll requests, palette pointer setup, OAM rotation and sprite allocation are
 source. Synthetic allocation checks covered direct and animated headers,
 occupied records, OAM exhaustion, reserved entries and sprite size.
+
+The local sprite probe observed 83 distinct resource headers and 132 frame
+headers in bank 0 during the 16,000-frame exploratory inputs. None of these
+observed frames wrap the eight-bit index or cross the bank, although the frame
+reader permits wrapping and zero dimension nibbles produce 256 loop iterations.
+The resource and frame data remain local, not source-progress credit.
+`make trace-sprites` captures the observations with the pinned emulator;
+`make sprite-inventory` checks them against the audited ROM and describes the
+headers in ignored local analysis. These checks do not verify rendered animation
+or establish a complete inventory of sprite assets.
 
 The sprite animation update now advances timers and handles loop or hold-on-
 last-frame behavior. The audio voice start, stop, arbitration and command

@@ -30,7 +30,7 @@ CONDITIONAL_POINTER = frozenset({0x01, 0x02, 0x03, 0x05, 0x15, 0x1B, 0x20,
                                  0x62, 0x66, 0x6B, 0x7B, 0x82, 0x8B, 0x92, 0x93, 0x94, 0x9A,
                                  0x9E, 0x9F, 0xA0, 0xA3, 0xBB, 0xC2})
 UNCONDITIONAL_POINTER = frozenset({0x04})
-YIELD_RESUME = frozenset({0x07, 0x2E, 0x6C, 0xB6})
+YIELD_RESUME = frozenset({0x07, 0x2E, 0x67, 0x6C, 0xB6})
 POSSIBLE_YIELD = frozenset({0x08, 0x2D, 0x7D, 0x81, 0x96})
 # Candidate bounds from the specific immediately preceding clamp/divide or
 # mask sequences. They do not prove that no other entry reaches these opcodes.
@@ -125,6 +125,11 @@ def walk(bank0: bytes, bank1: bytes, lengths: bytes, seeds: list[int],
         elif opcode in POSSIBLE_YIELD:
             node['status'] = 'reviewed_possible_yield'
             edges.append(('next_or_possible_resume', following))
+        elif opcode == 0x89 and length == 3:
+            # The relative-position path preserves the main state and yields.
+            # The setup path can change $00, so its later scheduling is unknown.
+            node['status'] = 'reviewed_possible_relative_resume'
+            edges.append(('possible_relative_resume', following))
         elif opcode == 0x8A and length == 2:
             # A normal return preserves the script pointer. The $FF form
             # clears $0100-$011F, potentially including stack frames; a

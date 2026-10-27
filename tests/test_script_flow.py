@@ -72,6 +72,17 @@ class ScriptFlowTests(unittest.TestCase):
         self.assertEqual(nodes['0x0014']['successors'],
                          [{'kind': 'possible_resume', 'encoded_pointer': '0x0016'}])
 
+    def test_relative_slot_and_indexed_state_only_offer_possible_resumes(self):
+        b0, b1, lengths = fixture()
+        lengths[0x67], lengths[0x89] = 6, 3
+        b1[0x10:0x1a] = bytes([0x67, 1, 2, 3, 4, 5, 0x89, 0x20, 0, 0x11])
+        nodes = by_pointer(walk(bytes(b0), bytes(b1), bytes(lengths), [0x10]))
+        self.assertEqual(nodes['0x0010']['successors'], [
+            {'kind': 'possible_resume', 'encoded_pointer': '0x0016'}])
+        self.assertEqual(nodes['0x0016']['status'], 'reviewed_possible_relative_resume')
+        self.assertEqual(nodes['0x0016']['successors'], [
+            {'kind': 'possible_relative_resume', 'encoded_pointer': '0x0019'}])
+
     def test_dynamic_handlers_stop_and_possible_yield_remains_uncertain(self):
         b0, b1, lengths = fixture()
         b1[0x10:0x12] = bytes([0x2d, 0x11])

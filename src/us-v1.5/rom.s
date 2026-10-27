@@ -13743,7 +13743,10 @@ RuntimeRecordACC7:
 InteractionRecordACD0:
     SlotRuntimeRecord $FFFF, (InteractionScriptB04C - BankStart), $00, $FF, $00, $00, $00 ; CONTROL_INTERACTION_RECORD_ACD0
 .assert (* - BankStart) = $2CD9, error, "bank 1 interaction record $ACD0 end"
-    .incbin "bank1_acd9_ace2.bin"
+; Zero-mode record; bytes gated by sentinel values may be skipped.
+DirectedRecordACD9:
+    SlotRuntimeRecord $FFFF, (DirectedScriptB157 - BankStart), $40, $FF, $00, $00, $00 ; CONTROL_DIRECTED_RECORD_ACD9
+.assert (* - BankStart) = $2CE2, error, "bank 1 directed record $ACD9 end"
 ; Record accesses observed at the bank-0 loader in the opening scenarios.
 ; Fields behind a $FFFF resource pointer may not be read by the loader.
 RuntimeRecordACE2:
@@ -13753,7 +13756,10 @@ RuntimeRecordACEB:
 RuntimeRecordACF4:
     SlotRuntimeRecord $BF27, $FFFF, $40, $FF, $00, $00, $00
 .assert (* - BankStart) = $2CFD, error, "bank 1 runtime records $ACE2 end"
-    .incbin "bank1_acfd_ad06.bin"
+; Zero-mode record; bytes gated by sentinel values may be skipped.
+DirectedRecordACFD:
+    SlotRuntimeRecord $BFAB, $FFFF, $40, $FF, $00, $00, $00 ; CONTROL_DIRECTED_RECORD_ACFD
+.assert (* - BankStart) = $2D06, error, "bank 1 directed record $ACFD end"
 ; Record accesses observed at the bank-0 loader in the opening scenarios.
 ; Fields behind a $FFFF resource pointer may not be read by the loader.
 RuntimeRecordAD06:
@@ -13772,7 +13778,11 @@ PartialRecordAD18Resource:
 PartialRecordAD18Fields:
     .byte $00 ; CONTROL_PARTIAL_FIELDS_AD18
 .assert (* - BankStart) = $2D1D, error, "bank 1 partial record $AD1C end"
-    .incbin "bank1_ad1d_ad2a.bin"
+    .incbin "bank1_ad1d_ad21.bin"
+; Zero-mode record; bytes gated by sentinel values may be skipped.
+DirectedRecordAD21:
+    SlotRuntimeRecord $B71E, $FFFF, $13, $FF, $00, $00, $00 ; CONTROL_DIRECTED_RECORD_AD21
+.assert (* - BankStart) = $2D2A, error, "bank 1 directed record $AD21 end"
 ; Record accesses observed at the bank-0 loader in the opening scenarios.
 ; Fields behind a $FFFF resource pointer may not be read by the loader.
 RuntimeRecordAD2A:
@@ -14191,7 +14201,30 @@ SuccessorScriptAF61:
 PathScriptAF63:
     BogusSelectRelativeSlotAndYield $00, $07, $23, $14, $00 ; CONTROL_PATH_SCRIPT_AF63
 .assert (* - BankStart) = $2F69, error, "bank 1 candidate successor $AF63 end"
-    .incbin "bank1_af69_af84.bin"
+; Possible resume paths; scheduling and entry conditions remain unverified.
+ResumeScriptAF69:
+    BogusSetSlot0360 $3C ; CONTROL_RESUME_SCRIPT_AF69
+ResumeScriptAF6B:
+    BogusBranchIfSlot06D0Present ResumeScriptAF71
+ResumeScriptAF6E:
+    BogusJumpBank1 ResumeScriptAF7A
+ResumeScriptAF71:
+    BogusBranchIfSecondWorldOffsetAtMost ResumeScriptAF7A, $0040
+ResumeScriptAF76:
+    BogusBranchIfSlot0360Above ResumeScriptAF6B, $00
+ResumeScriptAF7A:
+    BogusClearSelected3E
+ResumeScriptAF7B:
+    BogusClearSelected40
+ResumeScriptAF7C:
+    BogusInitializeSlotMotionFields
+ResumeScriptAF7D:
+    BogusSetSlotFields80 $00, $00
+ResumeScriptAF80:
+    BogusSetSlotMode $02
+ResumeScriptAF82:
+    BogusLoadRecordAndClearSavedState $12
+.assert (* - BankStart) = $2F84, error, "bank 1 candidate successor $AF69 end"
 ; Observed at the bank-0 command fetcher during the opening scenarios.
 ; Names describe handler behaviour; independent entry points are retained.
 RuntimeScriptAF84:
@@ -14276,7 +14309,11 @@ InteractionScriptAFDA:
 PathScriptAFDE:
     BogusApplyAndClearSelected3E ; CONTROL_PATH_SCRIPT_AFDE
 .assert (* - BankStart) = $2FDF, error, "bank 1 candidate successor $AFDE end"
-    .incbin "bank1_afdf_afed.bin"
+; Command entries observed during the directed-input exploration.
+DirectedScriptAFDF:
+    BogusBranchIfSlot0620Bit10 RuntimeScriptAFED ; CONTROL_DIRECTED_SCRIPT_AFDF
+.assert (* - BankStart) = $2FE2, error, "bank 1 directed script $AFDF end"
+    .incbin "bank1_afe2_afed.bin"
 ; Observed at the bank-0 command fetcher during the opening scenarios.
 ; Names describe handler behaviour; independent entry points are retained.
 RuntimeScriptAFED:
@@ -14356,7 +14393,14 @@ SuccessorScriptB044:
 SuccessorScriptB047:
     BogusApplyAndClearSelected3E
 .assert (* - BankStart) = $3048, error, "bank 1 candidate successor $B031 end"
-    .incbin "bank1_b048_b04c.bin"
+; Command entries observed during the directed-input exploration.
+DirectedScriptB048:
+    BogusApplyAndClearSelected3E
+DirectedScriptB049:
+    BogusApplyAndClearSelected3E
+DirectedScriptB04A:
+    BogusLoadRecordAndClearSavedState $12 ; CONTROL_DIRECTED_SCRIPT_B048
+.assert (* - BankStart) = $304C, error, "bank 1 directed script $B048 end"
 ; Command entries observed in the varied-input emulator exploration.
 InteractionScriptB04C:
     BogusSetDispatchCounter $89 ; CONTROL_INTERACTION_SCRIPT_B04C
@@ -14507,7 +14551,10 @@ RuntimeScriptB13B:
 ExtendedScriptB13E:
     BogusLoadSlotRecordAtPointer $2CFD ; CONTROL_EXTENDED_SCRIPT_B13E
 .assert (* - BankStart) = $3141, error, "bank 1 extended script $B13E end"
-    .incbin "bank1_b141_b144.bin"
+; Command entries observed during the directed-input exploration.
+DirectedScriptB141:
+    BogusMarkRelatedSlotAtDepth $38, $05 ; CONTROL_DIRECTED_SCRIPT_B141
+.assert (* - BankStart) = $3144, error, "bank 1 directed script $B141 end"
 ; Observed at the bank-0 command fetcher during the opening scenarios.
 ; Names describe handler behaviour; independent entry points are retained.
 RuntimeScriptB144:
@@ -14528,7 +14575,53 @@ RuntimeScriptB152:
 ExtendedScriptB155:
     BogusLoadRecordAndClearSavedState $12 ; CONTROL_EXTENDED_SCRIPT_B155
 .assert (* - BankStart) = $3157, error, "bank 1 extended script $B155 end"
-    .incbin "bank1_b157_b191.bin"
+; Command entries observed during the directed-input exploration.
+DirectedScriptB157:
+    BogusSetDispatchCounter $0A ; CONTROL_DIRECTED_SCRIPT_B157
+DirectedScriptB159:
+    BogusStoreSlotValueArray $3E
+DirectedScriptB15B:
+    BogusSwapSlotValueBytes
+DirectedScriptB15C:
+    BogusStoreSlotValueArray $3F
+DirectedScriptB15E:
+    BogusReadSlotValue $0F
+DirectedScriptB160:
+    BogusBranchIfSlotValueAtLeast DirectedScriptB16B, $0005
+DirectedScriptB165:
+    BogusAddSlotValue $00F7
+DirectedScriptB168:
+    BogusJumpBank1 DirectedScriptB184
+DirectedScriptB16B:
+    BogusBranchIfSlotValueAtLeast DirectedScriptB176, $000B
+DirectedScriptB170:
+    BogusSetSlotValue $002B
+DirectedScriptB173:
+    BogusJumpBank1 DirectedScriptB184
+DirectedScriptB176:
+    BogusBranchIfSlotValueAtLeast (BankStart + $3181), $000F
+DirectedScriptB17B:
+    BogusSetSlotValue $0012
+DirectedScriptB17E:
+    BogusJumpBank1 DirectedScriptB184
+.assert (* - BankStart) = $3181, error, "bank 1 directed script $B157 end"
+    .incbin "bank1_b181_b184.bin"
+; Command entries observed during the directed-input exploration.
+DirectedScriptB184:
+    BogusStoreSlotValueArray $3D ; CONTROL_DIRECTED_SCRIPT_B184
+DirectedScriptB186:
+    BogusLoadSlotLowFromByteArray $3F
+DirectedScriptB188:
+    BogusSwapSlotValueBytes
+DirectedScriptB189:
+    BogusLoadSlotLowFromByteArray $3E
+DirectedScriptB18B:
+    BogusCallNativeEncoded $B51B
+DirectedScriptB18E:
+    BogusSaveStateAndPlaceSlots $10
+DirectedScriptB190:
+    BogusRestoreSavedScriptAndSlotFlags
+.assert (* - BankStart) = $3191, error, "bank 1 directed script $B184 end"
 ; Observed at the bank-0 command fetcher during the opening scenarios.
 ; Names describe handler behaviour; independent entry points are retained.
 RuntimeScriptB191:
@@ -14706,7 +14799,34 @@ SuccessorScriptB278:
 PathScriptB27B:
     BogusLoadIndexedStateRecord $332E ; CONTROL_PATH_SCRIPT_B27B
 .assert (* - BankStart) = $327E, error, "bank 1 candidate successor $B27B end"
-    .incbin "bank1_b27e_b2a8.bin"
+; Possible resume paths; scheduling and entry conditions remain unverified.
+ResumeScriptB27E:
+    BogusReadSlotValue $00 ; CONTROL_RESUME_SCRIPT_B27E
+ResumeScriptB280:
+    BogusMaskSlotValue $0080
+ResumeScriptB283:
+    BogusBranchIfSlotValueEqual ResumeScriptB29E, $80, $00
+ResumeScriptB288:
+    BogusReadSlotValue $0F
+ResumeScriptB28A:
+    BogusBranchIfSlotValueNotEqual ResumeScriptB299, $0004
+ResumeScriptB28F:
+    BogusSetBackgroundPalettePointer $FFFF
+ResumeScriptB292:
+    BogusMarkMatchingSlots $D0, $01, $08, $00
+ResumeScriptB297:
+    BogusLoadRecordAndClearSavedState $48
+ResumeScriptB299:
+    BogusSetBackgroundPalettePointer $C7DF
+ResumeScriptB29C:
+    BogusLoadRecordAndClearSavedState $48
+ResumeScriptB29E:
+    BogusSetBackgroundPalettePointer $FFFF
+ResumeScriptB2A1:
+    BogusMarkMatchingSlots $D0, $01, $08, $00
+ResumeScriptB2A6:
+    BogusLoadRecordAndClearSavedState $48
+.assert (* - BankStart) = $32A8, error, "bank 1 candidate successor $B27E end"
 ; Observed at the bank-0 command fetcher during the opening scenarios.
 ; Names describe handler behaviour; independent entry points are retained.
 RuntimeScriptB2A8:
@@ -14731,7 +14851,17 @@ SuccessorScriptB2BD:
 SuccessorScriptB2BF:
     BogusLoadSlotRecordAtPointer $2D21
 .assert (* - BankStart) = $32C2, error, "bank 1 candidate successor $B2B5 end"
-    .incbin "bank1_b2c2_b2cc.bin"
+; Command entries observed during the directed-input exploration.
+DirectedScriptB2C2:
+    BogusSetSlotC0 $00 ; CONTROL_DIRECTED_SCRIPT_B2C2
+DirectedScriptB2C4:
+    BogusSetSlotFields80 $00, $00
+DirectedScriptB2C7:
+    BogusClearSlot0790Bits $25
+DirectedScriptB2C9:
+    BogusMarkSlot05A0AndYield
+.assert (* - BankStart) = $32CA, error, "bank 1 directed script $B2C2 end"
+    .incbin "bank1_b2ca_b2cc.bin"
 ; Candidate successors of opening-observed scripts, from reviewed handler rules.
 ; Independent labels preserve alternate entries; reachability remains unproven.
 SuccessorScriptB2CC:
@@ -17289,12 +17419,18 @@ SlotFlowDAC7:
 SlotFlowDAD0:
     SlotCompactRecord $B8A6, $23 ; CONTROL_SLOT_FLOW_DAD0
 .assert (* - BankStart) = $5AD3, error, "bank 1 slot record flow DAD0 end"
-    .incbin "bank1_dad3_dad6.bin"
+; Compact record observed in negative loader mode.
+DirectedRecordDAD3:
+    SlotCompactRecord $C42F, $00 ; CONTROL_DIRECTED_RECORD_DAD3
+.assert (* - BankStart) = $5AD6, error, "bank 1 directed record $DAD3 end"
 ; Descriptor-linked slot record; resource data remains local.
 SlotRuntimeDAD6:
     SlotRuntimeRecord $C42F, (ScriptE691 - BankStart), $22, $FF, $00, $00, $00 ; CONTROL_SLOT_RUNTIME_DAD6
 .assert (* - BankStart) = $5ADF, error, "bank 1 slot record DAD6 end"
-    .incbin "bank1_dadf_dae8.bin"
+; Zero-mode record; bytes gated by sentinel values may be skipped.
+DirectedRecordDADF:
+    SlotRuntimeRecord $FFFF, (RuntimeScriptE764 - BankStart), $40, $FF, $00, $00, $00 ; CONTROL_DIRECTED_RECORD_DADF
+.assert (* - BankStart) = $5AE8, error, "bank 1 directed record $DADF end"
 ; Observed mode-specific record fields; unread neighbouring bytes stay local.
 SweepPartialDAE8Resource:
     .word $B89F ; CONTROL_SWEEP_RESOURCE_DAE8
@@ -18894,7 +19030,10 @@ SuccessorScriptE82F:
 ExtendedScriptE831:
     BogusRelinkToLastRelatedSlot ; CONTROL_EXTENDED_SCRIPT_E831
 .assert (* - BankStart) = $6832, error, "bank 1 extended script $E831 end"
-    .incbin "bank1_e832_e835.bin"
+; Command entries observed during the directed-input exploration.
+DirectedScriptE832:
+    BogusJumpBank1 ExtendedScriptE7B2 ; CONTROL_DIRECTED_SCRIPT_E832
+.assert (* - BankStart) = $6835, error, "bank 1 directed script $E832 end"
 ; Candidate successors of opening-observed scripts, from reviewed handler rules.
 ; Independent labels preserve alternate entries; reachability remains unproven.
 SuccessorScriptE835:
