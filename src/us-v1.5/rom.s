@@ -156,6 +156,16 @@ compareRangeReturn:
 .macro BogusSetSlotBit40 value
     .byte $6A, value
 .endmacro
+; Opcode $76 shares the $75 handler but has its own two-byte record length.
+.macro BogusSetSlot0520 value
+    .byte $76, value
+.endmacro
+.macro BogusSetSelectedState15 value
+    .byte $84, value
+.endmacro
+.macro BogusReleaseOtherSlots
+    .byte $79
+.endmacro
 .macro BogusClearSlot0790Bits mask
     .byte $30, mask
 .endmacro
@@ -558,6 +568,15 @@ compareRangeReturn:
 .endmacro
 .macro BogusSetState13Bits value
     .byte $55, value
+.endmacro
+.macro BogusClearState13Bits value
+    .byte $56, value
+.endmacro
+.macro BogusSaveStateAndPlaceSlots value
+    .byte $98, value
+.endmacro
+.macro BogusReloadSlotRecordMode1 value
+    .byte $C4, value
 .endmacro
 .macro BogusSetInvertedState3B value
     .byte $64, value
@@ -12526,7 +12545,41 @@ ScriptRecordLengths:
 .segment "PRG1"
 .scope Bank1
 BankStart:
-    .incbin "bank1_8000_b3ee.bin"
+    .incbin "bank1_8000_ad45.bin"
+; Candidate script path; object role and execution remain unverified.
+CandidateAD45:
+    BogusSetDispatchCounter $8F ; CONTROL_BOGUS_AD45
+    BogusBranchIfMatchingSlotReady (BankStart + $398E), $01, $01, $00
+    BogusReloadSlotRecordMode1 $06
+    BogusReadSlotValue $0F
+    BogusBranchIfSlotValueNotEqual CandidateAD58, $000F
+    BogusReloadSlotRecordMode1 $08
+CandidateAD58:
+    BogusLoadSlotValueArray $26
+    BogusSetSlot0520 $00
+    BogusSetSlotValue $0024
+    BogusStoreSlotValueArray $27
+    BogusSetSlotValue $003C
+    BogusStoreSlotValueArray $28
+    BogusReadSlotValue $0F
+    BogusBranchIfSlotValueAtLeast CandidateAD83, $0005
+    BogusSetSlotValue $0030
+    BogusStoreSlotValueArray $27
+    BogusSetSlotValue $0048
+    BogusStoreSlotValueArray $28
+    BogusReadSlotValue $0F
+    BogusBranchIfSlotValueNotEqual CandidateAD83, $0004
+    BogusMarkMatchingSlots $08, $01, $08, $00
+CandidateAD83:
+    BogusSetSlotAssociation $00
+    BogusClearSelected3E
+    BogusClearSelected40
+    BogusSetSlot0640Pair $01, $00
+    BogusSetSelectedState15 $36
+    BogusInitializeOtherSlotAbsolute $03, $FF, $C0, $00
+    BogusLoadRecordAndClearSavedState $48
+.assert (* - BankStart) = $2D93, error, "bank 1 candidate script AD45 end"
+    .incbin "bank1_ad93_b3ee.bin"
 ; Map and slot selection script; unconverted branch targets remain address aliases.
 ScriptB3EE:
     BogusSetSlotC0 $00 ; CONTROL_BOGUS_B3EE
@@ -12822,7 +12875,19 @@ ScriptB67F:
     BogusLoadSlotRecord $1E, $FF
     BogusJumpBank1 ScriptB420
 .assert (* - BankStart) = $3685, error, "bank 1 indexed script table B62D end"
-    .incbin "bank1_b685_b6ee.bin"
+    .incbin "bank1_b685_b6a0.bin"
+; Candidate script path; object role and execution remain unverified.
+CandidateB6A0:
+    BogusSetSlotC0 $00 ; CONTROL_BOGUS_B6A0
+    BogusBranchIfSlot0630Bit02 CandidateB6A8
+    BogusAdjustSlotBounds $00, $FE
+CandidateB6A8:
+    BogusSetSlot0670Pair $01, $00
+    BogusWait $28
+    BogusClearSlot0790Bits $01
+    BogusLoadRecordAndClearSavedState $12
+.assert (* - BankStart) = $36B1, error, "bank 1 candidate script B6A0 end"
+    .incbin "bank1_b6b1_b6ee.bin"
 ; Connected slot-action script with coordinate checks, linked-slot search and
 ; original wait/loop behaviour. The gameplay object is not yet identified.
 ScriptB6EE:
@@ -12892,7 +12957,43 @@ ScriptB780:
     BogusBranchIfSlotB0AtMost ScriptB6EE, $3C
     BogusJumpBank1 ScriptB780
 .assert (* - BankStart) = $3787, error, "bank 1 script B6EE end"
-    .incbin "bank1_b787_b89c.bin"
+    .incbin "bank1_b787_b7c7.bin"
+; Candidate script path; object role and execution remain unverified.
+CandidateB7C7:
+    BogusSetSlotC0 $00 ; CONTROL_BOGUS_B7C7
+    BogusSetSlot0360 $32
+    BogusSetSlotBit40 $01
+    BogusSetSlot0670Pair $01, $00
+CandidateB7D0:
+    BogusBranchIfSlot0360AtMost CandidateB7DC, $00
+    BogusBranchIfSlotCoordinatesA3 CandidateB7DC, $10, $18
+    BogusJumpBank1 CandidateB7D0
+CandidateB7DC:
+    BogusLoadRecordAndClearSavedState $09
+.assert (* - BankStart) = $37DE, error, "bank 1 candidate script B7C7 end"
+    .incbin "bank1_b7de_b809.bin"
+; Candidate script path; object role and execution remain unverified.
+CandidateB809:
+    BogusSetDispatchCounter $8B ; CONTROL_BOGUS_B809
+    BogusRestartVoice4 $2745
+    BogusSetSlotC0 $00
+    BogusSetUnlinkedFields $00, $00
+    BogusSetSlot07F0 $60
+    BogusBranchIfSlot0630Bit02 CandidateB81B
+    BogusAdjustSlotBounds $04, $00
+CandidateB81B:
+    BogusClearSlot0790Bits $01
+    BogusSetSlotFields80 $00, $07
+    BogusBranchIfSlotB0AtMost CandidateB82D, $74
+    BogusSetSlotFields80 $00, $F9
+    BogusBranchIfSlot0630Bit02 CandidateB82D
+    BogusAdjustSlotBounds $00, $EC
+CandidateB82D:
+    BogusCheckSlotFlagsAndRestorePointer
+    BogusSetDirectionalSlotFields40 $FF, $09
+    BogusLoadRecordAndClearSavedState $12
+.assert (* - BankStart) = $3833, error, "bank 1 candidate script B809 end"
+    .incbin "bank1_b833_b89c.bin"
 ; Slot-field updates and conditional checks lead to one of several loops or
 ; a slot release. The script's gameplay role remains provisional.
 ScriptB89C:
@@ -13022,7 +13123,30 @@ ScriptB9A0:
     BogusYieldAndSlotAction $00
 .assert (* - BankStart) = $39E0, error, "bank 1 script B999 end"
 DataB9E0:
-    .incbin "bank1_b9e0_ba53.bin"
+    .incbin "bank1_b9e0_ba23.bin"
+; Candidate script path; object role and execution remain unverified.
+CandidateBA23:
+    BogusSetDispatchCounter $08 ; CONTROL_BOGUS_BA23
+    BogusSetSlotC0 $00
+    BogusBranchIfSlot0630Bit02 CandidateBA2D
+    BogusAdjustSlotBounds $00, $FD
+CandidateBA2D:
+    BogusSetSlot07F0 $01
+    BogusSetSlot0670Pair $05, $40
+CandidateBA32:
+    BogusBranchIfSlotCoordinatesA3 CandidateBA3A, $08, $08
+    BogusJumpBank1 CandidateBA32
+CandidateBA3A:
+    BogusSetSlot0620Bit20
+    BogusStartVoice4 $2887
+    BogusLoadSlotRecord $09, $01
+    BogusCheckSlotFlagsAndRestorePointer
+    BogusSetDispatchCounter $03
+    BogusBranchAndClearSlot0620Bit08 CandidateBA47
+CandidateBA47:
+    BogusJumpBank1 CandidateBA32
+.assert (* - BankStart) = $3A4A, error, "bank 1 candidate script BA23 end"
+    .incbin "bank1_ba4a_ba53.bin"
 ; This descriptor-derived entry reaches a self-loop after setting two fields.
 ScriptBA53:
     BogusSetSlotC0 $00
@@ -13227,7 +13351,26 @@ ScriptBC3D:
     BogusSetBackgroundPalettePointer $FFFF
     BogusJumpBank1 ScriptBC27
 .assert (* - BankStart) = $3C6C, error, "bank 1 script BC22 end"
-    .incbin "bank1_bc6c_bcc0.bin"
+    .incbin "bank1_bc6c_bc75.bin"
+; Candidate script path; object role and execution remain unverified.
+CandidateBC75:
+    BogusSetSlotC0 $00 ; CONTROL_BOGUS_BC75
+    BogusSetInvertedState18 $FF
+    BogusSetUnlinkedFields $00, $00
+    BogusSetDirectionalSlotFields40 $FF, $F4
+    BogusSetVoicePointers $2944, $29F4, $0000, $0000
+    BogusSetSlotFields80 $08, $FF
+CandidateBC8B:
+    BogusSetSlotFields80 $FF, $F8
+    BogusSetDispatchCounter $81
+    BogusSetSlotFields80 $FF, $08
+    BogusBranchIfSlot0700AtMost CandidateBC8B, $F0
+    BogusRestartVoice4 $0000
+    BogusSetVoicePointers $0000, $0000, $0000, $0000
+    BogusCallNativeEncoded $B51B
+    BogusSetMainState $FF
+.assert (* - BankStart) = $3CA8, error, "bank 1 candidate script BC75 end"
+    .incbin "bank1_bca8_bcc0.bin"
 ; Candidate entry from a slot descriptor. The full graph is contained here;
 ; gameplay role and runtime use are not yet established.
 ScriptBCC0:
@@ -13801,7 +13944,24 @@ ScriptDBC8:
     BogusWait $0A
     BogusLoadRecordAndClearSavedState $00
 .assert (* - BankStart) = $5BDA, error, "bank 1 script DB81 end"
-    .incbin "bank1_dbda_dc35.bin"
+    .incbin "bank1_dbda_dbe9.bin"
+; Candidate script path; object role and execution remain unverified.
+CandidateDBE9:
+    BogusSetDispatchCounter $83 ; CONTROL_BOGUS_DBE9
+    BogusSetSlotFields80 $00, $00
+    BogusSetDirectionalSlotFields40 $01, $FF
+    BogusReadSlotValue $11
+    BogusBranchIfSlotValueAtLeast CandidateDC03, $0080
+CandidateDBF8:
+    BogusAdjustSlotBounds $FF, $00
+    BogusBranchIfSlotCoordinatesA3 CandidateDBF8, $10, $FF
+    BogusJumpBank1 (BankStart + $5BBE)
+CandidateDC03:
+    BogusAdjustSlotBounds $01, $00
+    BogusBranchIfSlotCoordinatesA3 CandidateDC03, $10, $FF
+    BogusJumpBank1 (BankStart + $5BBE)
+.assert (* - BankStart) = $5C0E, error, "bank 1 candidate script DBE9 end"
+    .incbin "bank1_dc0e_dc35.bin"
 ; Connected movement and interaction state-machine paths. The byte-level
 ; conditions are reconstructed; the associated gameplay role remains unknown.
 ScriptDC35:
@@ -14611,7 +14771,33 @@ ScriptEA9D:
     BogusWait $04
     BogusJumpBank1 ScriptE9CC
 .assert (* - BankStart) = $6AA2, error, "bank 1 script E9BA end"
-    .incbin "bank1_eaa2_ebee.bin"
+    .incbin "bank1_eaa2_eb52.bin"
+; Candidate script path; object role and execution remain unverified.
+CandidateEB52:
+    BogusSetSlotValue $0000 ; CONTROL_BOGUS_EB52
+    BogusStoreSlotValueArray $FF
+    BogusSetSlotD0Bits $42
+    BogusSetUnlinkedFields $00, $00
+    BogusSetSlot0640Pair $04, $00
+    BogusBranchIfSlot0780Equal CandidateEB66, $AA
+    BogusJumpBank1 (BankStart + $6C33)
+CandidateEB66:
+    BogusSetSlotD0Bits $08
+    BogusJumpBank1 (BankStart + $6C33)
+.assert (* - BankStart) = $6B6B, error, "bank 1 candidate script EB52 end"
+    .incbin "bank1_eb6b_ebb5.bin"
+; Candidate script path; object role and execution remain unverified.
+CandidateEBB5:
+    BogusSetSlot0670Pair $08, $00 ; CONTROL_BOGUS_EBB5
+    BogusSetSlotValue $0008
+    BogusStoreSlotValueArray $FF
+    BogusSetSlotD0Bits $02
+    BogusSetUnlinkedFields $00, $00
+    BogusSetSlot0640Pair $04, $08
+    BogusClearSlot0790Bits $01
+    BogusJumpBank1 (BankStart + $6C33)
+.assert (* - BankStart) = $6BCA, error, "bank 1 candidate script EBB5 end"
+    .incbin "bank1_ebca_ebee.bin"
 ; Related entry paths converge on the already recovered EC2B and EC33 loops.
 ScriptEBEE:
     BogusSetSlot0670Pair $40, $00 ; CONTROL_BOGUS_EBEE
@@ -14792,7 +14978,27 @@ ScriptEDEF:
 ScriptEDFC:
     BogusLoadRecordAndClearSavedState $1B
 .assert (* - BankStart) = $6DFE, error, "bank 1 script ED71 end"
-    .incbin "bank1_edfe_ef7e.bin"
+    .incbin "bank1_edfe_ee1a.bin"
+; Candidate script path; object role and execution remain unverified.
+CandidateEE1A:
+    BogusLoadSlotValueArray $FF ; CONTROL_BOGUS_EE1A
+    BogusBranchIfSlotValueAtLeast CandidateEE3A, $8000
+    BogusStartVoice4FromIndexedPair $26D0
+    BogusBranchIfSlotD0BitsClear CandidateEE38, $01
+    BogusSetDispatchCounter $84
+    BogusLoadSlotRecord $12, $01
+    BogusSetSlotFields80 $00, $FF
+    BogusSetDirectionalSlotFields40 $01, $FF
+    BogusWait $0A
+    BogusSetDirectionalSlotFields40 $18, $FF
+CandidateEE38:
+    BogusLoadRecordAndClearSavedState $00
+CandidateEE3A:
+    BogusMaskSlotValue $7FFF
+    BogusSetVoicesFromIndexedRecord $26E4
+    BogusLoadRecordAndClearSavedState $00
+.assert (* - BankStart) = $6E42, error, "bank 1 candidate script EE1A end"
+    .incbin "bank1_ee42_ef7e.bin"
 ; Slot sequence joining the existing $EFF3 path.
 ScriptEF7E:
     BogusSetSlot0640Pair $00, $40 ; CONTROL_BOGUS_EF7E
@@ -14864,7 +15070,41 @@ ScriptF000:
     BogusLoadSlotRecord $03, $FF
     BogusJumpBank1 ScriptEFF9
 .assert (* - BankStart) = $700F, error, "bank 1 script EFF0 end"
-    .incbin "bank1_f00f_f176.bin"
+    .incbin "bank1_f00f_f0d1.bin"
+; Candidate script path; object role and execution remain unverified.
+CandidateF0D1:
+    BogusBranchIfRemainingVerticalOffsetAtMost (BankStart + $7157), $0028 ; CONTROL_BOGUS_F0D1
+    BogusBranchIfSlot0620Bit10 CandidateF0F0
+    BogusJumpBank1 CandidateF0D1
+CandidateF0DC:
+    BogusSetSlot0620Bit20
+    BogusBranchIfSlot0620Bit10 CandidateF0F0
+CandidateF0E0:
+    BogusBranchIfSlotB0AtMost CandidateF0DC, $E6
+    BogusBranchIfSlotD0Bits CandidateF0EA, $01
+    BogusYieldAndSlotAction $00
+CandidateF0EA:
+    BogusSetSlotFields80 $00, $00
+    BogusJumpBank1 CandidateF0E0
+CandidateF0F0:
+    BogusStartVoice4 $2724
+    BogusWait $01
+    BogusBranchIfSlot0620Bit10Clear CandidateF0DC
+    BogusJumpBank1 (BankStart + $6FF3)
+.assert (* - BankStart) = $70FB, error, "bank 1 candidate script F0D1 end"
+    .incbin "bank1_f0fb_f157.bin"
+; Candidate script path; object role and execution remain unverified.
+CandidateF157:
+    BogusSetDispatchCounter $85 ; CONTROL_BOGUS_F157
+    BogusSetSlotFields80 $00, $00
+    BogusSetSlotC0 $00
+    BogusSetSlot0640Pair $00, $00
+    BogusRestartVoice4 $2890
+    BogusInitializeOtherSlotRelative $54, $00, $02, $00
+    BogusWait $05
+    BogusYieldAndSlotAction $00
+.assert (* - BankStart) = $716D, error, "bank 1 candidate script F157 end"
+    .incbin "bank1_f16d_f176.bin"
 ; State-update and palette setup sequence; data payloads remain local.
 ScriptF176:
     BogusSetDispatchCounter $8F ; CONTROL_BOGUS_F176
@@ -14970,7 +15210,106 @@ ScriptF2C7:
     BogusSetVoicePointers $0000, $0000, $0000, $0000
     BogusClearSlotBitset $FF
 .assert (* - BankStart) = $72DB, error, "bank 1 script F24C end"
-    .incbin "bank1_f2db_fda7.bin"
+; Candidate script path; object role and execution remain unverified.
+CandidateF2DB:
+    BogusClearState13Bits $0F ; CONTROL_BOGUS_F2DB
+    BogusReadSlotValue $52
+    BogusLookupSlotValue
+    BogusLookupCaseBank1 CandidateF2F7, $0078
+    BogusLookupCaseBank1 CandidateF2EE, $0088
+    BogusLookupCaseBank1 CandidateF30E, $0098
+    BogusLookupEnd
+CandidateF2EE:
+    BogusLoadSlotValueArray $3A
+    BogusCallNativeEncoded $B51B
+    BogusSetState03BC $03
+    BogusSetMainState $00
+CandidateF2F7:
+    BogusCallNativeEncoded $B51B
+    BogusSetState03BC $03
+    BogusLoadSlotValueArray $3A
+    BogusBranchIfSlotValueAtLeast CandidateF305, $0005
+    BogusSetMainState $01
+CandidateF305:
+    BogusBranchIfSlotValueAtLeast CandidateF30C, $000B
+    BogusSetMainState $05
+CandidateF30C:
+    BogusSetMainState $0B
+CandidateF30E:
+    BogusCallNativeEncoded $B51B
+    BogusSetMainState $FF
+    BogusSetDispatchCounter $8F
+    BogusClearSlotBitset $FF
+    BogusSetVoicePointers $0000, $0000, $0000, $0000
+    BogusClearState13Bits $0F
+    BogusReadSlotValue $52
+    BogusLookupSlotValue
+    BogusLookupCaseBank1 CandidateF333, $0078
+    BogusLookupCaseBank1 CandidateF33E, $0088
+    BogusLookupCaseBank1 CandidateF349, $0098
+    BogusLookupEnd
+CandidateF333:
+    BogusSetSlotValue $000A
+    BogusStoreSlotValueArray $3D
+    BogusSetSlotValue $0001
+    BogusJumpBank1 (BankStart + $7401)
+CandidateF33E:
+    BogusSetSlotValue $002B
+    BogusStoreSlotValueArray $3D
+    BogusSetSlotValue $0005
+    BogusJumpBank1 (BankStart + $7401)
+CandidateF349:
+    BogusSetSlotValue $0012
+    BogusStoreSlotValueArray $3D
+    BogusSetSlotValue $000B
+    BogusJumpBank1 (BankStart + $7401)
+.assert (* - BankStart) = $7354, error, "bank 1 candidate script F2DB end"
+    .incbin "bank1_f354_fc6a.bin"
+; Candidate script path; object role and execution remain unverified.
+CandidateFC6A:
+    BogusSetDispatchCounter $03 ; CONTROL_BOGUS_FC6A
+    BogusSetVoicePointers $2AD8, $0000, $0000, $0000
+    BogusSetSlot07F0 $02
+    BogusInitializeOtherSlotAbsolute $1F, $00, $91, $00
+    BogusClearSlot0790Bits $01
+CandidateFC7E:
+    BogusJumpBank1 CandidateFC7E
+.assert (* - BankStart) = $7C81, error, "bank 1 candidate script FC6A end"
+    .incbin "bank1_fc81_fd05.bin"
+; Candidate script path; object role and execution remain unverified.
+CandidateFD05:
+    BogusSetSlotC0 $00 ; CONTROL_BOGUS_FD05
+    BogusSetSlotValue $0002
+    BogusMultiplySlotValueByArray $3D
+    BogusStoreSlotValueArray $FF
+    BogusLoadSlotValueIndexedBank1 (BankStart + $7CED)
+    BogusSetSpritePalettePointer $0000
+    BogusLoadSlotValueArray $FF
+    BogusLoadSlotValueIndexedBank1 (BankStart + $7CE3)
+CandidateFD19:
+    BogusStoreSlotValueArray $FF
+    BogusLoadSlotValueIndexedBank1 (BankStart + $0000)
+    BogusMaskSlotValue $00FF
+    BogusBranchIfSlotValueEqual CandidateFD3C, $00, $00
+    BogusInitializeOtherSlotAbsolute $00, $04, $82, $00
+    BogusWait $03
+    BogusMarkMatchingSlots $28, $01, $00, $00
+    BogusWait $1E
+    BogusLoadSlotValueArray $FF
+    BogusAddSlotValue $0001
+    BogusJumpBank1 CandidateFD19
+CandidateFD3C:
+    BogusMarkMatchingSlots $80, $01, $1E, $00
+    BogusWait $28
+    BogusLoadSlotValueArray $3D
+    BogusBranchIfSlotValueEqual (BankStart + $7D65), $04, $00
+    BogusStoreSlotValueArray $FF
+    BogusLoadSlotValueIndexedBank1 (BankStart + $7CF7)
+    BogusStoreSlotValueArray $3D
+    BogusCallNativeEncoded $B51B
+    BogusSaveStateAndPlaceSlots $10
+.assert (* - BankStart) = $7D56, error, "bank 1 candidate script FD05 end"
+    .incbin "bank1_fd56_fda7.bin"
 ScriptRecordLengths:
     ScriptTable 0
 .assert (* - BankStart) = $7E6C, error, "bank 1 common helpers offset"

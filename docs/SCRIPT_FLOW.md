@@ -28,14 +28,19 @@ Three `$44` indexed jumps have explicit candidate bounds of 11, 4 and 8
 entries, derived from their immediately preceding clamp/divide or mask paths.
 The walker follows those entries and marks their table bytes; other callers and
 their index ranges remain unverified, and unbounded `$44` sites still stop.
+The `$8A` stack-buffer operation has a possible normal-return successor. Its
+`$FF` form clears `$0100-$011F`; a sufficiently deep stack could put a return
+address in that range, so the walk does not model every possible outcome.
+The `$79`, `$84`, `$8D/$8E`, `$A4`, `$BC` and `$BD` handlers also have normal
+return successors; that does not prove their execution or termination.
 The `$98` and `$99` main-state changes stop the walk because later scheduling is unproven.
 Unknown, dynamically computed
 and unreviewed handlers stop their paths. The walker rejects malformed lengths,
 records that cross the physical bank boundary and invalid input, and reports
 physical-byte overlaps and any nodes left by its traversal limit.
 
-On the current pinned v1.5 input the bounded walk finds 1,883 candidate commands
-starting from the descriptor-derived entries, with 43 nodes stopping at dynamic
+On the current pinned v1.5 input the bounded walk finds 1,996 candidate commands
+starting from the descriptor-derived entries, with 46 nodes stopping at dynamic
 or unreviewed handlers and no physical-byte overlaps. Those are static candidates,
 not a complete script inventory, gameplay evidence or source ownership. The
 ignored JSON retains operand bytes for local examination; none are added to the

@@ -34,9 +34,9 @@ independent source trees or treat one version's evidence as verifying the rest.
 simultaneous reconstruction. Keep progress and completion evidence per target.
 
 The v1.5 build now assembles and links to the exact reference, with 21,025 bytes
-of source code and 7,099 bytes of structured data across the physical PRG banks.
-It still includes 37,412 local PRG bytes and 65,536 local CHR bytes. A total of
-717 independent source-change controls verify every listed reconstructed region.
+of source code and 7,761 bytes of structured data across the physical PRG banks.
+It still includes 36,750 local PRG bytes and 65,536 local CHR bytes. A total of
+732 independent source-change controls verify every listed reconstructed region.
 Passing input audits or whole-ROM equality alone is not reconstruction
 completion. The developer identifies BOGUS as the
 state-machine engine in the [Vance Kozik interview](https://www.nesworld.com/kozik.php);
@@ -214,9 +214,16 @@ branches or prove execution. Its output is ignored local analysis and does not
 count as reconstructed PRG.
 
 The [script-flow inventory](SCRIPT_FLOW.md) follows reviewed successor rules
-from those candidates. It finds 1,842 candidate commands and stops at 45 nodes
+from those candidates. It finds 1,996 candidate commands and stops at 46 nodes
 with dynamic or unreviewed handlers, with no physical-byte overlaps. Branches
 and resumes remain unverified possibilities; this analysis adds no PRG credit.
+
+Fifteen additional connected script regions include menu-state, palette,
+audio and slot operations. The `$8A` stack-buffer clear is followed only as a
+possible normal return: its `$FF` form can overwrite low stack-page addresses.
+The new candidate paths have not been verified in gameplay; some apparently
+ambiguous successors remain local. Temporary transcription files were retired
+after integration, leaving the maintained source and current matching proof.
 
 Two descriptor-derived candidate graphs at PRG bank 1 CPU `$BCC0-$BCE2` and
 `$BDBF-$BDCC` are now structured BOGUS source. Their command lengths and

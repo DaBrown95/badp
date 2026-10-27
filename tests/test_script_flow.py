@@ -14,6 +14,34 @@ def by_pointer(result):
 
 
 class ScriptFlowTests(unittest.TestCase):
+    def test_slot_field_and_stack_buffer_normal_return_paths(self):
+        b0, b1, lengths = fixture()
+        lengths[0x76] = lengths[0x8a] = lengths[0x84] = 2
+        b1[0x10:0x18] = bytes([0x76, 3, 0x8a, 0xff, 0x84, 7, 0x79, 0x11])
+        nodes = by_pointer(walk(bytes(b0), bytes(b1), bytes(lengths), [0x10]))
+        self.assertEqual(nodes['0x0010']['successors'], [
+            {'kind': 'next', 'encoded_pointer': '0x0012'}])
+        self.assertEqual(nodes['0x0012']['status'], 'reviewed_possible_stack_buffer_return')
+        self.assertEqual(nodes['0x0012']['successors'], [
+            {'kind': 'possible_normal_return', 'encoded_pointer': '0x0014'}])
+        self.assertEqual(nodes['0x0014']['successors'], [
+            {'kind': 'next', 'encoded_pointer': '0x0016'}])
+        self.assertEqual(nodes['0x0016']['successors'], [
+            {'kind': 'next', 'encoded_pointer': '0x0017'}])
+
+    def test_shared_swap_and_related_slot_handlers_preserve_command_boundaries(self):
+        b0, b1, lengths = fixture()
+        lengths[0x8d] = lengths[0x8e] = lengths[0xa4] = lengths[0xbd] = 2
+        lengths[0xbc] = 3
+        b1[0x10:0x1c] = bytes([0x8d, 0x51, 0x8e, 0x42, 0xa4, 1,
+                                0xbc, 2, 3, 0xbd, 4, 0x11])
+        nodes = by_pointer(walk(bytes(b0), bytes(b1), bytes(lengths), [0x10]))
+        for start, end in ((0x10, 0x12), (0x12, 0x14), (0x14, 0x16),
+                           (0x16, 0x19), (0x19, 0x1b)):
+            self.assertEqual(nodes[f'0x{start:04x}']['successors'], [
+                {'kind': 'next', 'encoded_pointer': f'0x{end:04x}'}])
+        self.assertEqual(nodes['0x001b']['status'], 'unreviewed_or_dynamic_handler')
+
     def test_jump_cycle_and_unknown_handler_stop(self):
         b0, b1, lengths = fixture()
         lengths[0x09] = 2
