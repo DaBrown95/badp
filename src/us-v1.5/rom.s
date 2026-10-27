@@ -1,6 +1,140 @@
 .setcpu "6502"
 .include "nes.inc"
 
+; Two position-record search paths share control flow while using different
+; zero-page pointer pairs and linked addresses. Both scan eight-byte records against
+; $5E/$5F and copy bytes 3-7 to $2A-$2E when a nonzero entry is found.
+.macro PositionRecordSearch pointerLo, pointerHi, searchEntry
+    .local copyReturn, searchBackward, searchForward, found, previous, notFound
+    .local returnValue, stepBack, stepForward, compare, compareFlags, compareReturn
+    .local compareDirect, compareDirectReturn, compareRange, compareRangeReturn
+    jsr searchEntry
+    beq copyReturn
+    ldy #$03                     ; CONTROL_POSITION_RECORD_SEARCH
+    lda (pointerLo),y
+    sta $2A
+    iny
+    lda (pointerLo),y
+    sta $2B
+    iny
+    lda (pointerLo),y
+    sta $2C
+    iny
+    lda (pointerLo),y
+    sta $2D
+    iny
+    lda (pointerLo),y
+    sta $2E
+    lda $29
+copyReturn:
+    rts
+searchEntry:
+    jsr compare
+    beq found
+    bcs searchForward
+searchBackward:
+    jsr stepBack
+    jsr compare
+    beq found
+    bcc searchBackward
+    jmp notFound
+searchForward:
+    jsr stepForward
+    jsr compare
+    beq found
+    bcs searchForward
+    jmp notFound
+found:
+    ldy #$02
+    lda (pointerLo),y
+    sta $29
+    bne returnValue
+    lda $5E
+    ora $5F
+    bne previous
+    jsr stepForward
+    jsr compare
+    beq found
+    jmp notFound
+previous:
+    jsr stepBack
+notFound:
+    lda #$00
+    sta $29
+    rts
+returnValue:
+    lda $29
+    rts
+stepBack:
+    lda pointerLo
+    sec
+    sbc #$08
+    sta pointerLo
+    lda pointerHi
+    sbc #$00
+    sta pointerHi
+    rts
+stepForward:
+    lda pointerLo
+    clc
+    adc #$08
+    sta pointerLo
+    lda pointerHi
+    adc #$00
+    sta pointerHi
+    rts
+compare:
+    jsr compareDirect
+    beq compareReturn
+    bcc compareReturn
+    php
+    lda $E0
+    bpl compareFlags
+    pla
+    jsr compareRange
+    rts
+compareFlags:
+    plp
+compareReturn:
+    rts
+compareDirect:
+    ldy #$01
+    lda (pointerLo),y
+    sta $E0
+    and #$7F
+    sta $E1
+    dey
+    lda $5E
+    sec
+    sbc (pointerLo),y
+    sta $29
+    lda $5F
+    sbc $E1
+    bne compareDirectReturn
+    lda $29
+compareDirectReturn:
+    rts
+compareRange:
+    ldy #$00
+    lda (pointerLo),y
+    clc
+    adc #$01
+    sta $E0
+    lda $E1
+    adc #$00
+    sta $E1
+    lda $5E
+    sec
+    sbc $E0
+    sta $29
+    lda $5F
+    sbc $E1
+    bne compareRangeReturn
+    lda $29
+compareRangeReturn:
+    rts
+.endmacro
+
 ; Record layout is established by $F0D8 and the slot initializer at $CF84.
 .macro SlotDescriptor record_pointer, field_05d0, field_0610, field_05e0, field_0520
     .word record_pointer
@@ -1947,14 +2081,14 @@ SlotDistanceLarge:
     lda #$FF
     rts
 
-; Consult the still-unconverted $D19A selector and, if its checks pass, copy
+; Consult the position-record selector and, if its checks pass, copy
 ; values $2B/$2C into slot fields and set pending command $1B.
 UpdateSlotFromPosition:
     lda $07D0,x                   ; CONTROL_SLOT_POSITION_EVENT
     sta $5E
     lda $07E0,x
     sta $5F
-    jsr $D19A
+    jsr LookupPositionRecordsB
     beq SlotPositionEventReturn
     cmp #$F0
     bcs SlotPositionEventReturn
@@ -2004,7 +2138,102 @@ RotateSlotCoordinate:
     rts
 .assert (* - BankStart) = $50CA, error, "bank 0 slot allocation helpers end"
 
-    .incbin "bank0_d0ca_d2f8.bin"
+; Two eight-byte search paths use different zero-page pointer pairs.
+LookupPositionRecordsA:
+    PositionRecordSearch $E2, $E3, SearchPositionRecordsA
+.assert (* - BankStart) = $519A, error, "bank 0 first position search end"
+LookupPositionRecordsB:
+    PositionRecordSearch $E4, $E5, SearchPositionRecordsB
+.assert (* - BankStart) = $526A, error, "bank 0 second position search end"
+
+; Convert two position components relative to $03EE/$03EF and $03F0/$03F1.
+; The caller uses carry to distinguish values that do not fit the limits.
+ConvertSlotPosition:
+    jsr ScalePositionByEight      ; CONTROL_CONVERT_SLOT_POSITION
+    lda $51
+    beq ConvertSlotFirstSubtract
+    clc
+    adc $11
+    sta $11
+    bcc ConvertSlotFirstSubtract
+    inc $12
+ConvertSlotFirstSubtract:
+    sec
+    lda $11
+    sbc $03EE
+    sta $11
+    tax
+    lda $12
+    sbc $03EF
+    sta $12
+    bne ConvertSlotPositionOutOfRange
+    bcs ConvertSlotSecond
+ConvertSlotPositionOutOfRange:
+    sec
+    rts
+ConvertSlotSecond:
+    sty $11
+    jsr ScalePositionByEight
+    lda $50
+    beq ConvertSlotSecondSubtract
+    clc
+    adc $11
+    sta $11
+    bcc ConvertSlotSecondSubtract
+    inc $12
+ConvertSlotSecondSubtract:
+    sec
+    lda $11
+    sbc $03F0
+    sta $11
+    tay
+    lda $12
+    sbc $03F1
+    sta $12
+    bne ConvertSlotPositionOutOfRange
+    bcc ConvertSlotPositionOutOfRange
+    cpy #$F0
+    rts
+ScalePositionByEight:
+    jsr ShiftPositionLeft        ; CONTROL_SCALE_POSITION_BY_EIGHT
+    jsr ShiftPositionLeft
+ShiftPositionLeft:
+    asl $11
+    rol $12
+    rts
+
+; Derive $0E/$0F and $4F from the two position bases, adding seven before
+; three right shifts. Preserve carry propagation on the original entry paths.
+UpdatePositionReference:
+    lda $03EE                     ; CONTROL_UPDATE_POSITION_REFERENCE
+    clc
+    adc #$07
+    sta $0E
+    lda $03EF
+    adc #$00
+    sta $0F
+    jsr ShiftReferenceRight
+    jsr ShiftReferenceRight
+    jsr ShiftReferenceRight
+    lda $03F0
+    clc
+    adc #$07
+    sta $4F
+    lda $03F1
+    adc #$00
+    jsr ShiftA4FRight
+    jsr ShiftA4FRight
+ShiftA4FRight:
+    lsr a                         ; CONTROL_SHIFT_A4F_RIGHT
+    ror $4F
+    rts
+ShiftReferenceRight:
+    lsr $0F                       ; CONTROL_SHIFT_REFERENCE_RIGHT
+    ror $0E
+    rts
+.assert (* - BankStart) = $52F8, error, "bank 0 position conversion end"
+
+
 ; Mark a slot free, then pass its index to the still-unconverted $8C72 path.
 ReleaseCurrentSlot:
     ldx $10                       ; CONTROL_RELEASE_CURRENT_SLOT
@@ -2115,7 +2344,7 @@ SlotUpdateCheckPosition:
     tay
     lda $0590,x
     sta $50
-    jsr $D26A
+    jsr ConvertSlotPosition
     txa
     ldx $10
     bcs SlotUpdatePositionReturn
