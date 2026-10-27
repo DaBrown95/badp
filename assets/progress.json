@@ -1,0 +1,86 @@
+{
+  "schema_version": 1,
+  "metric": "verified reconstructed PRG bytes / total physical PRG bytes",
+  "complete_code_inventory": false,
+  "chr_included": false,
+  "targets": [
+    {
+      "target": "us-v1.5",
+      "version": "USA v1.5",
+      "status": "In progress",
+      "prg_bytes": 65536,
+      "reconstructed_bytes": 165,
+      "percentage": "0.25%",
+      "code_bytes": 121,
+      "structured_data_bytes": 44,
+      "reference_sha256": "4f39cb6e6d42582b967e72a2dbfe4e02382cf53de721d16f7f6950e6ae6b17ab",
+      "evidence": {
+        "code_bytes": 121,
+        "data_bytes": 44,
+        "source_sha256": "2ddb20d9a44f4f63a457a88204046083d0662efbfe3313416e28ac7d555f027a",
+        "source_map_sha256": "923e8774b69ec171ff4a96fddcad91429688260e3620d18993fd2c273c4d6c5c",
+        "toolchain_revision": "555282497c3ecf8b313d87d5973093af19c35bd5"
+      }
+    },
+    {
+      "target": "us-v1.4",
+      "version": "USA v1.4",
+      "status": "Not started",
+      "prg_bytes": 65536,
+      "reconstructed_bytes": 0,
+      "percentage": "0.00%",
+      "code_bytes": 0,
+      "structured_data_bytes": 0,
+      "reference_sha256": "056b09204b785b1d8d1554af9c084312a7c33c6f88c75f190c42315dff44e86d",
+      "evidence": null
+    },
+    {
+      "target": "us-v1.3",
+      "version": "USA v1.3",
+      "status": "Not started",
+      "prg_bytes": 65536,
+      "reconstructed_bytes": 0,
+      "percentage": "0.00%",
+      "code_bytes": 0,
+      "structured_data_bytes": 0,
+      "reference_sha256": "1a0ed5338e8749d9b6c79b92718a23f93dd69555a3da9d6b9ebae19da4638e2f",
+      "evidence": null
+    },
+    {
+      "target": "us-v1.2",
+      "version": "USA v1.2",
+      "status": "Not started",
+      "prg_bytes": 65536,
+      "reconstructed_bytes": 0,
+      "percentage": "0.00%",
+      "code_bytes": 0,
+      "structured_data_bytes": 0,
+      "reference_sha256": "753c243fb9c036fdf96f2c8a9b26340b7304fb101a7a61619b9c29f39b176fdc",
+      "evidence": null
+    },
+    {
+      "target": "us-v1.1",
+      "version": "USA v1.1",
+      "status": "Not started",
+      "prg_bytes": 65536,
+      "reconstructed_bytes": 0,
+      "percentage": "0.00%",
+      "code_bytes": 0,
+      "structured_data_bytes": 0,
+      "reference_sha256": "9df2420ad2beb98bfc44d90df4a9cc560324ce3608da4217a7f5303beec7fc54",
+      "evidence": null
+    },
+    {
+      "target": "us-unversioned",
+      "version": "USA, unversioned",
+      "status": "Not started",
+      "prg_bytes": 65536,
+      "reconstructed_bytes": 0,
+      "percentage": "0.00%",
+      "code_bytes": 0,
+      "structured_data_bytes": 0,
+      "reference_sha256": "4864e086786bd617d4f587d9e979b6df0574b140067f20b910ca3aa69ffab857",
+      "evidence": null
+    }
+  ]
+}

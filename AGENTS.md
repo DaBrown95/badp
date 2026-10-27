@@ -77,10 +77,12 @@ Follow the user's instructions over this file.
 - Before accepting a source replacement, change a meaningful instruction or
   operand in an isolated copy and verify that a fresh build and comparison fail.
   Retain that negative control with the successful build evidence.
-- Before publishing progress, regenerate it from verified source ownership and
-  matching results. Keep native code, decoded scripts/data, extracted assets,
-  copied regions and unresolved bytes separate. Leave unknown denominators
-  unknown; never colour unverified work green.
+- Before publishing progress, run `make progress` and commit the refreshed README
+  table and `assets/progress.json` with the corresponding work. It rebuilds the
+  primary target and checks proof freshness and controls before reporting PRG
+  source ownership. Keep native code, decoded scripts/data, extracted assets,
+  copied regions and unresolved bytes separate. Leave the unknown game-code
+  denominator unknown; never credit unverified work.
 - Whole-ROM equality is one gate. Completion also requires a reviewed inventory
   of all code banks, indirect targets, scripts and data formats, plus reproducible
   gameplay checks across all three adventures and shared systems. Necessary local

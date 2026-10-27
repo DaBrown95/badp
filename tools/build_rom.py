@@ -17,6 +17,8 @@ from .setup import verified_tools
 
 ROOT = Path(__file__).resolve().parents[1]
 TARGET = "us-v1.5"
+PROOF_INPUTS = ("tools/build_rom.py", "tools/identify_rom.py", "tools/project.py",
+                "tools/setup.py", "config/cc65-toolchain.json")
 
 # Each mutation changes a meaningful instruction or structured data value.
 # The marker must occur exactly once in the maintained source, even when its
@@ -198,6 +200,7 @@ def build() -> dict:
             "target_manifest_sha256": digest((ROOT / "config/targets/us-v1.5.json").read_bytes()),
             "catalogue_sha256": digest((ROOT / "config/catalogues/no-intro-nes.json").read_bytes()),
             "tool_sha256": {name: digest(path.read_bytes()) for name, path in tool_paths.items()},
+            "verification_input_sha256": {name: digest((ROOT / name).read_bytes()) for name in PROOF_INPUTS},
             "source_regions": regions, "local_prg_gaps": gaps,
             "counts": {"matching_code_bytes": counts["code"], "structured_data_bytes": counts["data"],
                        "local_prg_bytes": sum(g["size"] for g in gaps),

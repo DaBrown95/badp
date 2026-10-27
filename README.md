@@ -14,27 +14,35 @@ All six reference ROMs have been identified against a
 full-file hashes and separate PRG/CHR identities are recorded in
 [config/targets/](config/targets/).
 
-The v1.5 build matches the reference ROM byte for byte. The current source
-reconstructs 121 physical PRG bytes of 6502 code and 44 bytes of structured data.
-It covers reset, startup, the vblank wait, bank switching, NMI/IRQ tails and
-vectors. The remaining 65,371 PRG bytes and all 65,536 CHR bytes are local
-binary inclusions. The amount of game code still to reconstruct is unknown.
-Seven changed-source controls check that each reconstructed region affects the
-assembled output. These results are recorded with the local build proof.
+The v1.5 build matches the reference ROM byte for byte. Its source covers reset,
+startup, the vblank wait, bank switching, NMI/IRQ tails and vectors. Remaining
+PRG bytes and the CHR graphics are local binary inclusions. Changed-source
+controls check that each reconstructed region affects the assembled output.
 
 We will complete v1.5 first, then adapt the shared reconstruction to the other
 versions in order. Each version needs its own matching and gameplay evidence.
 The [project configuration](config/project.json) records the primary target and
 rollout order.
 
-| Version | Target | Reconstruction order |
-| --- | --- | --- |
-| USA v1.5 | `us-v1.5` | Primary |
-| USA v1.4 | `us-v1.4` | 2 |
-| USA v1.3 | `us-v1.3` | 3 |
-| USA v1.2 | `us-v1.2` | 4 |
-| USA v1.1 | `us-v1.1` | 5 |
-| USA, unversioned | `us-unversioned` | 6 |
+Percentages show verified reconstructed code and structured data as a share of
+physical PRG bytes. PRG also contains data whose format is not yet understood;
+the game's total code denominator is unknown. CHR graphics, the container
+header and copied bytes do not count as reconstructed source. These percentages
+are not measures of gameplay completion.
+
+<!-- BEGIN GENERATED PROGRESS -->
+| Version | Reconstructed PRG | Status |
+| --- | ---: | --- |
+| USA v1.5 | **0.25%** (165 / 65,536 bytes) | In progress |
+| USA v1.4 | **0.00%** (0 / 65,536 bytes) | Not started |
+| USA v1.3 | **0.00%** (0 / 65,536 bytes) | Not started |
+| USA v1.2 | **0.00%** (0 / 65,536 bytes) | Not started |
+| USA v1.1 | **0.00%** (0 / 65,536 bytes) | Not started |
+| USA, unversioned | **0.00%** (0 / 65,536 bytes) | Not started |
+<!-- END GENERATED PROGRESS -->
+
+Run `make progress` to rebuild v1.5 and refresh this table and the
+[verified progress data](assets/progress.json).
 
 The starting approach is labelled 6502 assembly, with gameplay scripts and data
 decoded as their formats become understood. Programmer Vance Kozik identifies
@@ -101,6 +109,7 @@ local, along with the extracted inputs and control builds.
 | `make audit` | Verify the primary input; `TARGET=<id>` selects another. |
 | `make audit-all` | Verify all six input identities. |
 | `make build` | Build and compare v1.5; retain source-change controls. |
+| `make progress` | Rebuild and update the per-version tracker. |
 | `make test` | Test the tooling using synthetic data; no game ROM needed. |
 
 Other versions have pinned reference identities but do not have builds yet.
@@ -110,7 +119,7 @@ Other versions have pinned reference identities but do not have builds yet.
 ```text
 .
 ├── Makefile        Project commands
-├── assets/         Future verified progress image and ROM map
+├── assets/         Verified progress data
 ├── config/         Target identities, version order, future tool pins and maps
 ├── include/        Shared assembly symbols and macros
 ├── src/            Reconstructed code, scripts and structured data
