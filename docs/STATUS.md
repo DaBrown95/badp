@@ -33,10 +33,10 @@ independent source trees or treat one version's evidence as verifying the rest.
 `make audit-all` checks reference integrity for all targets without requiring
 simultaneous reconstruction. Keep progress and completion evidence per target.
 
-The v1.5 build now assembles and links to the exact reference, with 18,207 bytes
+The v1.5 build now assembles and links to the exact reference, with 18,990 bytes
 of source code and 1,671 bytes of structured data across the physical PRG banks.
-It still includes 45,658 local PRG bytes and 65,536 local CHR bytes. A total of
-509 independent source-change controls verify every listed reconstructed region.
+It still includes 44,875 local PRG bytes and 65,536 local CHR bytes. A total of
+548 independent source-change controls verify every listed reconstructed region.
 Passing input audits or whole-ROM equality alone is not reconstruction
 completion. The developer identifies BOGUS as the
 state-machine engine in the [Vance Kozik interview](https://www.nesworld.com/kozik.php);
@@ -191,6 +191,12 @@ nametable splits and attribute-bit merging. They do not verify PPU timing,
 mapper behavior or gameplay.
 The background palette loop retains Y from its offset calculation, unlike the
 sprite loop; a high-offset synthetic case preserves that original behavior.
+
+The deferred PPU update handler, its stream command processing and decimal
+formatting are source. Synthetic checks covered fill and banked-copy requests,
+absolute and relative stream addresses, pauses, queue pressure, the timer and
+number formatting. The checks execute instruction subsets and do not establish
+real PPU timing or bank-switch behavior.
 
 Map initialization now reads dimensions, prepares the PPU and draws initial
 columns. Its original zero-width case enters the 8-bit column loop 256 times;

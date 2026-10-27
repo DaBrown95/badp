@@ -1012,7 +1012,7 @@ ControllerHandler7Done:
 FrameEngineWork:
     lda a:$28                    ; Original uses absolute addressing for $0028.
     bne RestoreNmiState
-    jsr $F48A
+    jsr ProcessPendingPpuUpdate
     jsr UpdateScrollWork
     jsr UpdatePaletteStreams
     lda $03F2
@@ -10513,7 +10513,448 @@ UpdateSlotBounds:
     rts
 .assert (* - BankStart) = $748A, error, "bank 0 slot coordinate helpers end"
 
-    .incbin "bank0_f48a_fd29.bin"
+; Tick the deferred update timer when the engine is active. Preserve $10.
+; The original ADC of $E7 uses the incoming carry; do not insert CLC.
+ProcessPendingPpuUpdate:
+    lda $28 ; CONTROL_PROCESS_PENDING_PPU_UPDATE
+    ora $00
+    beq PendingPpuFrameTick
+    rts
+PendingPpuFrameTick:
+    lda $10 ; CONTROL_PENDING_PPU_FRAME_TICK
+    pha
+    dec $09
+    beq PendingPpuTickExpired
+    jmp PendingPpuCheckQueue
+PendingPpuRestoreTick:
+    inc $09
+    jmp PendingPpuCheckQueue
+PendingPpuTickExpired:
+    lda $14
+    and #$01
+    bne PendingPpuRestoreTick
+    lda $0D
+    sta $09
+    inc $14
+    inc $20
+PendingPpuCheckQueue:
+    lda $E7 ; CONTROL_PENDING_PPU_CHECK_QUEUE
+    beq PendingPpuReturn
+    adc #$04
+    sta $FE
+    jsr PpuQueueRemaining
+    sta $03E1
+    cmp $FE
+    bcc PendingPpuReturn
+    jsr BuildPendingPpuUpdate
+PendingPpuReturn:
+    pla
+    sta $10
+    rts
+; Reserve $21 stack bytes while dispatching the pending PPU update type.
+; Banked payloads are copied to the stack before constructing queue entries.
+BuildPendingPpuUpdate:
+    tsx ; CONTROL_BUILD_PENDING_PPU_UPDATE
+    txa
+    sec
+    sbc #$21
+    tax
+    txs
+    lda $04D9
+    cmp #$AB
+    beq PendingPpuStreamJump
+    cmp #$BF
+    bne PendingPpuCheckPalette
+PendingPpuStreamJump:
+    jmp PendingPpuStream
+PendingPpuCheckPalette:
+    cmp #$83 ; CONTROL_PENDING_PPU_CHECK_PALETTE
+    bne PendingPpuCheckBanked
+    jmp PendingPpuPaletteAddress
+PendingPpuCheckBanked:
+    cmp #$70 ; CONTROL_PENDING_PPU_CHECK_BANKED
+    beq PendingPpuCopyBanked
+    cmp #$6E
+    bne PendingPpuSelectAddress
+PendingPpuCopyBanked:
+    jsr PendingPpuSetSource ; CONTROL_PENDING_PPU_COPY_BANKED
+    lda $E7
+    sta $03E0
+    jsr CopyToStack
+    tsx
+    inx
+    stx $EA
+    lda #$01
+    sta $EB
+    lda $04D9
+    cmp #$70
+    bne PendingPpuSelectAddress
+    jmp PendingPpuReverseRow
+PendingPpuSetSource:
+    lda $EA ; CONTROL_PENDING_PPU_SET_SOURCE
+    sta $FE
+    lda $EB
+    sta $FF
+    rts
+; Form a PPU address from the pending row/column and either a nametable
+; selector or the configured base address.
+PendingPpuSelectAddress:
+    lda $04D8 ; CONTROL_PENDING_PPU_SELECT_ADDRESS
+    cmp #$FF
+    beq PendingPpuBaseAddress
+    ldx $E8
+    ldy #$20
+    jsr MultiplyUnsigned8
+    lda $E9
+    jsr AddAToXY
+    stx $FE
+    sty $FF
+    lda $04D8
+    asl a
+    asl a
+    ora #$20
+    clc
+    adc $FF
+    sta $FF
+    jmp PendingPpuFormatNumber
+PendingPpuBaseAddress:
+    lda $E8 ; CONTROL_PENDING_PPU_BASE_ADDRESS
+    sta $FE
+    lda #$00
+    sta $FF
+    jsr DoubleFEPointer
+    jsr DoubleFEPointer
+    jsr DoubleFEPointer
+    jsr DoubleFEPointer
+    jsr DoubleFEPointer
+    clc
+    lda $E9
+    adc $FE
+    sta $FE
+    lda $FF
+    adc #$00
+    sta $FF
+    lda $FE
+    clc
+    adc $04DB
+    sta $FE
+    lda $FF
+    adc $04DA
+    sta $FF
+PendingPpuFormatNumber:
+    lda $04D9 ; CONTROL_PENDING_PPU_FORMAT_NUMBER
+    cmp #$74
+    bne PendingPpuCheckImmediateNumber
+    jsr FormatPendingPpuCounter
+    jmp PendingPpuQueueHeader
+PendingPpuCheckImmediateNumber:
+    cmp #$75 ; CONTROL_PENDING_PPU_CHECK_IMMEDIATE_NUMBER
+    bne PendingPpuQueueHeader
+    lda $EA
+    sta $03E0
+    lda $EB
+    sta $03E1
+    jsr FormatPendingPpuNumber5
+; Append a normal PPU queue header and either copy the payload or fill it
+; with the byte in $EA. Release the temporary stack space on completion.
+PendingPpuQueueHeader:
+    ldx $0380 ; CONTROL_PENDING_PPU_QUEUE_HEADER
+    lda #$00
+    sta $0300,x
+    inx
+    lda $FF
+    sta $0300,x
+    inx
+    lda $FE
+    sta $0300,x
+    inx
+    lda $E7
+    sta $0300,x
+    sta $FE
+    inx
+    lda $04D9
+    cmp #$6F
+    beq PendingPpuFill
+    ldy #$00
+PendingPpuCopyData:
+    lda ($EA),y ; CONTROL_PENDING_PPU_COPY_DATA
+    sta $0300,x
+    inx
+    iny
+    dec $FE
+    bne PendingPpuCopyData
+    jmp PendingPpuClear
+PendingPpuFill:
+    lda $EA ; CONTROL_PENDING_PPU_FILL
+PendingPpuFillLoop:
+    sta $0300,x
+    inx
+    dec $FE
+    bne PendingPpuFillLoop
+PendingPpuClear:
+    lda #$00 ; CONTROL_PENDING_PPU_CLEAR
+    sta $E7
+PendingPpuStoreQueueEnd:
+    stx $0380 ; CONTROL_PENDING_PPU_STORE_QUEUE_END
+PendingPpuReleaseStack:
+    tsx ; CONTROL_PENDING_PPU_RELEASE_STACK
+    txa
+    clc
+    adc #$21
+    tax
+    txs
+    rts
+PendingPpuReverseRow:
+    lda $E8 ; CONTROL_PENDING_PPU_REVERSE_ROW
+    asl a
+    asl a
+    asl a
+    sta $E8
+    lda #$F8
+    sec
+    sbc $E8
+    sta $FE
+    lda #$27
+    sbc #$00
+    sta $FF
+    lda #$6E
+    sta $04D9
+    jmp PendingPpuFormatNumber
+PendingPpuPaletteAddress:
+    lda #$3F ; CONTROL_PENDING_PPU_PALETTE_ADDRESS
+    sta $FF
+    lda $E9
+    sta $FE
+    lda #$E8
+    sta $EA
+    lda #$00
+    sta $EB
+    jmp PendingPpuQueueHeader
+CopyDirectToStack:
+    tsx ; CONTROL_COPY_DIRECT_TO_STACK
+    inx
+    inx
+    inx
+    lda $FF
+    pha
+    ldy #$00
+CopyDirectToStackLoop:
+    lda ($FE),y
+    sta $0100,x
+    iny
+    inx
+    dec $03E0
+    bne CopyDirectToStackLoop
+    pla
+    sta $FF
+    rts
+; Types $AB/$BF copy a 32-byte command window from banked or direct memory.
+; Bytes $FE/$FF change a 16-bit destination; zero ends input.
+PendingPpuStream:
+    lda $03E1 ; CONTROL_PENDING_PPU_STREAM
+    cmp #$20
+    bcc PendingPpuReleaseStack
+    jsr PendingPpuSetSource
+    lda #$20
+    sta $03E0
+    sta $03DE
+    ldx $04D9
+    cpx #$BF
+    bne PendingPpuStreamBanked
+    jsr CopyDirectToStack
+    jmp PendingPpuStreamBegin
+PendingPpuStreamBanked:
+    jsr CopyToStack
+PendingPpuStreamBegin:
+    tsx ; CONTROL_PENDING_PPU_STREAM_BEGIN
+    txa
+    tay
+    iny
+    ldx $0380
+    lda #$00
+    sta $03E0
+; Group ordinary bytes into queue entries, stopping when the local input or
+; available queue count is exhausted. Pointer advancement is preserved.
+PendingPpuStreamNext:
+    lda $0100,y ; CONTROL_PENDING_PPU_STREAM_NEXT
+    beq PendingPpuStreamEnd
+    cmp #$FE
+    bcc PendingPpuStreamCharacter
+    lda $03E0
+    bne PendingPpuStreamPause
+    jsr PendingPpuStreamAddress
+    jmp PendingPpuStreamNext
+PendingPpuStreamCharacter:
+    lda $03E0 ; CONTROL_PENDING_PPU_STREAM_CHARACTER
+    bne PendingPpuStreamWrite
+    jsr PendingPpuStreamHeader
+PendingPpuStreamWrite:
+    lda $0100,y
+    iny
+    sta $0300,x
+    inx
+    lda #$01
+    jsr AdvancePendingPpuSource
+    inc $03E0
+    dec $03DE
+    beq PendingPpuStreamEnd
+    dec $03E1
+    bne PendingPpuStreamNext
+PendingPpuStreamEnd:
+    jsr PendingPpuStreamFinishEntry ; CONTROL_PENDING_PPU_STREAM_END
+    jmp PendingPpuClear
+PendingPpuStreamPause:
+    jsr PendingPpuStreamFinishEntry ; CONTROL_PENDING_PPU_STREAM_PAUSE
+    jmp PendingPpuStoreQueueEnd
+PendingPpuStreamFinishEntry:
+    lda $03E0 ; CONTROL_PENDING_PPU_STREAM_FINISH_ENTRY
+    beq PendingPpuStreamFinishReturn
+    ldy $03DF
+    sta $0300,y
+PendingPpuStreamFinishReturn:
+    rts
+; $FF installs an absolute destination and $FE adds a relative offset.
+PendingPpuStreamAddress:
+    lda $0100,y ; CONTROL_PENDING_PPU_STREAM_ADDRESS
+    cmp #$FE
+    beq PendingPpuStreamRelativeAddress
+    lda $0101,y
+    sta $03C6
+    lda $0102,y
+PendingPpuStreamAddressStore:
+    sta $03C7
+    iny
+    iny
+    iny
+    lda #$03
+    jsr AdvancePendingPpuSource
+    lda $03DE
+    sec
+    sbc #$03
+    sta $03DE
+    rts
+PendingPpuStreamRelativeAddress:
+    lda $0101,y ; CONTROL_PENDING_PPU_STREAM_RELATIVE_ADDRESS
+    clc
+    adc $03C6
+    sta $03C6
+    lda $0102,y
+    adc $03C7
+    jmp PendingPpuStreamAddressStore
+; Start a queue entry and reserve its length byte for the completed group.
+PendingPpuStreamHeader:
+    lda #$00 ; CONTROL_PENDING_PPU_STREAM_HEADER
+    sta $0300,x
+    inx
+    lda $03C7
+    sta $0300,x
+    inx
+    lda $03C6
+    sta $0300,x
+    inx
+    stx $03DF
+    inx
+    lda $03E1
+    sec
+    sbc #$04
+    sta $03E1
+    rts
+.assert (* - BankStart) = $76F3, error, "bank 0 pending PPU update end"
+
+    .incbin "bank0_f6f3_fb32.bin"
+; Select one of two counters or use the supplied value, then format five
+; decimal tile bytes with $40 for leading blanks. A second entry emits three.
+FormatPendingPpuCounter:
+    ldy $EA ; CONTROL_FORMAT_PENDING_PPU_COUNTER
+    lda $42,y
+    sta $03E0
+    lda $44,y
+    sta $03E1
+FormatPendingPpuNumber5:
+    lda #$05 ; CONTROL_FORMAT_PENDING_PPU_NUMBER5
+    sta $E7
+    jmp FormatPendingPpuDigits
+FormatPendingPpuNumber3:
+    lda #$03 ; CONTROL_FORMAT_PENDING_PPU_NUMBER3
+    sta $E7
+FormatPendingPpuDigits:
+    lda #$20 ; CONTROL_FORMAT_PENDING_PPU_DIGITS
+    sta $EA
+    lda #$00
+    sta $EB
+    lda #$00
+    sta $20
+; Repeated subtraction yields the ten-thousands digit; the remaining digits
+; come from divisions by 100 and 10.
+FormatPendingPpuTenThousands:
+    sec ; CONTROL_FORMAT_PENDING_PPU_TEN_THOUSANDS
+    lda $03E0
+    sbc #$10
+    sta $03DE
+    lda $03E1
+    sbc #$27
+    bcc FormatPendingPpuRemainder
+    sta $03E1
+    lda $03DE
+    sta $03E0
+    inc $20
+    jmp FormatPendingPpuTenThousands
+FormatPendingPpuRemainder:
+    ldx $03E0 ; CONTROL_FORMAT_PENDING_PPU_REMAINDER
+    ldy $03E1
+    lda #$64
+    jsr DivideUnsigned16By8
+    stx $03E0
+    sty $03E1
+    ldx $03E0
+    ldy #$00
+    lda #$0A
+    jsr DivideUnsigned16By8
+    stx $21
+    sty $22
+    ldx $03E1
+    ldy #$00
+    lda #$0A
+    jsr DivideUnsigned16By8
+    stx $23
+    sty $24
+    ldx #$00
+    ldy #$00
+FormatPendingPpuDigitLoop:
+    lda $20,y ; CONTROL_FORMAT_PENDING_PPU_DIGIT_LOOP
+    bne FormatPendingPpuDigit
+    cpx #$00
+    bne FormatPendingPpuDigit
+    cpy #$04
+    beq FormatPendingPpuDigit
+    lda #$40
+    jmp FormatPendingPpuDigitStore
+FormatPendingPpuDigit:
+    inx
+    clc
+    adc #$30
+FormatPendingPpuDigitStore:
+    sta $20,y
+    iny
+    cpy #$05
+    bne FormatPendingPpuDigitLoop
+    lda $E7
+    cmp #$05
+    beq AdvancePendingPpuSourceReturn
+    lda #$02
+; Advance the 16-bit stream pointer by A, preserving carry into its high byte.
+AdvancePendingPpuSource:
+    clc ; CONTROL_ADVANCE_PENDING_PPU_SOURCE
+    adc $EA
+    sta $EA
+    lda $EB
+    adc #$00
+    sta $EB
+AdvancePendingPpuSourceReturn:
+    rts
+.assert (* - BankStart) = $7BD8, error, "bank 0 pending PPU number format end"
+
+    .incbin "bank0_fbd8_fd29.bin"
 ; Opcode $18 restarts voice 4 with the same sound pointer used by $49.
 ScriptOp18:
     lda #$04                     ; CONTROL_SCRIPT_OP18
