@@ -5,7 +5,7 @@ export BADP_TARGET = $(TARGET)
 export BADP_ROM = $(ROM)
 .DEFAULT_GOAL := help
 
-.PHONY: help setup targets identify audit audit-all build progress test
+.PHONY: help setup targets identify audit audit-all build progress position-records test
 help:
 	@echo 'make targets   Show the primary target and sequential target order'
 	@echo 'make identify  Inspect a ROM (default: primary target; override TARGET=id or ROM=path)'
@@ -14,6 +14,7 @@ help:
 	@echo 'make setup     Download and build the pinned local cc65 tools'
 	@echo 'make build     Assemble and verify v1.5, including source-change controls'
 	@echo 'make progress  Rebuild and refresh the verified per-version README tracker'
+	@echo 'make position-records  Decode v1.5 position records to local analysis'
 	@echo 'make test      Test the tools without a game ROM'
 
 setup:
@@ -36,6 +37,9 @@ build:
 
 progress: build
 	$(PYTHON) -m tools.progress
+
+position-records:
+	$(PYTHON) -m tools.position_records
 
 test:
 	$(PYTHON) -m unittest discover -s tests -v

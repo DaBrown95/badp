@@ -173,6 +173,12 @@ caller are also source, including the `$F0` record-type path that prepares a
 slot. Record streams, other frame callees, PPU timing and runtime index bounds
 remain unverified.
 
+A local decoder reads both pointer tables, deduplicates aliases and round-trips
+32 streams containing 523 eight-byte records plus four-byte terminators through
+`$B51C`. Keys, the high-bit range flag, type bytes and five parameters are
+represented without guessing the remaining semantics. Its JSON is ignored
+under `analysis/`; no position-stream bytes are credited as reconstructed PRG.
+
 The [source map](../config/source-us-v1.5.json) records bank, CPU address, size,
 classification and control for every owned region. `make build` retains the
 actual link map, debug information, source snapshots, local inputs, control

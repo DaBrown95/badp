@@ -114,6 +114,7 @@ local, along with the extracted inputs and control builds.
 | `make audit-all` | Verify all six input identities. |
 | `make build` | Build and compare v1.5; retain source-change controls. |
 | `make progress` | Rebuild and update the per-version tracker. |
+| `make position-records` | Decode v1.5 position records to ignored local analysis. |
 | `make test` | Test the tooling using synthetic data; no game ROM needed. |
 
 Other versions have pinned reference identities but do not have builds yet.
