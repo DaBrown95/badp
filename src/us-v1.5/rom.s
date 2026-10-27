@@ -972,43 +972,43 @@ ReadControllerBit:
     lda $038D
     sta $0394
 
-; Each carry bit dispatches to one engine handler. Their button names and
-; effects are not assumed until the handler paths are traced.
+; Each carry bit dispatches to a controller handler; the exact button names
+; and gameplay effects remain to be verified at runtime.
 DispatchControllerChanges:
     lda $038F
     and $038D
     beq FrameEngineWork
     ror $038F
     bcc ControllerHandler1Done
-    jsr $FCC0
+    jsr ControllerPositiveXFirst
 ControllerHandler1Done:
     ror $038F
     bcc ControllerHandler2Done
-    jsr $FCA4
+    jsr ControllerNegativeXFirst
 ControllerHandler2Done:
     ror $038F
     bcc ControllerHandler3Done
-    jsr $FC96
+    jsr ControllerPositiveYFirst
 ControllerHandler3Done:
     ror $038F
     bcc ControllerHandler4Done
-    jsr $FCDC
+    jsr ControllerNegativeYFirst
 ControllerHandler4Done:
     ror $038F
     bcc ControllerHandler5Done
-    jsr $FC74
+    jsr ControllerTogglePause
 ControllerHandler5Done:
     ror $038F
     bcc ControllerHandler6Done
-    jsr $FC2F
+    jsr ControllerConfiguredActionFirst
 ControllerHandler6Done:
     ror $038F
     bcc ControllerHandler7Done
-    jsr $FC03
+    jsr ControllerAction2DFirst
 ControllerHandler7Done:
     ror $038F
     bcc FrameEngineWork
-    jsr $FBD8
+    jsr ControllerAction24First
 FrameEngineWork:
     lda a:$28                    ; Original uses absolute addressing for $0028.
     bne RestoreNmiState
@@ -4722,7 +4722,11 @@ AdvanceSpriteOffset:
     rts
 .assert (* - BankStart) = $1EFA, error, "bank 0 shadow OAM initializer size"
 
-    .incbin "bank0_9efa_9f06.bin"
+    .incbin "bank0_9efa_9efe.bin"
+; Signed X/Y delta pairs selected by the four controller motion paths.
+ControllerDeltas:
+    .byte $F4, $00, $0C, $00, $00, $F4, $00, $0C ; CONTROL_CONTROLLER_DELTAS
+.assert (* - BankStart) = $1F06, error, "bank 0 controller delta table end"
 ; Observed six-byte slot descriptors. The pointer is an encoded ROM address;
 ; the other bytes initialize $05D0/$0610/$05E0/$0520. The boundary at
 ; $A1B2 is the start of a separately referenced table; runtime index bounds
@@ -5126,8 +5130,8 @@ UpdateGameFrameReturn:
 UpdateGameFrameStart:
     jsr RotateShadowOam
     dec $14
-    jsr $F6F3
-    jsr $F784
+    jsr UpdateHorizontalMotion
+    jsr UpdateVerticalMotion
     jsr UpdateFramePositionBases
     jsr UpdateSlotDrawPositions
     lda $36
@@ -5205,7 +5209,7 @@ UpdateSlotDrawPositions:
     beq UpdateSlotDrawReturn
 UpdateSlotDrawLoop:
     stx $10
-    jsr $F941
+    jsr UpdateSlotDrawPosition
     ldx $10
     inx
     cpx #$10
@@ -10505,6 +10509,7 @@ UpdateSlotMidpointStore:
 UpdateSlotBounds:
     ldx $10                       ; CONTROL_SLOT_BOUNDS
     jsr UpdateSlotMidpoint
+UpdateSlotVerticalBound:
     lda $0590,x
     clc
     adc $0560,x
@@ -10861,7 +10866,615 @@ PendingPpuStreamHeader:
     rts
 .assert (* - BankStart) = $76F3, error, "bank 0 pending PPU update end"
 
-    .incbin "bank0_f6f3_fb32.bin"
+; Select a valid tracked slot and calculate horizontal motion. When two
+; are present, compare their signed $0700 values before choosing a slot.
+UpdateHorizontalMotion:
+    ldx $3C ; CONTROL_UPDATE_HORIZONTAL_MOTION
+    ldy $3D
+    bmi HorizontalResolveMotion
+    ldx $3D
+    ldy $3C
+    bmi HorizontalResolveMotion
+    jsr ScriptCheckSlotPresent
+    beq HorizontalResolveMotion
+    lda $04E0,x
+    cmp #$FF
+    bne HorizontalCompareSlots
+    sta $3D
+    jmp UpdateHorizontalMotion
+HorizontalCompareSlots:
+    lda #$00 ; CONTROL_HORIZONTAL_COMPARE_SLOTS
+    sta $36
+    lda $0700,x
+    eor $0700,y
+    bmi HorizontalMotionGate
+    lda $0700,x
+    bpl HorizontalComparePositive
+    cmp $0700,y
+    bcs HorizontalResolveMotion
+    jmp HorizontalUseFirstSlot
+HorizontalComparePositive:
+    cmp $0700,y
+    bcc HorizontalResolveMotion
+HorizontalUseFirstSlot:
+    ldx $3C
+HorizontalResolveMotion:
+    jsr CalculateHorizontalMotion ; CONTROL_HORIZONTAL_RESOLVE_MOTION
+    sta $36
+; Direction mask $13 can suppress the result. Split nonzero motion into
+; half- and quarter-rate components, retaining remainders in $35 and $34.
+HorizontalMotionGate:
+    lda $36 ; CONTROL_HORIZONTAL_MOTION_GATE
+    bpl HorizontalMotionPositiveGate
+    lda $13
+    and #$01
+    bne HorizontalMotionClear
+    jmp HorizontalMotionSplit
+HorizontalMotionPositiveGate:
+    lda $13
+    and #$02
+    beq HorizontalMotionSplit
+HorizontalMotionClear:
+    lda #$00
+    sta $36
+HorizontalMotionSplit:
+    lda $36 ; CONTROL_HORIZONTAL_MOTION_SPLIT
+    bne HorizontalMotionAccumulate
+    sta $37
+    sta $38
+    rts
+HorizontalMotionAccumulate:
+    clc ; CONTROL_HORIZONTAL_MOTION_ACCUMULATE
+    adc $35
+    sta $FE
+    jsr ArithmeticShiftRightA
+    sta $37
+    asl a
+    sta $FF
+    lda $FE
+    sec
+    sbc $FF
+    sta $35
+    lda $36
+    clc
+    adc $34
+    sta $FE
+    jsr ArithmeticShiftRightA
+    jsr ArithmeticShiftRightA
+    sta $38
+    asl a
+    asl a
+    sta $FF
+    lda $FE
+    sec
+    sbc $FF
+    sta $34
+    rts
+; Repeat the two-slot selection for the vertical $B0 coordinates; retain
+; half- and quarter-rate remainders in $30 and $2F.
+UpdateVerticalMotion:
+    ldx $3C ; CONTROL_UPDATE_VERTICAL_MOTION
+    ldy $3D
+    bmi VerticalResolveMotion
+    ldx $3D
+    ldy $3C
+    bmi VerticalResolveMotion
+    jsr ScriptCheckSlotPresent
+    beq VerticalResolveMotion
+    lda $04E0,x
+    cmp #$FF
+    bne VerticalCompareSlots
+    sta $3D
+    jmp UpdateVerticalMotion
+VerticalCompareSlots:
+    lda #$00 ; CONTROL_VERTICAL_COMPARE_SLOTS
+    sta $31
+    lda $B0,x
+    eor $B0,y
+    bmi VerticalMotionGate
+    lda $B0,x
+    bpl VerticalComparePositive
+    cmp $B0,y
+    bcs VerticalResolveMotion
+    jmp VerticalUseFirstSlot
+VerticalComparePositive:
+    cmp $B0,y
+    bcc VerticalResolveMotion
+VerticalUseFirstSlot:
+    ldx $3C
+VerticalResolveMotion:
+    jsr CalculateVerticalMotion ; CONTROL_VERTICAL_RESOLVE_MOTION
+    sta $31
+VerticalMotionGate:
+    lda $31 ; CONTROL_VERTICAL_MOTION_GATE
+    bpl VerticalMotionPositiveGate
+    lda $13
+    and #$04
+    bne VerticalMotionClear
+    jmp VerticalMotionSplit
+VerticalMotionPositiveGate:
+    lda $13
+    and #$08
+    beq VerticalMotionSplit
+VerticalMotionClear:
+    lda #$00
+    sta $31
+VerticalMotionSplit:
+    lda $31 ; CONTROL_VERTICAL_MOTION_SPLIT
+    bne VerticalMotionAccumulate
+    sta $32
+    sta $33
+    rts
+VerticalMotionAccumulate:
+    clc ; CONTROL_VERTICAL_MOTION_ACCUMULATE
+    adc $30
+    sta $FE
+    jsr ArithmeticShiftRightA
+    sta $32
+    asl a
+    sta $FF
+    lda $FE
+    sec
+    sbc $FF
+    sta $30
+    lda $31
+    clc
+    adc $2F
+    sta $FE
+    jsr ArithmeticShiftRightA
+    jsr ArithmeticShiftRightA
+    sta $33
+    asl a
+    asl a
+    sta $FF
+    lda $FE
+    sec
+    sbc $FF
+    sta $2F
+    rts
+; Arithmetic right shift: copy bit 7 to carry before rotating the saved A.
+ArithmeticShiftRightA:
+    pha ; CONTROL_ARITHMETIC_SHIFT_RIGHT_A
+    rol a
+    pla
+    ror a
+    rts
+; Determine horizontal motion from slot $0700 relative to $60/$A0. Clamp
+; positive motion to eight and to the left scroll and position-record limits.
+CalculateHorizontalMotion:
+    lda #$00 ; CONTROL_CALCULATE_HORIZONTAL_MOTION
+    sta $03E0
+    cpx #$FF
+    beq HorizontalMotionReturnJump2
+    lda $04E0,x
+    cmp #$FF
+    bne HorizontalMotionLeftDistance
+HorizontalMotionReturnJump:
+    jmp HorizontalMotionReturn
+HorizontalMotionLeftDistance:
+    lda #$60 ; CONTROL_HORIZONTAL_MOTION_LEFT_DISTANCE
+    sec
+    sbc $0700,x
+    beq HorizontalMotionReturnJump
+    bcc HorizontalMotionRightDistance
+    cmp #$08
+    bcc HorizontalMotionLeftBound
+    lda #$08
+HorizontalMotionLeftBound:
+    sta $03E1 ; CONTROL_HORIZONTAL_MOTION_LEFT_BOUND
+    lda $03EE
+    sta $5E
+    lda $03EF
+    sta $5F
+    jsr ShiftSearchCoordinateRight
+    jsr ShiftSearchCoordinateRight
+    jsr ShiftSearchCoordinateRight
+    lda $5F
+    bne HorizontalMotionCheckRecord
+    lda $0E
+    cmp #$02
+    bcs HorizontalMotionCheckRecord
+    lda $03EE
+    cmp $03E1
+    bcs HorizontalMotionCheckRecord
+    sta $03E1
+HorizontalMotionCheckRecord:
+    jsr SearchPositionRecordsA ; CONTROL_HORIZONTAL_MOTION_CHECK_RECORD
+    cmp #$F3
+    bne HorizontalMotionCheckOtherRecord
+    jsr FindSlotWithFlag04
+    beq HorizontalMotionSetPositive
+    jmp HorizontalMotionTileLimit
+HorizontalMotionCheckOtherRecord:
+    cmp #$F1
+    bne HorizontalMotionSetPositive
+HorizontalMotionTileLimit:
+    lda $03EE ; CONTROL_HORIZONTAL_MOTION_TILE_LIMIT
+    and #$07
+    beq HorizontalMotionReturn
+    sta $03DF
+    lda $03E1
+    cmp $03DF
+    bcc HorizontalMotionSetPositive
+    lda $03DF
+    sta $03E1
+HorizontalMotionSetPositive:
+    lda $03E1 ; CONTROL_HORIZONTAL_MOTION_SET_POSITIVE
+    sta $03E0
+HorizontalMotionReturnJump2:
+    jmp HorizontalMotionReturn
+ShiftSearchCoordinateRight:
+    lsr $5F ; CONTROL_SHIFT_SEARCH_COORDINATE_RIGHT
+    ror $5E
+    rts
+; For the opposite direction, clamp to eight and the right map limit,
+; then negate the selected amount.
+HorizontalMotionRightDistance:
+    lda $0700,x ; CONTROL_HORIZONTAL_MOTION_RIGHT_DISTANCE
+    sec
+    sbc #$A0
+    beq HorizontalMotionReturn
+    bcc HorizontalMotionReturn
+    cmp #$08
+    bcc HorizontalMotionRightBound
+    lda #$08
+HorizontalMotionRightBound:
+    sta $03E1 ; CONTROL_HORIZONTAL_MOTION_RIGHT_BOUND
+    jsr HorizontalMotionRightLimit
+    stx $03DF
+    lda $03E1
+    cmp $03DF
+    bcc HorizontalMotionSetNegative
+    lda $03DF
+HorizontalMotionSetNegative:
+    jsr NegateA ; CONTROL_HORIZONTAL_MOTION_SET_NEGATIVE
+    sta $03E0
+HorizontalMotionReturn:
+    lda $03E0 ; CONTROL_HORIZONTAL_MOTION_RETURN
+    rts
+; Determine vertical motion from slot $B0 relative to $78/$B0. The $4F
+; gate and vertical scroll alignment can further limit positive motion.
+CalculateVerticalMotion:
+    lda #$00 ; CONTROL_CALCULATE_VERTICAL_MOTION
+    sta $03E0
+    cpx #$FF
+    beq VerticalMotionReturnJump
+    lda $04E0,x
+    cmp #$FF
+    beq VerticalMotionReturn
+    lda #$78
+    sec
+    sbc $B0,x
+    beq VerticalMotionReturn
+    bcc VerticalMotionBottomDistance
+    cmp #$10
+    bcc VerticalMotionTopBound
+    lda #$10
+VerticalMotionTopBound:
+    sta $03E1 ; CONTROL_VERTICAL_MOTION_TOP_BOUND
+    lda $4F
+    bne VerticalMotionSetPositive
+    lda $03F0
+    and #$07
+    beq VerticalMotionReturn
+    sta $03DF
+    lda $03E1
+    cmp $03DF
+    bcc VerticalMotionSetPositive
+    lda $03DF
+    sta $03E1
+VerticalMotionSetPositive:
+    lda $03E1 ; CONTROL_VERTICAL_MOTION_SET_POSITIVE
+    sta $03E0
+VerticalMotionReturnJump:
+    jmp VerticalMotionReturn
+; Clamp negative vertical motion to sixteen and the bottom map limit.
+VerticalMotionBottomDistance:
+    lda $B0,x ; CONTROL_VERTICAL_MOTION_BOTTOM_DISTANCE
+    sec
+    sbc #$B0
+    beq VerticalMotionReturn
+    bcc VerticalMotionReturn
+    cmp #$10
+    bcc VerticalMotionBottomBound
+    lda #$10
+VerticalMotionBottomBound:
+    sta $03E1 ; CONTROL_VERTICAL_MOTION_BOTTOM_BOUND
+    jsr VerticalMotionMapBottomLimit
+    stx $03DF
+    lda $03E1
+    cmp $03DF
+    bcc VerticalMotionSetNegative
+    lda $03DF
+VerticalMotionSetNegative:
+    jsr NegateA ; CONTROL_VERTICAL_MOTION_SET_NEGATIVE
+    sta $03E0
+VerticalMotionReturn:
+    lda $03E0 ; CONTROL_VERTICAL_MOTION_RETURN
+    rts
+.assert (* - BankStart) = $7941, error, "bank 0 frame motion calculations end"
+
+; Update one slot's draw coordinates unless absent or disabled. Out-of-range
+; slots can be released or reinitialized according to their flags and link.
+UpdateSlotDrawPosition:
+    jsr SlotDrawCheckPresent ; CONTROL_UPDATE_SLOT_DRAW_POSITION
+    beq SlotDrawReturn
+    jsr SlotDrawCheckDisabled
+    bne SlotDrawReturn
+    lda $0620,x
+    bmi SlotDrawCheckDistance
+    jsr CalculateSlotDrawHorizontal
+    bne SlotDrawStoreHorizontal
+SlotDrawCheckRelease:
+    lda $05E0,x ; CONTROL_SLOT_DRAW_CHECK_RELEASE
+    bpl SlotDrawReleaseIfUnlinked
+    lda $06D0,x
+    cmp #$FF
+    bne SlotDrawReturn
+    jsr InitializeScrolledSlot
+    rts
+SlotDrawReleaseIfUnlinked:
+    lda $06D0,x ; CONTROL_SLOT_DRAW_RELEASE_UNLINKED
+    cmp #$FF
+    bne SlotDrawReturn
+    jmp ReleaseCurrentSlot
+SlotDrawStoreHorizontal:
+    sta $0580,x ; CONTROL_SLOT_DRAW_STORE_HORIZONTAL
+    jsr UpdateSlotMidpoint
+    jsr CalculateSlotDrawVertical
+    beq SlotDrawCheckRelease
+    sta $0590,x
+    jsr UpdateSlotVerticalBound
+SlotDrawReturn:
+    rts ; CONTROL_SLOT_DRAW_RETURN
+SlotDrawCheckPresent:
+    lda $04E0,x ; CONTROL_SLOT_DRAW_CHECK_PRESENT
+    cmp #$FF
+    rts
+SlotDrawCheckDisabled:
+    lda $0630,x ; CONTROL_SLOT_DRAW_CHECK_DISABLED
+    and #$20
+    rts
+SlotDrawCheckDistance:
+    jsr SlotDistanceFromReference ; CONTROL_SLOT_DRAW_CHECK_DISTANCE
+    cmp #$10
+    bcs SlotDrawReleaseIfUnlinked
+    rts
+; Reinitialize a scrolling slot, form absolute coordinates from the current
+; scroll and draw offsets, then apply the slot's selected fractional motion.
+InitializeScrolledSlot:
+    ldx $10 ; CONTROL_INITIALIZE_SCROLLED_SLOT
+    lda $04E0,x
+    sta $2A
+    jsr ReleaseCurrentSlot
+    ldx $10
+    lda #$80
+    sta $0620,x
+    lda #$FE
+    sta $70,x
+    ldx $10
+    jsr InitializeCurrentSlot
+    lda $0630,x
+    ora #$02
+    sta $0630,x
+    lda $03EE
+    clc
+    adc $0580,x
+    sta $07D0,x
+    lda $03EF
+    adc #$00
+    sta $07E0,x
+    jsr SelectSlotHorizontalMotion
+    ora #$00
+    bpl ScrolledSlotAddHorizontal
+    jsr NegateA
+    sta $11
+    lda $07D0,x
+    sec
+    sbc $11
+    sta $07D0,x
+    bcs ScrolledSlotHorizontalFraction
+    dec $07E0,x
+    jmp ScrolledSlotHorizontalFraction
+ScrolledSlotAddHorizontal:
+    clc ; CONTROL_SCROLLED_SLOT_ADD_HORIZONTAL
+    adc $07D0,x
+    sta $07D0,x
+    bcc ScrolledSlotHorizontalFraction
+    inc $07E0,x
+ScrolledSlotHorizontalFraction:
+    lda $07D0,x ; CONTROL_SCROLLED_SLOT_HORIZONTAL_FRACTION
+    and #$07
+    sta $05A0,x
+    jsr ShiftScrolledSlotHorizontal
+    jsr ShiftScrolledSlotHorizontal
+    jsr ShiftScrolledSlotHorizontal
+    lda $03F0
+    clc
+    adc $0590,x
+    sta $80,x
+    lda $03F1
+    adc #$00
+    sta $12
+    jsr SelectSlotVerticalMotion
+    ora #$00
+    bpl ScrolledSlotAddVertical
+    jsr NegateA
+    sta $11
+    lda $80,x
+    sec
+    sbc $11
+    sta $80,x
+    bcs ScrolledSlotVerticalFraction
+    dec $12
+    jmp ScrolledSlotVerticalFraction
+ShiftScrolledSlotHorizontal:
+    lsr $07E0,x ; CONTROL_SHIFT_SCROLLED_SLOT_HORIZONTAL
+    ror $07D0,x
+    rts
+ScrolledSlotAddVertical:
+    clc ; CONTROL_SCROLLED_SLOT_ADD_VERTICAL
+    adc $80,x
+    sta $80,x
+    bcc ScrolledSlotVerticalFraction
+    inc $12
+ScrolledSlotVerticalFraction:
+    lda $80,x ; CONTROL_SCROLLED_SLOT_VERTICAL_FRACTION
+    and #$07
+    sta $0590,x
+    jsr ShiftScrolledSlotVertical
+    jsr ShiftScrolledSlotVertical
+ShiftScrolledSlotVertical:
+    lsr $12 ; CONTROL_SHIFT_SCROLLED_SLOT_VERTICAL
+    ror $80,x
+    rts
+; Apply the selected horizontal motion to $0580. On byte overflow or
+; underflow, $05D0 bit $02 selects clamping versus the zero-return path.
+CalculateSlotDrawHorizontal:
+    jsr SelectSlotHorizontalMotion ; CONTROL_CALCULATE_SLOT_DRAW_HORIZONTAL
+    clc
+    ora #$00
+    bpl SlotDrawHorizontalPositive
+    adc $0580,x
+    bcs SlotDrawHorizontalReturn
+    lda $05D0,x
+    and #$02
+    beq SlotDrawHorizontalBlocked
+    lda #$00
+    jmp SlotDrawHorizontalReturn
+SlotDrawHorizontalPositive:
+    adc $0580,x ; CONTROL_SLOT_DRAW_HORIZONTAL_POSITIVE
+    bcc SlotDrawHorizontalReturn
+    lda $05D0,x
+    and #$02
+    bne SlotDrawHorizontalMaximum
+SlotDrawHorizontalBlocked:
+    ldy #$00 ; CONTROL_SLOT_DRAW_HORIZONTAL_BLOCKED
+    rts
+SlotDrawHorizontalMaximum:
+    lda #$FF ; CONTROL_SLOT_DRAW_HORIZONTAL_MAXIMUM
+SlotDrawHorizontalReturn:
+    ldy #$FF ; CONTROL_SLOT_DRAW_HORIZONTAL_RETURN
+    rts
+; Select horizontal full, half, quarter or zero motion from $05E0 bits 0-1.
+SelectSlotHorizontalMotion:
+    lda $05E0,x ; CONTROL_SELECT_SLOT_HORIZONTAL_MOTION
+    and #$03
+    cmp #$03
+    beq SlotHorizontalMotionZero
+    tay
+    lda $36
+    beq SlotHorizontalMotionZero
+    cpy #$00
+    beq SlotHorizontalMotionReturn
+    lda $37
+    cpy #$01
+    beq SlotHorizontalMotionReturn
+    lda $38
+SlotHorizontalMotionReturn:
+    rts ; CONTROL_SLOT_HORIZONTAL_MOTION_RETURN
+SlotHorizontalMotionZero:
+    lda #$00 ; CONTROL_SLOT_HORIZONTAL_MOTION_ZERO
+    rts
+; Apply vertical motion to $0590, with the original $EF maximum and the
+; same $05D0 bit $02 clamp choice.
+CalculateSlotDrawVertical:
+    jsr SelectSlotVerticalMotion ; CONTROL_CALCULATE_SLOT_DRAW_VERTICAL
+    clc
+    ora #$00
+    bpl SlotDrawVerticalPositive
+    adc $0590,x
+    bcs SlotDrawVerticalReturn
+    lda $05D0,x
+    and #$02
+    beq SlotDrawVerticalBlocked
+    lda #$00
+    jmp SlotDrawVerticalReturn
+SlotDrawVerticalPositive:
+    adc $0590,x ; CONTROL_SLOT_DRAW_VERTICAL_POSITIVE
+    bcs SlotDrawVerticalOverflow
+    cmp #$EF
+    bcc SlotDrawVerticalReturn
+SlotDrawVerticalOverflow:
+    lda $05D0,x ; CONTROL_SLOT_DRAW_VERTICAL_OVERFLOW
+    and #$02
+    bne SlotDrawVerticalMaximum
+SlotDrawVerticalBlocked:
+    ldy #$00 ; CONTROL_SLOT_DRAW_VERTICAL_BLOCKED
+    rts
+SlotDrawVerticalMaximum:
+    lda #$EF ; CONTROL_SLOT_DRAW_VERTICAL_MAXIMUM
+SlotDrawVerticalReturn:
+    ldy #$FF ; CONTROL_SLOT_DRAW_VERTICAL_RETURN
+    rts
+; Select vertical full, half, quarter or zero motion from $05E0 bits 2-3.
+SelectSlotVerticalMotion:
+    lda $05E0,x ; CONTROL_SELECT_SLOT_VERTICAL_MOTION
+    and #$0C
+    cmp #$0C
+    beq SlotVerticalMotionZero
+    tay
+    lda $31
+    beq SlotVerticalMotionZero
+    cpy #$00
+    beq SlotVerticalMotionReturn
+    lda $32
+    cpy #$04
+    beq SlotVerticalMotionReturn
+    lda $33
+SlotVerticalMotionReturn:
+    rts ; CONTROL_SLOT_VERTICAL_MOTION_RETURN
+SlotVerticalMotionZero:
+    lda #$00 ; CONTROL_SLOT_VERTICAL_MOTION_ZERO
+    rts
+.assert (* - BankStart) = $7AE9, error, "bank 0 slot draw motion end"
+; Check position records near the right edge before computing the remaining
+; horizontal scroll range; return a capped low-byte distance in X.
+HorizontalMotionRightLimit:
+    lda $0E ; CONTROL_HORIZONTAL_MOTION_RIGHT_LIMIT
+    clc
+    adc #$1F
+    sta $5E
+    lda $0F
+    adc #$00
+    sta $5F
+    jsr SearchPositionRecordsA
+    cmp #$F4
+    bne HorizontalMotionCheckOtherLimit
+    jsr FindSlotWithFlag04
+    bne HorizontalMotionNoRight
+    jmp HorizontalMotionMapRightLimit
+HorizontalMotionCheckOtherLimit:
+    cmp #$F2 ; CONTROL_HORIZONTAL_MOTION_CHECK_OTHER_LIMIT
+    bne HorizontalMotionMapRightLimit
+HorizontalMotionNoRight:
+    ldx #$00 ; CONTROL_HORIZONTAL_MOTION_NO_RIGHT
+    rts
+HorizontalMotionMapRightLimit:
+    lda $03A2 ; CONTROL_HORIZONTAL_MOTION_MAP_RIGHT_LIMIT
+    sec
+    sbc $03EE
+    tax
+    lda $03A3
+    sbc $03EF
+    beq HorizontalMotionRightLimitReturn
+    ldx #$FF
+HorizontalMotionRightLimitReturn:
+    rts
+; Return the remaining vertical scroll range in X, capped at $FF when the
+; high-byte difference is nonzero.
+VerticalMotionMapBottomLimit:
+    lda $03A8 ; CONTROL_VERTICAL_MOTION_MAP_BOTTOM_LIMIT
+    sec
+    sbc $03F0
+    tax
+    lda $03A9
+    sbc $03F1
+    beq VerticalMotionBottomLimitReturn
+    ldx #$FF
+VerticalMotionBottomLimitReturn:
+    rts
+.assert (* - BankStart) = $7B32, error, "bank 0 frame motion bounds end"
 ; Select one of two counters or use the supplied value, then format five
 ; decimal tile bytes with $40 for leading blanks. A second entry emits three.
 FormatPendingPpuCounter:
@@ -10954,7 +11567,216 @@ AdvancePendingPpuSourceReturn:
     rts
 .assert (* - BankStart) = $7BD8, error, "bank 0 pending PPU number format end"
 
-    .incbin "bank0_fbd8_fd29.bin"
+; Controller entry points choose one of two slot indices. This path requests
+; action $24 unless the slot is absent or has bit $08 set in $0790.
+ControllerAction24First:
+    lda #$00 ; CONTROL_CONTROLLER_ACTION24_FIRST
+    jmp ControllerAction24
+ControllerAction24Second:
+    lda #$01 ; CONTROL_CONTROLLER_ACTION24_SECOND
+ControllerAction24:
+    sta $3A ; CONTROL_CONTROLLER_ACTION24
+    jsr RequireControllerActive
+    ldx $3A
+    lda $3C,x
+    cmp #$FF
+    beq ControllerAction24Return
+    tay
+    lda #$08
+    and $0790,y
+    bne ControllerAction24Return
+    lda #$24
+    sta $04F0,y
+ControllerAction24Return:
+    rts
+; If $00 or $28 is nonzero, discard the caller return address so RTS returns
+; from that caller. Preserve this stack-based early-exit convention.
+RequireControllerActive:
+    lda $00 ; CONTROL_REQUIRE_CONTROLLER_ACTIVE
+    ora $28
+    beq RequireControllerReturn
+    pla
+    pla
+RequireControllerReturn:
+    rts
+; Request action $2D when neither controller state has $30 set and the
+; selected slot does not have bit $10 set in $0790.
+ControllerAction2DFirst:
+    lda #$00 ; CONTROL_CONTROLLER_ACTION2D_FIRST
+    jmp ControllerAction2D
+ControllerAction2DSecond:
+    lda #$01 ; CONTROL_CONTROLLER_ACTION2D_SECOND
+ControllerAction2D:
+    sta $3A ; CONTROL_CONTROLLER_ACTION2D
+    jsr RequireControllerActive
+    lda $038D
+    ora $038E
+    and #$30
+    bne ControllerAction2DReturn
+    ldx $3A
+    lda $3C,x
+    cmp #$FF
+    beq ControllerAction2DReturn
+    tay
+    lda #$10
+    and $0790,y
+    bne ControllerAction2DReturn
+    lda #$2D
+    sta $04F0,y
+ControllerAction2DReturn:
+    rts
+; In the special $3B state, a $60 controller combination updates mode flags.
+; Otherwise request the configured action unless the selected slot blocks it.
+ControllerConfiguredActionFirst:
+    lda #$00 ; CONTROL_CONTROLLER_CONFIGURED_FIRST
+    jmp ControllerConfiguredAction
+ControllerConfiguredActionSecond:
+    lda #$01 ; CONTROL_CONTROLLER_CONFIGURED_SECOND
+ControllerConfiguredAction:
+    sta $3A ; CONTROL_CONTROLLER_CONFIGURED_ACTION
+    jsr RequireControllerActive
+    lda $3B
+    beq ControllerConfiguredSlot
+    jsr RequireControllerMode
+    lda $038D
+    cmp #$60
+    bne ControllerConfiguredSlot
+    lda $01
+    tay
+    iny
+    cpy #$10
+    bcc ControllerModeSet
+    ldy #$01
+ControllerModeSet:
+    sty $00 ; CONTROL_CONTROLLER_MODE_SET
+    lda #$FF
+    sta $08
+    sta $58
+ControllerActionReturn:
+    rts
+ControllerConfiguredSlot:
+    ldx $3A ; CONTROL_CONTROLLER_CONFIGURED_SLOT
+    lda $3C,x
+    bmi ControllerActionReturn
+    tay
+    lda #$20
+    and $0790,y
+    bne ControllerActionReturn
+    lda $15,x
+    cmp #$FF
+    beq ControllerActionReturn
+    sta $04F0,y
+    rts
+; Toggle $28 when the game-state gates allow it. Pausing writes zero then
+; the saved $03E8 value to the APU enable register.
+ControllerTogglePause:
+    lda $00 ; CONTROL_CONTROLLER_TOGGLE_PAUSE
+    bne ControllerActionReturn
+    lda $01
+    beq ControllerActionReturn
+    lda $18
+    beq ControllerActionReturn
+    lda #$00
+    ldx $28
+    bne ControllerStorePause
+    lda #$00
+    sta $4015
+    lda $03E8
+    sta $4015
+    lda #$FF
+ControllerStorePause:
+    sta $28 ; CONTROL_CONTROLLER_STORE_PAUSE
+    rts
+; These paired entry points select controller 0 or 1, then select one of four
+; signed X/Y delta pairs. Horizontal paths also update slot flag $10.
+ControllerPositiveYFirst:
+    ldy #$00 ; CONTROL_CONTROLLER_POSITIVE_Y_FIRST
+    jmp ControllerPositiveY
+ControllerPositiveYSecond:
+    ldy #$01 ; CONTROL_CONTROLLER_POSITIVE_Y_SECOND
+ControllerPositiveY:
+    lda #$06 ; CONTROL_CONTROLLER_POSITIVE_Y
+    ldx #$02
+    jmp ApplyControllerDelta
+ControllerNegativeXFirst:
+    ldy #$00 ; CONTROL_CONTROLLER_NEGATIVE_X_FIRST
+    jmp ControllerNegativeX
+ControllerNegativeXSecond:
+    ldy #$01 ; CONTROL_CONTROLLER_NEGATIVE_X_SECOND
+ControllerNegativeX:
+    lda $3C,y ; CONTROL_CONTROLLER_NEGATIVE_X
+    bmi ControllerNegativeXApply
+    tax
+    lda $0630,x
+    ora #$10
+    sta $0630,x
+ControllerNegativeXApply:
+    lda #$00 ; CONTROL_CONTROLLER_NEGATIVE_X_APPLY
+    ldx #$00
+    jmp ApplyControllerDelta
+ControllerPositiveXFirst:
+    ldy #$00 ; CONTROL_CONTROLLER_POSITIVE_X_FIRST
+    jmp ControllerPositiveX
+ControllerPositiveXSecond:
+    ldy #$01 ; CONTROL_CONTROLLER_POSITIVE_X_SECOND
+ControllerPositiveX:
+    lda $3C,y ; CONTROL_CONTROLLER_POSITIVE_X
+    bmi ControllerPositiveXApply
+    tax
+    lda $0630,x
+    and #$EF
+    sta $0630,x
+ControllerPositiveXApply:
+    lda #$02 ; CONTROL_CONTROLLER_POSITIVE_X_APPLY
+    ldx #$00
+    jmp ApplyControllerDelta
+ControllerNegativeYFirst:
+    ldy #$00 ; CONTROL_CONTROLLER_NEGATIVE_Y_FIRST
+    jmp ControllerNegativeY
+ControllerNegativeYSecond:
+    ldy #$01 ; CONTROL_CONTROLLER_NEGATIVE_Y_SECOND
+ControllerNegativeY:
+    lda #$04 ; CONTROL_CONTROLLER_NEGATIVE_Y
+    ldx #$01
+; Add the selected signed deltas to $3E/$40. The original discards each
+; addition independently when its 6502 overflow flag is set.
+ApplyControllerDelta:
+    sta $39 ; CONTROL_APPLY_CONTROLLER_DELTA
+    sty $3A
+    stx $17
+    jsr RequireControllerActive
+    ldy $39
+    ldx $3A
+    lda $3E,x
+    clc
+    adc ControllerDeltas,y
+    bvs ApplyControllerDeltaY
+    sta $3E,x
+ApplyControllerDeltaY:
+    lda $40,x ; CONTROL_APPLY_CONTROLLER_DELTA_Y
+    clc
+    adc ControllerDeltas + 1,y
+    bvs ApplyControllerDeltaFlags
+    sta $40,x
+ApplyControllerDeltaFlags:
+    lda $17 ; CONTROL_APPLY_CONTROLLER_DELTA_FLAGS
+    beq ApplyControllerDeltaReturn
+    lda $3C,x
+    bmi ApplyControllerDeltaReturn
+    tax
+    lda #$FF
+    sta $05A0,x
+    lda $17
+    cmp #$02
+    bne ApplyControllerDeltaReturn
+    lda #$40
+    and $0790,x
+    bne ApplyControllerDeltaReturn
+    lda #$36
+    sta $04F0,x
+ApplyControllerDeltaReturn:
+    rts ; CONTROL_APPLY_CONTROLLER_DELTA_RETURN
+.assert (* - BankStart) = $7D29, error, "bank 0 controller handlers end"
 ; Opcode $18 restarts voice 4 with the same sound pointer used by $49.
 ScriptOp18:
     lda #$04                     ; CONTROL_SCRIPT_OP18
@@ -10966,7 +11788,17 @@ ScriptOp18:
     rts
 .assert (* - BankStart) = $7D38, error, "bank 0 script handler opcode $18"
 
-    .incbin "bank0_fd38_fda7.bin"
+; A zero $01 discards the caller return address and returns from that caller.
+RequireControllerMode:
+    lda $01 ; CONTROL_REQUIRE_CONTROLLER_MODE
+    bne RequireControllerModeReturn
+    pla
+    pla
+RequireControllerModeReturn:
+    rts
+.assert (* - BankStart) = $7D3F, error, "bank 0 controller mode gate end"
+
+    .incbin "bank0_fd3f_fda7.bin"
 ScriptRecordLengths:
     ScriptTable 0
 .assert (* - BankStart) = $7E6C, error, "bank 0 common helpers offset"

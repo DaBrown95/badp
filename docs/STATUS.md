@@ -33,10 +33,10 @@ independent source trees or treat one version's evidence as verifying the rest.
 `make audit-all` checks reference integrity for all targets without requiring
 simultaneous reconstruction. Keep progress and completion evidence per target.
 
-The v1.5 build now assembles and links to the exact reference, with 18,990 bytes
-of source code and 1,671 bytes of structured data across the physical PRG banks.
-It still includes 44,875 local PRG bytes and 65,536 local CHR bytes. A total of
-548 independent source-change controls verify every listed reconstructed region.
+The v1.5 build now assembles and links to the exact reference, with 20,421 bytes
+of source code and 1,679 bytes of structured data across the physical PRG banks.
+It still includes 43,436 local PRG bytes and 65,536 local CHR bytes. A total of
+650 independent source-change controls verify every listed reconstructed region.
 Passing input audits or whole-ROM equality alone is not reconstruction
 completion. The developer identifies BOGUS as the
 state-machine engine in the [Vance Kozik interview](https://www.nesworld.com/kozik.php);
@@ -191,6 +191,12 @@ nametable splits and attribute-bit merging. They do not verify PPU timing,
 mapper behavior or gameplay.
 The background palette loop retains Y from its offset calculation, unlike the
 sprite loop; a high-offset synthetic case preserves that original behavior.
+
+Controller handlers now express slot actions, pause toggling and signed motion
+updates, including the original stack-unwinding gates and overflow checks. The
+frame motion and slot draw-coordinate paths are source, with synthetic checks
+for direction gates, fractional components, bounds and slot selection. Position
+record lookups were stubbed in those checks; gameplay remains unverified.
 
 The deferred PPU update handler, its stream command processing and decimal
 formatting are source. Synthetic checks covered fill and banked-copy requests,
