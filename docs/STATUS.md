@@ -228,6 +228,22 @@ The map lookup uses 146 two-byte offsets, each a multiple of 68, into locally
 supplied map-chunk data. The offset table and state-indexed vertical-base seeds
 are source; map layouts and chunk contents remain local. Runtime bounds on
 either table have not been established.
+`make map-data` decodes 22 state-table entries into 14 distinct candidate
+layouts and 146 chunk-table entries into 145 distinct referenced chunks. The
+layouts and chunks round-trip to their local bytes; none of the decoded grid
+indices exceed this table, and the decoded layouts and chunks do not overlap
+one another. Runtime bounds remain unverified. The context script graph has
+29 candidate entries overlapping 65 map bytes at bank-1 CPU `$80FF-$8104`
+and `$8118-$8152`; these competing interpretations remain provisional.
+
+A directed 16,000-frame emulator probe paired map header and first span fetches
+after bank switching. Noah, Moses and David recorded 11, 11 and 5 layout
+fetches; 130, 3,030 and 24 row spans; and 17,246, 8,169 and 9,554 column
+spans, respectively, with no mapped-bank disagreement. The sampled spans were
+in referenced bank-1 chunks, and Noah sampled reads within the `$8118-$8152`
+map/script overlap. This is limited emulator evidence, not full map, PPU
+timing or physical cartridge verification. `make trace-map` reproduces the
+probe; its payloads and outputs remain local.
 
 The slot allocator scans for a free slot, otherwise choosing the last eligible
 replacement or a slot passing its distance check. A focused instruction-subset
@@ -451,7 +467,7 @@ provisional.
 The context walker now follows a possible normal return when a `$FF` script
 pointer sentinel leaves the prior pointer in place. Forty nonconflicting
 commands reached through those candidate continuations are source; a separate
-decode in an unclassified local region remains excluded.
+decode overlapping map-chunk data remains excluded.
 The direct `$16` loader now has an inventory that explores its possible mode
 classes without assuming the inherited `$57` value. A probe of the directed
 inputs paired 582, 503 and 587 `$16` calls with their mapped record fetches

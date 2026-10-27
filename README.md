@@ -144,6 +144,8 @@ cartridge behaviour.
 | `make audio-inventory` | Validate and decode the local audio trace; payloads remain local. |
 | `make trace-sprites` | Capture sprite resource and frame entries during extended v1.5 inputs. |
 | `make sprite-inventory` | Validate and decode the local sprite trace; payloads remain local. |
+| `make map-data` | Decode candidate map layouts and chunks to local analysis. |
+| `make trace-map` | Check map fetches in extended v1.5 emulator inputs. |
 | `make test` | Test the tooling using synthetic data; no game ROM needed. |
 
 Other versions have pinned reference identities but do not have builds yet.

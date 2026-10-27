@@ -48,8 +48,16 @@ the tested inputs; other slot states may take either path.
 The same graph also finds one overlapping script byte at
 `$F156-$F157`, where a candidate fallthrough conflicts with the existing
 `$F157` entry. All of these paths remain provisional.
-The retained-pointer expansion also reaches one candidate decode in an unclassified
-local region near `$811D`; its command interpretation has not been accepted.
+The retained-pointer expansion also reaches candidate commands in referenced
+map-chunk data. `make map-data` reports 29 candidate command entries overlapping
+65 map bytes at bank-1 CPU `$80FF-$8104` and `$8118-$8152`. Noah's directed
+trace sampled map reads within the latter range. These observations establish a map use in
+the tested path but do not rule out a script use under other conditions; the
+candidate command interpretation remains unaccepted.
+The candidate map-area script originates from associating `$EDFC` with descriptor
+`$1A` or `$1B` (base `$DB4E`): its offset `$1B` would read record `$DB69`,
+whose script pointer is `$00FF`. The `$EDFC` entry was not observed in the
+recorded exploratory inputs, and that descriptor association is unverified.
 
 In the 12,000-frame Noah interaction run, descriptor index `$0E` (base
 `$DA1C`) reached `$EA28` 18 times with slot flag `$D0` equal to `$80`. The
