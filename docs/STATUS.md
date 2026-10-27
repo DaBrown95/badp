@@ -33,10 +33,10 @@ independent source trees or treat one version's evidence as verifying the rest.
 `make audit-all` checks reference integrity for all targets without requiring
 simultaneous reconstruction. Keep progress and completion evidence per target.
 
-The v1.5 build now assembles and links to the exact reference, with 21,025 bytes
+The v1.5 build now assembles and links to the exact reference, with 21,443 bytes
 of source code and 7,761 bytes of structured data across the physical PRG banks.
-It still includes 36,750 local PRG bytes and 65,536 local CHR bytes. A total of
-732 independent source-change controls verify every listed reconstructed region.
+It still includes 36,332 local PRG bytes and 65,536 local CHR bytes. A total of
+740 independent source-change controls verify every listed reconstructed region.
 Passing input audits or whole-ROM equality alone is not reconstruction
 completion. The developer identifies BOGUS as the
 state-machine engine in the [Vance Kozik interview](https://www.nesworld.com/kozik.php);
@@ -81,6 +81,15 @@ bank switching around copies to the stack and RAM, strided and bitwise buffer
 copies, and a record fetcher. The fetcher selects a length from a table at
 `$FDA7` when X is zero, then copies that many bytes from `($53),Y` to `$60,Y`.
 The NMI handlers use different RAM source locations in the two banks.
+
+The main-state initializer and transition into frame processing are now source.
+They prepare slot, bank, palette, scroll and map state before the existing
+position-stream initializer. On a nonzero horizontal reference difference,
+the translation path uses the existing `$FF` scratch byte without first
+calculating the vertical difference. An isolated instruction-subset check with
+stubbed callees exercised that path, a vertical-only difference and unchanged
+references; it is not hardware or gameplay verification. Temporary local
+disassembly and check files were retired after integration.
 
 ## Script command dispatch
 

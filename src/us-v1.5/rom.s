@@ -1380,10 +1380,10 @@ ClearPalette:
     jsr InitializeShadowOam
     jsr ClearSlotRecords
     jsr InitializeAudioVoices
-    jsr $CA5D
+    jsr InitializeMainState
     jsr EnablePpuNmi
 MainLoop:
-    jsr $CA9E
+    jsr MainLoopStep
     jmp MainLoop
 .assert (* - BankStart) = $0211, error, "bank 0 startup size"
 
@@ -1675,6 +1675,7 @@ ClearAudioVoiceBytes:
 StopAudioVoice:
     cmp #$FF                     ; CONTROL_STOP_AUDIO_VOICE
     bne StopAudioVoiceByIndex
+StopAllAudioVoices:
     lda #$00
 StopAudioVoiceAllLoop:
     pha
@@ -2821,6 +2822,7 @@ ClearSlotRecordsLoop:
 ReleaseSpriteRecord:
     cmp #$FF                      ; CONTROL_RELEASE_SPRITE_RECORD
     bne ReleaseSpriteRecordOne
+ReleaseAllSpriteRecords:
     lda #$00
 ReleaseSpriteRecordAllLoop:
     pha
@@ -5232,6 +5234,7 @@ InitializeShadowOam:
     sta $0200
     lda #$08
     sta $0202
+InitializeRemainingShadowOam:
     ldy #$00                     ; CONTROL_OAM_INIT
     ldx #$3F
 InitializeNextSprite:
@@ -5572,7 +5575,247 @@ FadeWaitVBlank:
     bpl FadeWaitVBlank
     rts
 .assert (* - BankStart) = $35D3, error, "bank 0 palette fade wait end"
-    .incbin "bank0_b5d3_cbff.bin"
+    .incbin "bank0_b5d3_ca5d.bin"
+; Initialize engine state and split-screen parameters using the locally
+; supplied four-byte table. The downstream PPU and mapper behavior still
+; require runtime verification.
+InitializeMainState:
+    lda #$00 ; CONTROL_MAIN_STATE_INIT
+    sta $28
+    sta $3B
+    sta $18
+    sta $13
+    sta $08
+    sta $0A
+    sta $58
+    sta $E7
+    sta $5D
+    sta $03C9
+    lda #$03
+    sta $0D
+    sta $09
+    lda #$FF
+    sta $00
+    sta $27
+    sta $07
+    sta $1E
+    jsr InitializeState19To1B
+    lda $9EFA
+    sta $61
+    lda $9EFB
+    sta $62
+    lda $9EFC
+    sta $63
+    lda $9EFD
+    sta $64
+    jmp ConfigureSplitScreen
+
+.assert (* - BankStart) = $4A9E, error, "bank 0 state preparation ca9e boundary"
+
+; A zero main state updates a frame. Other values clear PPU ranges and
+; prepare slot, bank, palette, scroll and map state before returning to frames.
+MainLoopStep:
+    lda $00 ; CONTROL_MAIN_STATE_DISPATCH
+    bne MainStateChange
+    jmp UpdateGameFrame
+
+MainStateChange:
+    jsr ClearTwoPpuRanges
+    jsr ScriptCompareState27
+    bne MainRestoreSlots
+    lda $0A
+    beq MainResetSlots
+    jsr ReleaseSelectedSlots
+    lda #$00
+    sta $03C9
+    jmp MainPrepareResources
+
+MainRestoreSlots:
+    lda #$FF
+    sta $3C
+    sta $3D
+    lda $0A
+    beq MainVisitSlots
+    lda $5B
+    sta $3C
+    lda $5C
+    sta $3D
+    lda $4D
+    sta $15
+    lda $4E
+    sta $16
+.assert (* - BankStart) = $4AD6, error, "bank 0 state preparation cad6 boundary"
+
+; Visit all sixteen slots. Retained slots may have bit $20 toggled when
+; restoring prior state; other slots are released through the common helper.
+MainVisitSlots:
+    lda #$0F ; CONTROL_MAIN_STATE_SLOTS
+    sta $10
+MainVisitSlotLoop:
+    ldx $10
+    jsr SlotDrawCheckDisabled
+    bne MainToggleSavedSlotFlag
+    jsr ReleaseCurrentSlot
+    jmp MainNextSlot
+
+MainToggleSavedSlotFlag:
+    lda $0A
+    beq MainNextSlot
+    lda $0630,x
+    eor #$20
+    sta $0630,x
+MainNextSlot:
+    dec $10
+    bpl MainVisitSlotLoop
+    jmp MainPrepareResources
+
+MainResetSlots:
+    jsr ReleaseAllSpriteRecords
+    jsr InitializeRemainingShadowOam
+    lda #$FF
+    sta $3C
+    sta $3D
+    ldx #$00
+MainClearSlotsLoop:
+    sta $04E0,x
+    inx
+    cpx #$10
+    bne MainClearSlotsLoop
+.assert (* - BankStart) = $4B10, error, "bank 0 state preparation cb10 boundary"
+
+; Select the state and either the saved or state-indexed bank and palettes.
+MainPrepareResources:
+    lda $08 ; CONTROL_MAIN_STATE_RESOURCES
+    beq MainSelectState
+    jsr StopAllAudioVoices
+    lda #$00
+    sta $08
+MainSelectState:
+    lda $00
+    sta $01
+    cmp #$FF
+    bne MainApplyState
+    lda #$00
+    sta $01
+MainApplyState:
+    asl a
+    sta $02
+    jsr ScriptReadState27
+    beq MainDefaultBankSelection
+    lda $E6
+    jsr ConfigureBanksFromValue
+    jmp MainSelectPalettes
+
+MainDefaultBankSelection:
+    jsr ConfigureBanksFromState
+MainSelectPalettes:
+    jsr ScriptReadState27
+    beq MainDefaultPalettes
+    ldx $03CA
+    ldy $03CB
+    jsr ApplyFirstRelatedPointer
+    ldx $03CC
+    ldy $03CD
+    jsr ApplySecondRelatedPointer
+    jmp MainSetupHorizontalBase
+
+MainDefaultPalettes:
+    jsr SelectBothRelatedPointers
+.assert (* - BankStart) = $4B57, error, "bank 0 state preparation cb57 boundary"
+
+; Restore or initialize two scroll bases. The original calls each doubling
+; helper three times, preserving carries in the paired bytes.
+MainSetupHorizontalBase:
+    lda $0C ; CONTROL_MAIN_STATE_BASES
+    sta $03EF
+    lda $0B
+    sta $03EE
+    lda $0A
+    bne MainSetupVerticalBase
+    sta $03EE
+    sta $03EF
+    jsr MainScaleHorizontalBase
+    jsr MainScaleHorizontalBase
+    jsr MainScaleHorizontalBase
+MainSetupVerticalBase:
+    lda $1C
+    sta $03F0
+    lda $1D
+    sta $03F1
+    lda $0A
+    bne MainPrepareMap
+    ldx $01
+    lda $A368,x
+    sta $03F0
+    lda #$00
+    sta $03F1
+    jsr MainScaleVerticalBase
+    jsr MainScaleVerticalBase
+    jsr MainScaleVerticalBase
+.assert (* - BankStart) = $4B98, error, "bank 0 state preparation cb98 boundary"
+
+; Initialize the selected map and translate selected slots when the saved
+; and recalculated position references differ.
+MainPrepareMap:
+    ldx $02 ; CONTROL_MAIN_STATE_MAP
+    ldy $A1B3,x
+    lda $A1B2,x
+    tax
+    jsr InitializeMapDrawing
+    jsr UpdatePositionReference
+    lda $0A
+    beq InitializePositionStreams
+    jsr ScriptCompareState27
+    bne InitializePositionStreams
+    ldx $0B
+    ldy $0C
+    jsr ShiftXYRight3
+    sec
+    sbc $0E
+    sta $FE
+    tya
+    sbc $0F
+    ; A nonzero horizontal difference enters translation before the later
+    ; vertical calculation stores $FF; the existing $FF is used unchanged.
+    bne MainTranslateSlots
+    lda $FE
+    bne MainTranslateSlots
+    ldx $1C
+    ldy $1D
+    jsr ShiftXYRight3
+    sec
+    sbc $4F
+    sta $FF
+    bne MainTranslateSlots
+    jmp InitializePositionStreams
+
+.assert (* - BankStart) = $4BD6, error, "bank 0 state preparation cbd6 boundary"
+
+MainScaleHorizontalBase:
+    asl $03EE ; CONTROL_MAIN_STATE_SCALE
+    rol $03EF
+    rts
+MainScaleVerticalBase:
+    asl $03F0
+    rol $03F1
+    rts
+.assert (* - BankStart) = $4BE4, error, "bank 0 state preparation cbe4 boundary"
+
+MainTranslateSlots:
+    lda $FE ; CONTROL_MAIN_STATE_TRANSLATE
+    jsr ShiftALeft3
+    sta $FE
+    lda $FF
+    jsr ShiftALeft3
+    sta $FF
+    ldx $3C
+    jsr TranslateSlotPosition
+    ldx $3D
+    jsr TranslateSlotPosition
+    jsr UpdatePositionReference
+
+.assert (* - BankStart) = $4BFF, error, "bank 0 state preparation end"
+
 ; Select the two position-record streams using the byte index in $02, reset
 ; shared state, and optionally scan the initial 32-position window.
 InitializePositionStreams:
