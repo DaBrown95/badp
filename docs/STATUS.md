@@ -33,10 +33,10 @@ independent source trees or treat one version's evidence as verifying the rest.
 `make audit-all` checks reference integrity for all targets without requiring
 simultaneous reconstruction. Keep progress and completion evidence per target.
 
-The v1.5 build now assembles and links to the exact reference, with 13,276 bytes
+The v1.5 build now assembles and links to the exact reference, with 13,621 bytes
 of source code and 1,656 bytes of structured data across the physical PRG banks.
-It still includes 50,604 local PRG bytes and 65,536 local CHR bytes. Three hundred sixty-eight
-independent source-change controls verify every listed reconstructed region.
+It still includes 50,259 local PRG bytes and 65,536 local CHR bytes. A total of
+374 independent source-change controls verify every listed reconstructed region.
 Passing input audits or whole-ROM equality alone is not reconstruction
 completion. The developer identifies BOGUS as the
 state-machine engine in the [Vance Kozik interview](https://www.nesworld.com/kozik.php);
@@ -176,8 +176,11 @@ remain unverified.
 Sprite placement and record helpers now update shadow OAM coordinates and
 attributes, including the original `$FC` offset skip. A focused instruction-
 subset check on synthetic RAM covered grid placement, coordinate saturation,
-the offset skip, invalid indices and two record modes. Sprite data loading,
-PPU timing and gameplay still need separate verification.
+the offset skip, invalid indices and two record modes. The frame loader now
+selects direct or indexed frame pointers and writes tile and attribute data
+for all four flip combinations. A separate synthetic instruction-subset check
+covered those paths and the reserved offset. PPU timing and gameplay still
+need separate verification.
 
 A local decoder reads both pointer tables, deduplicates aliases and round-trips
 32 streams containing 523 eight-byte records plus four-byte terminators through

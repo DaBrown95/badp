@@ -1342,7 +1342,7 @@ PlaceSlotYReady:
     bne PlaceSlotRows
 
 ; For eligible modes, derive a value from a positioned sprite and the slot
-; record; $8DB7 consumes the value if it changed. Its full role is unresolved.
+; record; LoadSpriteFrame consumes the value if it changed.
 PlaceSlotEvaluate:
     lda $0400,x                   ; CONTROL_PLACE_SLOT_EVALUATE
     and #$70
@@ -1403,7 +1403,7 @@ PlaceSlotStoreResult:
     tya
     eor $0406,x
     beq PlaceSlotSuccess
-    jsr $8DB7
+    jsr LoadSpriteFrame
 PlaceSlotSuccess:
     lda #$00
     rts
@@ -1816,8 +1816,8 @@ SetSpriteQueryStore:
     lda #$00
     rts
 
-; Set either high attribute bit in $0401. If the high bits changed, $8DB7
-; reloads the sprite data; its full implementation remains to be recovered.
+; Set either high attribute bit in $0401. If the high bits changed, reload
+; the sprite tile and attribute data into shadow OAM.
 SetSpriteAttributeBit40:
     stx $03E0                     ; CONTROL_SET_SPRITE_BIT40
     jsr RequireSlotRecord
@@ -1834,7 +1834,7 @@ SetSpriteHighBits:
     eor $03E0
     and #$C0
     beq SetSpriteHighBitsReturn
-    jsr $8DB7
+    jsr LoadSpriteFrame
 SetSpriteHighBitsReturn:
     lda #$00
     rts
@@ -1912,7 +1912,210 @@ SlotRecordOffsetInvalid:
     rts
 .assert (* - BankStart) = $0DB7, error, "bank 0 slot record index helpers end"
 
-    .incbin "bank0_8db7_9e3c.bin"
+; Load a record frame into shadow OAM. Mode 1 uses its pointer directly;
+; other modes select a little-endian frame pointer from the indexed table.
+; X is the record offset and is restored on return.
+LoadSpriteFrame:
+    txa ; CONTROL_LOAD_SPRITE_FRAME
+    pha
+    lda $0400,x
+    and #$03
+    cmp #$01
+    bne SpriteFrameIndirect
+    lda $0402,x
+    sta $FE
+    lda $0403,x
+    sta $FF
+    jmp SpriteFrameDimensions
+SpriteFrameIndirect:
+    lda $0406,x
+    ldy #$00
+    asl a
+    bcc SpriteFramePointerOffset
+    ldy #$01
+SpriteFramePointerOffset:
+    clc
+    adc #$03
+    bcc SpriteFramePointerBase
+    iny
+SpriteFramePointerBase:
+    clc
+    adc $0402,x
+    sta $FE
+    tya
+    adc $0403,x
+    sta $FF
+    ldy #$00
+    lda ($FE),y
+    pha
+    iny
+    lda ($FE),y
+    sta $FF
+    pla
+    sta $FE
+; The frame header packs column and row counts in the high and low nibbles.
+SpriteFrameDimensions:
+    ldy #$01
+    lda ($FE),y
+    lsr a
+    lsr a
+    lsr a
+    lsr a
+    sta $03E2
+    lda ($FE),y
+    and #$0F
+    sta $03E3
+    iny
+    lda $0401,x
+    and #$C0
+    sta $03E4
+    bmi SpriteFrameFlipVertical
+    and #$40
+    bne SpriteFrameFlipHorizontal
+; Select OAM traversal strides for the four combinations of the $40/$80
+; attribute bits. Offset $FC is reserved and skipped on wrap or traversal.
+    lda #$04    ; CONTROL_SPRITE_FRAME_FORWARD
+    sta $03E0
+    lda #$00
+    sta $03E1
+    sta $03DE
+    lda $0404,x
+SpriteFrameForwardStart:
+    sec
+    sbc #$04
+    bcc SpriteFrameForwardStart
+    tax
+    jmp SpriteFrameNextRow
+SpriteFrameFlipHorizontal:
+    lda #$FC    ; CONTROL_SPRITE_FRAME_HORIZONTAL
+    sta $03E0
+    lda $03E2
+    asl a
+    asl a
+    sta $03E5
+    asl a
+    sta $03E1
+    lda #$00
+    sta $03DE
+    lda $03E5
+    clc
+    adc $0404,x
+    bcs SpriteFrameHorizontalSkip
+    cmp #$FC
+    bne SpriteFrameHorizontalReady
+SpriteFrameHorizontalSkip:
+    clc
+    adc #$04
+SpriteFrameHorizontalReady:
+    tax
+    jmp SpriteFrameNextRow
+SpriteFrameFlipVertical:
+    and #$40    ; CONTROL_SPRITE_FRAME_VERTICAL
+    bne SpriteFrameFlipBoth
+    lda #$04
+    sta $03E0
+    lda $03E2
+    asl a
+    asl a
+    sta $03E5
+    asl a
+    sta $03E1
+    lda $0405,x
+    asl a
+    asl a
+    sec
+    sbc $03E5
+    sec
+    sbc #$04
+    sta $03DE
+    lda $0404,x
+    clc
+    adc $03DE
+    bcs SpriteFrameVerticalSkip
+    cmp #$FC
+    bne SpriteFrameVerticalReady
+SpriteFrameVerticalSkip:
+    clc
+    adc #$04
+SpriteFrameVerticalReady:
+    tax
+    lda #$FF
+    sta $03DE
+    jmp SpriteFrameNextRow
+SpriteFrameFlipBoth:
+    lda #$FC    ; CONTROL_SPRITE_FRAME_BOTH
+    sta $03E0
+    lda #$00
+    sta $03E1
+    sta $03DE
+    lda $0405,x
+    asl a
+    asl a
+    clc
+    adc $0404,x
+    bcs SpriteFrameBothSkip
+    cmp #$FC
+    bne SpriteFrameBothReady
+SpriteFrameBothSkip:
+    clc
+    adc #$04
+SpriteFrameBothReady:
+    tax
+; Each entry supplies a tile and attributes. Keep the existing priority bit,
+; set bit $08, and XOR the high flip bits from the record.
+SpriteFrameNextRow:
+    lda $03E2    ; CONTROL_SPRITE_FRAME_ROW
+    sta $03E5
+SpriteFrameNextTile:
+    txa
+    clc
+    adc $03E0
+    cmp #$FC
+    bne SpriteFrameWriteTile
+    clc
+    adc $03E0
+SpriteFrameWriteTile:
+    tax
+    lda ($FE),y
+    sta $0205,x
+    iny
+    lda $0206,x
+    and #$20
+    ora #$08
+    ora ($FE),y
+    eor $03E4
+    sta $0206,x
+    iny
+    dec $03E5
+    bne SpriteFrameNextTile
+    txa
+    ldx $03DE
+    bpl SpriteFrameAdvanceRow
+    sec
+    sbc $03E1
+    bcs SpriteFrameRowReady
+    sec
+    sbc #$04
+    jmp SpriteFrameRowReady
+SpriteFrameAdvanceRow:
+    clc
+    adc $03E1
+    bcs SpriteFrameRowSkip
+    cmp #$FC
+    bne SpriteFrameRowReady
+SpriteFrameRowSkip:
+    clc
+    adc #$04
+SpriteFrameRowReady:
+    tax
+    dec $03E3
+    bne SpriteFrameNextRow
+    pla
+    tax
+    rts
+.assert (* - BankStart) = $0F10, error, "bank 0 sprite frame loading end"
+
+    .incbin "bank0_8f10_9e3c.bin"
 ; Eight rounds of shift/add multiplication. The original returns the low byte
 ; in X and high byte in Y, using $03E2-$03E4 as scratch.
 MultiplyUnsigned8:
