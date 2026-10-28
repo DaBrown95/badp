@@ -7,6 +7,7 @@ export BADP_ROM = $(ROM)
 
 .PHONY: help setup setup-mesen targets identify audit audit-all build progress verify-gameplay verify-controller verify-audio-bank verify-record-boundary verify-record-overlaps verify-script-overlap verify-indexed-audio verify-sprite-shapes state-table-inventory indexed-jump-inventory native-control-flow native-script-calls position-records script-entries script-flow slot-record-flow contact-record-flow native-event-flow direct-record-flow packed-text ppu-streams trace-audio trace-audio-route audio-inventory audio-flow trace-sprites sprite-inventory map-data trace-map extract-chr-tiles extract-map-chunks extract-map-layouts extract-packed-text extract-sprite-frames extract-menu-tiles prg-inventory trace-runtime-extents runtime-extents test
 help:
+	@echo 'make source-audit Account for every physical PRG region and unresolved use'
 	@echo 'make targets   Show the primary target and sequential target order'
 	@echo 'make identify  Inspect a ROM (default: primary target; override TARGET=id or ROM=path)'
 	@echo 'make audit     Verify a local input against its pinned identity (override TARGET=id)'
@@ -186,6 +187,14 @@ trace-map:
 
 prg-inventory:
 	$(PYTHON) -m tools.prg_inventory
+
+.PHONY: source-audit
+source-audit:
+	$(PYTHON) -m tools.source_audit
+
+.PHONY: sprite-layout
+sprite-layout:
+	$(PYTHON) -m tools.sprite_layout
 
 trace-runtime-extents:
 	$(PYTHON) -m tools.trace_runtime_extents

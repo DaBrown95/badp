@@ -6981,6 +6981,15 @@ FadeWaitVBlank:
     bpl FadeWaitVBlank
     rts
 .assert (* - BankStart) = $35D3, error, "bank 0 palette fade wait end"
+; Observed sprite metadata, with values selected by the engine's record reader.
+.macro ObservedSpriteAnimationHeader frame_count, frame_delay
+    .byte $53, frame_count, frame_delay
+.endmacro
+.macro ObservedSpriteOamFlags base_index, large_sprites
+    .assert (base_index >= 0) .and (base_index <= 127), error, "invalid sprite OAM base"
+    .assert (large_sprites = 0) .or (large_sprites = 1), error, "invalid sprite size bit"
+    .byte (base_index | (large_sprites << 7))
+.endmacro
 ; The frame reader interprets byte 1 as packed column and row counts.
 ; Zero nibbles retain the original eight-bit counter wrap behavior.
 .macro ObservedSpriteFrameShape columns, rows
@@ -6989,12 +6998,300 @@ FadeWaitVBlank:
     .byte ((columns << 4) | rows)
 .endmacro
 
-; Palette control headers selected by state tables or possible BOGUS paths.
-; Colour payloads remain local. Some bytes also have candidate script or
-; sprite uses; the labels do not establish exclusive use or reachability.
-; Observed frame dimension bytes are source; preceding bytes and tile pairs
-; remain local. Other candidate script or sprite views may overlap.
-    .incbin "bank0_b5d3_ba24.bin"
+; Observed resource metadata and frame dimensions; unconverted bytes and
+; tile pairs remain local. Other candidate views may overlap.
+    .incbin "bank0_b5d3_b5e7.bin"
+ObservedSpriteResourceB5E7:
+    ObservedSpriteAnimationHeader $03, $14 ; CONTROL_SPRITE_RESOURCE_B5E7
+ObservedSpriteResourceB5E7Frames:
+    .word ObservedSpriteFrameBA3F ; CONTROL_SPRITE_TABLE_B5E7
+    .word ObservedSpriteFrameBA45
+    .word ObservedSpriteFrameBA3F
+ObservedSpriteResourceB5F0:
+    ObservedSpriteAnimationHeader $05, $0A ; CONTROL_SPRITE_RESOURCE_B5F0
+ObservedSpriteResourceB5F0Frames:
+    .word ObservedSpriteFrameBAF9 ; CONTROL_SPRITE_TABLE_B5F0
+    .word ObservedSpriteFrameBB03
+    .word ObservedSpriteFrameBAF9
+    .word ObservedSpriteFrameBB03
+    .word ObservedSpriteFrameBAF9
+    .incbin "bank0_b5fd_b608.bin"
+ObservedSpriteResourceB608:
+    ObservedSpriteAnimationHeader $03, $0A ; CONTROL_SPRITE_RESOURCE_B608
+ObservedSpriteResourceB608Frames:
+    .word ObservedSpriteFrameBAD9 ; CONTROL_SPRITE_TABLE_B608
+    .word ObservedSpriteFrameBAE1
+    .word ObservedSpriteFrameBAE9
+    .incbin "bank0_b611_b654.bin"
+ObservedSpriteResourceB654:
+    ObservedSpriteAnimationHeader $02, $14 ; CONTROL_SPRITE_RESOURCE_B654
+ObservedSpriteResourceB654Frames:
+    .word ObservedSpriteFrameBB8F ; CONTROL_SPRITE_TABLE_B654
+    .word ObservedSpriteFrameBBAD
+ObservedSpriteResourceB65B:
+    ObservedSpriteAnimationHeader $03, $14 ; CONTROL_SPRITE_RESOURCE_B65B
+ObservedSpriteResourceB65BFrames:
+    .word ObservedSpriteFrameBB8F ; CONTROL_SPRITE_TABLE_B65B
+    .word ObservedSpriteFrameBB99
+    .word ObservedSpriteFrameBBA3
+    .incbin "bank0_b664_b6ac.bin"
+ObservedSpriteResourceB6AC:
+    ObservedSpriteAnimationHeader $04, $04 ; CONTROL_SPRITE_RESOURCE_B6AC
+ObservedSpriteResourceB6ACFrames:
+    .word ObservedSpriteFrameBA27 ; CONTROL_SPRITE_TABLE_B6AC
+    .word ObservedSpriteFrameBA2D
+    .word ObservedSpriteFrameBA33
+    .word ObservedSpriteFrameBA39
+    .incbin "bank0_b6b7_b715.bin"
+ObservedSpriteResourceB715:
+    ObservedSpriteAnimationHeader $03, $0A ; CONTROL_SPRITE_RESOURCE_B715
+ObservedSpriteResourceB715Frames:
+    .word ObservedSpriteFrameBFAB ; CONTROL_SPRITE_TABLE_B715
+    .word ObservedSpriteFrameBFB5
+    .word ObservedSpriteFrameBFBF
+    .incbin "bank0_b71e_b725.bin"
+ObservedSpriteResourceB725:
+    ObservedSpriteAnimationHeader $02, $0A ; CONTROL_SPRITE_RESOURCE_B725
+ObservedSpriteResourceB725Frames:
+    .word ObservedSpriteFrameBFDD ; CONTROL_SPRITE_TABLE_B725
+    .word ObservedSpriteFrameBFE7
+ObservedSpriteResourceB72C:
+    ObservedSpriteAnimationHeader $02, $0C ; CONTROL_SPRITE_RESOURCE_B72C
+ObservedSpriteResourceB72CFrames:
+    .word ObservedSpriteFrameBFC9 ; CONTROL_SPRITE_TABLE_B72C
+    .word ObservedSpriteFrameBFBF
+    .incbin "bank0_b733_b745.bin"
+ObservedSpriteResourceB745:
+    ObservedSpriteAnimationHeader $03, $0A ; CONTROL_SPRITE_RESOURCE_B745
+ObservedSpriteResourceB745Frames:
+    .word ObservedSpriteFrameBF27 ; CONTROL_SPRITE_TABLE_B745
+    .word ObservedSpriteFrameBF31
+    .word ObservedSpriteFrameBF3B
+    .incbin "bank0_b74e_b755.bin"
+ObservedSpriteResourceB755:
+    ObservedSpriteAnimationHeader $13, $06 ; CONTROL_SPRITE_RESOURCE_B755
+ObservedSpriteResourceB755Frames:
+    .word ObservedSpriteFrameC003 ; CONTROL_SPRITE_TABLE_B755
+    .word ObservedSpriteFrameC00D
+    .word ObservedSpriteFrameC017
+    .word ObservedSpriteFrameC017
+    .word ObservedSpriteFrameC021
+    .word ObservedSpriteFrameC02B
+    .word ObservedSpriteFrameC03F
+    .word ObservedSpriteFrameC021
+    .word ObservedSpriteFrameC017
+    .word ObservedSpriteFrameC035
+    .word ObservedSpriteFrameC017
+    .word ObservedSpriteFrameC035
+    .word ObservedSpriteFrameC017
+    .word ObservedSpriteFrameC035
+    .word ObservedSpriteFrameC017
+    .word ObservedSpriteFrameC035
+    .word ObservedSpriteFrameC017
+    .word ObservedSpriteFrameC00D
+    .word ObservedSpriteFrameC003
+    .incbin "bank0_b77e_b7b3.bin"
+ObservedSpriteResourceB7B3:
+    ObservedSpriteAnimationHeader $03, $0A ; CONTROL_SPRITE_RESOURCE_B7B3
+ObservedSpriteResourceB7B3Frames:
+    .word ObservedSpriteFrameC0A7 ; CONTROL_SPRITE_TABLE_B7B3
+    .word ObservedSpriteFrameC0B1
+    .word ObservedSpriteFrameC0BB
+ObservedSpriteResourceB7BC:
+    ObservedSpriteAnimationHeader $02, $0F ; CONTROL_SPRITE_RESOURCE_B7BC
+ObservedSpriteResourceB7BCFrames:
+    .word ObservedSpriteFrameC0C5 ; CONTROL_SPRITE_TABLE_B7BC
+    .word ObservedSpriteFrameC0D3
+ObservedSpriteResourceB7C3:
+    ObservedSpriteAnimationHeader $02, $0A ; CONTROL_SPRITE_RESOURCE_B7C3
+ObservedSpriteResourceB7C3Frames:
+    .word ObservedSpriteFrameC163 ; CONTROL_SPRITE_TABLE_B7C3
+    .word ObservedSpriteFrameC16D
+    .incbin "bank0_b7ca_b7d1.bin"
+ObservedSpriteResourceB7D1:
+    ObservedSpriteAnimationHeader $03, $0A ; CONTROL_SPRITE_RESOURCE_B7D1
+ObservedSpriteResourceB7D1Frames:
+    .word ObservedSpriteFrameC133 ; CONTROL_SPRITE_TABLE_B7D1
+    .word ObservedSpriteFrameC141
+    .word ObservedSpriteFrameC14F
+ObservedSpriteResourceB7DA:
+    ObservedSpriteAnimationHeader $07, $0F ; CONTROL_SPRITE_RESOURCE_B7DA
+ObservedSpriteResourceB7DAFrames:
+    .word ObservedSpriteFrameC121 ; CONTROL_SPRITE_TABLE_B7DA
+    .word ObservedSpriteFrameC127
+    .word ObservedSpriteFrameC12D
+    .word ObservedSpriteFrameC127
+    .word ObservedSpriteFrameC12D
+    .word ObservedSpriteFrameC127
+    .word ObservedSpriteFrameC121
+ObservedSpriteResourceB7EB:
+    ObservedSpriteAnimationHeader $02, $0A ; CONTROL_SPRITE_RESOURCE_B7EB
+ObservedSpriteResourceB7EBFrames:
+    .word ObservedSpriteFrameC133 ; CONTROL_SPRITE_TABLE_B7EB
+    .word ObservedSpriteFrameC14F
+    .incbin "bank0_b7f2_b838.bin"
+ObservedSpriteResourceB838:
+    ObservedSpriteAnimationHeader $02, $14 ; CONTROL_SPRITE_RESOURCE_B838
+ObservedSpriteResourceB838Frames:
+    .word ObservedSpriteFrameC313 ; CONTROL_SPRITE_TABLE_B838
+    .word ObservedSpriteFrameC331
+ObservedSpriteResourceB83F:
+    ObservedSpriteAnimationHeader $03, $14 ; CONTROL_SPRITE_RESOURCE_B83F
+ObservedSpriteResourceB83FFrames:
+    .word ObservedSpriteFrameC313 ; CONTROL_SPRITE_TABLE_B83F
+    .word ObservedSpriteFrameC31D
+    .word ObservedSpriteFrameC327
+    .incbin "bank0_b848_b876.bin"
+ObservedSpriteResourceB876:
+    ObservedSpriteAnimationHeader $03, $0A ; CONTROL_SPRITE_RESOURCE_B876
+ObservedSpriteResourceB876Frames:
+    .word ObservedSpriteFrameC3A3 ; CONTROL_SPRITE_TABLE_B876
+    .word ObservedSpriteFrameC3AB
+    .word ObservedSpriteFrameC39B
+    .incbin "bank0_b87f_b88d.bin"
+ObservedSpriteResourceB88D:
+    ObservedSpriteAnimationHeader $03, $0A ; CONTROL_SPRITE_RESOURCE_B88D
+ObservedSpriteResourceB88DFrames:
+    .word ObservedSpriteFrameC441 ; CONTROL_SPRITE_TABLE_B88D
+    .word ObservedSpriteFrameC453
+    .word ObservedSpriteFrameC465
+ObservedSpriteResourceB896:
+    ObservedSpriteAnimationHeader $03, $14 ; CONTROL_SPRITE_RESOURCE_B896
+ObservedSpriteResourceB896Frames:
+    .word ObservedSpriteFrameC3F9 ; CONTROL_SPRITE_TABLE_B896
+    .word ObservedSpriteFrameC40B
+    .word ObservedSpriteFrameC3F9
+ObservedSpriteResourceB89F:
+    ObservedSpriteAnimationHeader $02, $14 ; CONTROL_SPRITE_RESOURCE_B89F
+ObservedSpriteResourceB89FFrames:
+    .word ObservedSpriteFrameC3F9 ; CONTROL_SPRITE_TABLE_B89F
+    .word ObservedSpriteFrameC41D
+ObservedSpriteResourceB8A6:
+    ObservedSpriteAnimationHeader $03, $05 ; CONTROL_SPRITE_RESOURCE_B8A6
+ObservedSpriteResourceB8A6Frames:
+    .word ObservedSpriteFrameC3C3 ; CONTROL_SPRITE_TABLE_B8A6
+    .word ObservedSpriteFrameC3D5
+    .word ObservedSpriteFrameC3E7
+ObservedSpriteResourceB8AF:
+    ObservedSpriteAnimationHeader $0E, $02 ; CONTROL_SPRITE_RESOURCE_B8AF
+ObservedSpriteResourceB8AFFrames:
+    .word ObservedSpriteFrameC4BF ; CONTROL_SPRITE_TABLE_B8AF
+    .word ObservedSpriteFrameC4C5
+    .word ObservedSpriteFrameC4C5
+    .word ObservedSpriteFrameC4C5
+    .word ObservedSpriteFrameC4CB
+    .word ObservedSpriteFrameC4D1
+    .word ObservedSpriteFrameC4CB
+    .word ObservedSpriteFrameC4D1
+    .word ObservedSpriteFrameC4CB
+    .word ObservedSpriteFrameC4D1
+    .word ObservedSpriteFrameC4CB
+    .word ObservedSpriteFrameC4D1
+    .word ObservedSpriteFrameC4C5
+    .word ObservedSpriteFrameC4BF
+    .incbin "bank0_b8ce_b910.bin"
+ObservedSpriteResourceB910:
+    ObservedSpriteAnimationHeader $02, $0A ; CONTROL_SPRITE_RESOURCE_B910
+ObservedSpriteResourceB910Frames:
+    .word ObservedSpriteFrameC56F ; CONTROL_SPRITE_TABLE_B910
+    .word ObservedSpriteFrameC57F
+    .incbin "bank0_b917_b91e.bin"
+ObservedSpriteResourceB91E:
+    ObservedSpriteAnimationHeader $03, $0A ; CONTROL_SPRITE_RESOURCE_B91E
+ObservedSpriteResourceB91EFrames:
+    .word ObservedSpriteFrameC54F ; CONTROL_SPRITE_TABLE_B91E
+    .word ObservedSpriteFrameC557
+    .word ObservedSpriteFrameC55F
+    .incbin "bank0_b927_b930.bin"
+ObservedSpriteResourceB930:
+    ObservedSpriteAnimationHeader $02, $0A ; CONTROL_SPRITE_RESOURCE_B930
+ObservedSpriteResourceB930Frames:
+    .word ObservedSpriteFrameC5C5 ; CONTROL_SPRITE_TABLE_B930
+    .word ObservedSpriteFrameC5BF
+    .incbin "bank0_b937_b93e.bin"
+ObservedSpriteResourceB93E:
+    ObservedSpriteAnimationHeader $02, $0A ; CONTROL_SPRITE_RESOURCE_B93E
+ObservedSpriteResourceB93EFrames:
+    .word ObservedSpriteFrameC5DB ; CONTROL_SPRITE_TABLE_B93E
+    .word ObservedSpriteFrameC5E1
+ObservedSpriteResourceB945:
+    ObservedSpriteAnimationHeader $03, $0A ; CONTROL_SPRITE_RESOURCE_B945
+ObservedSpriteResourceB945Frames:
+    .word ObservedSpriteFrameBC7D ; CONTROL_SPRITE_TABLE_B945
+    .word ObservedSpriteFrameC5B9
+    .word ObservedSpriteFrameC5BF
+ObservedSpriteResourceB94E:
+    ObservedSpriteAnimationHeader $02, $0A ; CONTROL_SPRITE_RESOURCE_B94E
+ObservedSpriteResourceB94EFrames:
+    .word ObservedSpriteFrameC61F ; CONTROL_SPRITE_TABLE_B94E
+    .word ObservedSpriteFrameC62D
+    .incbin "bank0_b955_b96e.bin"
+ObservedSpriteResourceB96E:
+    ObservedSpriteAnimationHeader $03, $0A ; CONTROL_SPRITE_RESOURCE_B96E
+ObservedSpriteResourceB96EFrames:
+    .word ObservedSpriteFrameC5F5 ; CONTROL_SPRITE_TABLE_B96E
+    .word ObservedSpriteFrameC603
+    .word ObservedSpriteFrameC611
+ObservedSpriteResourceB977:
+    ObservedSpriteAnimationHeader $06, $0A ; CONTROL_SPRITE_RESOURCE_B977
+ObservedSpriteResourceB977Frames:
+    .word ObservedSpriteFrameC677 ; CONTROL_SPRITE_TABLE_B977
+    .word ObservedSpriteFrameC67D
+    .word ObservedSpriteFrameC683
+    .word ObservedSpriteFrameC689
+    .word ObservedSpriteFrameC68F
+    .word ObservedSpriteFrameC695
+ObservedSpriteResourceB986:
+    ObservedSpriteAnimationHeader $02, $04 ; CONTROL_SPRITE_RESOURCE_B986
+ObservedSpriteResourceB986Frames:
+    .word ObservedSpriteFrameC6A3 ; CONTROL_SPRITE_TABLE_B986
+    .word ObservedSpriteFrameC6B7
+    .incbin "bank0_b98d_b994.bin"
+ObservedSpriteResourceB994:
+    ObservedSpriteAnimationHeader $04, $0A ; CONTROL_SPRITE_RESOURCE_B994
+ObservedSpriteResourceB994Frames:
+    .word ObservedSpriteFrameC6ED ; CONTROL_SPRITE_TABLE_B994
+    .word ObservedSpriteFrameC6F7
+    .word ObservedSpriteFrameC6E3
+    .word ObservedSpriteFrameC6F7
+ObservedSpriteResourceB99F:
+    ObservedSpriteAnimationHeader $03, $0A ; CONTROL_SPRITE_RESOURCE_B99F
+ObservedSpriteResourceB99FFrames:
+    .word ObservedSpriteFrameC6CB ; CONTROL_SPRITE_TABLE_B99F
+    .word ObservedSpriteFrameC6D3
+    .word ObservedSpriteFrameC6DB
+ObservedSpriteResourceB9A8:
+    ObservedSpriteAnimationHeader $02, $0A ; CONTROL_SPRITE_RESOURCE_B9A8
+ObservedSpriteResourceB9A8Frames:
+    .word ObservedSpriteFrameC6C1 ; CONTROL_SPRITE_TABLE_B9A8
+    .word ObservedSpriteFrameC6A3
+ObservedSpriteResourceB9AF:
+    ObservedSpriteAnimationHeader $03, $0A ; CONTROL_SPRITE_RESOURCE_B9AF
+ObservedSpriteResourceB9AFFrames:
+    .word ObservedSpriteFrameC701 ; CONTROL_SPRITE_TABLE_B9AF
+    .word ObservedSpriteFrameC705
+    .word ObservedSpriteFrameC709
+ObservedSpriteResourceB9B8:
+    ObservedSpriteAnimationHeader $04, $04 ; CONTROL_SPRITE_RESOURCE_B9B8
+ObservedSpriteResourceB9B8Frames:
+    .word ObservedSpriteFrameC711 ; CONTROL_SPRITE_TABLE_B9B8
+    .word ObservedSpriteFrameC717
+    .word ObservedSpriteFrameC71D
+    .word ObservedSpriteFrameC717
+ObservedSpriteResourceB9C3:
+    ObservedSpriteAnimationHeader $02, $0F ; CONTROL_SPRITE_RESOURCE_B9C3
+ObservedSpriteResourceB9C3Frames:
+    .word ObservedSpriteFrameC723 ; CONTROL_SPRITE_TABLE_B9C3
+    .word ObservedSpriteFrameC729
+    .incbin "bank0_b9ca_ba1a.bin"
+ObservedSpriteResourceBA1A:
+    ObservedSpriteAnimationHeader $03, $0A ; CONTROL_SPRITE_RESOURCE_BA1A
+ObservedSpriteResourceBA1AFrames:
+    .word ObservedSpriteFrameC7C9 ; CONTROL_SPRITE_TABLE_BA1A
+    .word ObservedSpriteFrameC7CF
+    .word ObservedSpriteFrameC7C9
+ObservedSpriteDirectHeaderBA23:
+    ObservedSpriteOamFlags $14, $01 ; CONTROL_SPRITE_FLAGS_BA23
 ObservedSpriteFrameBA23 = * - 1
     ObservedSpriteFrameShape $01, $01 ; CONTROL_SPRITE_SHAPE_BA23
     .incbin "bank0_ba25_ba28.bin"
@@ -7012,13 +7309,19 @@ ObservedSpriteFrameBA39 = * - 1
     .incbin "bank0_ba3b_ba40.bin"
 ObservedSpriteFrameBA3F = * - 1
     ObservedSpriteFrameShape $02, $01 ; CONTROL_SPRITE_SHAPE_BA3F
-    .incbin "bank0_ba41_ba46.bin"
+    .incbin "bank0_ba41_ba45.bin"
+ObservedSpriteDirectHeaderBA45:
+    ObservedSpriteOamFlags $14, $01 ; CONTROL_SPRITE_FLAGS_BA45
 ObservedSpriteFrameBA45 = * - 1
     ObservedSpriteFrameShape $02, $01 ; CONTROL_SPRITE_SHAPE_BA45
-    .incbin "bank0_ba47_ba4c.bin"
+    .incbin "bank0_ba47_ba4b.bin"
+ObservedSpriteDirectHeaderBA4B:
+    ObservedSpriteOamFlags $0A, $01 ; CONTROL_SPRITE_FLAGS_BA4B
 ObservedSpriteFrameBA4B = * - 1
     ObservedSpriteFrameShape $07, $07 ; CONTROL_SPRITE_SHAPE_BA4B
-    .incbin "bank0_ba4d_bab4.bin"
+    .incbin "bank0_ba4d_bab3.bin"
+ObservedSpriteDirectHeaderBAB3:
+    ObservedSpriteOamFlags $0A, $01 ; CONTROL_SPRITE_FLAGS_BAB3
 ObservedSpriteFrameBAB3 = * - 1
     ObservedSpriteFrameShape $01, $01 ; CONTROL_SPRITE_SHAPE_BAB3
     .incbin "bank0_bab5_bada.bin"
@@ -7036,7 +7339,9 @@ ObservedSpriteFrameBAF9 = * - 1
     .incbin "bank0_bafb_bb04.bin"
 ObservedSpriteFrameBB03 = * - 1
     ObservedSpriteFrameShape $02, $02 ; CONTROL_SPRITE_SHAPE_BB03
-    .incbin "bank0_bb05_bb8c.bin"
+    .incbin "bank0_bb05_bb8b.bin"
+ObservedSpriteDirectHeaderBB8B:
+    ObservedSpriteOamFlags $14, $01 ; CONTROL_SPRITE_FLAGS_BB8B
 ObservedSpriteFrameBB8B = * - 1
     ObservedSpriteFrameShape $01, $01 ; CONTROL_SPRITE_SHAPE_BB8B
     .incbin "bank0_bb8d_bb90.bin"
@@ -7051,52 +7356,82 @@ ObservedSpriteFrameBBA3 = * - 1
     .incbin "bank0_bba5_bbae.bin"
 ObservedSpriteFrameBBAD = * - 1
     ObservedSpriteFrameShape $04, $01 ; CONTROL_SPRITE_SHAPE_BBAD
-    .incbin "bank0_bbaf_bbf8.bin"
+    .incbin "bank0_bbaf_bbf7.bin"
+ObservedSpriteDirectHeaderBBF7:
+    ObservedSpriteOamFlags $0A, $01 ; CONTROL_SPRITE_FLAGS_BBF7
 ObservedSpriteFrameBBF7 = * - 1
     ObservedSpriteFrameShape $07, $07 ; CONTROL_SPRITE_SHAPE_BBF7
-    .incbin "bank0_bbf9_bc7a.bin"
+    .incbin "bank0_bbf9_bc79.bin"
+ObservedSpriteDirectHeaderBC79:
+    ObservedSpriteOamFlags $28, $01 ; CONTROL_SPRITE_FLAGS_BC79
 ObservedSpriteFrameBC79 = * - 1
     ObservedSpriteFrameShape $01, $01 ; CONTROL_SPRITE_SHAPE_BC79
     .incbin "bank0_bc7b_bc7e.bin"
 ObservedSpriteFrameBC7D = * - 1
     ObservedSpriteFrameShape $01, $02 ; CONTROL_SPRITE_SHAPE_BC7D
-    .incbin "bank0_bc7f_bc84.bin"
+    .incbin "bank0_bc7f_bc83.bin"
+ObservedSpriteDirectHeaderBC83:
+    ObservedSpriteOamFlags $28, $01 ; CONTROL_SPRITE_FLAGS_BC83
 ObservedSpriteFrameBC83 = * - 1
     ObservedSpriteFrameShape $02, $01 ; CONTROL_SPRITE_SHAPE_BC83
-    .incbin "bank0_bc85_bc8a.bin"
+    .incbin "bank0_bc85_bc89.bin"
+ObservedSpriteDirectHeaderBC89:
+    ObservedSpriteOamFlags $0A, $01 ; CONTROL_SPRITE_FLAGS_BC89
 ObservedSpriteFrameBC89 = * - 1
     ObservedSpriteFrameShape $02, $02 ; CONTROL_SPRITE_SHAPE_BC89
-    .incbin "bank0_bc8b_be9e.bin"
+    .incbin "bank0_bc8b_be9d.bin"
+ObservedSpriteDirectHeaderBE9D:
+    ObservedSpriteOamFlags $14, $01 ; CONTROL_SPRITE_FLAGS_BE9D
 ObservedSpriteFrameBE9D = * - 1
     ObservedSpriteFrameShape $02, $01 ; CONTROL_SPRITE_SHAPE_BE9D
-    .incbin "bank0_be9f_bea4.bin"
+    .incbin "bank0_be9f_bea3.bin"
+ObservedSpriteDirectHeaderBEA3:
+    ObservedSpriteOamFlags $3B, $01 ; CONTROL_SPRITE_FLAGS_BEA3
 ObservedSpriteFrameBEA3 = * - 1
     ObservedSpriteFrameShape $01, $05 ; CONTROL_SPRITE_SHAPE_BEA3
-    .incbin "bank0_bea5_beb0.bin"
+    .incbin "bank0_bea5_beaf.bin"
+ObservedSpriteDirectHeaderBEAF:
+    ObservedSpriteOamFlags $3B, $01 ; CONTROL_SPRITE_FLAGS_BEAF
 ObservedSpriteFrameBEAF = * - 1
     ObservedSpriteFrameShape $01, $05 ; CONTROL_SPRITE_SHAPE_BEAF
-    .incbin "bank0_beb1_bebc.bin"
+    .incbin "bank0_beb1_bebb.bin"
+ObservedSpriteDirectHeaderBEBB:
+    ObservedSpriteOamFlags $3B, $01 ; CONTROL_SPRITE_FLAGS_BEBB
 ObservedSpriteFrameBEBB = * - 1
     ObservedSpriteFrameShape $01, $05 ; CONTROL_SPRITE_SHAPE_BEBB
-    .incbin "bank0_bebd_bec8.bin"
+    .incbin "bank0_bebd_bec7.bin"
+ObservedSpriteDirectHeaderBEC7:
+    ObservedSpriteOamFlags $3B, $01 ; CONTROL_SPRITE_FLAGS_BEC7
 ObservedSpriteFrameBEC7 = * - 1
     ObservedSpriteFrameShape $01, $05 ; CONTROL_SPRITE_SHAPE_BEC7
-    .incbin "bank0_bec9_bed4.bin"
+    .incbin "bank0_bec9_bed3.bin"
+ObservedSpriteDirectHeaderBED3:
+    ObservedSpriteOamFlags $3B, $01 ; CONTROL_SPRITE_FLAGS_BED3
 ObservedSpriteFrameBED3 = * - 1
     ObservedSpriteFrameShape $01, $05 ; CONTROL_SPRITE_SHAPE_BED3
-    .incbin "bank0_bed5_bee0.bin"
+    .incbin "bank0_bed5_bedf.bin"
+ObservedSpriteDirectHeaderBEDF:
+    ObservedSpriteOamFlags $3B, $01 ; CONTROL_SPRITE_FLAGS_BEDF
 ObservedSpriteFrameBEDF = * - 1
     ObservedSpriteFrameShape $01, $05 ; CONTROL_SPRITE_SHAPE_BEDF
-    .incbin "bank0_bee1_beec.bin"
+    .incbin "bank0_bee1_beeb.bin"
+ObservedSpriteDirectHeaderBEEB:
+    ObservedSpriteOamFlags $3B, $01 ; CONTROL_SPRITE_FLAGS_BEEB
 ObservedSpriteFrameBEEB = * - 1
     ObservedSpriteFrameShape $01, $05 ; CONTROL_SPRITE_SHAPE_BEEB
-    .incbin "bank0_beed_bef8.bin"
+    .incbin "bank0_beed_bef7.bin"
+ObservedSpriteDirectHeaderBEF7:
+    ObservedSpriteOamFlags $3B, $01 ; CONTROL_SPRITE_FLAGS_BEF7
 ObservedSpriteFrameBEF7 = * - 1
     ObservedSpriteFrameShape $01, $05 ; CONTROL_SPRITE_SHAPE_BEF7
-    .incbin "bank0_bef9_bf04.bin"
+    .incbin "bank0_bef9_bf03.bin"
+ObservedSpriteDirectHeaderBF03:
+    ObservedSpriteOamFlags $3B, $01 ; CONTROL_SPRITE_FLAGS_BF03
 ObservedSpriteFrameBF03 = * - 1
     ObservedSpriteFrameShape $01, $05 ; CONTROL_SPRITE_SHAPE_BF03
-    .incbin "bank0_bf05_bf28.bin"
+    .incbin "bank0_bf05_bf27.bin"
+ObservedSpriteDirectHeaderBF27:
+    ObservedSpriteOamFlags $0A, $01 ; CONTROL_SPRITE_FLAGS_BF27
 ObservedSpriteFrameBF27 = * - 1
     ObservedSpriteFrameShape $02, $02 ; CONTROL_SPRITE_SHAPE_BF27
     .incbin "bank0_bf29_bf32.bin"
@@ -7123,13 +7458,17 @@ ObservedSpriteFrameBFDD = * - 1
     .incbin "bank0_bfdf_bfe8.bin"
 ObservedSpriteFrameBFE7 = * - 1
     ObservedSpriteFrameShape $02, $02 ; CONTROL_SPRITE_SHAPE_BFE7
-    .incbin "bank0_bfe9_bff2.bin"
+    .incbin "bank0_bfe9_bff1.bin"
+ObservedSpriteDirectHeaderBFF1:
+    ObservedSpriteOamFlags $0A, $01 ; CONTROL_SPRITE_FLAGS_BFF1
 ObservedSpriteFrameBFF1 = * - 1
     ObservedSpriteFrameShape $02, $02 ; CONTROL_SPRITE_SHAPE_BFF1
     .incbin "bank0_bff3_c004.bin"
 ObservedSpriteFrameC003 = * - 1
     ObservedSpriteFrameShape $02, $02 ; CONTROL_SPRITE_SHAPE_C003
-    .incbin "bank0_c005_c00e.bin"
+    .incbin "bank0_c005_c00d.bin"
+ObservedSpriteDirectHeaderC00D:
+    ObservedSpriteOamFlags $1E, $01 ; CONTROL_SPRITE_FLAGS_C00D
 ObservedSpriteFrameC00D = * - 1
     ObservedSpriteFrameShape $02, $02 ; CONTROL_SPRITE_SHAPE_C00D
     .incbin "bank0_c00f_c018.bin"
@@ -7150,10 +7489,14 @@ ObservedSpriteFrameC03F = * - 1
     .incbin "bank0_c041_c0a8.bin"
 ObservedSpriteFrameC0A7 = * - 1
     ObservedSpriteFrameShape $04, $01 ; CONTROL_SPRITE_SHAPE_C0A7
-    .incbin "bank0_c0a9_c0b2.bin"
+    .incbin "bank0_c0a9_c0b1.bin"
+ObservedSpriteDirectHeaderC0B1:
+    ObservedSpriteOamFlags $1E, $01 ; CONTROL_SPRITE_FLAGS_C0B1
 ObservedSpriteFrameC0B1 = * - 1
     ObservedSpriteFrameShape $04, $01 ; CONTROL_SPRITE_SHAPE_C0B1
-    .incbin "bank0_c0b3_c0bc.bin"
+    .incbin "bank0_c0b3_c0bb.bin"
+ObservedSpriteDirectHeaderC0BB:
+    ObservedSpriteOamFlags $1E, $01 ; CONTROL_SPRITE_FLAGS_C0BB
 ObservedSpriteFrameC0BB = * - 1
     ObservedSpriteFrameShape $04, $01 ; CONTROL_SPRITE_SHAPE_C0BB
     .incbin "bank0_c0bd_c0c6.bin"
@@ -7171,7 +7514,9 @@ ObservedSpriteFrameC127 = * - 1
     .incbin "bank0_c129_c12e.bin"
 ObservedSpriteFrameC12D = * - 1
     ObservedSpriteFrameShape $02, $01 ; CONTROL_SPRITE_SHAPE_C12D
-    .incbin "bank0_c12f_c134.bin"
+    .incbin "bank0_c12f_c133.bin"
+ObservedSpriteDirectHeaderC133:
+    ObservedSpriteOamFlags $28, $01 ; CONTROL_SPRITE_FLAGS_C133
 ObservedSpriteFrameC133 = * - 1
     ObservedSpriteFrameShape $03, $02 ; CONTROL_SPRITE_SHAPE_C133
     .incbin "bank0_c135_c142.bin"
@@ -7186,7 +7531,9 @@ ObservedSpriteFrameC163 = * - 1
     .incbin "bank0_c165_c16e.bin"
 ObservedSpriteFrameC16D = * - 1
     ObservedSpriteFrameShape $02, $02 ; CONTROL_SPRITE_SHAPE_C16D
-    .incbin "bank0_c16f_c290.bin"
+    .incbin "bank0_c16f_c28f.bin"
+ObservedSpriteDirectHeaderC28F:
+    ObservedSpriteOamFlags $0A, $01 ; CONTROL_SPRITE_FLAGS_C28F
 ObservedSpriteFrameC28F = * - 1
     ObservedSpriteFrameShape $07, $07 ; CONTROL_SPRITE_SHAPE_C28F
     .incbin "bank0_c291_c314.bin"
@@ -7210,7 +7557,9 @@ ObservedSpriteFrameC3A3 = * - 1
     .incbin "bank0_c3a5_c3ac.bin"
 ObservedSpriteFrameC3AB = * - 1
     ObservedSpriteFrameShape $03, $01 ; CONTROL_SPRITE_SHAPE_C3AB
-    .incbin "bank0_c3ad_c3c4.bin"
+    .incbin "bank0_c3ad_c3c3.bin"
+ObservedSpriteDirectHeaderC3C3:
+    ObservedSpriteOamFlags $0A, $01 ; CONTROL_SPRITE_FLAGS_C3C3
 ObservedSpriteFrameC3C3 = * - 1
     ObservedSpriteFrameShape $04, $02 ; CONTROL_SPRITE_SHAPE_C3C3
     .incbin "bank0_c3c5_c3d6.bin"
@@ -7225,13 +7574,19 @@ ObservedSpriteFrameC3F9 = * - 1
     .incbin "bank0_c3fb_c40c.bin"
 ObservedSpriteFrameC40B = * - 1
     ObservedSpriteFrameShape $04, $02 ; CONTROL_SPRITE_SHAPE_C40B
-    .incbin "bank0_c40d_c41e.bin"
+    .incbin "bank0_c40d_c41d.bin"
+ObservedSpriteDirectHeaderC41D:
+    ObservedSpriteOamFlags $0A, $01 ; CONTROL_SPRITE_FLAGS_C41D
 ObservedSpriteFrameC41D = * - 1
     ObservedSpriteFrameShape $04, $02 ; CONTROL_SPRITE_SHAPE_C41D
-    .incbin "bank0_c41f_c430.bin"
+    .incbin "bank0_c41f_c42f.bin"
+ObservedSpriteDirectHeaderC42F:
+    ObservedSpriteOamFlags $0A, $01 ; CONTROL_SPRITE_FLAGS_C42F
 ObservedSpriteFrameC42F = * - 1
     ObservedSpriteFrameShape $04, $02 ; CONTROL_SPRITE_SHAPE_C42F
-    .incbin "bank0_c431_c442.bin"
+    .incbin "bank0_c431_c441.bin"
+ObservedSpriteDirectHeaderC441:
+    ObservedSpriteOamFlags $0A, $01 ; CONTROL_SPRITE_FLAGS_C441
 ObservedSpriteFrameC441 = * - 1
     ObservedSpriteFrameShape $04, $02 ; CONTROL_SPRITE_SHAPE_C441
     .incbin "bank0_c443_c454.bin"
@@ -7240,13 +7595,19 @@ ObservedSpriteFrameC453 = * - 1
     .incbin "bank0_c455_c466.bin"
 ObservedSpriteFrameC465 = * - 1
     ObservedSpriteFrameShape $04, $02 ; CONTROL_SPRITE_SHAPE_C465
-    .incbin "bank0_c467_c49c.bin"
+    .incbin "bank0_c467_c49b.bin"
+ObservedSpriteDirectHeaderC49B:
+    ObservedSpriteOamFlags $0A, $01 ; CONTROL_SPRITE_FLAGS_C49B
 ObservedSpriteFrameC49B = * - 1
     ObservedSpriteFrameShape $04, $02 ; CONTROL_SPRITE_SHAPE_C49B
-    .incbin "bank0_c49d_c4ae.bin"
+    .incbin "bank0_c49d_c4ad.bin"
+ObservedSpriteDirectHeaderC4AD:
+    ObservedSpriteOamFlags $0A, $01 ; CONTROL_SPRITE_FLAGS_C4AD
 ObservedSpriteFrameC4AD = * - 1
     ObservedSpriteFrameShape $04, $02 ; CONTROL_SPRITE_SHAPE_C4AD
-    .incbin "bank0_c4af_c4c0.bin"
+    .incbin "bank0_c4af_c4bf.bin"
+ObservedSpriteDirectHeaderC4BF:
+    ObservedSpriteOamFlags $32, $01 ; CONTROL_SPRITE_FLAGS_C4BF
 ObservedSpriteFrameC4BF = * - 1
     ObservedSpriteFrameShape $02, $01 ; CONTROL_SPRITE_SHAPE_C4BF
     .incbin "bank0_c4c1_c4c6.bin"
@@ -7258,7 +7619,9 @@ ObservedSpriteFrameC4CB = * - 1
     .incbin "bank0_c4cd_c4d2.bin"
 ObservedSpriteFrameC4D1 = * - 1
     ObservedSpriteFrameShape $02, $01 ; CONTROL_SPRITE_SHAPE_C4D1
-    .incbin "bank0_c4d3_c534.bin"
+    .incbin "bank0_c4d3_c533.bin"
+ObservedSpriteDirectHeaderC533:
+    ObservedSpriteOamFlags $0A, $01 ; CONTROL_SPRITE_FLAGS_C533
 ObservedSpriteFrameC533 = * - 1
     ObservedSpriteFrameShape $01, $01 ; CONTROL_SPRITE_SHAPE_C533
     .incbin "bank0_c535_c550.bin"
@@ -7273,7 +7636,9 @@ ObservedSpriteFrameC55F = * - 1
     .incbin "bank0_c561_c570.bin"
 ObservedSpriteFrameC56F = * - 1
     ObservedSpriteFrameShape $03, $01 ; CONTROL_SPRITE_SHAPE_C56F
-    .incbin "bank0_c571_c578.bin"
+    .incbin "bank0_c571_c577.bin"
+ObservedSpriteDirectHeaderC577:
+    ObservedSpriteOamFlags $1E, $01 ; CONTROL_SPRITE_FLAGS_C577
 ObservedSpriteFrameC577 = * - 1
     ObservedSpriteFrameShape $03, $01 ; CONTROL_SPRITE_SHAPE_C577
     .incbin "bank0_c579_c580.bin"
@@ -7294,7 +7659,9 @@ ObservedSpriteFrameC5DB = * - 1
     .incbin "bank0_c5dd_c5e2.bin"
 ObservedSpriteFrameC5E1 = * - 1
     ObservedSpriteFrameShape $01, $02 ; CONTROL_SPRITE_SHAPE_C5E1
-    .incbin "bank0_c5e3_c5f6.bin"
+    .incbin "bank0_c5e3_c5f5.bin"
+ObservedSpriteDirectHeaderC5F5:
+    ObservedSpriteOamFlags $0A, $01 ; CONTROL_SPRITE_FLAGS_C5F5
 ObservedSpriteFrameC5F5 = * - 1
     ObservedSpriteFrameShape $03, $02 ; CONTROL_SPRITE_SHAPE_C5F5
     .incbin "bank0_c5f7_c604.bin"
@@ -7330,10 +7697,14 @@ ObservedSpriteFrameC695 = * - 1
     .incbin "bank0_c697_c6a4.bin"
 ObservedSpriteFrameC6A3 = * - 1
     ObservedSpriteFrameShape $02, $02 ; CONTROL_SPRITE_SHAPE_C6A3
-    .incbin "bank0_c6a5_c6b8.bin"
+    .incbin "bank0_c6a5_c6b7.bin"
+ObservedSpriteDirectHeaderC6B7:
+    ObservedSpriteOamFlags $1E, $01 ; CONTROL_SPRITE_FLAGS_C6B7
 ObservedSpriteFrameC6B7 = * - 1
     ObservedSpriteFrameShape $02, $02 ; CONTROL_SPRITE_SHAPE_C6B7
-    .incbin "bank0_c6b9_c6c2.bin"
+    .incbin "bank0_c6b9_c6c1.bin"
+ObservedSpriteDirectHeaderC6C1:
+    ObservedSpriteOamFlags $1E, $01 ; CONTROL_SPRITE_FLAGS_C6C1
 ObservedSpriteFrameC6C1 = * - 1
     ObservedSpriteFrameShape $02, $02 ; CONTROL_SPRITE_SHAPE_C6C1
     .incbin "bank0_c6c3_c6cc.bin"
@@ -7342,7 +7713,9 @@ ObservedSpriteFrameC6CB = * - 1
     .incbin "bank0_c6cd_c6d4.bin"
 ObservedSpriteFrameC6D3 = * - 1
     ObservedSpriteFrameShape $03, $01 ; CONTROL_SPRITE_SHAPE_C6D3
-    .incbin "bank0_c6d5_c6dc.bin"
+    .incbin "bank0_c6d5_c6db.bin"
+ObservedSpriteDirectHeaderC6DB:
+    ObservedSpriteOamFlags $1E, $01 ; CONTROL_SPRITE_FLAGS_C6DB
 ObservedSpriteFrameC6DB = * - 1
     ObservedSpriteFrameShape $03, $01 ; CONTROL_SPRITE_SHAPE_C6DB
     .incbin "bank0_c6dd_c6e4.bin"
@@ -7363,7 +7736,9 @@ ObservedSpriteFrameC705 = * - 1
     .incbin "bank0_c707_c70a.bin"
 ObservedSpriteFrameC709 = * - 1
     ObservedSpriteFrameShape $01, $01 ; CONTROL_SPRITE_SHAPE_C709
-    .incbin "bank0_c70b_c70e.bin"
+    .incbin "bank0_c70b_c70d.bin"
+ObservedSpriteDirectHeaderC70D:
+    ObservedSpriteOamFlags $28, $01 ; CONTROL_SPRITE_FLAGS_C70D
 ObservedSpriteFrameC70D = * - 1
     ObservedSpriteFrameShape $01, $01 ; CONTROL_SPRITE_SHAPE_C70D
     .incbin "bank0_c70f_c712.bin"
@@ -7375,7 +7750,9 @@ ObservedSpriteFrameC717 = * - 1
     .incbin "bank0_c719_c71e.bin"
 ObservedSpriteFrameC71D = * - 1
     ObservedSpriteFrameShape $02, $01 ; CONTROL_SPRITE_SHAPE_C71D
-    .incbin "bank0_c71f_c724.bin"
+    .incbin "bank0_c71f_c723.bin"
+ObservedSpriteDirectHeaderC723:
+    ObservedSpriteOamFlags $28, $01 ; CONTROL_SPRITE_FLAGS_C723
 ObservedSpriteFrameC723 = * - 1
     ObservedSpriteFrameShape $02, $01 ; CONTROL_SPRITE_SHAPE_C723
     .incbin "bank0_c725_c72a.bin"
@@ -7387,10 +7764,15 @@ ObservedSpriteFrameC7C9 = * - 1
     .incbin "bank0_c7cb_c7d0.bin"
 ObservedSpriteFrameC7CF = * - 1
     ObservedSpriteFrameShape $02, $01 ; CONTROL_SPRITE_SHAPE_C7CF
-    .incbin "bank0_c7d1_c7dc.bin"
+    .incbin "bank0_c7d1_c7db.bin"
+ObservedSpriteDirectHeaderC7DB:
+    ObservedSpriteOamFlags $00, $01 ; CONTROL_SPRITE_FLAGS_C7DB
 ObservedSpriteFrameC7DB = * - 1
     ObservedSpriteFrameShape $01, $01 ; CONTROL_SPRITE_SHAPE_C7DB
     .incbin "bank0_c7dd_c7df.bin"
+; Palette control headers selected by state tables or possible BOGUS paths.
+; Colour payloads remain local. Some bytes also have candidate script or
+; sprite uses; the labels do not establish exclusive use or reachability.
 PaletteHeaderC7DF:
     PaletteStreamHeader $00, $00, $00 ; CONTROL_PALETTE_HEADER_C7DF
     .incbin "bank0_c7e2_c7f2.bin"

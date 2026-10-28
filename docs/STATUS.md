@@ -34,9 +34,9 @@ independent source trees or treat one version's evidence as verifying the rest.
 simultaneous reconstruction. Keep progress and completion evidence per target.
 
 The v1.5 build now assembles and links to the exact reference, with 21,474 bytes
-of source code and 22,146 bytes of structured data across the physical PRG banks.
-It still includes 21,916 local PRG bytes and 65,536 local CHR bytes. A total of
-1,790 independent source-change controls verify every listed reconstructed region.
+of source code and 22,605 bytes of structured data across the physical PRG banks.
+It still includes 21,457 local PRG bytes and 65,536 local CHR bytes. A total of
+1,914 independent source-change controls verify every listed reconstructed region.
 Passing input audits or whole-ROM equality alone is not reconstruction
 completion. The developer identifies BOGUS as the
 state-machine engine in the [Vance Kozik interview](https://www.nesworld.com/kozik.php);
@@ -1810,3 +1810,53 @@ entry samples nor matching bytes establish a complete sprite inventory or
 physical board behavior. The sprite asset encoder still requires reference
 headers, checks agreement with source-owned dimension bytes, and changes a
 tile in every observed frame in its retained control.
+
+## Completion inventory checkpoint
+
+The interrupted resource batch is integrated after a fresh whole-ROM match and
+1,914 source-change controls. Its 459 formerly local bytes comprise 41 animated
+resource headers, 147 frame pointers and 42 direct-frame OAM headers. All 83
+resource starts occur in the authenticated sprite entry trace; all frame
+pointers select one of the 132 observed frames. The frame-dimension probe also
+passes on both ROMs. These are format and matching observations, not proof of
+exclusive use or a complete sprite inventory.
+
+`make source-audit` now partitions every physical PRG byte by maintained
+representation and retains every candidate-use combination at its location.
+There are 21,474 native-source bytes, 22,605 structured-source bytes, 17,374
+additional bytes in the existing controlled local asset encodings, and 4,083
+unresolved local bytes. This disjoint accounting does not replace the README's
+source-ownership metric. The 727 uncatalogued bytes in the broader use inventory
+are only a subset of the unresolved local bytes; candidate labels do not close
+an executable or data-format review. The complete partition, input identities
+and comparisons of opaque runs remain local in
+`analysis/us-v1.5/source-audit.json`.
+
+Of the unresolved local bytes, 2,685 lie in bank 0 `$B5D3-$C7DE`, 528 in the
+following palette area through `$CA37`, and 870 elsewhere. The largest connected
+next task is the sprite region. `make sprite-layout` verifies that 124 animated
+records exactly fill `$B5D3-$BA22` and 326 non-wrapping frames exactly fill
+`$BA23-$C7DE`. All 366 animation pointers select those frame boundaries; 51
+frames have no pointer in that directory and may have direct or other uses.
+All observed frame and resource starts fit this layout. No runtime use or
+exclusive interpretation is asserted for the additional records. The report
+is retained in `analysis/us-v1.5/sprite-layout.json`.
+
+The complete 3,516-byte frame region has one exact occurrence in v1.4, v1.3,
+v1.2 and v1.1, displaced by -22, +615, +618 and +540 physical bytes. Independently
+normalizing all 366 pointers by the frame displacement gives one exact occurrence
+of the complete animation directory in each version, displaced by -22, -23,
+-20 and -193 bytes respectively. Older directory and frame relocations therefore
+must not be assumed equal. The complete frame sequence is absent from the
+unversioned PRG. These are independently audited comparative inputs, not builds
+or reachability evidence for those targets.
+
+The refreshed native inventory covers every declared native-source byte and
+all 197 nominal command-dispatch entries (183 distinct handlers). Its two
+same-bank local destinations are the shared reset/NMI bank-transition sites,
+whose alternative bank destinations are source instructions. The candidate
+native-call inventory still contains 35 candidates, including the ten
+previously unreviewed contexts. Unbounded indexed-script paths, dynamic mapping,
+and candidate decodes of artwork remain explicit review questions. Do not resume
+arbitrary-input or gameplay-route searches without a specific new question;
+use the connected layout evidence and local representation gaps first.

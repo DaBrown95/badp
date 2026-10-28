@@ -40,6 +40,20 @@ class PrgInventoryTests(unittest.TestCase):
         self.assertEqual(groups[('candidate_map_chunks', 'candidate_sprite_bytes', 'candidate_script_bytes')], 1)
         self.assertEqual(sum(groups.values()), 16)
 
+    def test_evidence_partition_retains_holes_overlaps_and_bank_boundary(self):
+        result = summarize({'source_code': [(0, 2)],
+                            'candidate_script_bytes': [(1, 2), (4, 1)]},
+                           bank_size=4, bank_count=2)
+        spans = result['evidence_spans']
+        self.assertEqual([(s['physical_prg_offset'], s['size'], s['uses']) for s in spans],
+                         [(0, 1, ['source_code']),
+                          (1, 1, ['source_code', 'candidate_script_bytes']),
+                          (2, 1, ['candidate_script_bytes']), (3, 1, []),
+                          (4, 1, ['candidate_script_bytes']), (5, 3, [])])
+        self.assertEqual(spans[4]['bank'], 1)
+        self.assertEqual(spans[4]['cpu_start'], '0x8000')
+        self.assertEqual(sum(s['size'] for s in spans), 8)
+
     def test_rejects_invalid_or_cross_bank_spans(self):
         for span in ((7, 2), (15, 2), (0, 0), (-1, 1), (True, 1), (0, '1')):
             with self.subTest(span=span), self.assertRaises(ValueError):

@@ -63,6 +63,18 @@ def summarize(spans: dict[str, list[tuple[int, int]]], *, bank_size: int = BANK_
     groups = [{'uses': [name for bit, name in enumerate(CATEGORIES) if mask & (1 << bit)],
                'bytes': count}
               for mask, count in sorted(combinations.items())]
+    # Preserve locations, overlaps and holes for an audit of every region.
+    evidence_spans = []
+    for bank in range(bank_count):
+        position, end = bank * bank_size, (bank + 1) * bank_size
+        while position < end:
+            start, mask = position, masks[position]
+            while position < end and masks[position] == mask:
+                position += 1
+            evidence_spans.append({
+                'bank': bank, 'cpu_start': f'0x{0x8000 + start % bank_size:04x}',
+                'physical_prg_offset': start, 'size': position - start,
+                'uses': [name for bit, name in enumerate(CATEGORIES) if mask & (1 << bit)]})
     unknown = []
     for bank in range(bank_count):
         begin = bank * bank_size
@@ -94,6 +106,7 @@ def summarize(spans: dict[str, list[tuple[int, int]]], *, bank_size: int = BANK_
     observed_sprite_mask = 1 << CATEGORIES.index('candidate_sprite_bytes')
     static_sprite_mask = 1 << CATEGORIES.index('candidate_sprite_static_bytes')
     return {'prg_bytes': size, 'category_bytes': counts, 'use_combinations': groups,
+            'evidence_spans': evidence_spans,
             'uncatalogued_bytes': combinations.get(0, 0),
             'source_and_candidate_data_bytes': sum(bool(mask & source_mask) and bool(mask & data_mask)
                                                    for mask in masks),

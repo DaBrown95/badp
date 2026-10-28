@@ -49,7 +49,7 @@ are not measures of gameplay completion.
 <!-- BEGIN GENERATED PROGRESS -->
 | Version | Reconstructed PRG | Status |
 | --- | ---: | --- |
-| USA v1.5 | **66.56%** (43,620 / 65,536 bytes) | In progress |
+| USA v1.5 | **67.26%** (44,079 / 65,536 bytes) | In progress |
 | USA v1.4 | **0.00%** (0 / 65,536 bytes) | Not started |
 | USA v1.3 | **0.00%** (0 / 65,536 bytes) | Not started |
 | USA v1.2 | **0.00%** (0 / 65,536 bytes) | Not started |
@@ -132,8 +132,8 @@ with their source definitions; other edits fail the matching comparison. The
 locally supplied asset data does not count as reconstructed PRG source.
 `make extract-sprite-frames` exports 132 observed v1.5 sprite frames as local
 rows of tile indices and attribute bytes. The build reads those rows when the
-file exists; observed frame dimensions are in source, and the preceding header
-bytes stay local and fixed. These PRG records refer to CHR graphics, which remain
+file exists; observed frame dimensions and 42 direct-frame OAM headers are in
+source. The other frame header bytes stay local and fixed. These records refer to CHR graphics, which remain
 a separate local input. Other sprite frames and possible overlapping uses are
 still being investigated. `make extract-menu-tiles`
 exports the fourteen menu display streams locally; their tile bytes are editable,
@@ -211,6 +211,8 @@ and simultaneous press/release handling on the reference and build.
 | `make extract-packed-text` | Export editable packed messages to ignored local storage. |
 | `make trace-map` | Check map fetches in extended v1.5 emulator inputs. |
 | `make prg-inventory` | Combine verified source ownership with candidate and observed data uses. |
+| `make source-audit` | Account for every physical PRG region, local asset and competing candidate use. |
+| `make sprite-layout` | Check the contiguous sprite layout and compare frame and directory relocations. |
 | `make trace-runtime-extents` | Capture sampled Moses script and record accesses. |
 | `make runtime-extents` | Check sampled command and record bytes against the current source map. |
 | `make test` | Test the tooling using synthetic data; no game ROM needed. |
