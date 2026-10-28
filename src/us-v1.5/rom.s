@@ -17018,7 +17018,13 @@ ScriptD4B8:
 SlotRuntimeD4C1:
     SlotRuntimeRecord $BFD3, $551B, $00, $FF, $00, $00, $00 ; CONTROL_SLOT_RUNTIME_D4C1
 .assert (* - BankStart) = $54CA, error, "bank 1 slot record D4C1 end"
-    .incbin "bank1_d4ca_d4d4.bin"
+    .incbin "bank1_d4ca_d4cb.bin"
+; Possible contact event after a later script clears the slot's flag.
+ContextContactRecordD4CB:
+    .byte $FF ; CONTROL_CONTEXT_CONTACT_D4CB
+    .word ContextContactScriptD67C - BankStart
+.assert (* - BankStart) = $54CE, error, "bank 1 context contact record D4CB end"
+    .incbin "bank1_d4ce_d4d4.bin"
 ; Candidate descriptor-context access; runtime reachability remains unverified.
 ; Resource high byte $FF skips visual fields and low pointer byte.
 ContextResourceSentinelD4D3:
@@ -17029,7 +17035,14 @@ ContextResourceSentinelD4D3:
 ContextScriptPointerD4D3:
     .word $5970 ; CONTROL_CONTEXT_FIELDS_D4D5
 .assert (* - BankStart) = $54D7, error, "bank 1 candidate record field $D4D5 end"
-    .incbin "bank1_d4d7_d4e6.bin"
+    .incbin "bank1_d4d7_d4dd.bin"
+; Possible position-event record: both high sentinels skip their low bytes.
+PositionSentinelD4DD:
+    .byte $FF ; CONTROL_POSITION_SENTINEL_D4DD
+    .incbin "bank1_d4de_d4df.bin"
+PositionSentinelD4DF:
+    .byte $FF ; CONTROL_POSITION_SENTINEL_D4DF
+    .incbin "bank1_d4e0_d4e6.bin"
 ; Candidate descriptor-context access; runtime reachability remains unverified.
 ; Resource high byte $FF skips visual fields and low pointer byte.
 ContextResourceSentinelD4E5:
@@ -17101,7 +17114,14 @@ ContextResourceSentinelD53D:
 ContextScriptPointerD53D:
     .word $5970 ; CONTROL_CONTEXT_FIELDS_D53F
 .assert (* - BankStart) = $5541, error, "bank 1 candidate record field $D53F end"
-    .incbin "bank1_d541_d550.bin"
+    .incbin "bank1_d541_d547.bin"
+; Possible position-event record: both high sentinels skip their low bytes.
+PositionSentinelD547:
+    .byte $FF ; CONTROL_POSITION_SENTINEL_D547
+    .incbin "bank1_d548_d549.bin"
+PositionSentinelD549:
+    .byte $FF ; CONTROL_POSITION_SENTINEL_D549
+    .incbin "bank1_d54a_d550.bin"
 ; Candidate descriptor-context access; runtime reachability remains unverified.
 ; Resource high byte $FF skips visual fields and low pointer byte.
 ContextResourceSentinelD54F:
@@ -17304,7 +17324,50 @@ LongScriptD676:
 LongScriptD67A:
     BogusYieldAndSlotAction $01
 .assert (* - BankStart) = $567C, error, "bank 1 long-run script $D668 end"
-    .incbin "bank1_d67c_d6d7.bin"
+; Possible contact script for descriptor $D4C1 after a later flag clear.
+; Its slot association and execution have not been observed.
+ContextContactScriptD67C:
+    BogusBranchIfSlot0760Equal ContextContactScriptD698, $28 ; CONTROL_CONTEXT_CONTACT_SCRIPT_D67C
+    BogusClearSlot0790Bits $01
+    BogusSetSlot0670Pair $01, $00
+    BogusSetSlotFields80 $01, $FF
+    BogusLoadSlotRecord $3F, $02
+    BogusWait $14
+    BogusLoadRecordAndClearSavedState $48
+.assert (* - BankStart) = $568F, error, "bank 1 context contact script D67C end"
+; Candidate direct target at $D6A2. Its inherited mode is unknown; these
+; fields cover the possible mode classes. The tenth fetched byte is the
+; following script's opcode, not part of this nine-byte record.
+ContextDirectRecordD68F:
+    SlotRuntimeRecord $BE09, $FFFF, $00, $FF, $00, $00, $00 ; CONTROL_CONTEXT_DIRECT_RECORD_D68F
+.assert (* - BankStart) = $5698, error, "bank 1 context direct record D68F end"
+ContextContactScriptD698:
+    BogusLoadSlotRecord $51, $02 ; CONTROL_CONTEXT_CONTACT_SCRIPT_D698
+    BogusSetLinkedSlotFieldsC0 $40, $C0
+    BogusWait $14
+    BogusSetDispatchCounter $05
+    BogusLoadSlotRecordAtPointer $568F
+    BogusSetSlotFields80 $00, $A0
+ContextContactScriptD6A8:
+    BogusBranchIfSlot0620Bit10Clear ContextContactScriptD6A8
+    BogusSetState03BC $01
+    BogusWait $01
+    BogusSetState03BC $05
+    BogusWait $01
+    BogusSetState03BC $01
+    BogusWait $01
+    BogusSetState03BC $05
+    BogusWait $01
+    BogusSetState03BC $03
+    BogusSetVoicePointers $2C58, $2C70, $0000, $0000
+    BogusLoadSlotRecord $03, $FF
+    BogusWait $5A
+    BogusSetSlotValue $0029
+    BogusStoreSlotValueArray $3D
+    BogusSetSlotValue $FFFF
+    BogusStoreSlotValueArray $23
+    BogusSetMainState $10
+.assert (* - BankStart) = $56D7, error, "bank 1 context contact script D698 end"
 ; Descriptor-linked slot record; resource data remains local.
 SlotRuntimeD6D7:
     SlotRuntimeRecord $BC79, (ScriptD6E0 - BankStart), $00, $FF, $00, $00, $00 ; CONTROL_SLOT_RUNTIME_D6D7
@@ -17367,7 +17430,10 @@ ExtendedScriptD731:
 ExtendedScriptD733:
     BogusLoadRecordAndClearSavedState $1B
 .assert (* - BankStart) = $5735, error, "bank 1 extended script $D729 end"
-    .incbin "bank1_d735_d738.bin"
+; Possible continuation when a position-event record preserves the pointer.
+ContextPositionScriptD735:
+    BogusJumpBank1 SweepScriptD71F ; CONTROL_CONTEXT_POSITION_SCRIPT_D735
+.assert (* - BankStart) = $5738, error, "bank 1 context position script D735 end"
 ; Candidate successor of a longer-run command; control flow remains provisional.
 ; Labels preserve independent branch and resume entries.
 ExtendedScriptD738:
@@ -18926,7 +18992,10 @@ SlotRuntimeE2FC:
 SlotFlowE30E:
     SlotRuntimeRecord $C4E9, $68F2, $00, $FF, $00, $00, $00 ; CONTROL_SLOT_FLOW_E30E
 .assert (* - BankStart) = $6317, error, "bank 1 slot record flow E30E end"
-    .incbin "bank1_e317_e320.bin"
+; Candidate native position-event record; resource payload remains local.
+PositionRecordE317:
+    SlotRuntimeRecord $B8DC, (LongScriptE527 - BankStart), $13, $FF, $00, $00, $00 ; CONTROL_POSITION_RECORD_E317
+.assert (* - BankStart) = $6320, error, "bank 1 position record E317 end"
 ; Candidate descriptor $E2FC, command $E56C, mode $00.
 SlotFlowE320:
     SlotRuntimeRecord $C501, $6592, $00, $FF, $00, $00, $00 ; CONTROL_SLOT_FLOW_E320
@@ -18987,7 +19056,10 @@ SlotRuntimeE398:
 SlotFlowE3AA:
     SlotRuntimeRecord $C225, $68F2, $00, $FF, $00, $00, $00 ; CONTROL_SLOT_FLOW_E3AA
 .assert (* - BankStart) = $63B3, error, "bank 1 slot record flow E3AA end"
-    .incbin "bank1_e3b3_e3bc.bin"
+; Candidate native position-event record; resource payload remains local.
+PositionRecordE3B3:
+    SlotRuntimeRecord $B7FD, (LongScriptE527 - BankStart), $13, $FF, $00, $00, $00 ; CONTROL_POSITION_RECORD_E3B3
+.assert (* - BankStart) = $63BC, error, "bank 1 position record E3B3 end"
 ; Candidate descriptor $E398, command $E56C, mode $00.
 SlotFlowE3BC:
     SlotRuntimeRecord $C233, $6592, $00, $FF, $00, $00, $00 ; CONTROL_SLOT_FLOW_E3BC
@@ -19041,7 +19113,10 @@ SlotRuntimeE434:
 SlotFlowE446:
     SlotRuntimeRecord $C049, $68F2, $00, $FF, $00, $00, $00 ; CONTROL_SLOT_FLOW_E446
 .assert (* - BankStart) = $644F, error, "bank 1 slot record flow E446 end"
-    .incbin "bank1_e44f_e458.bin"
+; Candidate native position-event record; resource payload remains local.
+PositionRecordE44F:
+    SlotRuntimeRecord $B785, (LongScriptE527 - BankStart), $13, $FF, $00, $00, $00 ; CONTROL_POSITION_RECORD_E44F
+.assert (* - BankStart) = $6458, error, "bank 1 position record E44F end"
 ; Candidate descriptor $E434, command $E56C, mode $00.
 SlotFlowE458:
     SlotRuntimeRecord $C04F, $6592, $00, $FF, $00, $00, $00 ; CONTROL_SLOT_FLOW_E458

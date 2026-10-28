@@ -13,6 +13,10 @@ local dma_writes=0
 local fetch_probes=0
 local record_probes=0
 local stage2_record_mode2=0
+local position_event_seen={}
+local position_load_pending={}
+local position_event_matches=0
+local position_event_mismatches=0
 local inventory_list_zero=0
 local inventory_template_zero=0
 local inventory_other=0
@@ -60,12 +64,54 @@ emu.addMemoryCallback(function()
   if script_hits[pointer] then script_hits[pointer]=script_hits[pointer]+1 end
  end
 end,emu.callbackType.exec,0xD54E,0xD54E)
+-- Pair the native position-event write for descriptor $6E with the later
+-- mode-zero loader entry. A later nonzero pending action replaces the event.
+emu.addMemoryCallback(function(addr,value)
+ if not recording then return end
+ local slot=addr-0x04F0
+ if value==0x1B and emu.read(0x04E0+slot,emu.memType.nesDebug)==0x6E then
+  local pc=emu.getState()['cpu.pc']
+  local mapped=emu.convertAddress(pc,emu.memType.nesMemory)
+  position_event_seen[slot]=pc==0xD0B2 and mapped and mapped.memType==emu.memType.nesPrgRom and mapped.address==0x50B2
+ elseif value==0 and position_event_seen[slot] then
+  -- ScriptLoopPending clears the queued value just before calling the loader.
+  -- A zero written from any other site invalidates the pending pairing.
+  local pc=emu.getState()['cpu.pc']
+  local mapped=emu.convertAddress(pc,emu.memType.nesMemory)
+  if pc~=0xD53B or not mapped or mapped.memType~=emu.memType.nesPrgRom or mapped.address~=0x553B then
+   position_event_seen[slot]=nil
+  end
+ elseif value~=0 then
+  position_event_seen[slot]=nil
+ end
+end,emu.callbackType.write,0x04F0,0x04FF)
+emu.addMemoryCallback(function()
+ if not recording then return end
+ local slot=emu.read(0x10,emu.memType.nesDebug)
+ if not position_event_seen[slot] then return end
+ local mapped=emu.convertAddress(0xF0D8,emu.memType.nesMemory)
+ if mapped and mapped.memType==emu.memType.nesPrgRom and mapped.address==0x70D8
+    and emu.read(0x04E0+slot,emu.memType.nesDebug)==0x6E
+    and emu.getState()['cpu.a']==0x1B then
+  position_load_pending[slot]=true
+ end
+ position_event_seen[slot]=nil
+end,emu.callbackType.exec,0xF0D8,0xF0D8)
 emu.addMemoryCallback(function()
  if not recording then return end
  local mapped=emu.convertAddress(0xF10C,emu.memType.nesMemory)
  if mapped and mapped.memType==emu.memType.nesPrgRom and mapped.address==0x710C then
   record_probes=record_probes+1
   local pointer=emu.read(0xFE,emu.memType.nesDebug)+256*emu.read(0xFF,emu.memType.nesDebug)
+  local slot=emu.read(0x10,emu.memType.nesDebug)
+  if position_load_pending[slot] then
+   if pointer==0x6365 and emu.read(0x57,emu.memType.nesDebug)==0 then
+    position_event_matches=position_event_matches+1
+   else
+    position_event_mismatches=position_event_mismatches+1
+   end
+   position_load_pending[slot]=nil
+  end
   if record_hits[pointer] then record_hits[pointer]=record_hits[pointer]+1 end
   if pointer==0x36E5 and emu.read(0x03C2,emu.memType.nesDebug)%2==1
      and emu.read(0x57,emu.memType.nesDebug)==2 then
@@ -158,6 +204,7 @@ emu.addEventCallback(function()
   print(string.format('BADP_SUMMARY %d %d %d %d %d %d %d %d',writes,mismatch,unmapped,banks[0] and 1 or 0,banks[1] and 1 or 0,nmis,apu_writes,dma_writes))
   print(string.format('BADP_PROBE %d %d',fetch_probes,record_probes))
   print(string.format('BADP_STAGE2_RECORD %d',stage2_record_mode2))
+  print(string.format('BADP_POSITION_EVENT %d %d',position_event_matches,position_event_mismatches))
   print(string.format('BADP_INVENTORY %d %d %d',inventory_list_zero,inventory_template_zero,inventory_other))
   for _,address in ipairs(script_targets) do print(string.format('BADP_TARGET script %04X %d',address,script_hits[address])) end
   for _,address in ipairs(record_targets) do print(string.format('BADP_TARGET record %04X %d',address,record_hits[address])) end

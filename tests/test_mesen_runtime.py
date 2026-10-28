@@ -42,6 +42,7 @@ def synthetic_output(state=1, *, inventory=False):
     lines.append('BADP_SUMMARY 2 0 0 1 1 6340 1 1')
     lines.append('BADP_PROBE 4 2')
     lines.append(f'BADP_STAGE2_RECORD {int(state == 5)}')
+    lines.append(f'BADP_POSITION_EVENT {int(state == 11)} 0')
     lines.append('BADP_INVENTORY 1 6 0' if inventory else 'BADP_INVENTORY 0 0 0')
     lines.extend(f'BADP_TARGET script {address:04X} 0' for address in SCRIPT_TARGETS)
     lines.extend(f'BADP_TARGET record {address:04X} 0' for address in RECORD_TARGETS)
@@ -77,6 +78,9 @@ class MesenRuntimeTests(unittest.TestCase):
                         text.replace('BADP_STAGE2_RECORD 0\n', ''),
                         text + 'BADP_STAGE2_RECORD 0\n',
                         text.replace('BADP_STAGE2_RECORD 0', 'BADP_STAGE2_RECORD -1'),
+                        text.replace('BADP_POSITION_EVENT 0 0\n', ''),
+                        text + 'BADP_POSITION_EVENT 0 0\n',
+                        text.replace('BADP_POSITION_EVENT 0 0', 'BADP_POSITION_EVENT -1 0'),
                         text + 'BADP_INVENTORY 0 0 0\n',
                         text.replace('BADP_INVENTORY 0 0 0', 'BADP_INVENTORY -1 0 0'),
                         text + 'BADP_WRITE 5700 FFB7 0C 32767 12\n',
@@ -96,6 +100,17 @@ class MesenRuntimeTests(unittest.TestCase):
         evidence['frames']['1800']['scroll_x'] = evidence['frames']['1400']['scroll_x']
         with self.assertRaisesRegex(ValueError, 'rightward input'):
             validate_scenario(evidence, 5)
+
+    def test_david_requires_a_matched_native_position_event(self):
+        evidence, _, _ = parse_output(synthetic_output(state=11))
+        validate_scenario(evidence, 11)
+        evidence['position_event_matches'] = 0
+        with self.assertRaisesRegex(ValueError, 'position event'):
+            validate_scenario(evidence, 11)
+        evidence['position_event_matches'] = 1
+        evidence['position_event_mismatches'] = 1
+        with self.assertRaisesRegex(ValueError, 'position event'):
+            validate_scenario(evidence, 11)
 
     def test_moses_requires_pickup_and_carry(self):
         evidence = synthetic_moses_evidence()

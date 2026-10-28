@@ -38,7 +38,7 @@ their assumed descriptor associations and interpretations remain unverified.
 The overlaps do not establish which path actually executes.
 A separate `make direct-record-flow` walk seeds every named bank-1 script
 entry and checks direct `$16` targets against the resulting script graph.
-It finds 17 candidate commands with 15 distinct direct targets. The possible
+It finds 18 candidate commands with 16 distinct direct targets. The possible
 record at `$B077` overlaps two candidate script bytes; neither interpretation
 is accepted there. The graph follows three observed `$F434` indexed targets,
 while reporting that site's remaining possible indices as unresolved.
@@ -62,6 +62,15 @@ can fall through to a record read at `$FC72`, overlapping the existing `$FC6A`
 script. These are possible interpretations, not evidence that a clear,
 contact, or subsequent path actually occurs; other ways to change the flag are
 not covered. The [combined PRG inventory](STATUS.md) includes these candidates.
+
+`make native-event-flow` extends that analysis across later scripts installed by
+records, repeating contact and position-event discovery to a fixed point. The
+position event requests mode-zero offset `$1B` when bit 2 of `$0790` is clear
+and the native position checks pass. On v1.5 it finds 60 candidate contact and
+9 candidate position records, 267 contexts and 3,479 script nodes in two
+rounds. Its graph contains 22 overlapping script bytes and 82 record/script
+overlap bytes. These counts are possible uses, not resolved ownership or
+runtime coverage; controller events and other flag writes remain open.
 The retained-pointer expansion also reaches candidate commands in referenced
 map-chunk data. `make map-data` reports 29 candidate command entries overlapping
 65 map bytes at bank-1 CPU `$80FF-$8104` and `$8118-$8152`. Noah's directed

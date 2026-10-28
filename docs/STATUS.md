@@ -34,9 +34,9 @@ independent source trees or treat one version's evidence as verifying the rest.
 simultaneous reconstruction. Keep progress and completion evidence per target.
 
 The v1.5 build now assembles and links to the exact reference, with 21,474 bytes
-of source code and 19,376 bytes of structured data across the physical PRG banks.
-It still includes 24,686 local PRG bytes and 65,536 local CHR bytes. A total of
-1,240 independent source-change controls verify every listed reconstructed region.
+of source code and 19,504 bytes of structured data across the physical PRG banks.
+It still includes 24,558 local PRG bytes and 65,536 local CHR bytes. A total of
+1,252 independent source-change controls verify every listed reconstructed region.
 Passing input audits or whole-ROM equality alone is not reconstruction
 completion. The developer identifies BOGUS as the
 state-machine engine in the [Vance Kozik interview](https://www.nesworld.com/kozik.php);
@@ -55,8 +55,10 @@ the first water gap. It recovers him after a later collision, backtracks over th
 position trigger, completes the first two levels and enters level three. There,
 it picks Moses up after a series of jumps and carries him through further jumps
 and movement to a higher position. Sampled slot fields show the link, its loss,
-recovery and carried finish; pinned screenshot hashes check both success screens. The sixty-two sampled
-frames, slot fields, state and cycle counts, mapper-write streams, NMI counts, OAM DMA and
+recovery and carried finish; pinned screenshot hashes check both success screens.
+In David's opening, the verifier pairs native position-event writes for slot
+descriptor `$6E` with mode-zero loads of encoded record `$6365`. The sixty-two
+sampled frames, slot fields, state and cycle counts, mapper-write streams, NMI counts, OAM DMA and
 APU-register write streams agreed between the reference and build. Both PRG
 banks appeared in the emulator's mapper-write mapping; every observed write
 value equalled the mapped ROM byte. This describes the emulator model and the
@@ -293,12 +295,12 @@ supplied map-chunk data. The offset table and state-indexed vertical-base seeds
 are source; map layouts and chunk contents remain local. Runtime bounds on
 either table have not been established.
 `make prg-inventory` combines the current verified source map with candidate
-map, descriptor-context, contact-event and direct-target scripts and records, palette setup,
+map, descriptor-context, contact/position-event and direct-target scripts and records, palette setup,
 candidate audio and PPU-stream uses, round-tripped packed text, and optional
 validated audio and sprite traces. It counts physical bytes once while
-retaining overlapping uses. With the current local traces, 1,780 PRG bytes have no use
+retaining overlapping uses. With the current local traces, 1,412 PRG bytes have no use
 in these inventories; that number is not a count of remaining code. The report
-also retains 99 possible map/script overlap bytes and 81 possible record/script
+also retains 99 possible map/script overlap bytes and 84 possible record/script
 overlap bytes across the combined inventories. It records its input identities and writes metadata only to
 ignored `analysis/us-v1.5/prg-inventory.json`.
 `make audio-flow` follows literal voice starts in reconstructed commands and the
@@ -623,6 +625,13 @@ clears and contact; none of these paths has been observed in gameplay. The
 `$FC81` fallthrough also creates a possible record interpretation over the
 existing `$FC6A` script, so that competing use remains unresolved.
 
+Following flag clears in later descriptor-associated scripts exposes another
+128 structured bytes. These include a possible contact path at `$D67C`, its
+mode-dependent direct record at `$D68F`, a possible preserved-pointer jump at
+`$D735`, and three position-event records. The `$D68F` fields cover candidate
+loader modes; its tenth fetched byte is the following script opcode. The new
+paths and record associations remain static candidates, not observed gameplay.
+
 Four zero-terminated byte lists at `$FCA7-$FCE2` are structured source. The
 candidate `$FD05` script selects their bases through `$FCE3`, reads each value
 with a two-byte indexed fetch and masks to the low byte. Each nonzero value
@@ -666,9 +675,9 @@ headers in ignored local analysis. These checks do not verify rendered animation
 or establish a complete inventory of sprite assets.
 `make prg-inventory` also follows candidate resource pointers from descriptor
 records and possible record accesses, assuming the default bank-0 mapping. It
-finds 209 possible resource headers and 299 distinct frame headers; their
-candidate reads cover 4,375 physical bytes, including 1,546 bytes also covered
-by the existing runtime sprite trace. Sixteen distinct non-ROM resource addresses
+finds 218 possible resource headers and 317 distinct frame headers; their
+candidate reads cover 4,733 physical bytes, including 1,600 bytes also covered
+by the existing runtime sprite trace. Seventeen distinct non-ROM resource addresses
 are excluded; no candidate frame reads crossed the bank in this inventory.
 Animation counts bound these particular candidate table entries, while other
 computed indices and unobserved contexts remain open. These are possible uses,

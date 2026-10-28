@@ -42,7 +42,7 @@ are not measures of gameplay completion.
 <!-- BEGIN GENERATED PROGRESS -->
 | Version | Reconstructed PRG | Status |
 | --- | ---: | --- |
-| USA v1.5 | **62.33%** (40,850 / 65,536 bytes) | In progress |
+| USA v1.5 | **62.53%** (40,978 / 65,536 bytes) | In progress |
 | USA v1.4 | **0.00%** (0 / 65,536 bytes) | Not started |
 | USA v1.3 | **0.00%** (0 / 65,536 bytes) | Not started |
 | USA v1.2 | **0.00%** (0 / 65,536 bytes) | Not started |
@@ -121,7 +121,8 @@ The check runs the reference and matching build under the same inputs, comparing
 screenshots, state, mapper writes, NMI, OAM DMA and audio-register writes. The
 Moses sequence carries and recovers the baby, completes the first two levels,
 and carries him through jumps to a higher area in the third. A separate Noah sequence opens
-and closes the inventory and checks its table reads.
+and closes the inventory and checks its table reads. David's opening also checks
+a native position event against its record load.
 It keeps its evidence in the ignored `reports/us-v1.5/runtime/` directory. These
 short opening scenarios do not establish full gameplay completion or physical
 cartridge behaviour.
@@ -142,6 +143,7 @@ cartridge behaviour.
 | `make script-entries` | Inventory candidate v1.5 script entry points locally. |
 | `make script-flow` | Trace reviewed v1.5 script paths to local analysis. |
 | `make contact-record-flow` | Trace candidate contact-event records and scripts locally. |
+| `make native-event-flow` | Trace candidate contact and position events through later scripts. |
 | `make direct-record-flow` | Check direct record targets for possible script overlaps. |
 | `make packed-text` | Decode v1.5 packed text to local analysis. |
 | `make ppu-streams` | Inventory candidate PPU command streams without exporting text. |
