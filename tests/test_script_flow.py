@@ -267,7 +267,8 @@ class ScriptFlowTests(unittest.TestCase):
         b1[0x1c] = 0x16
         b1[0x30:0x33] = bytes([0x91, 0x53, 0])
         b1[0x40:0x43] = bytes([0x9b, 0xea, 0x3e])
-        nodes = by_pointer(walk(bytes(b0), bytes(b1), bytes(lengths), [0x10, 0x30, 0x40]))
+        b1[0x50:0x54] = bytes([0x91, 0xe2, 0x05, 0x16])
+        nodes = by_pointer(walk(bytes(b0), bytes(b1), bytes(lengths), [0x10, 0x30, 0x40, 0x50]))
         self.assertEqual(nodes['0x0010']['status'], 'reviewed_text_pointer_write')
         self.assertEqual(nodes['0x0013']['status'], 'reviewed_text_pointer_write')
         self.assertEqual(nodes['0x0016']['status'], 'reviewed_packed_text_native_call')
@@ -275,6 +276,9 @@ class ScriptFlowTests(unittest.TestCase):
         self.assertIn('0x001c', nodes)
         self.assertEqual(nodes['0x0030']['status'], 'unreviewed_or_dynamic_handler')
         self.assertEqual(nodes['0x0040']['status'], 'unreviewed_or_dynamic_handler')
+        self.assertEqual(nodes['0x0050']['status'], 'reviewed_slot_field_write')
+        self.assertEqual(nodes['0x0050']['successors'], [
+            {'kind': 'possible_next', 'encoded_pointer': '0x0053'}])
 
     def test_selector_branch_uses_later_target_and_short_variant_stops(self):
         b0, b1, lengths = fixture()

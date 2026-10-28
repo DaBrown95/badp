@@ -42,7 +42,7 @@ are not measures of gameplay completion.
 <!-- BEGIN GENERATED PROGRESS -->
 | Version | Reconstructed PRG | Status |
 | --- | ---: | --- |
-| USA v1.5 | **62.13%** (40,719 / 65,536 bytes) | In progress |
+| USA v1.5 | **62.33%** (40,850 / 65,536 bytes) | In progress |
 | USA v1.4 | **0.00%** (0 / 65,536 bytes) | Not started |
 | USA v1.3 | **0.00%** (0 / 65,536 bytes) | Not started |
 | USA v1.2 | **0.00%** (0 / 65,536 bytes) | Not started |
@@ -141,6 +141,7 @@ cartridge behaviour.
 | `make position-records` | Decode v1.5 position records to ignored local analysis. |
 | `make script-entries` | Inventory candidate v1.5 script entry points locally. |
 | `make script-flow` | Trace reviewed v1.5 script paths to local analysis. |
+| `make contact-record-flow` | Trace candidate contact-event records and scripts locally. |
 | `make direct-record-flow` | Check direct record targets for possible script overlaps. |
 | `make packed-text` | Decode v1.5 packed text to local analysis. |
 | `make ppu-streams` | Inventory candidate PPU command streams without exporting text. |

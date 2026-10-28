@@ -12,7 +12,7 @@ import os
 from pathlib import Path
 import sys
 
-from . import (audio_commands, audio_flow, direct_record_flow, map_data, packed_text, ppu_streams,
+from . import (audio_commands, audio_flow, contact_record_flow, direct_record_flow, map_data, packed_text, ppu_streams,
                slot_record_flow, sprite_metadata)
 from .build_rom import source_regions
 from .progress import verify_primary
@@ -28,7 +28,7 @@ CATEGORIES = ('source_code', 'source_data', 'candidate_map_chunks', 'candidate_m
               'candidate_audio_commands', 'candidate_ppu_stream_bytes', 'candidate_sprite_static_bytes')
 INVENTORY_INPUTS = ('tools/prg_inventory.py', 'tools/map_data.py', 'tools/packed_text.py',
                     'tools/script_entries.py', 'tools/script_flow.py', 'tools/slot_record_flow.py',
-                    'tools/direct_record_flow.py',
+                    'tools/direct_record_flow.py', 'tools/contact_record_flow.py',
                     'tools/audio_commands.py', 'tools/audio_flow.py', 'tools/ppu_streams.py',
                     'tools/sprite_metadata.py', 'tools/setup_mesen.py',
                     'config/mesence-toolchain.json')
@@ -191,6 +191,9 @@ def inventory(root: Path = ROOT) -> dict:
             location = record['location']
             base = location['bank_offset'] + (0x8000 if location['bank'] == 0 else 0)
             seeds.append((base, int(record['encoded_script_pointer'], 16)))
+    contacts = contact_record_flow.contact_candidates(bank0, bank1, lengths, descriptors['records'],
+                                                       indexed_jumps=PRIMARY_INDEXED_JUMPS)
+    seeds.extend(contacts['seeds'])
     flow = slot_record_flow.trace(bank0, bank1, lengths, seeds, indexed_jumps=PRIMARY_INDEXED_JUMPS)
     graph = flow['merged_script_flow']
     source = (root / config['source']).read_text()
@@ -201,7 +204,7 @@ def inventory(root: Path = ROOT) -> dict:
         raise ValueError('candidate script context inventory is incomplete')
     direct = direct_record_flow.direct_inventory(bank0, bank1, direct_graph)
     spans['candidate_script_bytes'] = script_graph_spans([graph, direct_graph])
-    candidate_references = flow['references'] + direct['references']
+    candidate_references = contacts['references'] + flow['references'] + direct['references']
     for reference_entry in candidate_references:
         if reference_entry['status'] == 'candidate':
             start = reference_entry['location']['physical_prg_offset']
@@ -277,6 +280,8 @@ def inventory(root: Path = ROOT) -> dict:
                     'direct_script_overlap_bytes': direct_graph['overlapping_physical_bytes'],
                     'direct_record_script_overlap_bytes': direct['record_script_overlaps']['physical_bytes'],
                     'direct_dynamic_slot_pointers': len(direct['dynamic_slot_pointer_commands']),
+                    'candidate_contact_records': len(contacts['references']),
+                    'candidate_contact_script_seeds': len(contacts['seeds']),
                     'direct_incomplete_observed_indexed_jumps': sum(
                         n['status'] == 'observed_indexed_jump_incomplete' for n in direct_graph['nodes']),
                     'static_sprite_resource_count': len(sprite_candidates['resources']),
@@ -289,7 +294,7 @@ def inventory(root: Path = ROOT) -> dict:
                     'ppu_lookahead_crossing_streams': ppu_graph['lookahead_crossing_streams'],
                     'ppu_overlapping_stream_bytes': ppu_graph['overlapping_stream_bytes'],
                     'interpretation': 'Overlapping evidence is retained; uncatalogued does not mean code. '
-                                      'Candidate scripts and records include descriptor contexts and direct-target paths; audio paths use literal starts. '
+                                      'Candidate scripts and records include descriptor, contact-event and direct-target paths; audio paths use literal starts. '
                                       'Audio and PPU streams may be unreachable or incomplete; '
                                       'Candidate map, sprite and palette ranges do not prove exclusive data use; '
                                       'static sprite frame indices and resource contexts may be unreachable.'})
@@ -317,6 +322,8 @@ def main() -> int:
                           'direct_script_overlap_bytes': result['direct_script_overlap_bytes'],
                           'direct_record_script_overlap_bytes': result['direct_record_script_overlap_bytes'],
                           'direct_dynamic_slot_pointers': result['direct_dynamic_slot_pointers'],
+                          'candidate_contact_records': result['candidate_contact_records'],
+                          'candidate_contact_script_seeds': result['candidate_contact_script_seeds'],
                           'direct_incomplete_observed_indexed_jumps': result['direct_incomplete_observed_indexed_jumps'],
                           'static_sprite_resource_count': result['static_sprite_resource_count'],
                           'static_sprite_frame_count': result['static_sprite_frame_count'],

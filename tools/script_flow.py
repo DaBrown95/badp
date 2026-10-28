@@ -173,6 +173,11 @@ def walk(bank0: bytes, bank1: bytes, lengths: bytes, seeds: list[int],
             # These exact destinations are text pointer bytes, not $53/$54.
             node['status'] = 'reviewed_text_pointer_write'
             edges.append(('possible_next', following))
+        elif opcode == 0x91 and length == 3 and data[1:3] == b'\xe2\x05':
+            # The literal destination is a slot field, not the active script
+            # pointer, stack page, or a hardware register.
+            node['status'] = 'reviewed_slot_field_write'
+            edges.append(('possible_next', following))
         elif opcode == 0x9B and length == 3 and data[1:3] == b'\xe9\x3e':
             # $3EE9 is an RTS-encoded call to the reviewed bank-1 $BEEA
             # decoder. Other native targets remain unreviewed.

@@ -50,6 +50,18 @@ the tested inputs; other slot states may take either path.
 The same graph also finds one overlapping script byte at
 `$F156-$F157`, where a candidate fallthrough conflicts with the existing
 `$F157` entry. All of these paths remain provisional.
+
+`make contact-record-flow` separately models the native contact marker. Slot
+initialization sets `$0790` bit 0, and a contact marker may queue offset `$09`
+only when that bit is clear. The tool starts from descriptor scripts with a
+candidate literal `$30` clear of bit 0, then follows the possible mode-zero
+record and installed script. It finds 56 candidate records and 56 script seeds,
+154 contexts and 1,678 script nodes. Their graph has 19 competing script bytes
+and 61 record/script overlap bytes. For example, the `$FC81` contact candidate
+can fall through to a record read at `$FC72`, overlapping the existing `$FC6A`
+script. These are possible interpretations, not evidence that a clear,
+contact, or subsequent path actually occurs; other ways to change the flag are
+not covered. The [combined PRG inventory](STATUS.md) includes these candidates.
 The retained-pointer expansion also reaches candidate commands in referenced
 map-chunk data. `make map-data` reports 29 candidate command entries overlapping
 65 map bytes at bank-1 CPU `$80FF-$8104` and `$8118-$8152`. Noah's directed

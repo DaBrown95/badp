@@ -34,9 +34,9 @@ independent source trees or treat one version's evidence as verifying the rest.
 simultaneous reconstruction. Keep progress and completion evidence per target.
 
 The v1.5 build now assembles and links to the exact reference, with 21,474 bytes
-of source code and 19,245 bytes of structured data across the physical PRG banks.
-It still includes 24,817 local PRG bytes and 65,536 local CHR bytes. A total of
-1,229 independent source-change controls verify every listed reconstructed region.
+of source code and 19,376 bytes of structured data across the physical PRG banks.
+It still includes 24,686 local PRG bytes and 65,536 local CHR bytes. A total of
+1,240 independent source-change controls verify every listed reconstructed region.
 Passing input audits or whole-ROM equality alone is not reconstruction
 completion. The developer identifies BOGUS as the
 state-machine engine in the [Vance Kozik interview](https://www.nesworld.com/kozik.php);
@@ -293,12 +293,12 @@ supplied map-chunk data. The offset table and state-indexed vertical-base seeds
 are source; map layouts and chunk contents remain local. Runtime bounds on
 either table have not been established.
 `make prg-inventory` combines the current verified source map with candidate
-map, descriptor-context and direct-target scripts and records, palette setup,
+map, descriptor-context, contact-event and direct-target scripts and records, palette setup,
 candidate audio and PPU-stream uses, round-tripped packed text, and optional
 validated audio and sprite traces. It counts physical bytes once while
-retaining overlapping uses. With the current local traces, 2,385 PRG bytes have no use
+retaining overlapping uses. With the current local traces, 1,780 PRG bytes have no use
 in these inventories; that number is not a count of remaining code. The report
-also retains 65 possible map/script overlap bytes and 37 possible record/script
+also retains 99 possible map/script overlap bytes and 81 possible record/script
 overlap bytes across the combined inventories. It records its input identities and writes metadata only to
 ignored `analysis/us-v1.5/prg-inventory.json`.
 `make audio-flow` follows literal voice starts in reconstructed commands and the
@@ -615,6 +615,14 @@ restoration and these particular paths have not been observed in gameplay.
 The direct record may be read in several inherited modes, with byte 2 serving
 as a negative-mode flag or a skipped low byte of a `$FFFF` script sentinel.
 
+Possible native contact events expose 131 additional structured bytes: five
+record fragments or records and connected scripts at `$B787`, `$BCE3`, `$BD4D`,
+`$D237`, `$FC81` and `$FC9F`. Four resource sentinels cause the loader to skip
+other fields, which remain local. The associations depend on candidate flag
+clears and contact; none of these paths has been observed in gameplay. The
+`$FC81` fallthrough also creates a possible record interpretation over the
+existing `$FC6A` script, so that competing use remains unresolved.
+
 Four zero-terminated byte lists at `$FCA7-$FCE2` are structured source. The
 candidate `$FD05` script selects their bases through `$FCE3`, reads each value
 with a two-byte indexed fetch and masks to the low byte. Each nonzero value
@@ -658,9 +666,9 @@ headers in ignored local analysis. These checks do not verify rendered animation
 or establish a complete inventory of sprite assets.
 `make prg-inventory` also follows candidate resource pointers from descriptor
 records and possible record accesses, assuming the default bank-0 mapping. It
-finds 176 possible resource headers and 282 distinct frame headers; their
-candidate reads cover 3,872 physical bytes, including 1,238 bytes also covered
-by the existing runtime sprite trace. Six distinct non-ROM resource addresses
+finds 209 possible resource headers and 299 distinct frame headers; their
+candidate reads cover 4,375 physical bytes, including 1,546 bytes also covered
+by the existing runtime sprite trace. Sixteen distinct non-ROM resource addresses
 are excluded; no candidate frame reads crossed the bank in this inventory.
 Animation counts bound these particular candidate table entries, while other
 computed indices and unobserved contexts remain open. These are possible uses,

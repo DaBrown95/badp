@@ -31,7 +31,8 @@ may retry when shared state is busy, or continue when it is available. Opcode
 `$19` similarly may retry after checking the current slot. Opcode
 `$B1` consumes a similarly terminated value-remapping table without branching
 to its values. Indirect writes continue only for the reviewed text-pointer bytes
-`$55/$56`; native calls continue only for the reviewed decoder and palette fade.
+`$55/$56` and the literal slot field `$05E2`; native calls continue only for
+the reviewed decoder and palette fade.
 Three `$44` indexed jumps have explicit candidate bounds of 11, 4 and 8
 entries, derived from their immediately preceding clamp/divide or mask paths.
 The walker follows those entries and marks their table bytes; other callers and

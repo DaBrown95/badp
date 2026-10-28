@@ -9,16 +9,16 @@
       "version": "USA v1.5",
       "status": "In progress",
       "prg_bytes": 65536,
-      "reconstructed_bytes": 40719,
-      "percentage": "62.13%",
+      "reconstructed_bytes": 40850,
+      "percentage": "62.33%",
       "code_bytes": 21474,
-      "structured_data_bytes": 19245,
+      "structured_data_bytes": 19376,
       "reference_sha256": "4f39cb6e6d42582b967e72a2dbfe4e02382cf53de721d16f7f6950e6ae6b17ab",
       "evidence": {
         "code_bytes": 21474,
-        "data_bytes": 19245,
-        "source_sha256": "817def2069b07c4ccfe91c052e6df7b0cc56669a0513f3754986e9ef85996117",
-        "source_map_sha256": "88066aa7d9de5dc2603b44d39846f8ea9f2fc559df827ecaaf18e17436a7c911",
+        "data_bytes": 19376,
+        "source_sha256": "fd621dc4b6477ff7bc32a0b02e68567cae5d25d0aae2155135a83fa7bc2135b9",
+        "source_map_sha256": "5d0b9cc4915cdd8f2cf58a89dab3189229fbaca238475b982a70d406d6a7f787",
         "toolchain_revision": "555282497c3ecf8b313d87d5973093af19c35bd5"
       }
     },

@@ -15516,7 +15516,13 @@ ContextScriptB6C4:
 SlotRuntimeB6D3:
     SlotRuntimeRecord $B693, (ScriptB6EE - BankStart), $00, $FF, $00, $00, $00 ; CONTROL_SLOT_RUNTIME_B6D3
 .assert (* - BankStart) = $36DC, error, "bank 1 slot record B6D3 end"
-    .incbin "bank1_b6dc_b6e5.bin"
+    .incbin "bank1_b6dc_b6dd.bin"
+; A possible contact event reads the resource sentinel and script pointer.
+ContactRecordB6DD:
+    .byte $FF ; CONTROL_CONTACT_RECORD_B6DD
+    .word ContactScriptB787 - BankStart
+.assert (* - BankStart) = $36E0, error, "bank 1 contact record B6DD end"
+    .incbin "bank1_b6e0_b6e5.bin"
 ; Observed in Moses level two through $B718 with loader mode $02. The
 ; pointer and the five later fields are consumed; the intervening bytes are
 ; skipped in this mode and remain local. The pointed-to sprite stays local.
@@ -15596,7 +15602,23 @@ ScriptB780:
     BogusBranchIfSlotB0AtMost ScriptB6EE, $3C
     BogusJumpBank1 ScriptB780
 .assert (* - BankStart) = $3787, error, "bank 1 script B6EE end"
-    .incbin "bank1_b787_b7b5.bin"
+; Possible contact-event script; descriptor association and execution are provisional.
+ContactScriptB787:
+    BogusBranchIfSelectedFieldEqual ContactScriptB78C, $1D ; CONTROL_CONTACT_SCRIPT_B787
+    BogusRestoreSavedScriptAndSlotFlags
+ContactScriptB78C:
+    BogusSetSlot0660LowBits $00
+    BogusSetSlot0660HighBits $00
+    BogusSetSlot0670Pair $00, $80
+    BogusSetLinkedSlotFieldsC0 $20, $FF
+    BogusSetSlotFields80 $FF, $C0
+    BogusWait $04
+    BogusSetSlotC0 $FF
+ContactScriptB79D:
+    BogusBranchIfSlotB0AtMost ContactScriptB79D, $E6
+    BogusYieldAndSlotAction $00
+.assert (* - BankStart) = $37A3, error, "bank 1 contact script B787 end"
+    .incbin "bank1_b7a3_b7b5.bin"
 ; Descriptor-linked slot record; resource data remains local.
 SlotRuntimeB7B5:
     SlotRuntimeRecord $BC83, (CandidateB7C7 - BankStart), $00, $FF, $00, $00, $00 ; CONTROL_SLOT_RUNTIME_B7B5
@@ -16237,7 +16259,13 @@ CandidateBC8B:
 SlotRuntimeBCAE:
     SlotRuntimeRecord $B5D3, (ScriptBCC0 - BankStart), $00, $FF, $00, $00, $00 ; CONTROL_SLOT_RUNTIME_BCAE
 .assert (* - BankStart) = $3CB7, error, "bank 1 slot record BCAE end"
-    .incbin "bank1_bcb7_bcc0.bin"
+    .incbin "bank1_bcb7_bcb8.bin"
+; A possible contact event reads the resource sentinel and script pointer.
+ContactRecordBCB8:
+    .byte $FF ; CONTROL_CONTACT_RECORD_BCB8
+    .word ContactScriptBCE3 - BankStart
+.assert (* - BankStart) = $3CBB, error, "bank 1 contact record BCB8 end"
+    .incbin "bank1_bcbb_bcc0.bin"
 ; Candidate entry from a slot descriptor. The full graph is contained here;
 ; gameplay role and runtime use are not yet established.
 ScriptBCC0:
@@ -16255,12 +16283,35 @@ ScriptBCC0Loop:
     BogusSetDispatchCounter $01
     BogusJumpBank1 ScriptBCC0Loop
 .assert (* - BankStart) = $3CE3, error, "bank 1 script BCC0 end"
-    .incbin "bank1_bce3_bd09.bin"
+; Possible contact-event path. Mode-dependent record targets and its indirect
+; slot-field write have not been checked in gameplay.
+ContactScriptBCE3:
+    BogusBranchIfSelectedFieldEqual ContactScriptBCF3, $01 ; CONTROL_CONTACT_SCRIPT_BCE3
+    BogusBranchIfSelectedFieldEqual ContactScriptBD06, $02
+    BogusLoadSlotRecord $03, $FF
+    BogusClearSlot0790Bits $01
+    BogusJumpBank1 ScriptBCC0Loop
+ContactScriptBCF3:
+    BogusMarkMatchingSlots $00, $01, $64, $00
+    BogusSetSlotValue $000C
+    BogusStoreSlotLowAt $05E2
+    BogusSetSlotFields80 $00, $00
+    BogusWait $01
+    BogusLoadSlotRecord $06, $FF
+ContactScriptBD06:
+    BogusJumpBank1 ContactScriptBD06
+.assert (* - BankStart) = $3D09, error, "bank 1 contact script BCE3 end"
 ; Descriptor-linked slot record; resource data remains local.
 SlotRuntimeBD09:
     SlotRuntimeRecord $B7F2, (ScriptBD1B - BankStart), $40, $FF, $00, $00, $00 ; CONTROL_SLOT_RUNTIME_BD09
 .assert (* - BankStart) = $3D12, error, "bank 1 slot record BD09 end"
-    .incbin "bank1_bd12_bd1b.bin"
+    .incbin "bank1_bd12_bd13.bin"
+; A possible contact event reads the resource sentinel and script pointer.
+ContactRecordBD13:
+    .byte $FF ; CONTROL_CONTACT_RECORD_BD13
+    .word ContactScriptBD4D - BankStart
+.assert (* - BankStart) = $3D16, error, "bank 1 contact record BD13 end"
+    .incbin "bank1_bd16_bd1b.bin"
 ; Repeated slot-record and voice-pointer sequence with the original retry.
 ScriptBD1B:
     BogusSetDispatchCounter $85 ; CONTROL_BOGUS_BD1B
@@ -16281,7 +16332,9 @@ ScriptBD26:
     BogusLoadSlotRecord $00, $01
     BogusJumpBank1 ScriptBD26
 .assert (* - BankStart) = $3D4D, error, "bank 1 script BD1B end"
-    .incbin "bank1_bd4d_bd4f.bin"
+ContactScriptBD4D:
+    BogusYieldAndSlotAction $00 ; CONTROL_CONTACT_SCRIPT_BD4D
+.assert (* - BankStart) = $3D4F, error, "bank 1 contact script BD4D end"
 ; Descriptor-linked slot record; resource data remains local.
 SlotRuntimeBD4F:
     SlotRuntimeRecord $BC79, (ScriptBD58 - BankStart), $00, $FF, $00, $00, $00 ; CONTROL_SLOT_RUNTIME_BD4F
@@ -16665,7 +16718,13 @@ DataD09D:
 SlotRuntimeD21C:
     SlotRuntimeRecord $BF27, $522E, $40, $FF, $00, $00, $00 ; CONTROL_SLOT_RUNTIME_D21C
 .assert (* - BankStart) = $5225, error, "bank 1 slot record D21C end"
-    .incbin "bank1_d225_d22e.bin"
+    .incbin "bank1_d225_d226.bin"
+; A possible contact event reads the resource sentinel and script pointer.
+ContactRecordD226:
+    .byte $FF ; CONTROL_CONTACT_RECORD_D226
+    .word ContactScriptD237 - BankStart
+.assert (* - BankStart) = $5229, error, "bank 1 contact record D226 end"
+    .incbin "bank1_d229_d22e.bin"
 ; Candidate script entries from the reviewed slot-record context trace.
 ContextScriptD22E:
     BogusClearMatchingSlotFlag20 $01, $01, $00 ; CONTROL_CONTEXT_D22E
@@ -16673,7 +16732,21 @@ ContextScriptD22E:
 ContextScriptD234:
     BogusJumpBank1 ContextScriptD234
 .assert (* - BankStart) = $5237, error, "bank 1 contextual script D22E end"
-    .incbin "bank1_d237_d253.bin"
+; Possible contact-event sequence; the selected state and execution are unverified.
+ContactScriptD237:
+    BogusWait $0A ; CONTROL_CONTACT_SCRIPT_D237
+    BogusLoadSlotValueArray $3D
+    BogusBranchIfSlotValueEqual ContactScriptD242, $00, $00
+    BogusWait $09
+ContactScriptD242:
+    BogusSelectStateTableValue $0F
+    BogusAddSlotValue $00F7
+    BogusStoreSlotValueArray $3D
+    BogusSetSlotValue $FFFF
+    BogusStoreSlotValueArray $23
+    BogusCallNativeEncoded $B51B
+    BogusSetMainState $10
+.assert (* - BankStart) = $5253, error, "bank 1 contact script D237 end"
 ; Possible continuation after a direct-record load; runtime mode and reachability are unverified.
 DirectNextScriptD253:
     BogusSetSlotC0 $00 ; CONTROL_DIRECT_NEXT_SCRIPT_D253
@@ -21108,7 +21181,10 @@ RuntimeScriptF44A:
 SlotRuntimeFC58:
     SlotRuntimeRecord $BF6B, (CandidateFC6A - BankStart), $00, $FF, $00, $00, $00 ; CONTROL_SLOT_RUNTIME_FC58
 .assert (* - BankStart) = $7C61, error, "bank 1 slot record FC58 end"
-    .incbin "bank1_fc61_fc6a.bin"
+; Possible contact-event record; its resource payload remains local.
+ContactRecordFC61:
+    SlotRuntimeRecord $BF61, (ContactScriptFC81 - BankStart), $00, $FF, $00, $00, $00 ; CONTROL_CONTACT_RECORD_FC61
+.assert (* - BankStart) = $7C6A, error, "bank 1 contact record FC61 end"
 ; Candidate script path; object role and execution remain unverified.
 CandidateFC6A:
     BogusSetDispatchCounter $03 ; CONTROL_BOGUS_FC6A
@@ -21119,7 +21195,18 @@ CandidateFC6A:
 CandidateFC7E:
     BogusJumpBank1 CandidateFC7E
 .assert (* - BankStart) = $7C81, error, "bank 1 candidate script FC6A end"
-    .incbin "bank1_fc81_fca7.bin"
+; Possible contact-event entry. The fallthrough's record access has a
+; competing candidate interpretation over the earlier FC6A script.
+ContactScriptFC81:
+    BogusBranchIfSelectedFieldEqual ContactScriptFC9F, $00 ; CONTROL_CONTACT_SCRIPT_FC81
+    BogusLoadRecordAndClearSavedState $1A
+.assert (* - BankStart) = $7C87, error, "bank 1 contact script FC81 end"
+    .incbin "bank1_fc87_fc9f.bin"
+ContactScriptFC9F:
+    BogusWait $12 ; CONTROL_CONTACT_SCRIPT_FC9F
+    BogusLoadSlotRecord $00, $01
+    BogusJumpBank1 (BankStart + $7C7C)
+.assert (* - BankStart) = $7CA7, error, "bank 1 contact script FC9F end"
 ; Candidate $FD05 walks these zero-terminated byte lists, selecting their base
 ; through CandidateListPointersFCE3. Each nonzero value occurs as a key in the
 ; $D27E remap table; actual list selection and the values' roles are unverified.
