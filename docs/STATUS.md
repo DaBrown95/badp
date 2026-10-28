@@ -1020,3 +1020,19 @@ those writes and the separate main-state reset, requires the success screen,
 and presses A to reach the fifth-level spawn. The fourth-level path, its
 transient observations and the new spawn are emulator evidence, not proof of
 all game paths or cartridge behavior.
+
+An alternate fourth-level exit and fifth-level opening observed the slot loader
+consume a three-byte compact record at bank 1 `$D581` in mode `$FF`. A mapper
+probe paired 98,466 script fetches and 1,192 record loads with physical bank 1
+without a mapping disagreement. The record is now structured source; the five
+preceding bytes at `$D57C`–`$D580` retain competing interpretations and remain
+local. The observation does not establish the meaning of the resource pointer.
+
+At the fifth-level spawn, a further route picks up the baby at frame 10,786
+and keeps its slot linked through frame 11,150, reaching world x=364. Both ROMs
+matched in an independent continuous-link probe. Four one-frame player-slot
+transients were paired with the same record-loader clear and restore writes;
+the maintained scenario checks those writes and the uninterrupted baby link.
+The five-scenario reference/build comparison passed with this extension. The
+reference-only runtime trace observed 77,869 script fetches, 997 record loads
+and 62,601 inline reads without finding sampled local extents in those paths.

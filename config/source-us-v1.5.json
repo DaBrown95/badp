@@ -819,6 +819,7 @@
     {"id": "bank1-slot-record-d470", "bank": 1, "cpu": "0xd470", "size": 9, "kind": "data", "control": "slot_runtime_d470"},
     {"id": "bank1-slot-record-d4c1", "bank": 1, "cpu": "0xd4c1", "size": 9, "kind": "data", "control": "slot_runtime_d4c1"},
     {"id": "bank1-slot-record-d52b", "bank": 1, "cpu": "0xd52b", "size": 9, "kind": "data", "control": "slot_runtime_d52b"},
+    {"id": "bank1-runtime-compact-d581", "bank": 1, "cpu": "0xd581", "size": 3, "kind": "data", "control": "runtime_compact_d581"},
     {"id": "bank1-slot-record-d584", "bank": 1, "cpu": "0xd584", "size": 9, "kind": "data", "control": "slot_runtime_d584"},
     {"id": "bank1-slot-record-d6d7", "bank": 1, "cpu": "0xd6d7", "size": 9, "kind": "data", "control": "slot_runtime_d6d7"},
     {"id": "bank1-slot-record-da1c", "bank": 1, "cpu": "0xda1c", "size": 9, "kind": "data", "control": "slot_runtime_da1c"},

@@ -42,7 +42,7 @@ are not measures of gameplay completion.
 <!-- BEGIN GENERATED PROGRESS -->
 | Version | Reconstructed PRG | Status |
 | --- | ---: | --- |
-| USA v1.5 | **63.10%** (41,354 / 65,536 bytes) | In progress |
+| USA v1.5 | **63.11%** (41,357 / 65,536 bytes) | In progress |
 | USA v1.4 | **0.00%** (0 / 65,536 bytes) | Not started |
 | USA v1.3 | **0.00%** (0 / 65,536 bytes) | Not started |
 | USA v1.2 | **0.00%** (0 / 65,536 bytes) | Not started |
@@ -123,7 +123,7 @@ rendered frame pixels, state, mapper writes, NMI, OAM DMA, audio-register writes
 and direct `$2000`–`$2007` write timing (excluding `$2004` OAM-data writes).
 PNG screenshots are retained as visual evidence. The
 Moses sequences carry and recover the baby, complete the first four levels,
-and reach the fifth-level spawn. The third-level checks cover both a
+and carry the baby into the fifth. The third-level checks cover both a
 lower-platform route and the completed route over the roof and down the stairs.
 A separate Noah sequence opens and closes the inventory and checks its table reads. These sequences check
 controller actions against their record loads; David's opening also checks a

@@ -17237,7 +17237,12 @@ ContextRecordFieldsD56A:
 SlotFlowD573:
     SlotRuntimeRecord $B927, $577B, $23, $FE, $45, $62, $31 ; CONTROL_SLOT_FLOW_D573
 .assert (* - BankStart) = $557C, error, "bank 1 slot record flow D573 end"
-    .incbin "bank1_d57c_d584.bin"
+    .incbin "bank1_d57c_d581.bin"
+; Observed as a compact record in mode $FF on an alternate fourth-level exit.
+; The preceding bytes retain competing interpretations and remain local.
+RuntimeCompactD581:
+    SlotCompactRecord $B965, $40 ; CONTROL_RUNTIME_COMPACT_D581
+.assert (* - BankStart) = $5584, error, "bank 1 observed compact record D581 end"
 ; Descriptor-linked slot record; resource data remains local.
 SlotRuntimeD584:
     SlotRuntimeRecord $C5F5, (ScriptD5DE - BankStart), $40, $FF, $00, $00, $00 ; CONTROL_SLOT_RUNTIME_D584
