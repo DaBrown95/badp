@@ -21,7 +21,7 @@ help:
 	@echo 'make script-flow     Trace reviewed v1.5 script control flow locally'
 	@echo 'make slot-record-flow  Trace candidate v1.5 slot-record accesses locally'
 	@echo 'make contact-record-flow  Trace possible v1.5 contact-event records locally'
-	@echo 'make native-event-flow  Trace candidate contact and position event contexts locally'
+	@echo 'make native-event-flow  Trace candidate native event contexts locally'
 	@echo 'make direct-record-flow  Check direct record targets and script overlaps'
 	@echo 'make packed-text     Decode v1.5 packed text to local analysis'
 	@echo 'make ppu-streams    Inventory candidate PPU command streams locally'

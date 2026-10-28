@@ -61,6 +61,23 @@ class NativeEventFlowTests(unittest.TestCase):
         self.assertEqual(result['event_records'][0]['status'], 'fetch_crosses_bank_boundary')
         self.assertEqual([c['entry'] for c in result['flow']['contexts']], ['0x0120'])
 
+    def test_controller_candidates_require_observed_controlled_descriptor(self):
+        b0, b1, lengths, records = fixture()
+        b1[0x140:0x144] = bytes([0x30, 0x38, 0x1e, 0])
+        # Controller records have $FF script sentinels, so no extra scripts load.
+        for offset in (0x24, 0x2d, 0x36):
+            start = 0x200 + offset
+            b1[start:start + 9] = bytes([0xff] * 9)
+        result = inventory_events(bytes(b0), bytes(b1), bytes(lengths), records)
+        refs = {r['command']: r for r in result['event_records']}
+        self.assertEqual(refs['native_controller24']['encoded_pointer'], '0x0224')
+        self.assertEqual(refs['native_controller2d']['encoded_pointer'], '0x022d')
+        self.assertEqual(refs['native_configured36']['encoded_pointer'], '0x0236')
+        records[0]['descriptor_indices'] = [2]
+        result = inventory_events(bytes(b0), bytes(b1), bytes(lengths), records)
+        self.assertFalse(any('controller' in r['command'] or 'configured' in r['command']
+                             for r in result['event_records']))
+
 
 if __name__ == '__main__':
     unittest.main()

@@ -3,8 +3,9 @@
 A slot's script can clear a bit that gates a native event. That event may load
 another record and install a later script, which may in turn clear more bits.
 This fixed-point inventory preserves those candidate contexts. It does not
-prove flag clears, slot survival, contact, position matches, or reachability,
-and it does not model controller events or every possible flag write.
+prove flag clears, slot survival, contact, position matches, or reachability.
+Controller events are limited to an observed controlled descriptor; other
+controlled descriptors, configured action values and flag writes remain open.
 """
 from __future__ import annotations
 
@@ -15,9 +16,13 @@ from .script_entries import DESCRIPTORS, DESCRIPTOR_COUNT, ROOT, inventory, load
 from .script_flow import PRIMARY_INDEXED_JUMPS, walk
 from .slot_record_flow import record_script_overlaps, resolve_access, trace
 
-# Native ScriptMarkOtherSlot and UpdateSlotFromPosition respectively queue
-# mode-zero record offsets $09 and $1B when the specified $0790 bit is clear.
-EVENTS = (('contact', 9, 1), ('position', 27, 4))
+# Controller actions are restricted to descriptor $01, observed in the
+# opening-gameplay and inventory traces. The $36 entry models the observed
+# configured action (gate $20), not every possible value of $15/$16.
+CONTROLLED_DESCRIPTORS = frozenset({1})
+EVENTS = (('contact', 9, 1, False), ('position', 27, 4, False),
+          ('controller24', 36, 8, True), ('controller2d', 45, 16, True),
+          ('configured36', 54, 32, True))
 
 
 def inventory_events(bank0: bytes, bank1: bytes, lengths: bytes, records: list[dict],
@@ -27,6 +32,7 @@ def inventory_events(bank0: bytes, bank1: bytes, lengths: bytes, records: list[d
     if type(limit) is not int or limit <= 0 or type(max_rounds) is not int or max_rounds <= 0:
         raise ValueError('invalid native event inventory limit')
     seeds: set[tuple[int, int]] = set()
+    controlled_bases: set[int] = set()
     for record in records:
         if record.get('status') != 'inspected' or record.get('script_status') != 'candidate':
             continue
@@ -35,6 +41,8 @@ def inventory_events(bank0: bytes, bank1: bytes, lengths: bytes, records: list[d
             raise ValueError('invalid descriptor record location')
         base = loc['bank_offset'] + (0x8000 if loc['bank'] == 0 else 0)
         seeds.add((base, int(record['encoded_script_pointer'], 16)))
+        if CONTROLLED_DESCRIPTORS.intersection(record['descriptor_indices']):
+            controlled_bases.add(base)
     cache: dict[int, dict] = {}
     events: dict[tuple[str, int], dict] = {}
     for round_number in range(1, max_rounds + 1):
@@ -49,7 +57,9 @@ def inventory_events(bank0: bytes, bank1: bytes, lengths: bytes, records: list[d
             graph = cache[entry]
             if graph['unprocessed']:
                 raise ValueError('native event eligibility graph reached its node limit')
-            for name, offset, mask in EVENTS:
+            for name, offset, mask, controlled in EVENTS:
+                if controlled and base not in controlled_bases:
+                    continue
                 clears = sorted(node['encoded_pointer'] for node in graph['nodes']
                                 if node['opcode'] == 0x30 and node.get('length') == 2
                                 and node.get('operands') and node['operands'][0] & mask)
@@ -82,7 +92,7 @@ def main() -> int:
         result = inventory_events(bank0, bank1, lengths, descriptors['records'],
                                   indexed_jumps=PRIMARY_INDEXED_JUMPS)
         result.update({'target': 'us-v1.5', 'reference_sha256': target['reference']['file']['sha256'],
-                       'interpretation': 'candidate contact and position paths only; controller events and other flag writes remain open'})
+                       'interpretation': 'candidate native-event paths; controller scope is observed descriptor 1 only, and other flag writes remain open'})
         analysis = ROOT / 'analysis'
         output = analysis / 'us-v1.5/native-event-flow.json'
         if analysis.is_symlink() or output.parent.is_symlink() or output.is_symlink():
@@ -94,6 +104,7 @@ def main() -> int:
         graph = result['flow']['merged_script_flow']
         print(json.dumps({'candidate_contact_records': sum(r['command'] == 'native_contact' for r in result['event_records']),
                           'candidate_position_records': sum(r['command'] == 'native_position' for r in result['event_records']),
+                          'candidate_controller_records': sum(r['command'] in ('native_controller24', 'native_controller2d', 'native_configured36') for r in result['event_records']),
                           'contexts': len(result['flow']['contexts']), 'candidate_nodes': len(graph['nodes']),
                           'script_overlap_bytes': graph['overlapping_physical_bytes'],
                           'record_script_overlap_bytes': result['record_script_overlaps']['physical_bytes'],

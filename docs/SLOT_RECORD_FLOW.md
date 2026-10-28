@@ -30,7 +30,7 @@ script traversal limits and overlapping decodes; it does not mark source as
 owned. On the pinned v1.5 input it finds 176 contexts, 691 references and 213
 distinct candidate addresses, with no unprocessed contexts. One context,
 base `$6D56` and entry `$5D00`, has 11 bytes with competing script decodes.
-The union of those script entries contains 2,529 candidate commands and 13
+The union of those script entries contains 2,532 candidate commands and 13
 physical bytes with conflicting decodes across contexts. They
 fall within the existing `$BD1B` and `$DC35` script regions. The competing
 entries depend on possible record accesses at `$DA40` and `$ED71`, respectively;
@@ -56,21 +56,25 @@ initialization sets `$0790` bit 0, and a contact marker may queue offset `$09`
 only when that bit is clear. The tool starts from descriptor scripts with a
 candidate literal `$30` clear of bit 0, then follows the possible mode-zero
 record and installed script. It finds 56 candidate records and 56 script seeds,
-154 contexts and 1,678 script nodes. Their graph has 19 competing script bytes
-and 61 record/script overlap bytes. For example, the `$FC81` contact candidate
+267 contexts and 7,088 script nodes. Their graph has 2,905 competing script
+bytes and 456 record/script overlap bytes. For example, the `$FC81` contact candidate
 can fall through to a record read at `$FC72`, overlapping the existing `$FC6A`
 script. These are possible interpretations, not evidence that a clear,
 contact, or subsequent path actually occurs; other ways to change the flag are
 not covered. The [combined PRG inventory](STATUS.md) includes these candidates.
 
 `make native-event-flow` extends that analysis across later scripts installed by
-records, repeating contact and position-event discovery to a fixed point. The
+records, repeating native-event discovery to a fixed point. The
 position event requests mode-zero offset `$1B` when bit 2 of `$0790` is clear
-and the native position checks pass. On v1.5 it finds 60 candidate contact and
-9 candidate position records, 267 contexts and 3,479 script nodes in two
-rounds. Its graph contains 22 overlapping script bytes and 82 record/script
-overlap bytes. These counts are possible uses, not resolved ownership or
-runtime coverage; controller events and other flag writes remain open.
+and the native position checks pass. Controller discovery covers only the
+observed controlled descriptor `$01` and the observed configured action `$36`;
+other controlled descriptors, configured action values and flag writes remain
+open. On v1.5 it finds 60 candidate contact, 10 position and three controller
+records, 386 contexts and 8,264 script nodes in two rounds. Its graph contains
+2,974 overlapping script bytes and 516 record/script overlap bytes. Following
+the newly reviewed `$37-$3A` field setters accounts for most of this expansion;
+the resulting competing decodes are static candidates, not resolved ownership
+or runtime coverage.
 The retained-pointer expansion also reaches candidate commands in referenced
 map-chunk data. `make map-data` reports 29 candidate command entries overlapping
 65 map bytes at bank-1 CPU `$80FF-$8104` and `$8118-$8152`. Noah's directed

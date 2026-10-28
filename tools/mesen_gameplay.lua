@@ -17,6 +17,15 @@ local position_event_seen={}
 local position_load_pending={}
 local position_event_matches=0
 local position_event_mismatches=0
+local controller_event_seen={}
+local controller_load_pending={}
+local controller_matches={[0x24]=0,[0x2D]=0,[0x36]=0}
+local controller_event_mismatches=0
+local controller_sites={
+ [0x24]={pc=0xFBF9,physical=0x7BF9,pointer=0x2CC7},
+ [0x2D]={pc=0xFC2E,physical=0x7C2E,pointer=0x2CD0},
+ [0x36]={pc=0xFC73,physical=0x7C73,pointer=0x2CD9}
+}
 local inventory_list_zero=0
 local inventory_template_zero=0
 local inventory_other=0
@@ -84,18 +93,42 @@ emu.addMemoryCallback(function(addr,value)
  elseif value~=0 then
   position_event_seen[slot]=nil
  end
+ local site=controller_sites[value]
+ if site and emu.read(0x04E0+slot,emu.memType.nesDebug)==1 then
+  local pc=emu.getState()['cpu.pc']
+  local mapped=emu.convertAddress(pc,emu.memType.nesMemory)
+  if pc==site.pc and mapped and mapped.memType==emu.memType.nesPrgRom and mapped.address==site.physical then
+   controller_event_seen[slot]=value
+  else
+   controller_event_seen[slot]=nil
+  end
+ elseif value==0 and controller_event_seen[slot] then
+  local pc=emu.getState()['cpu.pc']
+  local mapped=emu.convertAddress(pc,emu.memType.nesMemory)
+  if pc~=0xD53B or not mapped or mapped.memType~=emu.memType.nesPrgRom or mapped.address~=0x553B then
+   controller_event_seen[slot]=nil
+  end
+ elseif value~=0 then
+  controller_event_seen[slot]=nil
+ end
 end,emu.callbackType.write,0x04F0,0x04FF)
 emu.addMemoryCallback(function()
  if not recording then return end
  local slot=emu.read(0x10,emu.memType.nesDebug)
- if not position_event_seen[slot] then return end
+ if not position_event_seen[slot] and not controller_event_seen[slot] then return end
  local mapped=emu.convertAddress(0xF0D8,emu.memType.nesMemory)
- if mapped and mapped.memType==emu.memType.nesPrgRom and mapped.address==0x70D8
-    and emu.read(0x04E0+slot,emu.memType.nesDebug)==0x6E
-    and emu.getState()['cpu.a']==0x1B then
-  position_load_pending[slot]=true
+ if mapped and mapped.memType==emu.memType.nesPrgRom and mapped.address==0x70D8 then
+  local descriptor=emu.read(0x04E0+slot,emu.memType.nesDebug)
+  local action=emu.getState()['cpu.a']
+  if position_event_seen[slot] and descriptor==0x6E and action==0x1B then
+   position_load_pending[slot]=true
+  end
+  if controller_event_seen[slot] and descriptor==1 and action==controller_event_seen[slot] then
+   controller_load_pending[slot]=action
+  end
  end
  position_event_seen[slot]=nil
+ controller_event_seen[slot]=nil
 end,emu.callbackType.exec,0xF0D8,0xF0D8)
 emu.addMemoryCallback(function()
  if not recording then return end
@@ -111,6 +144,15 @@ emu.addMemoryCallback(function()
     position_event_mismatches=position_event_mismatches+1
    end
    position_load_pending[slot]=nil
+  end
+  local controller_action=controller_load_pending[slot]
+  if controller_action then
+   if pointer==controller_sites[controller_action].pointer and emu.read(0x57,emu.memType.nesDebug)==0 then
+    controller_matches[controller_action]=controller_matches[controller_action]+1
+   else
+    controller_event_mismatches=controller_event_mismatches+1
+   end
+   controller_load_pending[slot]=nil
   end
   if record_hits[pointer] then record_hits[pointer]=record_hits[pointer]+1 end
   if pointer==0x36E5 and emu.read(0x03C2,emu.memType.nesDebug)%2==1
@@ -205,6 +247,7 @@ emu.addEventCallback(function()
   print(string.format('BADP_PROBE %d %d',fetch_probes,record_probes))
   print(string.format('BADP_STAGE2_RECORD %d',stage2_record_mode2))
   print(string.format('BADP_POSITION_EVENT %d %d',position_event_matches,position_event_mismatches))
+  print(string.format('BADP_CONTROLLER_EVENTS %d %d %d %d',controller_matches[0x24],controller_matches[0x2D],controller_matches[0x36],controller_event_mismatches))
   print(string.format('BADP_INVENTORY %d %d %d',inventory_list_zero,inventory_template_zero,inventory_other))
   for _,address in ipairs(script_targets) do print(string.format('BADP_TARGET script %04X %d',address,script_hits[address])) end
   for _,address in ipairs(record_targets) do print(string.format('BADP_TARGET record %04X %d',address,record_hits[address])) end

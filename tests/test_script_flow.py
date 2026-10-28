@@ -341,6 +341,33 @@ class ScriptFlowTests(unittest.TestCase):
         self.assertEqual(nodes['0x0011']['successors'], [
             {'kind': 'possible_next', 'encoded_pointer': '0x0013'}])
 
+    def test_reviewed_field_and_busy_handlers_preserve_candidate_flow(self):
+        b0, b1, lengths = fixture()
+        lengths[0x37], lengths[0x88], lengths[0x45], lengths[0x83] = 4, 2, 4, 3
+        b1[0x10:0x1b] = bytes([0x37, 0, 0, 0, 0x88, 0, 0x45, 0x30, 0, 1, 0x16])
+        b1[0x30] = 0x16
+        b1[0x40:0x44] = bytes([0x83, 0, 0, 0x16])
+        nodes = by_pointer(walk(bytes(b0), bytes(b1), bytes(lengths), [0x10, 0x40]))
+        self.assertEqual(nodes['0x0010']['status'], 'reviewed_fallthrough')
+        self.assertEqual(nodes['0x0014']['status'], 'reviewed_fallthrough')
+        # The $45 branch handler is known, but following it in every
+        # speculative context exceeded the inventory's traversal limit.
+        self.assertEqual(nodes['0x0016']['status'], 'unreviewed_or_dynamic_handler')
+        self.assertEqual(nodes['0x0016']['successors'], [])
+        self.assertEqual(nodes['0x0040']['successors'], [
+            {'kind': 'possible_retry', 'encoded_pointer': '0x0040'},
+            {'kind': 'possible_next', 'encoded_pointer': '0x0043'}])
+
+    def test_division_handlers_only_model_an_ordinary_stack_return(self):
+        b0, b1, lengths = fixture()
+        lengths[0x70], lengths[0x71] = 10, 2
+        b1[0x10:0x1d] = bytes([0x70] + [0] * 9 + [0x71, 0, 0x16])
+        nodes = by_pointer(walk(bytes(b0), bytes(b1), bytes(lengths), [0x10]))
+        for entry, following in (('0x0010', '0x001a'), ('0x001a', '0x001c')):
+            self.assertEqual(nodes[entry]['status'], 'reviewed_possible_indexed_stack_write_return')
+            self.assertEqual(nodes[entry]['successors'], [
+                {'kind': 'possible_normal_return', 'encoded_pointer': following}])
+
     def test_indexed_jump_requires_explicit_bounds_and_tracks_table_bytes(self):
         b0, b1, lengths = fixture()
         b1[0x10:0x15] = bytes([0x44, 0x20, 0, 0x30, 0])

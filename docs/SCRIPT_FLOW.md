@@ -28,7 +28,7 @@ cases and a two-byte zero-target terminator; the walker records candidate matche
 and the no-match continuation, stopping on bank boundaries or its record limit.
 The handler still fetches four bytes for the terminator. Opcodes `$AB` and `$BF`
 may retry when shared state is busy, or continue when it is available. Opcode
-`$19` similarly may retry after checking the current slot. Opcode
+`$19` and `$83` similarly may retry after checking the current slot. Opcode
 `$B1` consumes a similarly terminated value-remapping table without branching
 to its values. Indirect writes continue only for the reviewed text-pointer bytes
 `$55/$56` and the literal slot field `$05E2`; native calls continue only for
@@ -46,8 +46,12 @@ address in that range, so the walk does not model every possible outcome.
 The `$79`, `$84`, `$8D/$8E`, `$A4`, `$AA`, `$BC-$BE` handlers also have normal
 return successors; that does not prove their execution or termination.
 The `$11/$12` selectors have a possible next or yield path; `$65`, `$A2`,
-`$AF`, `$B2` and `$B8-$BA` can return to the next command. Opcode `$AD` can
-write into the active stack page, so only its normal-return edge is modeled. The `$B8`
+`$AF`, `$B2` and `$B8-$BA` can return to the next command. Opcodes `$70`, `$71`
+and `$AD` can write into the active stack page, so only their normal-return
+edges are modeled. The field setters `$37-$3A` and `$88` can return normally.
+Opcode `$45` conditionally selects its encoded pointer, but following both
+paths in every speculative native-event context exceeded the traversal limit;
+its paths remain unmodeled until their contexts can be bounded. The `$B8`
 linked-slot scan can loop indefinitely, so this edge assumes a return. The
 `$77` voice check can branch to its encoded target or continue.
 Opcode `$17` can continue if its saved-pointer high byte is `$FF`; otherwise

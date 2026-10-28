@@ -57,7 +57,10 @@ it picks Moses up after a series of jumps and carries him through further jumps
 and movement to a higher position. Sampled slot fields show the link, its loss,
 recovery and carried finish; pinned screenshot hashes check both success screens.
 In David's opening, the verifier pairs native position-event writes for slot
-descriptor `$6E` with mode-zero loads of encoded record `$6365`. The sixty-two
+descriptor `$6E` with mode-zero loads of encoded record `$6365`. It also pairs
+controller requests for descriptor `$01` with their record loads: the Moses
+sequence records 38 `$24` and four `$2D` matches, and the Noah inventory
+scenario records one configured `$36` match, with no mismatches. The sixty-two
 sampled frames, slot fields, state and cycle counts, mapper-write streams, NMI counts, OAM DMA and
 APU-register write streams agreed between the reference and build. Both PRG
 banks appeared in the emulator's mapper-write mapping; every observed write
@@ -295,13 +298,17 @@ supplied map-chunk data. The offset table and state-indexed vertical-base seeds
 are source; map layouts and chunk contents remain local. Runtime bounds on
 either table have not been established.
 `make prg-inventory` combines the current verified source map with candidate
-map, descriptor-context, contact/position-event and direct-target scripts and records, palette setup,
+map, descriptor-context, native-event and direct-target scripts and records, palette setup,
 candidate audio and PPU-stream uses, round-tripped packed text, and optional
 validated audio and sprite traces. It counts physical bytes once while
-retaining overlapping uses. With the current local traces, 1,412 PRG bytes have no use
+retaining overlapping uses. With the current local traces, 1,022 PRG bytes have no use
 in these inventories; that number is not a count of remaining code. The report
-also retains 99 possible map/script overlap bytes and 84 possible record/script
-overlap bytes across the combined inventories. It records its input identities and writes metadata only to
+also retains 4,561 possible map/script overlap bytes and 516 possible record/script
+overlap bytes across the combined inventories. The expanded field-setter walk
+introduces many speculative competing decodes; it does not establish their
+reachability. It also reports 4,074 source-owned bytes covered by candidate
+data uses, which can include compatible uses as well as competing ones. The
+report records its input identities and writes metadata only to
 ignored `analysis/us-v1.5/prg-inventory.json`.
 `make audio-flow` follows literal voice starts in reconstructed commands and the
 native opcode-$18 start. It models both loop outcomes, stops at voice-stop
@@ -675,10 +682,11 @@ headers in ignored local analysis. These checks do not verify rendered animation
 or establish a complete inventory of sprite assets.
 `make prg-inventory` also follows candidate resource pointers from descriptor
 records and possible record accesses, assuming the default bank-0 mapping. It
-finds 218 possible resource headers and 317 distinct frame headers; their
-candidate reads cover 4,733 physical bytes, including 1,600 bytes also covered
-by the existing runtime sprite trace. Seventeen distinct non-ROM resource addresses
-are excluded; no candidate frame reads crossed the bank in this inventory.
+finds 235 possible resource headers and 341 distinct frame headers; their
+candidate reads cover 7,080 physical bytes, including 1,600 bytes also covered
+by the existing runtime sprite trace. Seventy-three distinct non-ROM resource
+addresses and 59 non-ROM frame addresses are excluded; 13 candidate frame reads
+cross a bank boundary and remain unresolved.
 Animation counts bound these particular candidate table entries, while other
 computed indices and unobserved contexts remain open. These are possible uses,
 not reachability or exclusive data ownership; graphics payloads stay local and

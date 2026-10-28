@@ -275,6 +275,9 @@ def inventory(root: Path = ROOT) -> dict:
                     'direct_dynamic_slot_pointers': len(direct['dynamic_slot_pointer_commands']),
                     'candidate_contact_records': sum(r['command'] == 'native_contact' for r in events['event_records']),
                     'candidate_position_event_records': sum(r['command'] == 'native_position' for r in events['event_records']),
+                    'candidate_controller_event_records': sum(
+                        r['command'] in ('native_controller24', 'native_controller2d', 'native_configured36')
+                        for r in events['event_records']),
                     'native_event_rounds': events['rounds'],
                     'direct_incomplete_observed_indexed_jumps': sum(
                         n['status'] == 'observed_indexed_jump_incomplete' for n in direct_graph['nodes']),
@@ -288,7 +291,8 @@ def inventory(root: Path = ROOT) -> dict:
                     'ppu_lookahead_crossing_streams': ppu_graph['lookahead_crossing_streams'],
                     'ppu_overlapping_stream_bytes': ppu_graph['overlapping_stream_bytes'],
                     'interpretation': 'Overlapping evidence is retained; uncatalogued does not mean code. '
-                                      'Candidate scripts and records include descriptor, native-event and direct-target paths; audio paths use literal starts. '
+                                      'Candidate scripts and records include descriptor, native-event and direct-target paths; '
+                                      'controller events cover observed descriptor 1 only; audio paths use literal starts. '
                                       'Audio and PPU streams may be unreachable or incomplete; '
                                       'Candidate map, sprite and palette ranges do not prove exclusive data use; '
                                       'static sprite frame indices and resource contexts may be unreachable.'})
@@ -318,6 +322,7 @@ def main() -> int:
                           'direct_dynamic_slot_pointers': result['direct_dynamic_slot_pointers'],
                           'candidate_contact_records': result['candidate_contact_records'],
                           'candidate_position_event_records': result['candidate_position_event_records'],
+                          'candidate_controller_event_records': result['candidate_controller_event_records'],
                           'native_event_rounds': result['native_event_rounds'],
                           'direct_incomplete_observed_indexed_jumps': result['direct_incomplete_observed_indexed_jumps'],
                           'static_sprite_resource_count': result['static_sprite_resource_count'],
