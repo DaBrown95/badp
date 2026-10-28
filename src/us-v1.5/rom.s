@@ -200,6 +200,30 @@ compareRangeReturn:
     .byte $C0, count
     .word target
 .endmacro
+.macro AudioSelectChannel channel
+    .byte ($E0 | channel)
+.endmacro
+.macro AudioStopVoice
+    .byte $E8
+.endmacro
+.macro AudioRestorePointer
+    .byte $E4
+.endmacro
+.macro AudioRestartChannel
+    .byte $F0
+.endmacro
+.macro AudioSetChannelMask
+    .byte $C2
+.endmacro
+.macro AudioClearChannelMask
+    .byte $C3
+.endmacro
+.macro AudioInstrument instrument
+    .byte ($A0 | instrument)
+.endmacro
+.macro AudioNote duration_index, note_index
+    .byte ((duration_index << 5) | note_index)
+.endmacro
 
 ; Opcode $89 reads a seven-byte state record at base plus seven times an index.
 .macro BogusLoadIndexedStateRecord base
@@ -13785,7 +13809,197 @@ IndexedVoiceRecordsA6E4:
     AudioVoicePointerRecord $FFFF, $FFFF, $27E3, $27F4 ; CONTROL_INDEXED_VOICE_RECORDS
     AudioVoicePointerRecord $FFFF, $FFFF, $26F4, $26F5
 .assert (* - BankStart) = $26F4, error, "bank 1 indexed voice records end"
-    .incbin "bank1_a6f4_ab10.bin"
+; Partial audio commands observed in reference playback.
+AudioObservedA6F4:
+    AudioStopVoice ; CONTROL_AUDIO_OBSERVED_A6F4
+    AudioStopVoice
+.assert (* - BankStart) = $26F6, error, "bank 1 observed audio A6F4 end"
+    .incbin "bank1_a6f6_a6f9.bin"
+; Partial audio commands observed in reference playback.
+AudioObservedA6F9:
+    AudioStopVoice ; CONTROL_AUDIO_OBSERVED_A6F9
+    AudioSelectChannel $00
+    AudioWriteFive $9D, $BB, $50, $BC
+    AudioDelay $08
+    AudioRestartChannel
+    AudioDelay $02
+    AudioSelectChannel $00
+    AudioWriteFive $9D, $BB, $50, $BB
+    AudioDelay $08
+    AudioRestartChannel
+    AudioDelay $02
+    AudioSelectChannel $00
+    AudioWriteFive $9D, $BB, $50, $BA
+    AudioDelay $08
+    AudioRestartChannel
+    AudioDelay $02
+    AudioSelectChannel $00
+    AudioWriteFive $9D, $BB, $50, $B9
+    AudioDelay $08
+    AudioStopVoice
+    AudioSelectChannel $03
+    AudioSetChannelMask
+    AudioWriteFive $5F, $00, $8F, $00
+    AudioDelay $0F
+    AudioClearChannelMask
+    AudioStopVoice
+AudioObservedA72F:
+    AudioSelectChannel $00
+    AudioWriteFive $C1, $85, $44, $30
+    AudioDelay $04
+    AudioLoop $07, (AudioObservedA72F - BankStart)
+    AudioStopVoice
+    AudioSelectChannel $01
+    AudioWriteFive $6A, $97, $A0, $C8
+    AudioDelay $12
+    AudioStopVoice
+    AudioSelectChannel $03
+    AudioWriteFive $E0, $AC, $00, $F3
+    AudioDelay $12
+    AudioStopVoice
+    AudioSelectChannel $01
+    AudioWriteFive $85, $8B, $8D, $59
+    AudioDelay $08
+    AudioStopVoice
+.assert (* - BankStart) = $2757, error, "bank 1 observed audio A6F9 end"
+    .incbin "bank1_a757_a77a.bin"
+; Partial audio commands observed in reference playback.
+AudioObservedA77A:
+    AudioSelectChannel $00 ; CONTROL_AUDIO_OBSERVED_A77A
+    AudioWriteFive $9A, $8B, $FF, $DC
+    AudioDelay $08
+    AudioStopVoice
+    AudioSelectChannel $01
+    AudioWriteFive $9D, $8B, $00, $DC
+    AudioDelay $08
+    AudioStopVoice
+.assert (* - BankStart) = $278C, error, "bank 1 observed audio A77A end"
+    .incbin "bank1_a78c_a7b3.bin"
+; Partial audio commands observed in reference playback.
+AudioObservedA7B3:
+    AudioWriteFive $1E, $92, $EF, $28 ; CONTROL_AUDIO_OBSERVED_A7B3
+    AudioDelay $03
+    AudioSelectChannel $01
+    AudioWriteFive $1E, $96, $EF, $28
+    AudioDelay $03
+AudioObservedA7C2:
+    AudioSelectChannel $01
+    AudioWriteFive $1E, $92, $EF, $28
+    AudioDelay $03
+    AudioLoop $02, (AudioObservedA7C2 - BankStart)
+    AudioSelectChannel $01
+    AudioWriteFive $1E, $94, $EF, $28
+    AudioDelay $03
+AudioObservedA7D6:
+    AudioSelectChannel $01
+    AudioWriteFive $1E, $98, $EF, $28
+    AudioDelay $03
+    AudioLoop $03, (AudioObservedA7D6 - BankStart)
+    AudioStopVoice
+    AudioSelectChannel $00
+    AudioWriteFive $3E, $AE, $FF, $25
+    AudioDelay $0C
+    AudioSelectChannel $00
+    AudioWriteFive $3E, $A6, $FF, $24
+    AudioDelay $10
+    AudioStopVoice
+    AudioSelectChannel $01
+    AudioDelay $02
+    AudioWriteFive $3E, $AE, $FF, $25
+    AudioDelay $0C
+    AudioSelectChannel $01
+    AudioWriteFive $3E, $A6, $FF, $24
+    AudioDelay $10
+    AudioStopVoice
+.assert (* - BankStart) = $2807, error, "bank 1 observed audio A7B3 end"
+    .incbin "bank1_a807_a81d.bin"
+; Partial audio commands observed in reference playback.
+AudioObservedA81D:
+    AudioSelectChannel $03 ; CONTROL_AUDIO_OBSERVED_A81D
+    AudioWriteFive $00, $00, $00, $00
+.assert (* - BankStart) = $2823, error, "bank 1 observed audio A81D end"
+    .incbin "bank1_a823_a82c.bin"
+; Partial audio commands observed in reference playback.
+AudioObservedA82C:
+    AudioDelay $03 ; CONTROL_AUDIO_OBSERVED_A82C
+    AudioSelectChannel $01
+    AudioWriteFive $98, $BA, $D0, $BB
+    AudioDelay $04
+    AudioStopVoice
+AudioObservedA837:
+    AudioSelectChannel $00
+    AudioWriteFive $C0, $9C, $00, $83
+    AudioDelay $02
+    AudioLoop $08, (AudioObservedA837 - BankStart)
+    AudioStopVoice
+.assert (* - BankStart) = $2844, error, "bank 1 observed audio A82C end"
+    .incbin "bank1_a844_a84d.bin"
+; Partial audio commands observed in reference playback.
+AudioObservedA84D:
+    AudioSelectChannel $01 ; CONTROL_AUDIO_OBSERVED_A84D
+    AudioWriteFive $9F, $FC, $00, $FF
+    AudioDelay $08
+    AudioStopVoice
+.assert (* - BankStart) = $2856, error, "bank 1 observed audio A84D end"
+    .incbin "bank1_a856_a887.bin"
+; Partial audio commands observed in reference playback.
+AudioObservedA887:
+    AudioSelectChannel $01 ; CONTROL_AUDIO_OBSERVED_A887
+    AudioWriteFive $7D, $8C, $20, $8C
+    AudioDelay $08
+    AudioStopVoice
+    AudioSelectChannel $03
+    AudioSetChannelMask
+    AudioWriteFive $EC, $34, $04, $F1
+    AudioDelay $28
+    AudioClearChannelMask
+    AudioStopVoice
+.assert (* - BankStart) = $289B, error, "bank 1 observed audio A887 end"
+    .incbin "bank1_a89b_a8ad.bin"
+; Partial audio commands observed in reference playback.
+AudioObservedA8AD:
+    AudioSelectChannel $03 ; CONTROL_AUDIO_OBSERVED_A8AD
+    AudioWriteFive $00, $00, $06, $00
+    AudioDelay $03
+    AudioLoop $0F, (AudioObservedA8AD - BankStart)
+.assert (* - BankStart) = $28B9, error, "bank 1 observed audio A8AD end"
+    .incbin "bank1_a8b9_aa58.bin"
+; Partial audio commands observed in reference playback.
+AudioObservedAA58:
+    AudioSelectChannel $00 ; CONTROL_AUDIO_OBSERVED_AA58
+    AudioInstrument $01
+    AudioNote $01, $1F
+    AudioNote $01, $11
+    AudioNote $01, $13
+    AudioNote $01, $15
+    AudioNote $01, $18
+    AudioNote $01, $16
+    AudioNote $01, $16
+    AudioNote $01, $1A
+    AudioNote $01, $18
+    AudioNote $01, $18
+.assert (* - BankStart) = $2A64, error, "bank 1 observed audio AA58 end"
+    .incbin "bank1_aa64_aad8.bin"
+; Partial audio commands observed in reference playback.
+AudioObservedAAD8:
+    AudioSelectChannel $02 ; CONTROL_AUDIO_OBSERVED_AAD8
+    AudioInstrument $0F
+    AudioWriteFive $60, $00, $FB, $01
+    AudioDelay $17
+    AudioWriteFive $60, $00, $1B, $02
+    AudioDelay $0B
+    AudioWriteFive $60, $00, $FB, $01
+    AudioDelay $0B
+    AudioWriteFive $60, $00, $C3, $01
+    AudioDelay $0B
+    AudioWriteFive $60, $00, $AB, $01
+    AudioDelay $0B
+    AudioWriteFive $16, $9F, $0D, $9B
+    AudioDelay $0B
+    AudioWriteFive $60, $00, $A1, $02
+    AudioDelay $0B
+.assert (* - BankStart) = $2B0B, error, "bank 1 observed audio AAD8 end"
+    .incbin "bank1_ab0b_ab10.bin"
 ; All 88 commands below were observed in Noah, Moses and David reference runs.
 ; This is a partial stream: its neighboring data and other entry points stay local.
 AudioObservedAB10:
@@ -13879,7 +14093,43 @@ AudioObservedLoopAC10:
     AudioWriteFive $60, $00, $37, $02
     AudioDelay $0B
 .assert (* - BankStart) = $2C40, error, "bank 1 observed audio AB10 end"
-    .incbin "bank1_ac40_aca0.bin"
+    .incbin "bank1_ac40_ac49.bin"
+; Partial audio commands observed in reference playback.
+AudioObservedAC49:
+    AudioDelay $17 ; CONTROL_AUDIO_OBSERVED_AC49
+    AudioWriteFive $60, $00, $AB, $01
+    AudioDelay $0B
+    AudioRestorePointer
+.assert (* - BankStart) = $2C53, error, "bank 1 observed audio AC49 end"
+    .incbin "bank1_ac53_ac88.bin"
+; Partial audio commands observed in reference playback.
+AudioObservedAC88:
+    AudioSelectChannel $00 ; CONTROL_AUDIO_OBSERVED_AC88
+    AudioInstrument $01
+    AudioNote $01, $0C
+    AudioNote $01, $0F
+    AudioNote $01, $0E
+    AudioNote $01, $0C
+    AudioNote $01, $13
+    AudioNote $00, $11
+    AudioNote $00, $10
+    AudioNote $01, $11
+    AudioNote $00, $10
+    AudioNote $00, $0E
+    AudioNote $03, $0C
+.assert (* - BankStart) = $2C95, error, "bank 1 observed audio AC88 end"
+    .incbin "bank1_ac95_ac97.bin"
+; Partial audio commands observed in reference playback.
+AudioObservedAC97:
+    AudioSelectChannel $01 ; CONTROL_AUDIO_OBSERVED_AC97
+    AudioInstrument $0F
+    AudioNote $02, $00
+    AudioNote $02, $00
+    AudioNote $02, $00
+    AudioNote $02, $00
+    AudioNote $03, $00
+.assert (* - BankStart) = $2C9E, error, "bank 1 observed audio AC97 end"
+    .incbin "bank1_ac9e_aca0.bin"
 ; Record accesses observed at the bank-0 loader in the opening scenarios.
 ; Fields behind a $FFFF resource pointer may not be read by the loader.
 RuntimeRecordACA0:

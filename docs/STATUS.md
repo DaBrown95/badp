@@ -1045,3 +1045,12 @@ target is the observed command at `$AC10`. `$F9` retains the original stale
 fifth stack byte behavior; its source representation has four payload values.
 This is a partial stream and does not establish audio playback correctness or
 the bounds of neighboring streams.
+
+A further 167 observed audio commands occupy 14 partial regions totaling 362
+bytes in bank 1 `$A6F4`–`$AC9D`. Each command was observed in at least one of
+the Noah, Moses and David reference traces; 52 were observed in all three.
+The current inventory reports no competing use for these selected bytes. The
+source records channel selection, notes, instruments, control commands and
+loops, while the intervening bytes remain local. Each partial region has its
+own changed-source control; this evidence still does not establish complete
+stream boundaries or correct sound on hardware.
