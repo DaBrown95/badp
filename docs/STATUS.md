@@ -1054,3 +1054,10 @@ source records channel selection, notes, instruments, control commands and
 loops, while the intervening bytes remain local. Each partial region has its
 own changed-source control; this evidence still does not establish complete
 stream boundaries or correct sound on hardware.
+
+The static audio walk also finds 294 unobserved candidate commands across
+23 currently uncontested regions totaling 430 bytes. Their decoded fields
+round-trip locally, but they remain uncredited: the stack-copy routine selects
+its physical bank using state-dependent `$03C2`/`$03C3`, and the mapping for
+these unobserved paths has not been established. The candidate report and
+decoded blocks are retained in ignored local analysis for further investigation.
