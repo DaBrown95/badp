@@ -1660,3 +1660,19 @@ each version. None of those complete sequences occurs in the unversioned PRG.
 These byte searches do not establish target-version pointers, bank selection,
 reachability or builds. The metadata-only comparison is retained locally at
 `analysis/us-v1.5/sprite-version-comparison.json`.
+
+Sprite and audio record accesses now use provisional names for the eleven-byte
+sprite records and eight-byte voice records. The names reflect fields read by
+allocation, frame loading, animation, audio dispatch and related helpers. The
+sprite OAM offset temporarily holds allocation flags, and the tile-count byte
+also carries a state bit; the names do not imply exclusive semantics. The bulk
+clear loops use separate array-base aliases. Independent symbol-change controls
+cover 150 renamed field operands and seven record-stride operands; the matching
+build preserves the original addressing encodings. No additional PRG bytes are
+credited by these readability changes.
+
+The descriptor index, script wait and encoded script pointer arrays also use
+provisional per-slot names. Their access patterns include slot initialization,
+record loading, interpreter save/restore and wait handling; the names do not
+establish every higher-level use. Four additional symbol-change controls cover
+42 physical instruction operands.

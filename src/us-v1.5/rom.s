@@ -2174,24 +2174,24 @@ StartAudioVoice:
     beq StartAudioVoiceCheck
     rts
 StartAudioVoiceCheck:
-    lda $04B0,x                  ; CONTROL_START_AUDIO_VOICE_CHECK
+    lda AudioRecordFlags,x                  ; CONTROL_START_AUDIO_VOICE_CHECK
     bpl StartAudioVoiceInitialize
     lda #$01
     rts
 StartAudioVoiceInitialize:
     lda #$01                     ; CONTROL_START_AUDIO_VOICE_INITIALIZE
-    sta $04B1,x
+    sta AudioRecordTimer,x
     lda #$00
-    sta $04B6,x
-    sta $04B7,x
+    sta AudioRecordInstrument,x
+    sta AudioRecordLoopCounter,x
     lda $FE
-    sta $04B2,x
-    sta $04B4,x
+    sta AudioRecordStartLow,x
+    sta AudioRecordCursorLow,x
     lda $FF
-    sta $04B3,x
-    sta $04B5,x
+    sta AudioRecordStartHigh,x
+    sta AudioRecordCursorHigh,x
     lda #$C0
-    sta $04B0,x
+    sta AudioRecordFlags,x
     rts
 .assert (* - BankStart) = $0480, error, "bank 0 audio voice start end"
 
@@ -2201,7 +2201,7 @@ InitializeAudioVoices:
     sta $03FB
     tax
 ClearAudioVoiceBytes:
-    sta $04B0,x
+    sta AudioRecordArray,x
     inx
     cpx #$28                     ; CONTROL_SLOT_INIT
     bne ClearAudioVoiceBytes
@@ -2234,22 +2234,22 @@ StopAudioVoiceByIndex:
 ; X is a voice record offset. Inactive records do nothing; a shadowed voice
 ; clears its record without changing the hardware channel.
 StopAudioVoiceOffset:
-    lda $04B0,x                  ; CONTROL_STOP_AUDIO_VOICE_OFFSET
+    lda AudioRecordFlags,x                  ; CONTROL_STOP_AUDIO_VOICE_OFFSET
     bpl StopAudioVoiceReturn
     tay
     and #$60
     beq StopAudioOwnedVoice
     lda #$00
-    sta $04B0,x
+    sta AudioRecordFlags,x
     jmp StopAudioVoiceReturn
 ; Stop the owned channel, then find the first shadowed voice on that channel
 ; and restore its instrument, enable bit and ownership flag.
 StopAudioOwnedVoice:
     jsr RestartAudioVoiceChannel ; CONTROL_STOP_AUDIO_OWNED_VOICE
-    lda $04B0,x
+    lda AudioRecordFlags,x
     pha
     lda #$00
-    sta $04B0,x
+    sta AudioRecordFlags,x
     pla
     and #$1F
     sta $FE
@@ -2259,25 +2259,25 @@ StopAudioOwnedVoice:
 StopAudioFindShadow:
     txa                          ; CONTROL_STOP_AUDIO_FIND_SHADOW
     pha
-    lda $04B0,x
+    lda AudioRecordFlags,x
     bpl StopAudioNextShadow
     and #$20
     beq StopAudioNextShadow
-    lda $04B0,x
+    lda AudioRecordFlags,x
     and #$1F
     eor $FE
     bne StopAudioNextShadow
     pla
     jsr WriteAudioVoiceInstrument
     jsr EnableAudioVoiceChannel
-    lda $04B0,x
+    lda AudioRecordFlags,x
     and #$DF
-    sta $04B0,x
+    sta AudioRecordFlags,x
     jmp StopAudioVoiceReturn
 StopAudioNextShadow:
     pla
     clc
-    adc #$08
+    adc #AudioRecordStride
     tax
     cmp #$28
     bcc StopAudioFindShadow
@@ -2289,7 +2289,7 @@ StopAudioVoiceReturn:
 IsAudioVoiceActive:
     jsr AudioVoiceOffset         ; CONTROL_IS_AUDIO_VOICE_ACTIVE
     bne AudioVoiceActiveReturn
-    lda $04B0,x
+    lda AudioRecordFlags,x
     bmi AudioVoiceIsActive
     lda #$00
 AudioVoiceActiveReturn:
@@ -2684,17 +2684,17 @@ RotateShadowOamAppend:
     sta $FE
     ldx #$00
 RotateShadowOamRecordLoop:
-    lda $0404,x
+    lda SpriteRecordOamOffset,x
     sec
     sbc $03E0
     bcs RotateShadowOamRecordStore
     sec
     sbc #$04
 RotateShadowOamRecordStore:
-    sta $0404,x
+    sta SpriteRecordOamOffset,x
     txa
     clc
-    adc #$0B
+    adc #SpriteRecordStride
     tax
     dec $FE
     bne RotateShadowOamRecordLoop
@@ -2727,18 +2727,18 @@ AllocateSpriteRecord:
     beq AllocateSpriteRecordCheck
     rts
 AllocateSpriteRecordCheck:
-    lda $0400,x                  ; CONTROL_ALLOCATE_SPRITE_RECORD_CHECK
+    lda SpriteRecordFlags,x                  ; CONTROL_ALLOCATE_SPRITE_RECORD_CHECK
     beq AllocateSpriteRecordPointer
     lda #$01
     rts
 AllocateSpriteRecordPointer:
     lda $FE                      ; CONTROL_ALLOCATE_SPRITE_RECORD_POINTER
-    sta $0402,x
+    sta SpriteRecordDataLow,x
     lda $FF
-    sta $0403,x
-    lda $0401,x
+    sta SpriteRecordDataHigh,x
+    lda SpriteRecordOptions,x
     and #$C0
-    sta $0401,x
+    sta SpriteRecordOptions,x
     ldy #$00
     lda ($FE),y
     cmp #$4F
@@ -2751,17 +2751,17 @@ AllocateSpriteRecordMode:
     cmp #$53                     ; CONTROL_ALLOCATE_SPRITE_RECORD_MODE
     beq AllocateSpriteAnimated
     lda #$C1
-    sta $0404,x
+    sta SpriteRecordOamOffset,x
     jmp AllocateSpriteFindSpace
 AllocateSpriteAnimated:
     lda #$82                     ; CONTROL_ALLOCATE_SPRITE_ANIMATED
-    sta $0404,x
+    sta SpriteRecordOamOffset,x
     lda #$00
-    sta $0406,x
+    sta SpriteRecordFrameIndex,x
     ldy #$02
     lda ($FE),y
-    sta $0407,x
-    sta $0408,x
+    sta SpriteRecordFrameTimer,x
+    sta SpriteRecordFrameDelay,x
     iny
     lda ($FE),y
     iny
@@ -2773,7 +2773,7 @@ AllocateSpriteAnimated:
 ; Compute the number of tiles from the packed dimensions. Search the OAM
 ; attribute bytes for a consecutive free range, skipping offset $FC.
 AllocateSpriteFindSpace:
-    lda $040A,x                  ; CONTROL_ALLOCATE_SPRITE_FIND_SPACE
+    lda SpriteRecordReserveCount,x                  ; CONTROL_ALLOCATE_SPRITE_FIND_SPACE
     sta $04DC
     txa
     pha
@@ -2842,11 +2842,11 @@ AllocateSpriteClaim:
     pla
     tax
     lda $03E3
-    sta $0405,x
-    lda $0404,x
+    sta SpriteRecordTileCount,x
+    lda SpriteRecordOamOffset,x
     sta $03E0
     tya
-    sta $0404,x
+    sta SpriteRecordOamOffset,x
     lda $04DC
     beq AllocateSpriteSize
     lda #$08
@@ -2876,7 +2876,7 @@ AllocateSpriteSizeStore:
     and #$20
     sta $0397
     lda $03E0
-    sta $0400,x
+    sta SpriteRecordFlags,x
     jsr LoadSpriteFrame
     lda #$00
     rts
@@ -2890,13 +2890,13 @@ PlaceSlotSprites:
     beq PlaceSlotValid
     rts
 PlaceSlotValid:
-    lda $0402,x
+    lda SpriteRecordDataLow,x
     sta $FE
-    lda $0403,x
+    lda SpriteRecordDataHigh,x
     sta $FF
-    lda $0400,x
+    lda SpriteRecordFlags,x
     and #$7F
-    sta $0400,x
+    sta SpriteRecordFlags,x
     and #$03
     beq PlaceSlotModeZero
     cmp #$03
@@ -2944,7 +2944,7 @@ PlaceSlotReadSize:
     sta $FF
     pla
     sta $FE
-    ldy $0404,x
+    ldy SpriteRecordOamOffset,x
     lda #$08
     sta $03E2
     pla
@@ -2997,20 +2997,20 @@ PlaceSlotYReady:
 ; For eligible modes, derive a value from a positioned sprite and the slot
 ; record; LoadSpriteFrame consumes the value if it changed.
 PlaceSlotEvaluate:
-    lda $0400,x                   ; CONTROL_PLACE_SLOT_EVALUATE
+    lda SpriteRecordFlags,x                   ; CONTROL_PLACE_SLOT_EVALUATE
     and #$70
     beq PlaceSlotSuccess
     cmp #$40
     bcs PlaceSlotSuccess
-    lda $0400,x
+    lda SpriteRecordFlags,x
     and #$03
     cmp #$01
     beq PlaceSlotSuccess
-    lda $0400,x
+    lda SpriteRecordFlags,x
     rol a
     rol a
     rol a
-    ldy $0404,x
+    ldy SpriteRecordOamOffset,x
     lda ScrollTargetYLow
     sta $03E0
     lda $0204,y
@@ -3022,7 +3022,7 @@ PlaceSlotSelectCoordinate:
     clc
     adc $03E0
     sta $03E0
-    lda $0401,x
+    lda SpriteRecordOptions,x
     and #$07
     tay
     iny
@@ -3038,10 +3038,10 @@ PlaceSlotDivide:
     lda $03DE
     jsr DivideUnsigned16By8
     ldx $03E1
-    lda $0400,x
+    lda SpriteRecordFlags,x
     and #$20
     beq PlaceSlotStoreResult
-    lda $0401,x
+    lda SpriteRecordOptions,x
     and #$40
     beq PlaceSlotStoreResult
     lda $03DE
@@ -3051,10 +3051,10 @@ PlaceSlotDivide:
     tay
 PlaceSlotStoreResult:
     tya
-    ldy $0406,x
-    sta $0406,x
+    ldy SpriteRecordFrameIndex,x
+    sta SpriteRecordFrameIndex,x
     tya
-    eor $0406,x
+    eor SpriteRecordFrameIndex,x
     beq PlaceSlotSuccess
     jsr LoadSpriteFrame
 PlaceSlotSuccess:
@@ -3089,11 +3089,11 @@ SlotQueryPrepare:
     lda ScrollTargetXHigh
     adc #$00
     sta MapTileXHigh
-    lda $0402,x
+    lda SpriteRecordDataLow,x
     sta $FE
-    lda $0403,x
+    lda SpriteRecordDataHigh,x
     sta $FF
-    lda $0400,x
+    lda SpriteRecordFlags,x
     and #$03
     cmp #$01
     beq SlotQueryDimensions
@@ -3261,7 +3261,7 @@ SlotQueryChunkAddress:
     jsr CopyToStack
     ldy $03DF
     ldx $03DE
-    lda $0409,x
+    lda SpriteRecordQueryValue,x
     sta $03DF
     tsx
     inx
@@ -3348,7 +3348,7 @@ ClearSlotRecords:
     lda #$00                      ; CONTROL_CLEAR_SLOT_RECORDS
     tax
 ClearSlotRecordsLoop:
-    sta $0400,x
+    sta SpriteRecordArray,x
     inx
     cpx #$B0
     bne ClearSlotRecordsLoop
@@ -3377,10 +3377,10 @@ ReleaseSpriteRecordAllDone:
 ReleaseSpriteRecordOne:
     jsr SlotRecordOffset
     bne ReleaseSpriteRecordReturn
-    lda $0400,x
+    lda SpriteRecordFlags,x
     pha
     lda #$00
-    sta $0400,x
+    sta SpriteRecordFlags,x
     pla
     and #$03
     beq ReleaseSpriteRecordReturn
@@ -3388,11 +3388,11 @@ ReleaseSpriteRecordOne:
     beq ReleaseSpriteRecordReturn
     txa
     pha
-    lda $0404,x
+    lda SpriteRecordOamOffset,x
     tay
-    lda $040A,x
+    lda SpriteRecordReserveCount,x
     bne ReleaseSpriteCountReady
-    lda $0405,x
+    lda SpriteRecordTileCount,x
 ReleaseSpriteCountReady:
     tax
     jsr InitializeNextSprite
@@ -3408,7 +3408,7 @@ UpdateSpriteAttribute20:
     stx $FE                       ; CONTROL_UPDATE_SPRITE_ATTRIBUTE20
     jsr SlotRecordOffset
     bne UpdateSpriteAttributeReturn
-    lda $0400,x
+    lda SpriteRecordFlags,x
     and #$03
     cmp #$01
     beq UpdateSpriteAttributeStart
@@ -3418,8 +3418,8 @@ UpdateSpriteAttribute20:
 UpdateSpriteAttributeReturn:
     rts
 UpdateSpriteAttributeStart:
-    ldy $0404,x
-    lda $0405,x
+    ldy SpriteRecordOamOffset,x
+    lda SpriteRecordTileCount,x
     tax
 UpdateSpriteAttributeLoop:
     lda $0206,y
@@ -3445,28 +3445,28 @@ SetSpriteRecordMode:
     jsr RequireSlotRecord
     and #$CF
     ora $03E0
-    sta $0400,x
+    sta SpriteRecordFlags,x
     lda $03E1
     and #$07
     sta $03E1
-    lda $0401,x
+    lda SpriteRecordOptions,x
     and #$F8
     ora $03E1
-    sta $0401,x
+    sta SpriteRecordOptions,x
     lda #$00
     rts
 SetSpriteRecordQueryValue:
     stx $03E0                     ; CONTROL_SET_SPRITE_QUERY_VALUE
     jsr RequireSlotRecord
     lda $03E0
-    sta $0409,x
-    lda $0400,x
+    sta SpriteRecordQueryValue,x
+    lda SpriteRecordFlags,x
     ora #$08
     ldy $03E0
     bne SetSpriteQueryStore
     eor #$08
 SetSpriteQueryStore:
-    sta $0400,x
+    sta SpriteRecordFlags,x
     lda #$00
     rts
 
@@ -3475,14 +3475,14 @@ SetSpriteQueryStore:
 SetSpriteAttributeBit40:
     stx $03E0                     ; CONTROL_SET_SPRITE_BIT40
     jsr RequireSlotRecord
-    lda $0401,x
+    lda SpriteRecordOptions,x
     pha
     and #$BF
     ldy $03E0
     beq SetSpriteHighBits
     ora #$40
 SetSpriteHighBits:
-    sta $0401,x
+    sta SpriteRecordOptions,x
     sta $03E0
     pla
     eor $03E0
@@ -3495,7 +3495,7 @@ SetSpriteHighBitsReturn:
 SetSpriteAttributeBit80:
     stx $03E0                     ; CONTROL_SET_SPRITE_BIT80
     jsr RequireSlotRecord
-    lda $0401,x
+    lda SpriteRecordOptions,x
     pha
     and #$7F
     ldy $03E0
@@ -3505,9 +3505,9 @@ SetSpriteBit80Store:
     jmp SetSpriteHighBits
 SetSpriteRecordBit10:
     jsr RequireSlotRecord         ; CONTROL_SET_SPRITE_RECORD_BIT10
-    lda $0401,x
+    lda SpriteRecordOptions,x
     ora #$10
-    sta $0401,x
+    sta SpriteRecordOptions,x
     lda #$00
     rts
 .assert (* - BankStart) = $0D7D, error, "bank 0 sprite record helpers end"
@@ -3519,7 +3519,7 @@ StoreSlotRecordField0A:
     jsr SlotRecordOffset         ; CONTROL_STORE_RECORD_FIELD_0A
     bne SlotRecordStoreReturn
     lda $04DC
-    sta $040A,x
+    sta SpriteRecordReserveCount,x
     lda #$00
 SlotRecordStoreReturn:
     rts
@@ -3528,7 +3528,7 @@ SlotRecordStoreReturn:
 ; helper below may discard this routine's return address on failure.
 GetSlotRecordField06:
     jsr RequireSlotRecord        ; CONTROL_GET_RECORD_FIELD_06
-    lda $0406,x
+    lda SpriteRecordFrameIndex,x
     tax
     lda #$00
     rts
@@ -3539,7 +3539,7 @@ GetSlotRecordField06:
 RequireSlotRecord:
     jsr SlotRecordOffset         ; CONTROL_REQUIRE_SLOT_RECORD
     bne SlotRecordAbortCaller
-    lda $0400,x
+    lda SpriteRecordFlags,x
     beq SlotRecordEmpty
     rts
 SlotRecordEmpty:
@@ -3557,7 +3557,7 @@ SlotRecordOffset:
     cmp #$10                     ; CONTROL_SLOT_RECORD_OFFSET
     bcs SlotRecordOffsetInvalid
     tax
-    ldy #$0B
+    ldy #SpriteRecordStride
     jsr MultiplyUnsigned8
     lda #$00
     rts
@@ -3572,17 +3572,17 @@ SlotRecordOffsetInvalid:
 LoadSpriteFrame:
     txa ; CONTROL_LOAD_SPRITE_FRAME
     pha
-    lda $0400,x
+    lda SpriteRecordFlags,x
     and #$03
     cmp #$01
     bne SpriteFrameIndirect
-    lda $0402,x
+    lda SpriteRecordDataLow,x
     sta $FE
-    lda $0403,x
+    lda SpriteRecordDataHigh,x
     sta $FF
     jmp SpriteFrameDimensions
 SpriteFrameIndirect:
-    lda $0406,x
+    lda SpriteRecordFrameIndex,x
     ldy #$00
     asl a
     bcc SpriteFramePointerOffset
@@ -3594,10 +3594,10 @@ SpriteFramePointerOffset:
     iny
 SpriteFramePointerBase:
     clc
-    adc $0402,x
+    adc SpriteRecordDataLow,x
     sta $FE
     tya
-    adc $0403,x
+    adc SpriteRecordDataHigh,x
     sta $FF
     ldy #$00
     lda ($FE),y
@@ -3620,7 +3620,7 @@ SpriteFrameDimensions:
     and #$0F
     sta $03E3
     iny
-    lda $0401,x
+    lda SpriteRecordOptions,x
     and #$C0
     sta $03E4
     bmi SpriteFrameFlipVertical
@@ -3633,7 +3633,7 @@ SpriteFrameDimensions:
     lda #$00
     sta $03E1
     sta $03DE
-    lda $0404,x
+    lda SpriteRecordOamOffset,x
 SpriteFrameForwardStart:
     sec
     sbc #$04
@@ -3653,7 +3653,7 @@ SpriteFrameFlipHorizontal:
     sta $03DE
     lda $03E5
     clc
-    adc $0404,x
+    adc SpriteRecordOamOffset,x
     bcs SpriteFrameHorizontalSkip
     cmp #$FC
     bne SpriteFrameHorizontalReady
@@ -3674,7 +3674,7 @@ SpriteFrameFlipVertical:
     sta $03E5
     asl a
     sta $03E1
-    lda $0405,x
+    lda SpriteRecordTileCount,x
     asl a
     asl a
     sec
@@ -3682,7 +3682,7 @@ SpriteFrameFlipVertical:
     sec
     sbc #$04
     sta $03DE
-    lda $0404,x
+    lda SpriteRecordOamOffset,x
     clc
     adc $03DE
     bcs SpriteFrameVerticalSkip
@@ -3702,11 +3702,11 @@ SpriteFrameFlipBoth:
     lda #$00
     sta $03E1
     sta $03DE
-    lda $0405,x
+    lda SpriteRecordTileCount,x
     asl a
     asl a
     clc
-    adc $0404,x
+    adc SpriteRecordOamOffset,x
     bcs SpriteFrameBothSkip
     cmp #$FC
     bne SpriteFrameBothReady
@@ -3777,7 +3777,7 @@ AdvanceSpriteAnimations:
 AdvanceSpriteAnimationLoop:
     tya
     pha
-    lda $0400,x
+    lda SpriteRecordFlags,x
     and #$03
     tay
     bne AdvanceSpriteAnimationActive
@@ -3786,7 +3786,7 @@ AdvanceSpriteAnimationNext:
     tay
     txa
     clc
-    adc #$0B
+    adc #SpriteRecordStride
     tax
     dey
     bne AdvanceSpriteAnimationLoop
@@ -3795,47 +3795,47 @@ AdvanceSpriteAnimationActive:
     tya                          ; CONTROL_ADVANCE_SPRITE_ANIMATION_ACTIVE
     cmp #$01
     beq AdvanceSpriteAnimationNext
-    lda $0400,x
+    lda SpriteRecordFlags,x
     and #$70
     beq AdvanceSpriteAnimationTick
     tya
     jmp AdvanceSpriteAnimationDone
 AdvanceSpriteAnimationTick:
-    dec $0407,x
+    dec SpriteRecordFrameTimer,x
     bne AdvanceSpriteAnimationDone
     tya
     cmp #$03
     bne AdvanceSpriteAnimationFrame
-    lda $0405,x
+    lda SpriteRecordTileCount,x
     ora #$80
-    sta $0405,x
+    sta SpriteRecordTileCount,x
 ; Reload the timer and advance the frame index. At the end, bit $10 chooses
 ; between looping to frame zero and holding the final frame with flag $40 set.
 AdvanceSpriteAnimationFrame:
-    lda $0408,x                  ; CONTROL_ADVANCE_SPRITE_ANIMATION_FRAME
-    sta $0407,x
-    lda $0402,x
+    lda SpriteRecordFrameDelay,x                  ; CONTROL_ADVANCE_SPRITE_ANIMATION_FRAME
+    sta SpriteRecordFrameTimer,x
+    lda SpriteRecordDataLow,x
     sta $F6
-    lda $0403,x
+    lda SpriteRecordDataHigh,x
     sta $F7
-    inc $0406,x
-    lda $0406,x
+    inc SpriteRecordFrameIndex,x
+    lda SpriteRecordFrameIndex,x
     ldy #$01
     cmp ($F6),y
     bne AdvanceSpriteAnimationLoad
-    lda $0401,x
+    lda SpriteRecordOptions,x
     and #$10
     beq AdvanceSpriteAnimationLoopFrame
-    lda $0400,x
+    lda SpriteRecordFlags,x
     ora #$40
-    sta $0400,x
-    dec $0406,x
+    sta SpriteRecordFlags,x
+    dec SpriteRecordFrameIndex,x
     jmp AdvanceSpriteAnimationNext
 AdvanceSpriteAnimationLoopFrame:
     lda #$00
-    sta $0406,x
+    sta SpriteRecordFrameIndex,x
 AdvanceSpriteAnimationLoad:
-    lda $0400,x
+    lda SpriteRecordFlags,x
     and #$03
     cmp #$02
     bne AdvanceSpriteAnimationDone
@@ -3883,15 +3883,15 @@ UpdateAudioVoices:
     ldx #$00
     stx $03E7
 AudioVoiceLoop:
-    lda $04B0,x
+    lda AudioRecordFlags,x
     bpl AudioNextVoice
     sta $03E7
-    dec $04B1,x
+    dec AudioRecordTimer,x
     beq AudioReadCommand
 AudioNextVoice:
     txa
     clc
-    adc #$08
+    adc #AudioRecordStride
     tax
     cmp #$28
     bcc AudioVoiceLoop
@@ -3912,9 +3912,9 @@ AudioUpdateReturn:
 ; Copy five bytes from the voice command pointer into the stack buffer, then
 ; dispatch notes below $A0 and leave higher commands to the remaining handler.
 AudioReadCommand:
-    lda $04B4,x                  ; CONTROL_AUDIO_READ_COMMAND
+    lda AudioRecordCursorLow,x                  ; CONTROL_AUDIO_READ_COMMAND
     sta $FE
-    lda $04B5,x
+    lda AudioRecordCursorHigh,x
     sta $FF
     stx $03DC
     lda #$05
@@ -3932,7 +3932,7 @@ AudioReadCommand:
     lda $F6
     cmp #$1F
     beq AudioPresetNote
-    lda $04B6,x
+    lda AudioRecordInstrument,x
     asl a
     tay
     lda AudioPeriodPointers,y
@@ -3995,15 +3995,15 @@ AudioHighCommand:
     bne AudioOtherCommand
     lda $0100,y
     and #$1F
-    sta $04B6,x
-    lda $04B0,x
+    sta AudioRecordInstrument,x
+    lda AudioRecordFlags,x
     and #$60
     bne AudioFinishControlCommand
     jsr WriteAudioVoiceInstrument
 AudioFinishControlCommand:
     jsr AdvanceAudioCommandOne
     lda #$01
-    sta $04B1,x
+    sta AudioRecordTimer,x
     jmp AudioNextVoice
 .assert (* - BankStart) = $10B3, error, "bank 0 audio update dispatch end"
 
@@ -4013,17 +4013,17 @@ AudioOtherCommand:
     lda $0100,y                   ; CONTROL_AUDIO_LOOP_COMMAND
     cmp #$C0
     bne AudioCommandMaskSet
-    lda $04B7,x
+    lda AudioRecordLoopCounter,x
     bne AudioLoopDecrement
     lda $0101,y
-    sta $04B7,x
+    sta AudioRecordLoopCounter,x
 AudioLoopDecrement:
-    dec $04B7,x
+    dec AudioRecordLoopCounter,x
     beq AudioLoopFinished
     lda $0102,y
-    sta $04B4,x
+    sta AudioRecordCursorLow,x
     lda $0103,y
-    sta $04B5,x
+    sta AudioRecordCursorHigh,x
     jmp AudioReadCommand
 AudioLoopFinished:
     jsr AdvanceAudioCommandTwo
@@ -4060,33 +4060,33 @@ AudioCommandDispatch:
     asl a
     asl a
     pha
-    lda $04B0,x
+    lda AudioRecordFlags,x
     and #$E0
-    sta $04B0,x
+    sta AudioRecordFlags,x
     pla
-    ora $04B0,x
+    ora AudioRecordFlags,x
     and #$9F
     sta $03D0
-    sta $04B0,x
+    sta AudioRecordFlags,x
     stx $03D1
     ldx #$00
 AudioCommandFindConflict:
-    lda $04B0,x
+    lda AudioRecordFlags,x
     eor $03D0
     bne AudioCommandNextConflict
-    lda $04B0,x
+    lda AudioRecordFlags,x
     ora #$20
-    sta $04B0,x
+    sta AudioRecordFlags,x
 AudioCommandNextConflict:
     txa
     clc
-    adc #$08
+    adc #AudioRecordStride
     tax
     cmp #$28
     bcc AudioCommandFindConflict
     ldx $03D1
     lda $03D0
-    sta $04B0,x
+    sta AudioRecordFlags,x
     jsr EnableAudioVoiceChannel
     jmp AudioFinishControlCommand
 ; Low values 4-7 restore the stored command pointer; 8-11 stop the current
@@ -4094,10 +4094,10 @@ AudioCommandNextConflict:
 AudioCommandRestorePointer:
     cmp #$08                     ; CONTROL_AUDIO_COMMAND_RESTORE_POINTER
     bcs AudioCommandStopVoice
-    lda $04B2,x
-    sta $04B4,x
-    lda $04B3,x
-    sta $04B5,x
+    lda AudioRecordStartLow,x
+    sta AudioRecordCursorLow,x
+    lda AudioRecordStartHigh,x
+    sta AudioRecordCursorHigh,x
     jmp AudioFinishControlCommand
 AudioCommandStopVoice:
     cmp #$0C                     ; CONTROL_AUDIO_COMMAND_STOP_VOICE
@@ -4113,10 +4113,10 @@ AudioCommandStopVoice:
 AudioCommandWriteRegister:
     cmp #$10                     ; CONTROL_AUDIO_COMMAND_WRITE_REGISTER
     bcs AudioCommandRestartChannel
-    lda $04B0,x
+    lda AudioRecordFlags,x
     and #$60
     bne AudioCommandWriteRegisterDone
-    lda $04B0,x
+    lda AudioRecordFlags,x
     and #$1F
     sta $03E0
     ldy $03DD
@@ -4148,11 +4148,11 @@ AudioCommandEnableChannel:
 AudioCommandSelectAll:
     cmp #$18                     ; CONTROL_AUDIO_COMMAND_SELECT_ALL
     bne AudioCommandWriteFive
-    lda $04B0,x
+    lda AudioRecordFlags,x
     and #$E0
     ora #$1F
     and #$9F
-    sta $04B0,x
+    sta AudioRecordFlags,x
     jsr EnableAudioVoiceChannel
     jmp AudioFinishControlCommand
 ; $19 writes five consecutive APU registers unless voice flags suppress it.
@@ -4161,10 +4161,10 @@ AudioCommandSelectAll:
 AudioCommandWriteFive:
     cmp #$19                     ; CONTROL_AUDIO_COMMAND_WRITE_FIVE
     bne AudioCommandDelay
-    lda $04B0,x
+    lda AudioRecordFlags,x
     and #$60
     bne AudioCommandWriteFiveDone
-    lda $04B0,x
+    lda AudioRecordFlags,x
     and #$1F
     sta $F6
     lda #$40
@@ -4193,7 +4193,7 @@ AudioCommandDelay:
     bne AudioCommandDefault
     ldy $03DD
     lda $0101,y
-    sta $04B1,x
+    sta AudioRecordTimer,x
     jsr AdvanceAudioCommandTwo
     jmp AudioNextVoice
 AudioCommandDefault:
@@ -4221,7 +4221,7 @@ RestartAudioVoiceChannel:
 RestartAudioVoiceReturn:
     rts
 AudioVoiceChannelMask:
-    lda $04B0,x                  ; CONTROL_AUDIO_VOICE_CHANNEL_MASK
+    lda AudioRecordFlags,x                  ; CONTROL_AUDIO_VOICE_CHANNEL_MASK
     and #$1F
     cmp #$1F
     beq AudioAllToneChannels
@@ -4273,14 +4273,14 @@ PrepareAudioNote:
     and #$FE
     tay
     lda AudioNoteTiming,y
-    sta $04B1,x
+    sta AudioRecordTimer,x
     jsr AudioVoiceFlags
     bne PrepareAudioNoteReturn
     iny
     lda AudioNoteTiming,y
     sta $03D0
     jsr AudioVoiceRegisterAddress
-    lda $04B6,x
+    lda AudioRecordInstrument,x
     asl a
     tay
     lda AudioInstrumentPairs+1,y
@@ -4299,7 +4299,7 @@ PrepareAudioNoteReturn:
 
 ; Form the selected voice's APU-register address in $F6/$F7.
 AudioVoiceRegisterAddress:
-    lda $04B0,x                  ; CONTROL_AUDIO_VOICE_REGISTER_ADDRESS
+    lda AudioRecordFlags,x                  ; CONTROL_AUDIO_VOICE_REGISTER_ADDRESS
     and #$1F
     sta $F6
     lda #$40
@@ -4423,22 +4423,22 @@ AudioVoicePeriodReturn:
 AdvanceAudioCommandTwo:
     jsr AdvanceAudioCommandOne   ; CONTROL_ADVANCE_AUDIO_COMMAND_TWO
 AdvanceAudioCommandOne:
-    inc $04B4,x                  ; CONTROL_ADVANCE_AUDIO_COMMAND_ONE
+    inc AudioRecordCursorLow,x                  ; CONTROL_ADVANCE_AUDIO_COMMAND_ONE
     bne AdvanceAudioCommandReturn
-    inc $04B5,x
+    inc AudioRecordCursorHigh,x
 AdvanceAudioCommandReturn:
     rts
 AudioVoiceFlags:
-    lda $04B0,x                  ; CONTROL_AUDIO_VOICE_FLAGS
+    lda AudioRecordFlags,x                  ; CONTROL_AUDIO_VOICE_FLAGS
     and #$60
     rts
 ; Use the voice's instrument index to copy a two-byte register setting from
 ; the instrument pair table to the voice's first two APU registers.
 WriteAudioVoiceInstrument:
-    lda $04B6,x                  ; CONTROL_WRITE_AUDIO_VOICE_INSTRUMENT
+    lda AudioRecordInstrument,x                  ; CONTROL_WRITE_AUDIO_VOICE_INSTRUMENT
     asl a
     sta $03E1
-    lda $04B0,x
+    lda AudioRecordFlags,x
     and #$1F
     sta $FE
     lda #$40
@@ -4458,7 +4458,7 @@ AudioVoiceOffset:
     cmp #$05                     ; CONTROL_AUDIO_VOICE_OFFSET
     bcs AudioVoiceOffsetInvalid
     tax
-    ldy #$08
+    ldy #AudioRecordStride
     jsr MultiplyUnsigned8
     lda #$00
     rts
@@ -7070,7 +7070,7 @@ MainResetSlots:
     sta $3D
     ldx #$00
 MainClearSlotsLoop:
-    sta $04E0,x
+    sta SlotDescriptorIndex,x
     inx
     cpx #$10
     bne MainClearSlotsLoop
@@ -7467,7 +7467,7 @@ RefreshSlotRecordsLoop:
     bne RefreshSlotRecordsLoop
     rts
 RefreshSlotRecordPosition:
-    lda $04E0,x                   ; CONTROL_REFRESH_SLOT_RECORD_POSITION
+    lda SlotDescriptorIndex,x                   ; CONTROL_REFRESH_SLOT_RECORD_POSITION
     cmp #$FF
     beq RefreshSlotRecordReturn
     lda $0620,x
@@ -7693,7 +7693,7 @@ InitializeSlotDefaults:
     sta $0750,x
     sta $0500,x
     sta $0510,x
-    sta $0530,x
+    sta SlotScriptWait,x
     sta $0700,x
     sta $0560,x
     sta $0640,x
@@ -7767,11 +7767,11 @@ InitializeSlotCheckLoad:
 InitializeSlotUnavailable:
     ldx $10                       ; CONTROL_INITIALIZE_SLOT_UNAVAILABLE
     lda #$FF
-    sta $04E0,x
+    sta SlotDescriptorIndex,x
     rts
 InitializeSlotStoreIndex:
     lda $2A
-    sta $04E0,x
+    sta SlotDescriptorIndex,x
     rts
 
 ; The first helper discards the caller's return address for a matched slot
@@ -7812,7 +7812,7 @@ FindAvailableSlot:
     ldy #$FF                      ; CONTROL_FIND_AVAILABLE_SLOT
     ldx #$00
 FindAvailableSlotLoop:
-    lda $04E0,x
+    lda SlotDescriptorIndex,x
     cmp #$FF
     beq FindAvailableSlotSuccess
     lda $05E0,x
@@ -8039,7 +8039,7 @@ ReleaseCurrentSlot:
     ldx $10                       ; CONTROL_RELEASE_CURRENT_SLOT
 ReleaseSlotByIndex:
     lda #$FF                      ; CONTROL_RELEASE_SLOT_BY_INDEX
-    sta $04E0,x
+    sta SlotDescriptorIndex,x
     txa
     jmp ReleaseSpriteRecord
 
@@ -8089,7 +8089,7 @@ FindSlotWithFlagCheck:
 ; combinations update only its linked position and return without script work.
 UpdateCurrentSlot:
     ldx $10                       ; CONTROL_UPDATE_CURRENT_SLOT
-    lda $04E0,x
+    lda SlotDescriptorIndex,x
     cmp #$FF
     bne SlotUpdateCheckFrame
 SlotUpdateEarlyReturn:
@@ -8159,7 +8159,7 @@ SlotUpdateCheckPosition:
     cmp $70,x
     bne SlotUpdatePositionReturn
 SlotUpdateReload:
-    lda $04E0,x
+    lda SlotDescriptorIndex,x
     sta $2A
     jsr InitializeSlotCheckLoad
     ldx $10
@@ -8302,7 +8302,7 @@ SlotContactMark:
     lda $0620,x
     ora #$08
     sta $0620,x
-    lda $04E0,y
+    lda SlotDescriptorIndex,y
     sta $07C0,x
 SlotContactNext:
     iny
@@ -8318,7 +8318,7 @@ SlotContactNext:
 ScriptMarkOtherSlot:
     lda $10                       ; CONTROL_SCRIPT_MARK_OTHER
     sta $0540,y
-    lda $04E0,x
+    lda SlotDescriptorIndex,x
     sta $0760,y
     lda $06B0,x
     sta $0550,y
@@ -8354,7 +8354,7 @@ ScriptLoopPending:
     sta $06E0,x
     lda RecordPointerHigh
     sta $06F0,x
-    lda $0530,x
+    lda SlotScriptWait,x
     sta $0740,x
     lda $0790,x
     sta $07A0,x
@@ -8366,11 +8366,11 @@ ScriptLoopPending:
     sta $04F0,x
     jsr ScriptClear57AndCall
     lda #$00
-    sta $0530,x
+    sta SlotScriptWait,x
 ScriptLoopContinue:
-    lda $0530,x                  ; CONTROL_SCRIPT_LOOP_WAIT
+    lda SlotScriptWait,x                  ; CONTROL_SCRIPT_LOOP_WAIT
     beq FetchAndDispatchCommand
-    dec $0530,x
+    dec SlotScriptWait,x
     jmp UpdateSlotAfterScript
 .assert (* - BankStart) = $554E, error, "bank 0 script loop entry"
 
@@ -8571,7 +8571,7 @@ ScriptOp06Return:
 ; Opcode $07 stores a value in the slot and yields the current command loop.
 ScriptOp07:
     jsr ScriptOperand61OrSlot
-    sta $0530,x                  ; CONTROL_SCRIPT_WAIT
+    sta SlotScriptWait,x                  ; CONTROL_SCRIPT_WAIT
 ScriptYield:
     lda #$00
     sta $48
@@ -8842,7 +8842,7 @@ ScriptOp17:
     lda $06E0,x
     sta RecordPointerLow
     lda $0740,x
-    sta $0530,x
+    sta SlotScriptWait,x
     lda $07A0,x
     sta $0790,x
     lda $0D
@@ -8863,20 +8863,20 @@ ScriptOp19:
     bne ScriptOp17Return
     jsr ScriptYield
 ScriptLoadSlotPointer:
-    lda $05B0,x                  ; CONTROL_SCRIPT_SLOT_POINTER
+    lda SlotScriptPointerLow,x                  ; CONTROL_SCRIPT_SLOT_POINTER
     sta RecordPointerLow
-    lda $05C0,x
+    lda SlotScriptPointerHigh,x
     sta RecordPointerHigh
     rts
 ScriptGetSlotPointer:
-    lda $05C0,x
+    lda SlotScriptPointerHigh,x
     tay
-    lda $05B0,x
+    lda SlotScriptPointerLow,x
     rts
 ScriptGetSlotFlags:
     lda $10
     jsr RequireSlotRecord
-    lda $0400,x
+    lda SpriteRecordFlags,x
     ldx $10
     rts
 .assert (* - BankStart) = $5A0A, error, "bank 0 script handlers through opcode $19"
@@ -9001,9 +9001,9 @@ ScriptInitializeOtherSlot:
     jmp ScriptLoadSlotPointer
 ScriptSaveSlotPointer:
     lda RecordPointerLow                       ; CONTROL_SCRIPT_SAVE_POINTER
-    sta $05B0,x
+    sta SlotScriptPointerLow,x
     lda RecordPointerHigh
-    sta $05C0,x
+    sta SlotScriptPointerHigh,x
 ScriptSavedPointerReturn:
     rts
 
@@ -9268,7 +9268,7 @@ ScriptCheckOtherSlot:
     cpy $10
     beq ScriptCheckOtherSlotReturn
 ScriptCheckSlotPresent:
-    lda $04E0,y
+    lda SlotDescriptorIndex,y
     cmp #$FF
 ScriptCheckOtherSlotReturn:
     rts
@@ -9414,7 +9414,7 @@ ScriptOp3FCompareOther:
     lda $0520,x
     cpy #$01
     beq ScriptStoreSlotLow
-    lda $04E0,x
+    lda SlotDescriptorIndex,x
     cpy #$02
     beq ScriptStoreSlotLow
     lda $0660,x
@@ -9552,7 +9552,7 @@ ScriptCountUnusedSlots:
     ldy #$00                     ; CONTROL_SCRIPT_UNUSED_SLOTS
     ldx #$00
 ScriptCountUnusedLoop:
-    lda $04E0,x
+    lda SlotDescriptorIndex,x
     cmp #$FF
     bne ScriptCountUnusedNext
     iny
@@ -10298,7 +10298,7 @@ ScriptOp7A:
     ldy #$00
     sty RecordBuffer1
 ScriptOp7ALoop:
-    cmp $04E0,y
+    cmp SlotDescriptorIndex,y
     bne ScriptOp7ANext
     inc RecordBuffer1
 ScriptOp7ANext:
@@ -10686,7 +10686,7 @@ ScriptOp8CScan:
     bne ScriptOp8CNext
     sty $03C8
     inc $03C8
-    lda $04E0,y
+    lda SlotDescriptorIndex,y
     jmp ScriptStoreSlotLowAndClearHigh
 ScriptOp8CNext:
     iny
@@ -11026,7 +11026,7 @@ ScriptOpA7SecondExtent:
 ScriptOpA7SecondHigh:
     cmp RecordBuffer1
     bcc ScriptOpA7Next
-    lda $04E0,y
+    lda SlotDescriptorIndex,y
     jmp ScriptStoreSlotLowAndClearHigh
 ScriptOpA7Next:
     iny
@@ -11571,7 +11571,7 @@ SelectSlotFlagsReturn:
 UpdateSlotAfterScript:
     lda $00                       ; CONTROL_SLOT_UPDATE_ENTRY
     bne SelectSlotFlagsReturn
-    lda $04E0,x
+    lda SlotDescriptorIndex,x
     cmp #$FF
     bne SlotUpdateCheckLink
     rts
@@ -12376,10 +12376,10 @@ LoadSlotRecordAtFE:
     cmp #$FF
     beq SlotRecordCheckData
     dey
-    sta $05C0,x
+    sta SlotScriptPointerHigh,x
     sta RecordPointerHigh
     lda ($FE),y
-    sta $05B0,x
+    sta SlotScriptPointerLow,x
     sta RecordPointerLow
 SlotRecordCheckData:
     ldy #$01
@@ -12480,10 +12480,10 @@ SlotRecordLeftReady:
 
 ; Temporarily mark the slot inactive while AllocateSpriteRecord loads it.
 SlotRecordAllocate:
-    lda $04E0,x                  ; CONTROL_SLOT_RECORD_ALLOCATE
+    lda SlotDescriptorIndex,x                  ; CONTROL_SLOT_RECORD_ALLOCATE
     pha
     lda #$FF
-    sta $04E0,x
+    sta SlotDescriptorIndex,x
     txa
     jsr ReleaseSpriteRecord
     ldy $FF
@@ -12507,7 +12507,7 @@ SlotRecordPlace:
     jsr PlaceSlotSprites
     jsr UpdateSlotBounds
     pla
-    sta $04E0,x
+    sta SlotDescriptorIndex,x
     lda $0620,x
     and #$04
     beq SlotRecordApplyFlags
@@ -12574,7 +12574,7 @@ SlotRecordFinish:
 ; doubling. The second entry accepts A; the first loads $04E0 for the slot.
 SlotRecordAddressFromCurrent:
     ldx $10                      ; CONTROL_SLOT_RECORD_CURRENT
-    lda $04E0,x
+    lda SlotDescriptorIndex,x
 SlotRecordAddressFromIndex:
     sta $FE                      ; CONTROL_SLOT_RECORD_ADDRESS
     lda #$00
@@ -13234,7 +13234,7 @@ UpdateHorizontalMotion:
     bmi HorizontalResolveMotion
     jsr ScriptCheckSlotPresent
     beq HorizontalResolveMotion
-    lda $04E0,x
+    lda SlotDescriptorIndex,x
     cmp #$FF
     bne HorizontalCompareSlots
     sta $3D
@@ -13318,7 +13318,7 @@ UpdateVerticalMotion:
     bmi VerticalResolveMotion
     jsr ScriptCheckSlotPresent
     beq VerticalResolveMotion
-    lda $04E0,x
+    lda SlotDescriptorIndex,x
     cmp #$FF
     bne VerticalCompareSlots
     sta $3D
@@ -13403,7 +13403,7 @@ CalculateHorizontalMotion:
     sta $03E0
     cpx #$FF
     beq HorizontalMotionReturnJump2
-    lda $04E0,x
+    lda SlotDescriptorIndex,x
     cmp #$FF
     bne HorizontalMotionLeftDistance
 HorizontalMotionReturnJump:
@@ -13496,7 +13496,7 @@ CalculateVerticalMotion:
     sta $03E0
     cpx #$FF
     beq VerticalMotionReturnJump
-    lda $04E0,x
+    lda SlotDescriptorIndex,x
     cmp #$FF
     beq VerticalMotionReturn
     lda #$78
@@ -13585,7 +13585,7 @@ SlotDrawStoreHorizontal:
 SlotDrawReturn:
     rts ; CONTROL_SLOT_DRAW_RETURN
 SlotDrawCheckPresent:
-    lda $04E0,x ; CONTROL_SLOT_DRAW_CHECK_PRESENT
+    lda SlotDescriptorIndex,x ; CONTROL_SLOT_DRAW_CHECK_PRESENT
     cmp #$FF
     rts
 SlotDrawCheckDisabled:
@@ -13601,7 +13601,7 @@ SlotDrawCheckDistance:
 ; scroll and draw offsets, then apply the slot's selected fractional motion.
 InitializeScrolledSlot:
     ldx $10 ; CONTROL_INITIALIZE_SCROLLED_SLOT
-    lda $04E0,x
+    lda SlotDescriptorIndex,x
     sta $2A
     jsr ReleaseCurrentSlot
     ldx $10

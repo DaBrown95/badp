@@ -46,3 +46,40 @@ ScrollCurrentXLow = $03F3
 ScrollCurrentXHigh = $03F4
 ScrollCurrentYLow = $03F5
 ScrollCurrentYHigh = $03F6
+
+; Sixteen eleven-byte sprite records. Flags and options have several uses;
+; the OAM offset is temporarily used for allocation flags before commitment.
+; TileCount also carries a high state bit in one animation mode.
+SpriteRecordStride = $000B
+SpriteRecordArray = $0400
+SpriteRecordFlags = $0400
+SpriteRecordOptions = $0401
+SpriteRecordDataLow = $0402
+SpriteRecordDataHigh = $0403
+SpriteRecordOamOffset = $0404
+SpriteRecordTileCount = $0405
+SpriteRecordFrameIndex = $0406
+SpriteRecordFrameTimer = $0407
+SpriteRecordFrameDelay = $0408
+SpriteRecordQueryValue = $0409
+SpriteRecordReserveCount = $040A
+
+; Five eight-byte audio voice records. The saved and current pointers, timer,
+; instrument and loop count are inferred from the engine's accesses.
+AudioRecordStride = $0008
+AudioRecordArray = $04B0
+AudioRecordFlags = $04B0
+AudioRecordTimer = $04B1
+AudioRecordStartLow = $04B2
+AudioRecordStartHigh = $04B3
+AudioRecordCursorLow = $04B4
+AudioRecordCursorHigh = $04B5
+AudioRecordInstrument = $04B6
+AudioRecordLoopCounter = $04B7
+
+; Per-slot descriptor and BOGUS execution state. A descriptor value of $FF
+; denotes an unavailable slot; pointers remain encoded for the banked fetcher.
+SlotDescriptorIndex = $04E0
+SlotScriptWait = $0530
+SlotScriptPointerLow = $05B0
+SlotScriptPointerHigh = $05C0

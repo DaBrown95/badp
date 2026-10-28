@@ -269,7 +269,7 @@ class ProofFreshnessTests(unittest.TestCase):
             candidate = bytearray(reference)
             changed = sorted(r["file_offset"] for r in selected)
             for offset in changed:
-                candidate[offset] = 1
+                candidate[offset] ^= 1
             candidate = bytes(candidate)
             candidate_source = mutate_source(source.decode(), name).encode()
             folder = self.proof_dir / "controls" / name
