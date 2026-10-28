@@ -156,7 +156,12 @@ cartridge behaviour.
 | `make map-data` | Decode candidate map layouts and chunks to local analysis. |
 | `make trace-map` | Check map fetches in extended v1.5 emulator inputs. |
 | `make prg-inventory` | Combine verified source ownership with candidate and observed data uses. |
+| `make trace-runtime-extents` | Capture sampled Moses script and record accesses. |
+| `make runtime-extents` | Check sampled command and record bytes against the current source map. |
 | `make test` | Test the tooling using synthetic data; no game ROM needed. |
+
+Run `make trace-runtime-extents` before `make runtime-extents`; repeat the
+capture after changing the build or gameplay verifier.
 
 Other versions have pinned reference identities but do not have builds yet.
 

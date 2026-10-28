@@ -5,7 +5,7 @@ export BADP_TARGET = $(TARGET)
 export BADP_ROM = $(ROM)
 .DEFAULT_GOAL := help
 
-.PHONY: help setup setup-mesen targets identify audit audit-all build progress verify-gameplay position-records script-entries script-flow slot-record-flow contact-record-flow native-event-flow direct-record-flow packed-text ppu-streams trace-audio audio-inventory audio-flow trace-sprites sprite-inventory map-data trace-map prg-inventory test
+.PHONY: help setup setup-mesen targets identify audit audit-all build progress verify-gameplay position-records script-entries script-flow slot-record-flow contact-record-flow native-event-flow direct-record-flow packed-text ppu-streams trace-audio audio-inventory audio-flow trace-sprites sprite-inventory map-data trace-map prg-inventory trace-runtime-extents runtime-extents test
 help:
 	@echo 'make targets   Show the primary target and sequential target order'
 	@echo 'make identify  Inspect a ROM (default: primary target; override TARGET=id or ROM=path)'
@@ -33,6 +33,8 @@ help:
 	@echo 'make map-data        Decode v1.5 map layouts and chunks locally'
 	@echo 'make trace-map       Check mapped map fetches in MesenCE'
 	@echo 'make prg-inventory   Combine source and local PRG-use evidence'
+	@echo 'make trace-runtime-extents  Capture sampled Moses interpreter and record accesses'
+	@echo 'make runtime-extents  Check sampled command and record bytes against source'
 	@echo 'make test      Test the tools without a game ROM'
 
 setup:
@@ -112,6 +114,12 @@ trace-map:
 
 prg-inventory:
 	$(PYTHON) -m tools.prg_inventory
+
+trace-runtime-extents:
+	$(PYTHON) -m tools.trace_runtime_extents
+
+runtime-extents:
+	$(PYTHON) -m tools.runtime_extents
 
 test:
 	$(PYTHON) -m unittest discover -s tests -v

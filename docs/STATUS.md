@@ -89,6 +89,15 @@ pairs and 49 record pointer/bank/mode combinations all begin in source-owned
 regions under the existing bank mapping. This checks entry addresses, not
 every byte fetched or the mapping on physical hardware. The trace remains in
 `analysis/us-v1.5/stage3-higher-carry-execution.json`.
+The later 6,740-frame Moses reference trace records 748 script pointer/bank
+pairs and 49 record pointer/bank/mode combinations. Under the recorded emulator
+bank selection, their fixed-length command extents cover 2,147 source-owned
+physical bytes, and fields selected by the record loader cover 280 source-owned
+bytes. No native instruction starts were observed in local PRG gaps. The check
+does not include variable-length inline script tables or every byte in the
+loader's ten-byte fetch, and it does not establish unobserved paths or physical
+cartridge mapping. `make trace-runtime-extents` captures the route;
+`make runtime-extents` checks its current trace against the matching source map.
 The later second-level crossing trace observed 708 distinct script pointer/bank
 pairs, all beginning in source-owned regions, and no native instruction starts
 in local PRG gaps. The slot-record loader read `$36E5` in mode `$02`; a
@@ -107,7 +116,9 @@ exploration scripts and results remain in `analysis/us-v1.5/stage3-early-branch.
 `analysis/us-v1.5/stage3-farther-branch.*` and `analysis/us-v1.5/stage3-left-branch.*`.
 A further 81-sequence reference-only sweep from frame 6,740 kept Moses carried
 in 60 cases at frame 6,980, but none ended as high as the earlier checkpoint.
-It remains local in `analysis/us-v1.5/stage3-upper-sweep.*`.
+A finer 243-sequence sweep kept him carried in 207 cases at frame 6,900;
+none ended as high as frame 6,740. The attempts remain local in
+`analysis/us-v1.5/stage3-upper-sweep.*` and `stage3-upper-fine.*`.
 The first 4,900-frame reference/build attempt reported differing Moses
 runtime evidence without identifying a field. A subsequent focused comparison
 matched; the cause of the initial discrepancy remains unestablished. The failure
