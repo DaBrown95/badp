@@ -344,7 +344,7 @@ in these inventories; that number is not a count of remaining code. The report
 also retains 7,513 possible map/script overlap bytes and 858 possible record/script
 overlap bytes across the combined inventories. The expanded field-setter walk
 introduces many speculative competing decodes; it does not establish their
-reachability. It also reports 7,517 source-owned bytes covered by candidate
+reachability. It also reports 7,529 source-owned bytes covered by candidate
 data uses, which can include compatible uses as well as competing ones. The
 report records its input identities and writes metadata only to
 ignored `analysis/us-v1.5/prg-inventory.json`.
@@ -1299,3 +1299,18 @@ local. The same `$E764` path also gives partial negative-mode records at
 `$E040` and `$EB10`; their noncompeting resource or mode bytes are represented
 and their competing script bytes remain local. These associations are static
 candidates, not evidence of execution.
+
+The `$D52B` contact-script candidate can reach the record load at `$D75B`
+through reconstructed command edges. Its mode-zero target `$D549` overlaps a
+previously represented position sentinel; its `$00FF` resource and script
+pointers are retained as provisional interpretations, including the possible
+resource use of a region also catalogued as map data. The mode-2 candidate at
+`$E090` also supplies its previously local final field.
+
+At `$F156`, the candidate record-load command shares its `$2C` operand with the
+dispatch-counter opcode at `$F157`. The source represents the first byte once
+and asserts that the following opcode supplies that operand. Under the candidate
+`$F00F` interaction path, the five records at `$EEAE`, `$EEC0`, `$EF2C`,
+`$EF3E` and `$EF74` inspect resource-high sentinel bytes that are also skipped
+low bytes of neighboring contact records. Those bytes are now represented;
+neither the paths nor the competing record interpretations are proved to run.

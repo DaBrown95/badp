@@ -16,7 +16,7 @@ class OverlayAssemblyTests(unittest.TestCase):
         except FileNotFoundError as exc:
             raise unittest.SkipTest(f'pinned assembler unavailable: {exc}') from exc
         source = (ROOT / 'src/us-v1.5/rom.s').read_text()
-        names = ('BogusJumpBank1', 'BogusSetSlotMode', 'BogusSetSlotD0Bits', 'AudioNote',
+        names = ('BogusJumpBank1', 'BogusSetSlotMode', 'BogusSetSlotD0Bits', 'BogusSetDispatchCounter', 'AudioNote',
                  'BogusJumpCompactOverlay', 'BogusModeResourceOverlay',
                  'BogusSetJumpRecordOverlay', 'AudioNoteBogusOverlay',
                  'BogusSetSlotC0', 'BogusSetSlot0670Pair', 'BogusMaskSlotValue',
@@ -29,6 +29,7 @@ class OverlayAssemblyTests(unittest.TestCase):
                  'AudioScriptWord', 'AudioScriptTarget', 'AudioScriptTargetByte',
                  'AudioScriptTargetTriple', 'AudioScriptQuad', 'AudioScriptFourWords')
         cls.macros = '\n'.join(re.findall(r'^BogusActionOpcode_\w+ = \$[0-9A-F]{2}$', source, re.MULTILINE)) + '\n'
+        cls.macros += '\n'.join(re.findall(r'^BogusOpcodeLoadRecordAndClearSavedState = \$[0-9A-F]{2}$', source, re.MULTILINE)) + '\n'
         for name in names:
             match = re.search(r'^\.macro ' + name + r'\b[^\n]*\n.*?^\.endmacro\n',
                               source, re.MULTILINE | re.DOTALL)
@@ -60,9 +61,21 @@ class OverlayAssemblyTests(unittest.TestCase):
                 macro = re.search(r'^\.macro ' + name + r'\b[^\n]*\n(.*?)^\.endmacro',
                                   source, re.MULTILINE | re.DOTALL)
                 self.assertIsNotNone(macro)
-                emitted = re.search(r'\.byte\s+\$([0-9A-F]{2})(?:\s|,|$)', macro.group(1))
+                emitted = re.search(r'\.byte\s+(\$[0-9A-F]{2}|BogusActionOpcode_\w+)(?:\s|,|$)', macro.group(1))
                 self.assertIsNotNone(emitted)
-                self.assertEqual(emitted.group(1), opcode)
+                self.assertIn(emitted.group(1), (f'${opcode}', f'BogusActionOpcode_{name}'))
+
+    def test_record_load_and_dispatch_share_the_opcode_byte(self):
+        result, error, output = self.assemble('''
+    .byte BogusOpcodeLoadRecordAndClearSavedState
+    .assert BogusActionOpcode_BogusSetDispatchCounter = $2C, error, "record offset mismatch"
+    BogusSetDispatchCounter $35
+''')
+        self.assertEqual(result, 0, error)
+        self.assertEqual(output, bytes([0x00, 0x2c, 0x35]))
+        result, error, _ = self.assemble('.assert BogusActionOpcode_BogusSetDispatchCounter = $2D, error, "record offset mismatch"')
+        self.assertNotEqual(result, 0)
+        self.assertIn('record offset mismatch', error)
 
     def test_views_emit_the_same_synthetic_fields(self):
         result, error, output = self.assemble('''

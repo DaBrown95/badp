@@ -327,8 +327,9 @@ compareRangeReturn:
 .macro BogusSetSlotFields80 first, second
     .byte $2D, first, second
 .endmacro
+BogusActionOpcode_BogusSetDispatchCounter = $2C
 .macro BogusSetDispatchCounter value
-    .byte $2C, value
+    .byte BogusActionOpcode_BogusSetDispatchCounter, value
 .endmacro
 .macro BogusJumpBank1 target
     .byte $04
@@ -667,8 +668,9 @@ compareRangeReturn:
 .macro BogusFindLinkedSlot
     .byte $8C
 .endmacro
+BogusOpcodeLoadRecordAndClearSavedState = $00
 .macro BogusLoadRecordAndClearSavedState value
-    .byte $00, value
+    .byte BogusOpcodeLoadRecordAndClearSavedState, value
 .endmacro
 .macro BogusSetSlotPositionFromOperands first, second
     .byte $1D, first, second
@@ -1340,7 +1342,6 @@ BogusActionOpcode_BogusMarkMatchingSlots = $36
 BogusActionOpcode_BogusMaskSlotValue = $40
 BogusActionOpcode_BogusReadSlotValue = $3F
 BogusActionOpcode_BogusRestartVoice4 = $49
-BogusActionOpcode_BogusSetDispatchCounter = $2C
 BogusActionOpcode_BogusSetInvertedState18 = $43
 BogusActionOpcode_BogusSetMainState = $0F
 BogusActionOpcode_BogusSetSlot0360 = $1A
@@ -18405,7 +18406,13 @@ PositionSentinelD547:
     .incbin "bank1_d548_d549.bin"
 PositionSentinelD549:
     .byte $FF ; CONTROL_POSITION_SENTINEL_D549
-    .incbin "bank1_d54a_d550.bin"
+; Candidate mode-zero record at $D549. Its first byte is also the position
+; sentinel above; the next two bytes already represented below overlap its tail.
+; The $00FF resource and script pointers are conditional interpretations.
+CandidateRecordD549ResourceHigh:
+    .byte $00 ; CONTROL_CANDIDATE_RECORD_D549
+    .word $00FF
+    .byte $00, $00, $FF
 ; Candidate descriptor-context access; runtime reachability remains unverified.
 ; Resource high byte $FF skips visual fields and low pointer byte.
 ContextResourceSentinelD54F:
@@ -20263,7 +20270,10 @@ SlotRuntimeE07E:
     .incbin "bank1_e087_e088.bin"
 ContactRecordE087HighAndScriptLow:
     .byte $FF, <(RuntimeScriptE764 - BankStart) ; CONTROL_CONTACT_E087_FIELDS
-    .incbin "bank1_e08a_e099.bin"
+    .incbin "bank1_e08a_e098.bin"
+; Last field used by a candidate mode-$02 record based at $E090.
+ModeRecordE090LastField:
+    .byte $00 ; CONTROL_MODE_RECORD_E090_LAST
 ; Candidate descriptor $E07E, script $E262, mode $02.
 ModeRecordE099Resource:
     .word $B693 ; CONTROL_MODE_RECORD_E099_RESOURCE
@@ -22389,7 +22399,10 @@ ContextRecordEEA3:
 SlotRuntimeEEA6:
     SlotRuntimeRecord $C7C5, (ScriptEFDD - BankStart), $00, $FF, $00, $00, $00 ; CONTROL_SLOT_RUNTIME_EEA6
 .assert (* - BankStart) = $6EAF, error, "bank 1 slot record EEA6 end"
-    .incbin "bank1_eeaf_eeb0.bin"
+; The candidate $EEAE record reads this as its resource high sentinel;
+; it is also the skipped low byte of the following contact record.
+CandidateResourceSentinelEEAE:
+    .byte $FF ; CONTROL_RESOURCE_SENTINEL_EEAE
 ; Possible contact for descriptor base $EEA6; execution remains unverified.
 ReviewedContactEEAF:
     .byte $FF ; CONTROL_REVIEWED_CONTACT_EEAF
@@ -22404,7 +22417,8 @@ ContextRecordEEB5:
 SlotRuntimeEEB8:
     SlotRuntimeRecord $BAD5, $6ECA, $00, $FF, $00, $00, $00 ; CONTROL_SLOT_RUNTIME_EEB8
 .assert (* - BankStart) = $6EC1, error, "bank 1 slot record EEB8 end"
-    .incbin "bank1_eec1_eec2.bin"
+CandidateResourceSentinelEEC0:
+    .byte $FF ; CONTROL_RESOURCE_SENTINEL_EEC0
 ; Possible contact for descriptor base $EEB8; execution remains unverified.
 ReviewedContactEEC1:
     .byte $FF ; CONTROL_REVIEWED_CONTACT_EEC1
@@ -22494,7 +22508,8 @@ ContextRecordEF21:
 SlotRuntimeEF24:
     SlotRuntimeRecord $BAAF, (ScriptEFE9 - BankStart), $00, $FF, $00, $00, $00 ; CONTROL_SLOT_RUNTIME_EF24
 .assert (* - BankStart) = $6F2D, error, "bank 1 slot record EF24 end"
-    .incbin "bank1_ef2d_ef2e.bin"
+CandidateResourceSentinelEF2C:
+    .byte $FF ; CONTROL_RESOURCE_SENTINEL_EF2C
 ; Possible contact for descriptor base $EF24; execution remains unverified.
 ReviewedContactEF2D:
     .byte $FF ; CONTROL_REVIEWED_CONTACT_EF2D
@@ -22509,7 +22524,8 @@ ContextRecordEF33:
 SlotRuntimeEF36:
     SlotRuntimeRecord $BAB3, (ScriptEFF0 - BankStart), $00, $FF, $00, $00, $00 ; CONTROL_SLOT_RUNTIME_EF36
 .assert (* - BankStart) = $6F3F, error, "bank 1 slot record EF36 end"
-    .incbin "bank1_ef3f_ef40.bin"
+CandidateResourceSentinelEF3E:
+    .byte $FF ; CONTROL_RESOURCE_SENTINEL_EF3E
 ; Possible contact for descriptor base $EF36; execution remains unverified.
 ReviewedContactEF3F:
     .byte $FF ; CONTROL_REVIEWED_CONTACT_EF3F
@@ -22536,7 +22552,8 @@ InteractionRecordEF63:
 SlotRuntimeEF6C:
     SlotRuntimeRecord $C533, (ScriptEF7E - BankStart), $00, $00, $20, $D9, $11 ; CONTROL_SLOT_RUNTIME_EF6C
 .assert (* - BankStart) = $6F75, error, "bank 1 slot record EF6C end"
-    .incbin "bank1_ef75_ef76.bin"
+CandidateResourceSentinelEF74:
+    .byte $FF ; CONTROL_RESOURCE_SENTINEL_EF74
 ; Possible contact for descriptor base $EF6C; execution remains unverified.
 ReviewedContactEF75:
     .byte $FF ; CONTROL_REVIEWED_CONTACT_EF75
@@ -22888,7 +22905,11 @@ PathScriptF14C:
 PathScriptF151:
     BogusBranchIfSecondWorldOffsetAtMost PathScriptF14C, $1EE5
 .assert (* - BankStart) = $7156, error, "bank 1 candidate successor $F147 end"
-    .incbin "bank1_f156_f157.bin"
+; Candidate record-load opcode. Its $2C operand is the first byte of the
+; independently labelled dispatch-counter command below.
+CandidateScriptF156:
+    .byte BogusOpcodeLoadRecordAndClearSavedState ; CONTROL_OVERLAP_SCRIPT_F156
+.assert BogusActionOpcode_BogusSetDispatchCounter = $2C, error, "F156 record offset disagrees with F157 opcode"
 ; Candidate script path; object role and execution remain unverified.
 CandidateF157:
     BogusSetDispatchCounter $85 ; CONTROL_BOGUS_F157
