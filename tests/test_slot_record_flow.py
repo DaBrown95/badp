@@ -2,7 +2,7 @@
 import unittest
 
 from tools.script_entries import BANK_SIZE
-from tools.slot_record_flow import record_script_overlaps, resolve_access, trace
+from tools.slot_record_flow import record_script_overlaps, record_used_offsets, resolve_access, trace
 
 
 def fixture():
@@ -118,6 +118,19 @@ class SlotRecordFlowTests(unittest.TestCase):
         self.assertEqual(result['references'][0]['locations'][0]['bank_offset'], 0x102)
         graph['nodes'][0]['location']['bank_offset'] = 0x103
         self.assertEqual(record_script_overlaps([ref], graph)['physical_bytes'], 0)
+
+    def test_used_fields_respect_modes_and_sentinels(self):
+        b0, b1, _ = fixture()
+        b1[0x100:0x10a] = bytes([0x34, 0x81, 0x40, 0x55, 0x66, 1, 2, 3, 4, 5])
+        for mode, expected in ((0, set(range(9))), (1, {0, 1, 4}),
+                               (2, {0, 1, 4, 5, 6, 7, 8}), (0xff, {0, 1, 2})):
+            with self.subTest(mode=mode):
+                ref = resolve_access(bytes(b0), bytes(b1), 0x100, 0, mode)
+                self.assertEqual(record_used_offsets(ref), expected)
+        b1[0x101], b1[0x103] = 0xff, 0xff
+        ref = resolve_access(bytes(b0), bytes(b1), 0x100, 0, 0)
+        self.assertEqual(record_used_offsets(ref), {1, 3})
+        self.assertEqual(record_used_offsets({'status': 'fetch_crosses_bank_boundary'}), set())
 
 
 if __name__ == '__main__':

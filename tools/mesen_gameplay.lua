@@ -86,15 +86,22 @@ emu.addEventCallback(function()
  local move=frames>=180 and frames<185
  local start=(frames>=300 and frames<305) or (frames>=900 and frames<905)
  local right=frames>=1450 and frames<1750
+ local left=false
  local jump=frames>=1500 and frames<1510
  local pickup=false
  if SCENARIO==1 then
-  -- Lift Moses, cross the first water gap and continue through the level.
-  right=(frames>=1450 and frames<1481) or (frames>=1508 and frames<2800)
-  pickup=frames>=1481 and frames<1491
+  -- Recover Moses at the edge, then cross the position trigger again.
+  left=frames>=3320 and frames<3355
+  right=((frames>=1450 and frames<1481) or (frames>=1508 and frames<3450))
+        and not (frames>=3080 and frames<3100) and not left
+  pickup=(frames>=1481 and frames<1491) or (frames>=3290 and frames<3300)
   jump=(frames>=1508 and frames<2000 and ((frames-1508)%220)<28)
        or (frames>=2046 and frames<2074)
-       or (frames>=2250 and ((frames-2250)%190)<28)
+       or (frames>=2250 and frames<2700 and ((frames-2250)%190)<28)
+       or (frames>=2760 and frames<3000 and ((frames-2760)%190)<16)
+       or (frames>=3020 and frames<3036)
+       or (frames>=3100 and frames<3128)
+       or (frames>=3650 and frames<3660)
  end
  local select=false
  if SCENARIO==3 then
@@ -102,23 +109,23 @@ emu.addEventCallback(function()
   jump=false
   select=(frames>=1500 and frames<1510) or (frames>=2600 and frames<2610)
  end
- emu.setInput({up=move and (SCENARIO==0 or SCENARIO==3),down=move and SCENARIO==2,left=false,right=right,start=start,select=select,a=jump,b=pickup},0)
+ emu.setInput({up=move and (SCENARIO==0 or SCENARIO==3),down=move and SCENARIO==2,left=left,right=right,start=start,select=select,a=jump,b=pickup},0)
 end,emu.eventType.inputPolled)
 emu.addEventCallback(function()
  frames=frames+1
- if frames==240 or frames==650 or frames==1200 or frames==1400 or frames==1496 or frames==1511 or frames==1550 or frames==1700 or frames==1800 or frames==2100 or frames==2150 or frames==2300 or frames==2400 or frames==2600 or frames==2800 then
+ if frames==240 or frames==650 or frames==1200 or frames==1400 or frames==1496 or frames==1511 or frames==1550 or frames==1700 or frames==1800 or frames==2100 or frames==2150 or frames==2300 or frames==2400 or frames==2600 or frames==2800 or frames==3000 or frames==3100 or frames==3200 or frames==3250 or frames==3300 or frames==3350 or frames==3400 or frames==3450 or frames==3650 or frames==3700 or frames==3750 then
   local state=emu.getState()
   local p=emu.convertAddress(0x8000,emu.memType.nesMemory)
   print(string.format('BADP_FRAME %d %d %d %d %d %d %d %d %s',frames,emu.read(0,emu.memType.nesDebug),emu.read(1,emu.memType.nesDebug),emu.read(0x03ee,emu.memType.nesDebug)+256*emu.read(0x03ef,emu.memType.nesDebug),emu.read(0x03f0,emu.memType.nesDebug)+256*emu.read(0x03f1,emu.memType.nesDebug),p.address,state['cpu.cycleCount'],nmis,hex(emu.takeScreenshot())))
  end
- if frames==1400 or frames==1496 or frames==1511 or frames==1550 or frames==1700 or frames==1800 or frames==2100 or frames==2150 or frames==2300 or frames==2400 or frames==2600 or frames==2800 then
+ if frames==1400 or frames==1496 or frames==1511 or frames==1550 or frames==1700 or frames==1800 or frames==2100 or frames==2150 or frames==2300 or frames==2400 or frames==2600 or frames==2800 or frames==3000 or frames==3100 or frames==3200 or frames==3250 or frames==3300 or frames==3350 or frames==3400 or frames==3450 or frames==3650 or frames==3700 or frames==3750 then
   print(string.format('BADP_SLOT %d %d %d %d %d %d %d %d',frames,
    emu.read(0x04E1,emu.memType.nesDebug),emu.read(0x04E2,emu.memType.nesDebug),
    emu.read(0x06D2,emu.memType.nesDebug),emu.read(0x0582,emu.memType.nesDebug),
    emu.read(0x0592,emu.memType.nesDebug),emu.read(0x0581,emu.memType.nesDebug),
    emu.read(0x0591,emu.memType.nesDebug)))
  end
- if frames==2800 then
+ if frames==3750 then
   -- stop() can return before the emulator stops invoking callbacks.
   recording=false
   print(string.format('BADP_SUMMARY %d %d %d %d %d %d %d %d',writes,mismatch,unmapped,banks[0] and 1 or 0,banks[1] and 1 or 0,nmis,apu_writes,dma_writes))

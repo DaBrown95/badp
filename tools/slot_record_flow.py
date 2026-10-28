@@ -45,6 +45,27 @@ def resolve_access(bank0: bytes, bank1: bytes, base: int, offset: int, mode: int
     return result
 
 
+def record_used_offsets(reference: dict) -> set[int]:
+    """Return fields actually inspected by a candidate mode, excluding lookahead."""
+    if reference['status'] != 'candidate':
+        return set()
+    fields, mode = reference['fields'], reference['mode']
+    used = {1}  # The resource pointer's high byte gates the remaining fields.
+    if mode == 0:
+        used.add(3)
+        if fields['script_installable_in_zero_mode']:
+            used.add(2)
+    if fields['sprite_fields_present']:
+        used.add(0)
+        if mode & 0x80:
+            used.add(2)
+        elif mode == 1:
+            used.add(4)
+        else:
+            used.update(range(4, 9))
+    return used
+
+
 def record_script_overlaps(references: list[dict], graph: dict) -> dict:
     """Find semantic record reads that collide with candidate script bytes.
 
@@ -67,20 +88,8 @@ def record_script_overlaps(references: list[dict], graph: dict) -> dict:
     for ref in references:
         if ref['status'] != 'candidate':
             continue
-        fields, mode, loc = ref['fields'], ref['mode'], ref['location']
-        used = {1}  # The resource pointer's high byte gates the remaining fields.
-        if mode == 0:
-            used.add(3)
-            if fields['script_installable_in_zero_mode']:
-                used.add(2)
-        if fields['sprite_fields_present']:
-            used.add(0)
-            if mode & 0x80:
-                used.add(2)
-            elif mode == 1:
-                used.add(4)
-            else:
-                used.update(range(4, 9))
+        mode, loc = ref['mode'], ref['location']
+        used = record_used_offsets(ref)
         overlap = sorted((loc['bank'], loc['bank_offset'] + i)
                          for i in used if (loc['bank'], loc['bank_offset'] + i) in coverage)
         if overlap:

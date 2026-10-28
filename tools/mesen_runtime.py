@@ -16,8 +16,12 @@ from .progress import verify_primary
 from .project import load_target
 from .setup_mesen import ROOT, digest_file, spec, verify_emulator
 
-FRAMES = (240, 650, 1200, 1400, 1496, 1511, 1550, 1700, 1800, 2100, 2150, 2300, 2400, 2600, 2800)
-SLOT_FRAMES = (1400, 1496, 1511, 1550, 1700, 1800, 2100, 2150, 2300, 2400, 2600, 2800)
+FRAMES = (240, 650, 1200, 1400, 1496, 1511, 1550, 1700, 1800, 2100, 2150, 2300,
+          2400, 2600, 2800, 3000, 3100, 3200, 3250, 3300, 3350, 3400, 3450, 3650, 3700, 3750)
+SLOT_FRAMES = (1400, 1496, 1511, 1550, 1700, 1800, 2100, 2150, 2300,
+               2400, 2600, 2800, 3000, 3100, 3200, 3250, 3300, 3350, 3400, 3450, 3650, 3700, 3750)
+# Pinned emulator screenshot of the first-level success screen for the audited v1.5 input.
+MOSES_SUCCESS_SCREEN_SHA256 = 'c3d483860076f9e782d92de0913c671d4ed1aef84f8ce81688423cad40c19346'
 SCENARIOS = (('noah', 1), ('moses', 5), ('david', 11), ('inventory', 1))
 SCRIPT_TARGETS = (0x3D21, 0x3D22, 0x5CFE, 0x5D00, 0x5D01, 0x5D04, 0x5D06, 0x5D08, 0x5D0A)
 RECORD_TARGETS = (0x5A40, 0x6D71, 0x6E65, 0x6E7F, 0x6ECD, 0x6EE5, 0x6EFD)
@@ -183,15 +187,21 @@ def validate_scenario(evidence: dict, expected_state: int, *, inventory: bool = 
     if expected_state == 5:
         slots = evidence['slots']
         if (any(slots[str(frame)]['player_descriptor'] != 1 or
-                slots[str(frame)]['object_descriptor'] != 0x6a for frame in SLOT_FRAMES)
+                slots[str(frame)]['object_descriptor'] != 0x6a for frame in SLOT_FRAMES if frame <= 3350)
                 or slots['1400']['object_link'] != 0xff
-                or any(slots[str(frame)]['object_link'] != 1 for frame in SLOT_FRAMES[1:])
+                or any(slots[str(frame)]['object_link'] != 1
+                       for frame in SLOT_FRAMES[1:] if frame <= 3350 and frame != 3250)
+                or slots['3250']['object_link'] != 0xff
                 or slots['1511']['object_y'] >= slots['1400']['object_y']
                 or slots['1700']['object_x'] != slots['1700']['player_x']
                 or frames['2150']['scroll_x'] <= frames['2100']['scroll_x']
-                or frames['2800']['state'] != 5
-                or frames['2800']['scroll_x'] - frames['1700']['scroll_x'] < 1400):
-            raise ValueError('Moses pickup and carry observations did not match')
+                or frames['3200']['scroll_x'] - frames['1700']['scroll_x'] < 1700
+                or frames['3350']['scroll_x'] < frames['3200']['scroll_x']
+                or any(frames[str(frame)]['state'] != 16 for frame in (3400, 3450, 3650))
+                or frames['3450']['screenshot_sha256'] != MOSES_SUCCESS_SCREEN_SHA256
+                or any(frames[str(frame)]['state'] != 6 for frame in (3700, 3750))
+                or frames['3750']['screenshot_sha256'] == frames['3450']['screenshot_sha256']):
+            raise ValueError('Moses pickup, carry and recovery observations did not match')
     if (evidence['mapper_value_mismatches'] or evidence['unmapped_mapper_writes']
             or evidence['physical_prg_banks_seen'] != [0, 1]):
         raise ValueError('mapper write evidence did not meet the observed-bank checks')

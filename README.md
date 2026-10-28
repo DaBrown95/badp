@@ -119,9 +119,9 @@ make verify-gameplay
 
 The check runs the reference and matching build under the same inputs, comparing
 screenshots, state, mapper writes, NMI, OAM DMA and audio-register writes. The
-Moses sequence includes picking up and carrying the baby past the first enemy
-and across the first water gap. A separate Noah sequence opens and closes the
-inventory and checks its table reads.
+Moses sequence carries and recovers the baby, completes the first level and
+enters the second. A
+separate Noah sequence opens and closes the inventory and checks its table reads.
 It keeps its evidence in the ignored `reports/us-v1.5/runtime/` directory. These
 short opening scenarios do not establish full gameplay completion or physical
 cartridge behaviour.
@@ -149,6 +149,7 @@ cartridge behaviour.
 | `make sprite-inventory` | Validate and decode the local sprite trace; payloads remain local. |
 | `make map-data` | Decode candidate map layouts and chunks to local analysis. |
 | `make trace-map` | Check map fetches in extended v1.5 emulator inputs. |
+| `make prg-inventory` | Combine verified source ownership and local data-use evidence. |
 | `make test` | Test the tooling using synthetic data; no game ROM needed. |
 
 Other versions have pinned reference identities but do not have builds yet.

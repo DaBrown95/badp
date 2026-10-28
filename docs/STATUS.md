@@ -44,16 +44,17 @@ the original source language and toolchain remain unestablished.
 
 ## v1.5 opening-gameplay evidence
 
-`make verify-gameplay` runs 2,800 NTSC frames each for Noah, Moses and David,
+`make verify-gameplay` runs 3,750 NTSC frames each for Noah, Moses and David,
 plus a separate Noah inventory scenario,
 in pinned MesenCE 2.2.1, with zeroed power-on RAM and fixed mapper/alignment
 settings. It compares the audited reference and verified build under the same
 menu and movement inputs. All three reached their opening areas and showed a
 change in scroll and screenshot after rightward input. The Moses sequence also
 presses B to lift the baby, jumps past the first approaching enemy and crosses
-the first water gap. Its sampled slot fields show the baby linked to the player
-and carried as the level scrolls; screenshots provide visual evidence of the
-lift. The fifteen sampled
+the first water gap. It recovers him after a later collision, backtracks over the
+position trigger, reaches the first-level success screen and enters level two.
+Sampled slot fields show the link, its loss and recovery; a pinned screenshot
+hash checks the success screen. The twenty-six sampled
 frames, slot fields, state and cycle counts, mapper-write streams, NMI counts, OAM DMA and
 APU-register write streams agreed between the reference and build. Both PRG
 banks appeared in the emulator's mapper-write mapping; every observed write
@@ -78,6 +79,11 @@ successful reference-versus-build checks.
 A further reference-only jump sweep carried him through the frame-3,000 sample
 in one tested timing, but he was no longer linked at frame 3,100. The sweep
 inputs and incremental results remain in `analysis/us-v1.5/moses-jump-sweep/`.
+Later reference-only timing experiments paused before the soldier and recovered
+Moses after a subsequent hit near the right edge. Backtracking and returning
+then reached the first-level success screen. Inputs and results remain in
+`analysis/us-v1.5/moses-pause-sweep/`, `moses-edge-pickup/` and
+`moses-edge-recross/`.
 
 The emulator archive matched the published SHA-256. On the test machine,
 `codesign --verify` reported its bundled signature as invalid; the headless
@@ -256,6 +262,14 @@ The map lookup uses 146 two-byte offsets, each a multiple of 68, into locally
 supplied map-chunk data. The offset table and state-indexed vertical-base seeds
 are source; map layouts and chunk contents remain local. Runtime bounds on
 either table have not been established.
+`make prg-inventory` combines the current verified source map with candidate
+map, script, record and palette-setup uses, round-tripped packed text, and
+optional validated audio and sprite traces. It counts physical bytes once while
+retaining overlapping uses. With the current local traces, 6,394 PRG bytes have no use
+in these inventories; that number is not a count of remaining code. The report
+also retains 65 possible map/script overlap bytes and 29 possible record/script
+overlap bytes. It records its input identities and writes metadata only to
+ignored `analysis/us-v1.5/prg-inventory.json`.
 `make map-data` decodes 22 state-table entries into 14 distinct candidate
 layouts and 146 chunk-table entries into 145 distinct referenced chunks. The
 layouts and chunks round-trip to their local bytes; none of the decoded grid

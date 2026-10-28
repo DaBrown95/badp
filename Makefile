@@ -5,7 +5,7 @@ export BADP_TARGET = $(TARGET)
 export BADP_ROM = $(ROM)
 .DEFAULT_GOAL := help
 
-.PHONY: help setup setup-mesen targets identify audit audit-all build progress verify-gameplay position-records script-entries script-flow slot-record-flow direct-record-flow packed-text trace-audio audio-inventory trace-sprites sprite-inventory map-data trace-map test
+.PHONY: help setup setup-mesen targets identify audit audit-all build progress verify-gameplay position-records script-entries script-flow slot-record-flow direct-record-flow packed-text trace-audio audio-inventory trace-sprites sprite-inventory map-data trace-map prg-inventory test
 help:
 	@echo 'make targets   Show the primary target and sequential target order'
 	@echo 'make identify  Inspect a ROM (default: primary target; override TARGET=id or ROM=path)'
@@ -28,6 +28,7 @@ help:
 	@echo 'make sprite-inventory Validate and decode the local sprite trace'
 	@echo 'make map-data        Decode v1.5 map layouts and chunks locally'
 	@echo 'make trace-map       Check mapped map fetches in MesenCE'
+	@echo 'make prg-inventory   Combine source and local PRG-use evidence'
 	@echo 'make test      Test the tools without a game ROM'
 
 setup:
@@ -92,6 +93,9 @@ map-data:
 
 trace-map:
 	$(PYTHON) -m tools.trace_map
+
+prg-inventory:
+	$(PYTHON) -m tools.prg_inventory
 
 test:
 	$(PYTHON) -m unittest discover -s tests -v

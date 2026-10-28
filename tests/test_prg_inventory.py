@@ -1,0 +1,75 @@
+"""PRG use accounting tests use synthetic spans and trace metadata only."""
+import hashlib
+import json
+from pathlib import Path
+import tempfile
+import unittest
+
+from tools.prg_inventory import _optional_trace, palette_setup_spans, summarize
+
+
+class PrgInventoryTests(unittest.TestCase):
+    def test_aliases_overlap_and_banks_are_counted_physically_once(self):
+        result = summarize({'source_code': [(0, 3), (0, 3)],
+                            'source_data': [(8, 2)],
+                            'candidate_map_chunks': [(2, 3), (10, 2)],
+                            'candidate_sprite_bytes': [(4, 1)],
+                            'candidate_script_bytes': [(3, 2)],
+                            'candidate_record_bytes': [(3, 1), (8, 1)]}, bank_size=8, bank_count=2)
+        counts = result['category_bytes']
+        self.assertEqual((counts['source_code'], counts['source_data']), (3, 2))
+        self.assertEqual((counts['candidate_map_chunks'], counts['candidate_sprite_bytes']), (5, 1))
+        self.assertEqual(result['source_and_candidate_data_bytes'], 2)
+        self.assertEqual(result['map_and_candidate_script_bytes'], 2)
+        self.assertEqual(result['record_and_candidate_script_bytes'], 1)
+        self.assertEqual(result['uncatalogued_bytes'], 7)
+        self.assertEqual([(s['bank'], s['physical_prg_offset'], s['size'])
+                          for s in result['uncatalogued_spans']], [(0, 5, 3), (1, 12, 4)])
+        groups = {tuple(g['uses']): g['bytes'] for g in result['use_combinations']}
+        self.assertEqual(groups[('source_code', 'candidate_map_chunks')], 1)
+        self.assertEqual(groups[('candidate_map_chunks', 'candidate_sprite_bytes', 'candidate_script_bytes')], 1)
+        self.assertEqual(sum(groups.values()), 16)
+
+    def test_rejects_invalid_or_cross_bank_spans(self):
+        for span in ((7, 2), (15, 2), (0, 0), (-1, 1), (True, 1), (0, '1')):
+            with self.subTest(span=span), self.assertRaises(ValueError):
+                summarize({'source_code': [span]}, bank_size=8, bank_count=2)
+        with self.assertRaises(ValueError):
+            summarize({'unknown': [(0, 1)]}, bank_size=8, bank_count=2)
+
+    def test_trace_identity_and_missing_trace(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            script, trace = root / 'test.lua', root / 'trace.json'
+            script.write_text('-- synthetic trace script\n')
+            source_hash = hashlib.sha256(script.read_bytes()).hexdigest()
+            self.assertIsNone(_optional_trace(trace, script, 'reference', 'core'))
+            data = {'reference_sha256': 'reference', 'script_sha256': source_hash,
+                    'emulator_core_sha256': 'core',
+                    'results': {'noah': {}, 'moses': {}, 'david': {}}}
+            trace.write_text(json.dumps(data))
+            self.assertEqual(_optional_trace(trace, script, 'reference', 'core'), data)
+            for field in ('reference_sha256', 'script_sha256', 'emulator_core_sha256', 'results'):
+                damaged = dict(data)
+                damaged[field] = 'wrong' if field != 'results' else {'noah': {}}
+                trace.write_text(json.dumps(damaged))
+                with self.subTest(field=field), self.assertRaises(ValueError):
+                    _optional_trace(trace, script, 'reference', 'core')
+            trace.unlink()
+            trace.symlink_to(root / 'missing')
+            with self.assertRaisesRegex(ValueError, 'symlinked trace'):
+                _optional_trace(trace, script, 'reference', 'core')
+
+    def test_palette_setup_respects_sprite_skip_and_bank_bounds(self):
+        pointers = bytes([4, 0x80, 4, 0x80])
+        self.assertEqual(palette_setup_spans(pointers, sprite=False, bank_size=32),
+                         [(4, 3), (7, 16), (4, 3), (7, 16)])
+        self.assertEqual(palette_setup_spans(pointers[:2], sprite=True, bank_size=32),
+                         [(4, 3), (8, 15)])
+        for invalid in (b'', b'\x00', bytes([0, 0x7f]), bytes([16, 0x80])):
+            with self.subTest(invalid=invalid), self.assertRaises(ValueError):
+                palette_setup_spans(invalid, sprite=False, bank_size=32)
+
+
+if __name__ == '__main__':
+    unittest.main()
