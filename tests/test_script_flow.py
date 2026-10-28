@@ -2,7 +2,7 @@
 import unittest
 
 from tools.script_entries import BANK_SIZE
-from tools.script_flow import scan_lookup_table, walk
+from tools.script_flow import ConditionalIndexedJump, scan_lookup_table, walk
 
 
 def fixture():
@@ -431,6 +431,44 @@ class ScriptFlowTests(unittest.TestCase):
             with self.subTest(entries=entries), self.assertRaisesRegex(ValueError, 'entry count'):
                 walk(bytes(b0), bytes(b1), bytes(lengths), [0x10], indexed_jumps={0x10: entries})
 
+    def test_conditional_indices_are_separate_from_observations_and_remain_open(self):
+        b0, b1, lengths = fixture()
+        b1[0x10:0x17] = bytes([0x44, 0x20, 0, 0x30, 0, 0x40, 0])
+        b1[0x20] = b1[0x30] = b1[0x40] = 0x16
+        spec = ConditionalIndexedJump((0, 2), (1,), 'same slot after a selector')
+        node = by_pointer(walk(bytes(b0), bytes(b1), bytes(lengths), [0x10],
+                               indexed_jumps={0x10: spec}))['0x0010']
+        self.assertEqual(node['status'], 'observed_indexed_jump_incomplete')
+        self.assertEqual(node['conditional_index_scope'], 'same slot after a selector')
+        self.assertEqual(node['successors'], [
+            {'kind': 'observed_index_target', 'encoded_pointer': '0x0020'},
+            {'kind': 'observed_index_target', 'encoded_pointer': '0x0040'},
+            {'kind': 'conditional_predecessor_index_target', 'encoded_pointer': '0x0030'}])
+        self.assertEqual([r['evidence'] for r in node['jump_records']],
+                         ['observed', 'observed', 'conditional_predecessor'])
+        invalid = (ConditionalIndexedJump((0,), (0,), 'same slot'),
+                   ConditionalIndexedJump((0,), (128,), 'same slot'),
+                   ConditionalIndexedJump((True,), (1,), 'same slot'),
+                   ConditionalIndexedJump((0,), (1,), ''),
+                   ConditionalIndexedJump((0,), (), 'same slot'))
+        for candidate in invalid:
+            with self.subTest(candidate=candidate), self.assertRaisesRegex(ValueError, 'conditional'):
+                walk(bytes(b0), bytes(b1), bytes(lengths), [0x10], indexed_jumps={0x10: candidate})
+
+    def test_thirty_two_candidate_positions_do_not_become_a_global_bound(self):
+        b0, b1, lengths = fixture()
+        b1[0x10] = 0x44
+        for index in range(32):
+            b1[0x11 + 2 * index:0x13 + 2 * index] = bytes([0, 1])
+        b1[0x100] = 0x16
+        spec = ConditionalIndexedJump((0, 1, 2), tuple(range(3, 32)), 'conditional predecessor')
+        node = by_pointer(walk(bytes(b0), bytes(b1), bytes(lengths), [0x10],
+                               indexed_jumps={0x10: spec}))['0x0010']
+        self.assertEqual(node['status'], 'observed_indexed_jump_incomplete')
+        self.assertEqual([record['index'] for record in node['jump_records']], list(range(32)))
+        self.assertEqual(sum(record['evidence'] == 'observed' for record in node['jump_records']), 3)
+        self.assertEqual(sum(record['evidence'] == 'conditional_predecessor'
+                             for record in node['jump_records']), 29)
     def test_encoded_bank_transition(self):
         b0, b1, lengths = fixture()
         b1[-1] = 0x21

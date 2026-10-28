@@ -38,15 +38,15 @@ their assumed descriptor associations and interpretations remain unverified.
 The overlaps do not establish which path actually executes.
 A separate `make direct-record-flow` walk seeds every named bank-1 script
 entry and checks direct `$16` targets against the resulting script graph.
-The latest scan starts from 1,838 named candidate script entries and finds 28
+The latest scan starts from 1,839 named candidate script entries and finds 28
 possible direct-load commands with 26 distinct direct targets. Its widened
-walk contains 9,072 bytes with overlapping script decodes and 72 possible
+walk contains 9,105 bytes with overlapping script decodes and 72 possible
 record/script overlap bytes. The added entries are candidate contexts, so
 these counts do not establish execution or mutually incompatible behavior. The
 possible record at `$B077` overlaps two candidate script bytes; both views are
 represented in the same source extent with an assembler consistency check.
-The graph follows three observed `$F434` indexed targets,
-while reporting that site's remaining possible indices as unresolved.
+The graph follows three observed `$F434` indices and 29 more candidates under
+the `$F432` predecessor condition; other independent-entry indices remain open.
 In the directed 16,000-frame runs, the `$B05D` branch saw slot values `$0001`,
 `$0005` and `$000B` for Noah, Moses and David, respectively, so its `$000F`
 test did not select `$B080`. At `$B076`, the saved-pointer high byte was never
@@ -202,3 +202,8 @@ only if the same slot continues without intervening changes; independent entry
 can select any of 128 distinct read positions. The table inventory is kept
 locally by `make indexed-jump-inventory`, and does not claim reachability of
 its candidate entries.
+
+Expanding the conditional `$F434` positions produces 551 possible native-event
+contexts and 827 possible record/script overlap bytes in the merged walk.
+These downstream contexts can depend on the predecessor condition and do not
+prove that the additional table positions, records or scripts execute.

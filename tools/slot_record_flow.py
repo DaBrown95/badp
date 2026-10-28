@@ -13,7 +13,7 @@ import sys
 from .script_entries import (BANK_SIZE, DESCRIPTORS, DESCRIPTOR_COUNT, ROOT,
                              _locate, _location, decode_slot_record, inventory,
                              load_audited_banks)
-from .script_flow import PRIMARY_INDEXED_JUMPS, walk
+from .script_flow import ConditionalIndexedJump, PRIMARY_INDEXED_JUMPS, walk
 
 DIRECT_MODE_CLASSES = ((0, 'zero'), (1, 'one'),
                        (2, 'other_nonnegative'), (0xff, 'negative'))
@@ -101,7 +101,8 @@ def record_script_overlaps(references: list[dict], graph: dict) -> dict:
 
 
 def trace(bank0: bytes, bank1: bytes, lengths: bytes, seeds: list[tuple[int, int]],
-          indexed_jumps: dict[int, int | tuple[int, ...]] | None = None, limit: int = 10000,
+          indexed_jumps: dict[int, int | tuple[int, ...] | ConditionalIndexedJump] | None = None,
+          limit: int = 10000,
           graph_limit: int = 65536) -> dict:
     """Explore candidate (descriptor base, script entry) contexts with a hard limit."""
     if len(bank0) != BANK_SIZE or len(bank1) != BANK_SIZE:

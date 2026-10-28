@@ -7,6 +7,7 @@ This is static over-approximation, not runtime reachability or owned source.
 from __future__ import annotations
 
 from collections import deque
+from dataclasses import dataclass
 import json
 from pathlib import Path
 import sys
@@ -35,7 +36,20 @@ POSSIBLE_YIELD = frozenset({0x08, 0x11, 0x12, 0x2D, 0x33, 0x34, 0x7D, 0x81, 0x96
 # Integer counts are candidate bounds from specific immediately preceding
 # clamp/divide or mask sequences; other entries may reach those opcodes.
 # Tuples enumerate observed indices only and never imply a complete bound.
-PRIMARY_INDEXED_JUMPS = {0x362C: 11, 0x548F: 4, 0x671C: 8, 0x7434: (0, 1, 2)}
+@dataclass(frozen=True)
+class ConditionalIndexedJump:
+    """Observed indices plus additional possibilities under a stated condition."""
+    observed: tuple[int, ...]
+    conditional: tuple[int, ...]
+    condition: str
+
+
+PRIMARY_INDEXED_JUMPS = {
+    0x362C: 11, 0x548F: 4, 0x671C: 8,
+    0x7434: ConditionalIndexedJump(
+        observed=(0, 1, 2), conditional=tuple(range(3, 32)),
+        condition='same slot after $F432 selector, without an intervening value write'),
+}
 
 
 def scan_lookup_table(banks: tuple[bytes, bytes], start: int, limit: int = 256) -> dict:
@@ -69,7 +83,8 @@ def scan_lookup_table(banks: tuple[bytes, bytes], start: int, limit: int = 256) 
 
 
 def walk(bank0: bytes, bank1: bytes, lengths: bytes, seeds: list[int],
-         limit: int = 10000, indexed_jumps: dict[int, int | tuple[int, ...]] | None = None) -> dict:
+         limit: int = 10000,
+         indexed_jumps: dict[int, int | tuple[int, ...] | ConditionalIndexedJump] | None = None) -> dict:
     """Explore proven local successor rules, stopping on every unknown opcode."""
     if len(bank0) != BANK_SIZE or len(bank1) != BANK_SIZE:
         raise ValueError('expected two full 32 KiB banks')
@@ -82,6 +97,16 @@ def walk(bank0: bytes, bank1: bytes, lengths: bytes, seeds: list[int],
     for site, entries in indexed_jumps.items():
         _locate(site)
         if type(entries) is int and 1 <= entries <= 128:
+            continue
+        if isinstance(entries, ConditionalIndexedJump):
+            observed, conditional = entries.observed, entries.conditional
+            if (not isinstance(observed, tuple) or not isinstance(conditional, tuple)
+                    or not observed or not conditional or not isinstance(entries.condition, str)
+                    or not entries.condition.strip()
+                    or any(type(index) is not int or not 0 <= index <= 127
+                           for index in observed + conditional)
+                    or len(set(observed + conditional)) != len(observed + conditional)):
+                raise ValueError('invalid conditional indexed-jump entries')
             continue
         if (not isinstance(entries, tuple) or not entries
                 or any(type(index) is not int or not 0 <= index <= 127 for index in entries)
@@ -201,9 +226,13 @@ def walk(bank0: bytes, bank1: bytes, lengths: bytes, seeds: list[int],
             # lists observed indices while retaining an open set of others.
             entries = indexed_jumps[encoded]
             bounded = type(entries) is int
-            indices = range(entries) if bounded else entries
+            conditional = isinstance(entries, ConditionalIndexedJump)
+            indices = (range(entries) if bounded else
+                       entries.observed + entries.conditional if conditional else entries)
             node['status'] = ('reviewed_bounded_indexed_jump' if bounded
                               else 'observed_indexed_jump_incomplete')
+            if conditional:
+                node['conditional_index_scope'] = entries.condition
             node['jump_records'] = []
             for index in indices:
                 entry = (following + index * 2) & 0xFFFF
@@ -212,12 +241,18 @@ def walk(bank0: bytes, bank1: bytes, lengths: bytes, seeds: list[int],
                     node['status'] = 'indexed_jump_crosses_bank_boundary'
                     break
                 target = int.from_bytes(banks[entry_bank][entry_offset:entry_offset + 2], 'little')
-                node['jump_records'].append({'index': index, 'encoded_pointer': f'0x{entry:04x}',
-                                             'location': _location(entry_bank, entry_offset),
-                                             'target': target})
+                record = {'index': index, 'encoded_pointer': f'0x{entry:04x}',
+                          'location': _location(entry_bank, entry_offset), 'target': target}
+                if conditional:
+                    record['evidence'] = ('observed' if index in entries.observed
+                                          else 'conditional_predecessor')
+                node['jump_records'].append(record)
                 for pos in range(entry_offset, entry_offset + 2):
                     coverage.setdefault((entry_bank, pos), set()).add(encoded)
-                edges.append(('bounded_index_target' if bounded else 'observed_index_target', target))
+                edge_kind = ('bounded_index_target' if bounded else
+                             'conditional_predecessor_index_target'
+                             if conditional and index in entries.conditional else 'observed_index_target')
+                edges.append((edge_kind, target))
         elif opcode == 0x63 and length >= 3 and data[2] != 0:
             # The record loader restores $53/$54 after its fetch and only
             # installs a record's script pointer when mode $57 is zero.

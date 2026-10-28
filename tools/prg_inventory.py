@@ -19,7 +19,7 @@ from .progress import verify_primary
 from .project import input_path
 from .script_entries import (BANK_SIZE, DESCRIPTORS, DESCRIPTOR_COUNT, ROOT,
                              inventory as descriptor_inventory, load_audited_banks)
-from .script_flow import PRIMARY_INDEXED_JUMPS, walk
+from .script_flow import ConditionalIndexedJump, PRIMARY_INDEXED_JUMPS, walk
 from .setup_mesen import spec
 
 CATEGORIES = ('source_code', 'source_data', 'candidate_map_chunks', 'candidate_map_layouts',
@@ -117,6 +117,35 @@ def script_graph_spans(graphs: list[dict]) -> list[tuple[int, int]]:
     return spans
 
 
+def record_spans(references: list[dict]) -> list[tuple[int, int]]:
+    """Collect only the physical fields used by candidate records."""
+    spans = []
+    for reference in references:
+        if reference['status'] == 'candidate':
+            start = reference['location']['physical_prg_offset']
+            spans.extend((start + offset, 1) for offset in slot_record_flow.record_used_offsets(reference))
+    return spans
+
+
+def expansion_counts(baseline: list[tuple[int, int]], expanded: list[tuple[int, int]]) -> dict:
+    """Compare physical-byte sets; neither set establishes execution."""
+    def offsets(spans: list[tuple[int, int]]) -> set[int]:
+        result = set()
+        for start, length in spans:
+            if (type(start) is not int or type(length) is not int or start < 0 or length <= 0
+                    or start + length > 2 * BANK_SIZE
+                    or start // BANK_SIZE != (start + length - 1) // BANK_SIZE):
+                raise ValueError('invalid conditional expansion span')
+            result.update(range(start, start + length))
+        return result
+
+    before, after = offsets(baseline), offsets(expanded)
+    if not before <= after:
+        raise ValueError('conditional graph expansion lost baseline bytes')
+    return {'baseline_bytes': len(before), 'expanded_bytes': len(after),
+            'added_bytes': len(after - before)}
+
+
 def _digest(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
@@ -198,11 +227,34 @@ def inventory(root: Path = ROOT) -> dict:
     direct = direct_record_flow.direct_inventory(bank0, bank1, direct_graph)
     spans['candidate_script_bytes'] = script_graph_spans([graph, direct_graph])
     candidate_references = events['event_records'] + flow['references'] + direct['references']
-    for reference_entry in candidate_references:
-        if reference_entry['status'] == 'candidate':
-            start = reference_entry['location']['physical_prg_offset']
-            spans['candidate_record_bytes'].extend((start + offset, 1)
-                for offset in slot_record_flow.record_used_offsets(reference_entry))
+    spans['candidate_record_bytes'] = record_spans(candidate_references)
+
+    # Compare the widened graph with the same candidate roots and the three
+    # observed indices only. Roots and baseline edges are still candidates;
+    # membership in either graph does not establish actual execution.
+    indexed_jump = PRIMARY_INDEXED_JUMPS[0x7434]
+    if not isinstance(indexed_jump, ConditionalIndexedJump):
+        raise ValueError('expected conditional indexed jump configuration')
+    baseline_indexed = dict(PRIMARY_INDEXED_JUMPS)
+    baseline_indexed[0x7434] = indexed_jump.observed
+    baseline_events = native_event_flow.inventory_events(bank0, bank1, lengths, descriptors['records'],
+                                                          indexed_jumps=baseline_indexed)
+    baseline_flow = baseline_events['flow']
+    baseline_graph = baseline_flow['merged_script_flow']
+    baseline_direct_graph = walk(bank0, bank1, lengths, direct_seeds, indexed_jumps=baseline_indexed,
+                                 limit=65536)
+    if baseline_flow['unprocessed_contexts'] or baseline_graph['unprocessed'] or baseline_direct_graph['unprocessed']:
+        raise ValueError('baseline candidate script context inventory is incomplete')
+    baseline_direct = direct_record_flow.direct_inventory(bank0, bank1, baseline_direct_graph)
+    baseline_records = (baseline_events['event_records'] + baseline_flow['references']
+                        + baseline_direct['references'])
+    conditional_expansion = {
+        'script_bytes': expansion_counts(script_graph_spans([baseline_graph, baseline_direct_graph]),
+                                         spans['candidate_script_bytes']),
+        'record_field_bytes': expansion_counts(record_spans(baseline_records), spans['candidate_record_bytes']),
+        'interpretation': 'Added bytes are relative to the observed-index candidate baseline; '
+                          'neither baseline nor expansion proves execution. Shared candidate roots '
+                          'can hide paths that also depend on the predecessor condition.'}
 
     sprite_pointers = sprite_metadata.resource_pointer_candidates(descriptors['records'], candidate_references)
     sprite_candidates = sprite_metadata.inventory_candidates(bank0, sprite_pointers['rom_pointers'])
@@ -272,6 +324,7 @@ def inventory(root: Path = ROOT) -> dict:
                     'sprite_offsets_crossing_bank': crossing_sprite_offsets,
                     'direct_script_overlap_bytes': direct_graph['overlapping_physical_bytes'],
                     'direct_record_script_overlap_bytes': direct['record_script_overlaps']['physical_bytes'],
+                    'conditional_index_expansion': conditional_expansion,
                     'direct_dynamic_slot_pointers': len(direct['dynamic_slot_pointer_commands']),
                     'candidate_contact_records': sum(r['command'] == 'native_contact' for r in events['event_records']),
                     'candidate_position_event_records': sum(r['command'] == 'native_position' for r in events['event_records']),
@@ -319,6 +372,7 @@ def main() -> int:
                           'observed_and_static_sprite_bytes': result['observed_and_static_sprite_bytes'],
                           'direct_script_overlap_bytes': result['direct_script_overlap_bytes'],
                           'direct_record_script_overlap_bytes': result['direct_record_script_overlap_bytes'],
+                          'conditional_index_expansion': result['conditional_index_expansion'],
                           'direct_dynamic_slot_pointers': result['direct_dynamic_slot_pointers'],
                           'candidate_contact_records': result['candidate_contact_records'],
                           'candidate_position_event_records': result['candidate_position_event_records'],

@@ -339,12 +339,12 @@ either table have not been established.
 map, descriptor-context, native-event and direct-target scripts and records, palette setup,
 candidate audio and PPU-stream uses, round-tripped packed text, and optional
 validated audio and sprite traces. It counts physical bytes once while
-retaining overlapping uses. With the current local traces, 811 PRG bytes have no use
+retaining overlapping uses. With the current local traces, 793 PRG bytes have no use
 in these inventories; that number is not a count of remaining code. The report
-also retains 6,434 possible map/script overlap bytes and 706 possible record/script
+also retains 6,490 possible map/script overlap bytes and 827 possible record/script
 overlap bytes across the combined inventories. The expanded field-setter walk
 introduces many speculative competing decodes; it does not establish their
-reachability. It also reports 4,386 source-owned bytes covered by candidate
+reachability. It also reports 7,157 source-owned bytes covered by candidate
 data uses, which can include compatible uses as well as competing ones. The
 report records its input identities and writes metadata only to
 ignored `analysis/us-v1.5/prg-inventory.json`.
@@ -1256,3 +1256,15 @@ out-of-range positions execute or that their words are intended script targets.
 `make indexed-jump-inventory` repeats the controlled probes and keeps the table
 analysis locally. Mapping, slot state and runtime reachability remain separate
 uncertainties.
+
+The static script and record walks now follow the 29 additional `$F434`
+positions only as predecessor-conditioned candidates, distinct from the three
+observed indices. The jump remains incomplete for independent entry. The
+merged native-event walk now contains 551 candidate contexts and 827 possible
+record/script overlap bytes. Paths introduced by the additional edges depend on
+the condition; the merged graph does not retain complete provenance or prove
+execution. The observed-index comparison adds 83 candidate script bytes and
+302 candidate record-field bytes, with shared roots potentially hiding other
+conditional paths. Source aliases and assertions describe the already
+known overlapping entries at `$A9FF`, `$AA01`, `$AA90` and `$AA91` without
+claiming another physical byte or a unique interpretation.

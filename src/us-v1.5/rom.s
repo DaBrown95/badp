@@ -14561,13 +14561,19 @@ AudioCandidateA9F6:
     AudioNote $02, $0E
     AudioNote $02, $0A
     AudioNote $01, $1F
-    AudioNote $01, $09
+; Possible $29 command consumes the first byte of the next candidate command.
+CandidateScriptA9FF:
+    AudioNoteBogusOverlay $01, $09, BogusActionOpcode_BogusSetSpriteAttribute20
 .assert (* - BankStart) = $2A00, error, "bank 1 audio candidate A9F6 end"
 ; Candidate BOGUS commands and audio-note sequence share these bytes.
-; Alternate candidate script entries begin at $A9FF and $AA01.
+; At $A9FF, the $29 command uses this $27 opcode as its operand.
+; At $AA01, the target bytes also decode as BogusSetDispatchCounter $29.
 ; Script context, bank selection and execution remain unverified.
 AudioScriptAA00:
-    AudioScriptTarget BogusBranchAndClearSlot0620Bit08, $27, $292C, $01, $07, $01, $0C, $01, $09 ; CONTROL_AUDIO_COMMAND_AA00
+CandidateScriptAA01 = AudioScriptAA00 + 1
+AudioScriptAA00Target = $292C
+.assert <AudioScriptAA00Target = BogusActionOpcode_BogusSetDispatchCounter, error, "AA01 alternate opcode disagreement"
+    AudioScriptTarget BogusBranchAndClearSlot0620Bit08, $27, AudioScriptAA00Target, $01, $07, $01, $0C, $01, $09 ; CONTROL_AUDIO_COMMAND_AA00
 AudioScriptAA03:
     AudioScriptTarget BogusBranchAndClearSlot0620Bit08, $27, $2926, $01, $07, $01, $06, $01, $09
 AudioScriptAA06:
@@ -14682,10 +14688,16 @@ AudioScriptAA8B:
     AudioScriptTriple BogusAddSelectedFieldClamped, $38, $35, $31, $33, $01, $18, $01, $15, $01, $11, $01, $13 ; CONTROL_AUDIO_COMMAND_AA8B
 .assert (* - BankStart) = $2A8F, error, "bank 1 audio/script command aa8b end"
 ; Candidate BOGUS commands and audio-note sequence share these bytes.
-; Alternate candidate script entries begin at $AA90 and $AA91.
-; Script context, bank selection and execution remain unverified.
+; At $AA90 the target low byte can yield via BogusMarkSlot05A0AndYield.
+; At $AA91 the high byte and following operands can execute as
+; BogusAddSelectedFieldClamped $36, $35, $33. Neither path is established.
 AudioScriptAA8F:
-    AudioScriptTargetTriple BogusBranchIfMatchingSlotReady, $35, $382E, $36, $35, $33, $01, $15, $01, $0E, $01, $18, $01, $16, $01, $15, $01, $13 ; CONTROL_AUDIO_COMMAND_AA8F
+CandidateScriptAA90 = AudioScriptAA8F + 1
+CandidateScriptAA91 = AudioScriptAA8F + 2
+AudioScriptAA8FTarget = $382E
+.assert <AudioScriptAA8FTarget = BogusOpcodeMarkSlotAndYield, error, "AA90 alternate opcode disagreement"
+.assert >AudioScriptAA8FTarget = BogusActionOpcode_BogusAddSelectedFieldClamped, error, "AA91 alternate opcode disagreement"
+    AudioScriptTargetTriple BogusBranchIfMatchingSlotReady, $35, AudioScriptAA8FTarget, $36, $35, $33, $01, $15, $01, $0E, $01, $18, $01, $16, $01, $15, $01, $13 ; CONTROL_AUDIO_COMMAND_AA8F
 AudioScriptAA95:
     AudioScriptFourWords BogusSetVoicePointers, $31, $312C, $3130, $3835, $383D, $01, $11, $01, $0C, $01, $11, $01, $10, $01, $11, $01, $15, $01, $18, $01, $1D, $01, $18
 .assert (* - BankStart) = $2A9E, error, "bank 1 audio/script command aa8f end"

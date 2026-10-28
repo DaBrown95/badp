@@ -36,10 +36,11 @@ the reviewed decoder and palette fade.
 Three `$44` indexed jumps have explicit candidate bounds of 11, 4 and 8
 entries, derived from their immediately preceding clamp/divide or mask paths.
 The walker follows those entries and marks their table bytes; other callers and
-their index ranges remain unverified. At `$F434`, it also follows the three
-indices observed in emulator traces, explicitly marking the jump incomplete:
-those observations do not establish an index bound. Unbounded `$44` sites
-without observed indices still stop.
+their index ranges remain unverified. At `$F434`, it follows the three indices
+observed in emulator traces and separately marks indices 3-31 as conditional on
+the `$F432` predecessor and unchanged slot value. The jump remains incomplete:
+independent entry can use other indices. Unbounded `$44` sites without reviewed
+indices still stop.
 The `$8A` stack-buffer operation has a possible normal-return successor. Its
 `$FF` form clears `$0100-$011F`; a sufficiently deep stack could put a return
 address in that range, so the walk does not model every possible outcome.
@@ -142,5 +143,17 @@ discards bit 7 when doubling it, yielding 128 distinct read positions. The
 controlled reference/build probes and bank-1 table inventory are available via
 `make indexed-jump-inventory`. Positions beyond the first three overlap script
 or candidate map-layout bytes; this does not establish they are executed as
-table entries. The general script walk still retains only the three observed
-indices and reports the site incomplete.
+table entries. The general script walk follows the three observed indices plus
+the other 29 predecessor-conditioned candidates, and reports the site
+incomplete. Paths introduced through those edges depend on the condition, but
+the merged graph does not retain complete path provenance. It is an
+over-approximation and does not establish that any such path executes.
+
+`make prg-inventory` compares this expansion with a candidate graph using only
+the observed indices and the same roots. In the current scan it adds 83 script
+bytes and 302 record-field bytes. Shared roots can obscure further conditional
+paths, and neither graph proves execution.
+
+The source now labels the alternate candidate entries at `$A9FF`, `$AA01`,
+`$AA90` and `$AA91`. Their overlapping opcode relationships are checked at
+assembly time; the labels do not establish runtime entry or exclusive decoding.

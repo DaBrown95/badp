@@ -5,10 +5,19 @@ from pathlib import Path
 import tempfile
 import unittest
 
-from tools.prg_inventory import _optional_trace, palette_setup_spans, script_graph_spans, summarize
+from tools.prg_inventory import _optional_trace, expansion_counts, palette_setup_spans, script_graph_spans, summarize
 
 
 class PrgInventoryTests(unittest.TestCase):
+    def test_conditional_expansion_counts_unique_physical_bytes_and_preserves_baseline(self):
+        self.assertEqual(expansion_counts([(1, 3), (2, 2)], [(1, 4), (4, 2)]),
+                         {'baseline_bytes': 3, 'expanded_bytes': 5, 'added_bytes': 2})
+        with self.assertRaisesRegex(ValueError, 'lost baseline'):
+            expansion_counts([(1, 2)], [(2, 2)])
+        for invalid in ([(-1, 1)], [(0x7fff, 2)], [(True, 1)], [(0, 0)]):
+            with self.subTest(invalid=invalid), self.assertRaises(ValueError):
+                expansion_counts([], invalid)
+
     def test_aliases_overlap_and_banks_are_counted_physically_once(self):
         result = summarize({'source_code': [(0, 3), (0, 3)],
                             'source_data': [(8, 2)],
