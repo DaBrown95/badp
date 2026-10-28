@@ -962,3 +962,32 @@ at world x=305 with the baby still linked. These are discrete samples, not a
 continuous carry check. With neutral input after the selected sequence, a later
 sample at frame 8,600 showed the player falling; this route is not a completed
 fourth level. The local search and replay evidence remain under `analysis/`.
+
+A longer fourth-level route was replayed from power-on on both the reference
+and build. The maintained reference/build comparison observed the baby linked for all 733
+end-of-frame samples from frame 8,268 through 9,000; at the final sample the
+player was at world x=854. All five scenarios matched their synchronous frame
+pixels and recorded hardware events. This is not a completed fourth level.
+The maintained lower-route trace was also refreshed through frame 9,000. It
+sampled 67,784 script fetches, 807 record loads and 54,583 inline lookups; all
+sampled command, record and inline bytes were source-owned, and no native
+instruction start in a local gap was observed.
+
+A gameplay comparison retained a mismatch at frame 3,900 even though its state
+and hardware-event streams matched. The differing PNG matched frames 3,898 and
+3,899 in a focused reference replay, and four repeated reference/build roof
+runs agreed at all sampled frames. In the pinned MesenCE revision,
+[`takeScreenshot`](https://github.com/nesdev-org/MesenCE/blob/20ba206cef5ba207c21203176d02cb9f43dda9fb/Core/Debugger/LuaApi.cpp)
+uses the video decoder, which has a
+[separate decode thread](https://github.com/nesdev-org/MesenCE/blob/20ba206cef5ba207c21203176d02cb9f43dda9fb/Core/Shared/Video/VideoDecoder.cpp).
+The verifier now compares canonical run-length encodings of the complete
+synchronous `getScreenBuffer` pixels at every sampled frame. PNG screenshots
+remain visual observations: differing reference and build PNGs are recorded
+and retained rather than used as a substitute for the pixel comparison. Static
+success-screen checks still require their pinned screenshots. This evidence is
+from the pinned emulator and does not establish physical PPU behavior.
+A separate continuation search from the frame-9,000 checkpoint produced a
+reference/build power-on replay with the baby linked at world x=1,081 at frame
+9,200. Later samples showed the player falling, so the maintained scenario
+ends at the earlier 9,000-frame checkpoint; the continuation remains local
+exploratory evidence.

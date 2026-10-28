@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+from functools import lru_cache
 import os
 from pathlib import Path
 import platform
@@ -18,7 +19,7 @@ from .setup_mesen import ROOT, digest_file, spec, verify_emulator
 
 FRAMES = (240, 650, 1200, 1400, 1496, 1511, 1550, 1700, 1800, 2100, 2150, 2300,
           2400, 2600, 2800, 3000, 3100, 3200, 3250, 3300, 3350, 3400, 3450, 3650, 3700, 3750,
-          3800, 3825, 3850, 3900, 4050, 4150, 4300, 4400, 4500, 4600, 4650, 4750, 4900, 5000, 5100, 5200, 5250, 5300, 5375, 5450, 5500, 5550, 5575, 5625, 5650, 5700, 5880, 5950, 6000, 6040, 6100, 6160, 6200, 6260, 6300, 6340, 6500, 6690, 6740, 6780, 6800, 6840, 6900, 7000, 7020, 7100, 7200, 7300, 7400, 7600, 7700, 7800, 7890, 7900, 7920, 8000, 8100, 8200)
+          3800, 3825, 3850, 3900, 4050, 4150, 4300, 4400, 4500, 4600, 4650, 4750, 4900, 5000, 5100, 5200, 5250, 5300, 5375, 5450, 5500, 5550, 5575, 5625, 5650, 5700, 5880, 5950, 6000, 6040, 6100, 6160, 6200, 6260, 6300, 6340, 6500, 6690, 6740, 6780, 6800, 6840, 6900, 7000, 7020, 7100, 7200, 7300, 7400, 7600, 7700, 7800, 7890, 7900, 7920, 8000, 8100, 8200, 8280, 8300, 8400, 8500, 8570, 8700, 8800, 8870, 9000)
 SLOT_FRAMES = (1400, 1496, 1511, 1550, 1700, 1800, 2100, 2150, 2300,
                2400, 2600, 2800, 3000, 3100, 3200, 3250, 3300, 3350, 3400, 3450, 3650, 3700, 3750,
                3800, 3825, 3850, 3900, 4050, 4150, 4300, 4400, 4500, 4600, 4650, 4750, 4900, 5000, 5100, 5200, 5250, 5300, 5375, 5450, 5500, 5550, 5575, 5625, 5650, 5700, 5880, 5950, 6000, 6040, 6100, 6160, 6200, 6260, 6300, 6340, 6500, 6690, 6740, 6780, 6800, 6840, 6900, 7000, 7020, 7100, 7200, 7300, 7400, 7600, 7700, 7800, 7890, 7900, 7920, 8000, 8100, 8200)
@@ -39,11 +40,56 @@ RUNTIME_INPUTS = ('config/mesence-toolchain.json', 'tools/setup_mesen.py',
                   'tools/mesen_gameplay.lua', 'tools/mesen_runtime.py')
 
 
+@lru_cache(maxsize=16)
+def framebuffer_digest(width: int, height: int, palette_hex: str, runs_hex: str) -> str:
+    """Validate canonical palette/RLE pixels and hash the exact rendered frame."""
+    if (width, height) != (256, 240):
+        raise ValueError('unexpected framebuffer dimensions')
+    palette = bytes.fromhex(palette_hex)
+    runs = bytes.fromhex(runs_hex)
+    if not palette or len(palette) % 3 or len(palette) > 768 or not runs or len(runs) % 3:
+        raise ValueError('invalid framebuffer palette or runs')
+    colors = [palette[i:i + 3] for i in range(0, len(palette), 3)]
+    if len(set(colors)) != len(colors):
+        raise ValueError('duplicate framebuffer colors')
+    total = 0
+    seen: set[int] = set()
+    previous = None
+    prior_count = 0
+    for i in range(0, len(runs), 3):
+        count = (runs[i] << 8) | runs[i + 1]
+        index = runs[i + 2]
+        if (not count or index >= len(colors) or (index == previous and prior_count != 65535)):
+            raise ValueError('invalid or noncanonical framebuffer run')
+        if index not in seen:
+            if index != len(seen):
+                raise ValueError('noncanonical framebuffer palette order')
+            seen.add(index)
+        total += count
+        if total > width * height:
+            raise ValueError('framebuffer runs exceed dimensions')
+        previous, prior_count = index, count
+    if total != width * height or len(seen) != len(colors):
+        raise ValueError('incomplete framebuffer')
+    return digest(b'BADP-framebuffer-v1:' + len(colors).to_bytes(2, 'big') + palette + runs)
+
+
+def comparable_runtime_evidence(evidence: dict) -> dict:
+    """Compare synchronous pixels and state; keep asynchronous PNGs as observations."""
+    result = dict(evidence)
+    result['frames'] = {}
+    for frame, value in evidence['frames'].items():
+        if 'framebuffer_sha256' not in value:
+            raise ValueError('missing synchronous framebuffer evidence')
+        result['frames'][frame] = {key: field for key, field in value.items() if key != 'screenshot_sha256'}
+    return result
+
 def parse_output(output: str) -> tuple[dict, dict[int, bytes], dict[str, bytes]]:
     """Parse emulator evidence strictly; unrelated emulator messages are ignored."""
     frames: dict[int, dict] = {}
     slots: dict[int, dict] = {}
     images: dict[int, bytes] = {}
+    framebuffers: dict[int, str] = {}
     writes: list[str] = []
     audio: list[str] = []
     dma: list[str] = []
@@ -51,6 +97,7 @@ def parse_output(output: str) -> tuple[dict, dict[int, bytes], dict[str, bytes]]
     ppu_summary = None
     exit_summary = None
     level4 = None
+    level4_carry = None
     ppu_visible_control = ppu_visible_data = 0
     mismatches = unmapped = 0
     banks: set[int] = set()
@@ -135,6 +182,23 @@ def parse_output(output: str) -> tuple[dict, dict[int, bytes], dict[str, bytes]]
             if any(not 0 <= value <= 255 for value in values):
                 raise ValueError('invalid fourth-level sample')
             level4 = values
+        elif line.startswith('BADP_LEVEL4_CARRY '):
+            parts = line.split()
+            if level4_carry is not None or len(parts) != 11:
+                raise ValueError('malformed or duplicate fourth-level carry summary')
+            values = tuple(map(int, parts[1:]))
+            if (any(value < 0 for value in values) or values[2] > FRAMES[-1]
+                    or any(value > 255 for value in values[3:])):
+                raise ValueError('invalid fourth-level carry summary')
+            level4_carry = values
+        elif line.startswith('BADP_FRAMEBUFFER '):
+            parts = line.split()
+            if len(parts) != 6:
+                raise ValueError('malformed framebuffer evidence')
+            frame, width, height = map(int, parts[1:4])
+            if frame not in FRAMES or frame in framebuffers:
+                raise ValueError('unexpected or duplicate framebuffer evidence')
+            framebuffers[frame] = framebuffer_digest(width, height, parts[4], parts[5])
         elif line.startswith('BADP_FRAME '):
             parts = line.split()
             if len(parts) != 10:
@@ -229,12 +293,14 @@ def parse_output(output: str) -> tuple[dict, dict[int, bytes], dict[str, bytes]]
                 frames.get(FRAMES[-1], {}).get('nmi_count'), len(audio), len(dma))
     expected_targets = ({f'script:{address:04X}' for address in SCRIPT_TARGETS}
                         | {f'record:{address:04X}' for address in RECORD_TARGETS})
-    if (set(frames) != set(FRAMES) or set(slots) != set(SLOT_FRAMES) or reported != expected or not writes
-            or ppu_summary != len(ppu) or not ppu or exit_summary is None or level4 is None
+    if (set(frames) != set(FRAMES) or set(framebuffers) != set(FRAMES) or set(slots) != set(SLOT_FRAMES) or reported != expected or not writes
+            or ppu_summary != len(ppu) or not ppu or exit_summary is None or level4 is None or level4_carry is None
             or probes is None or inventory is None or stage2_record is None or position_event is None
             or controller_events is None or controlled09 is None
             or set(targets) != expected_targets):
         raise ValueError('runtime evidence is incomplete or inconsistent')
+    for frame, value in framebuffers.items():
+        frames[frame]['framebuffer_sha256'] = value
     write_data = ('\n'.join(writes) + '\n').encode('ascii')
     audio_data = ('\n'.join(audio) + '\n').encode('ascii')
     dma_data = ('\n'.join(dma) + '\n').encode('ascii')
@@ -264,6 +330,11 @@ def parse_output(output: str) -> tuple[dict, dict[int, bytes], dict[str, bytes]]
              'level4_player_descriptor': level4[0], 'level4_player_x': level4[1],
              'level4_player_y': level4[2], 'level4_baby_descriptor': level4[3],
              'level4_baby_link': level4[4], 'level4_baby_x': level4[5], 'level4_baby_y': level4[6],
+             'fourth_carry_samples': level4_carry[0], 'fourth_carry_bad': level4_carry[1],
+             'fourth_carry_first': level4_carry[2], 'fourth_player_descriptor': level4_carry[3],
+             'fourth_player_x': level4_carry[4], 'fourth_player_y': level4_carry[5],
+             'fourth_baby_descriptor': level4_carry[6], 'fourth_baby_link': level4_carry[7],
+             'fourth_baby_x': level4_carry[8], 'fourth_baby_y': level4_carry[9],
              'contested_target_hits': dict(sorted(targets.items())),
              'uninitialized_read_warnings': warnings}, images,
             {'mapper': write_data, 'apu': audio_data, 'ppu': ppu_data, 'oam_dma': dma_data})
@@ -383,6 +454,15 @@ def validate_scenario(evidence: dict, expected_state: int, *, inventory: bool = 
                          evidence['level4_baby_link'], evidence['level4_baby_x'],
                          evidence['level4_baby_y']) != (1, 104, 96, 0x6a, 0xff, 176, 160)):
             raise ValueError('Moses third-level success or fourth-level entry was not observed')
+        if roof and (evidence['fourth_carry_samples'] < 600 or evidence['fourth_carry_bad']
+                     or evidence['fourth_carry_first'] < 8200
+                     or evidence['fourth_carry_samples'] != 9001 - evidence['fourth_carry_first']
+                     or evidence['fourth_player_descriptor'] != 1
+                     or evidence['fourth_baby_descriptor'] != 0x6a or evidence['fourth_baby_link'] != 4
+                     or evidence['fourth_baby_y'] >= evidence['fourth_player_y']
+                     or frames['9000']['state'] != 8
+                     or frames['9000']['scroll_x'] + evidence['fourth_player_x'] < 800):
+            raise ValueError('Moses fourth-level pickup and carry was not observed')
     if (evidence['mapper_value_mismatches'] or evidence['unmapped_mapper_writes']
             or evidence['physical_prg_banks_seen'] != [0, 1]):
         raise ValueError('mapper write evidence did not meet the observed-bank checks')
@@ -398,7 +478,10 @@ def run_case(exe: Path, lua: Path, rom: Path, root: Path) -> tuple[dict, dict[in
     result = subprocess.run(command, cwd=root, env=env, capture_output=True, text=True, timeout=150)
     if result.returncode != 0:
         raise ValueError(f'MesenCE exited with status {result.returncode}: {result.stderr[-500:]}')
-    if len(result.stdout) > 30_000_000:
+    # Each framebuffer may contain one three-byte run per pixel, hex encoded,
+    # plus up to 256 RGB palette entries and a small line header.
+    output_limit = 30_000_000 + len(FRAMES) * (6 * 256 * 240 + 1600)
+    if len(result.stdout) > output_limit:
         raise ValueError('MesenCE output exceeded the expected bound')
     return parse_output(result.stdout)
 
@@ -492,7 +575,7 @@ def run(root: Path = ROOT) -> dict:
             try:
                 validate_scenario(ref, expected_state, inventory=name == 'inventory', roof=name == 'moses-roof')
                 validate_scenario(candidate, expected_state, inventory=name == 'inventory', roof=name == 'moses-roof')
-                if ref != candidate or ref_events != candidate_events:
+                if comparable_runtime_evidence(ref) != comparable_runtime_evidence(candidate) or ref_events != candidate_events:
                     raise ValueError('reference and build runtime evidence differ')
             except ValueError as exc:
                 failure = retain_runtime_failure(
@@ -507,11 +590,15 @@ def run(root: Path = ROOT) -> dict:
                      'system_sdl2_sha256': sdl_digest, 'macos_version': platform.mac_ver()[0]},
                     ref, candidate, ref_images, images, ref_events, candidate_events)
                 raise ValueError(f'{name}: {exc}; comparison retained at {failure.relative_to(root)}') from exc
+            asynchronous_screenshot_differences = [frame for frame in FRAMES if ref_images[frame] != images[frame]]
             for frame, image in images.items():
                 (work / f'{name}-{frame}.png').write_bytes(image)
+            for frame in asynchronous_screenshot_differences:
+                (work / f'{name}-reference-{frame}.png').write_bytes(ref_images[frame])
             for kind, data in ref_events.items():
                 (work / f'{name}-{kind}-writes.txt.zlib').write_bytes(zlib.compress(data, 9))
-            results.append({'adventure': name, 'expected_state': expected_state, **candidate})
+            results.append({'adventure': name, 'expected_state': expected_state,
+                            'asynchronous_screenshot_differences': asynchronous_screenshot_differences, **candidate})
         if verify_primary(root, target) != verified:
             raise ValueError('matching build evidence changed during runtime verification')
         if {name: digest_file(root / name) for name in RUNTIME_INPUTS} != runtime_inputs:
@@ -533,7 +620,7 @@ def run(root: Path = ROOT) -> dict:
                   'runtime_input_sha256': runtime_inputs,
                   'emulator_flags': list(GAMEPLAY_FLAGS), 'results': results,
                   'evidence_directory': f'reports/us-v1.5/runtime/{run_name}',
-                  'limitations': 'Emulator evidence only; not full gameplay completion or cartridge hardware verification.'}
+                  'limitations': 'Emulator evidence only; frame pixels are synchronous, PNG screenshots use the asynchronous video decoder. Not full gameplay or cartridge hardware verification.'}
         (work / 'proof.json').write_text(json.dumps(report, indent=2) + '\n')
         # Move the completed directory only after every scenario has passed.
         os.rename(work, destination)

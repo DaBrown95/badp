@@ -119,10 +119,11 @@ make verify-controller
 ```
 
 The check runs the reference and matching build under the same inputs, comparing
-screenshots, state, mapper writes, NMI, OAM DMA, audio-register writes and
-direct `$2000`–`$2007` write timing (excluding `$2004` OAM-data writes). The
+rendered frame pixels, state, mapper writes, NMI, OAM DMA, audio-register writes
+and direct `$2000`–`$2007` write timing (excluding `$2004` OAM-data writes).
+PNG screenshots are retained as visual evidence. The
 Moses sequences carry and recover the baby, complete the first three levels,
-and reach the fourth-level spawn. The third-level checks cover both a
+and carry the baby into the fourth. The third-level checks cover both a
 lower-platform route and the completed route over the roof and down the stairs.
 A separate Noah sequence opens and closes the inventory and checks its table reads. These sequences check
 controller actions against their record loads; David's opening also checks a
