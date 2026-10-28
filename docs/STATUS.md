@@ -34,9 +34,9 @@ independent source trees or treat one version's evidence as verifying the rest.
 simultaneous reconstruction. Keep progress and completion evidence per target.
 
 The v1.5 build now assembles and links to the exact reference, with 21,474 bytes
-of source code and 21,912 bytes of structured data across the physical PRG banks.
-It still includes 22,150 local PRG bytes and 65,536 local CHR bytes. A total of
-1,619 independent source-change controls verify every listed reconstructed region.
+of source code and 21,994 bytes of structured data across the physical PRG banks.
+It still includes 22,068 local PRG bytes and 65,536 local CHR bytes. A total of
+1,654 independent source-change controls verify every listed reconstructed region.
 Passing input audits or whole-ROM equality alone is not reconstruction
 completion. The developer identifies BOGUS as the
 state-machine engine in the [Vance Kozik interview](https://www.nesworld.com/kozik.php);
@@ -1706,3 +1706,31 @@ The separately recorded [cartridge-profile evidence](CARTRIDGE_EVIDENCE.md)
 corroborates the six input identities with component CRC-32 values and records
 a v1.5 / Version 5.0 naming discrepancy. It does not upgrade the hardware
 verification status or replace the fixed reference hashes.
+
+The native `$AF` handler now refers to `StateBankSelectors`,
+`BackgroundPalettePointers` and `SpritePalettePointers` by source label.
+Separate source-change controls cover the three table operands. Its byte-table
+index is the full saved state; the two pointer-table indexes are the low eight
+bits of twice that state. Neither is bounded to the nominal 22 entries. The
+`$0F` selector returns the state before reading any table; the other selectors
+first read the byte table. Pointer selectors then read the background pair;
+`$4D` returns it, while the remaining pointer selectors also read and return
+the sprite pair.
+
+`make state-table-inventory` injects every one of 256 states with every one of
+256 selectors into the handler on both the reference and matching build. The
+result values, table-read instruction order and bank-0 address mappings agree
+with the static model; no NMI occurred in those controlled cases. It separately
+describes the palette setup addresses that would be read if a returned pair were subsequently installed and
+bank 0 remained mapped. Among 212 states with an index outside the nominal
+pointer tables, the background-header plans classify 132 as source data, four
+as source code, 64 as non-PRG or mixed, and twelve as wrapping out of PRG. The
+sprite-header plans classify 88 as source data, fourteen as source code, 98 as
+non-PRG or mixed, and twelve as wrapping out of PRG. These are input-state counts,
+not distinct pointers or physical-byte coverage; the doubled index aliases.
+For example, one conditional sprite result is `$FFFF`, whose header reads would be `$FFFF`, `$0000`, `$0001`.
+States `$80-$95` are outside the byte table but wrap to the nominal pointer
+indexes. These are conditional static plans and injected-handler observations,
+not proof that those states are reachable, that palette setup ran, of I/O side
+effects or of cartridge timing. The metadata remains in ignored
+`analysis/us-v1.5/state-table-inventory.json`.

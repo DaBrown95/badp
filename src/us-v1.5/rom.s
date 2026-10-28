@@ -11221,6 +11221,9 @@ ScriptOpAEReturn:
 
 ; Opcode $AF selects a value or pointer from three tables using $27 and the
 ; selector in $61. Table contents and their higher-level meaning are unresolved.
+; The saved state selects the byte table or one of the split pointer tables.
+; The doubled pointer index wraps at eight bits and is not bounded to 22 entries.
+; Even pointer selectors first read the byte table; $0F skips all table reads.
 ScriptOpAF:
     jsr ScriptClearSlotHigh       ; CONTROL_SCRIPT_OPAF
     lda $27
@@ -11230,21 +11233,21 @@ ScriptOpAF:
     tay
     asl a
     sta $03
-    lda $A37E,y
+    lda StateBankSelectors,y     ; CONTROL_SCRIPT_OPAF_STATE_TABLE
     ldy RecordBuffer1
     cpy #$AA
     beq ScriptOpAFStore
     ldy $03
-    lda $A395,y
+    lda BackgroundPalettePointers + 1,y ; CONTROL_SCRIPT_OPAF_BG_TABLE
     sta $80,x
-    lda $A394,y
+    lda BackgroundPalettePointers,y
     ldy RecordBuffer1
     cpy #$4D
     beq ScriptOpAFStore
     ldy $03
-    lda $A3C1,y
+    lda SpritePalettePointers + 1,y ; CONTROL_SCRIPT_OPAF_SPR_TABLE
     sta $80,x
-    lda $A3C0,y
+    lda SpritePalettePointers,y
 ScriptOpAFStore:
     sta $70,x
     rts

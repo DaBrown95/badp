@@ -75,6 +75,9 @@ SYMBOL_CONTROLS = {
 # The marker must occur exactly once in the maintained source, even when its
 # macro expands into two banks. Controls are built from isolated source copies.
 MUTATIONS = {
+    "script_opaf_state_table": ("CONTROL_SCRIPT_OPAF_STATE_TABLE", "lda StateBankSelectors,y", "lda StateBankSelectors + 1,y"),
+    "script_opaf_bg_table": ("CONTROL_SCRIPT_OPAF_BG_TABLE", "lda BackgroundPalettePointers + 1,y", "lda BackgroundPalettePointers + 2,y"),
+    "script_opaf_spr_table": ("CONTROL_SCRIPT_OPAF_SPR_TABLE", "lda SpritePalettePointers + 1,y", "lda SpritePalettePointers + 2,y"),
     "palette_header_c7df": ("CONTROL_PALETTE_HEADER_C7DF", "PaletteStreamHeader $00, $00, $00", "PaletteStreamHeader $01, $00, $00"),
     "palette_header_c7f2": ("CONTROL_PALETTE_HEADER_C7F2", "PaletteStreamHeader $00, $00, $00", "PaletteStreamHeader $01, $00, $00"),
     "palette_header_c805": ("CONTROL_PALETTE_HEADER_C805", "PaletteStreamHeader $00, $00, $00", "PaletteStreamHeader $01, $00, $00"),
