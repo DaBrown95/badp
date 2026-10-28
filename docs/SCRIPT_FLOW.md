@@ -35,7 +35,10 @@ to its values. Indirect writes continue only for the reviewed text-pointer bytes
 Three `$44` indexed jumps have explicit candidate bounds of 11, 4 and 8
 entries, derived from their immediately preceding clamp/divide or mask paths.
 The walker follows those entries and marks their table bytes; other callers and
-their index ranges remain unverified, and unbounded `$44` sites still stop.
+their index ranges remain unverified. At `$F434`, it also follows the three
+indices observed in emulator traces, explicitly marking the jump incomplete:
+those observations do not establish an index bound. Unbounded `$44` sites
+without observed indices still stop.
 The `$8A` stack-buffer operation has a possible normal-return successor. Its
 `$FF` form clears `$0100-$011F`; a sufficiently deep stack could put a return
 address in that range, so the walk does not model every possible outcome.

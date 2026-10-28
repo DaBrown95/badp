@@ -18,10 +18,10 @@ from .setup_mesen import ROOT, digest_file, spec, verify_emulator
 
 FRAMES = (240, 650, 1200, 1400, 1496, 1511, 1550, 1700, 1800, 2100, 2150, 2300,
           2400, 2600, 2800, 3000, 3100, 3200, 3250, 3300, 3350, 3400, 3450, 3650, 3700, 3750,
-          3800, 3825, 3850, 3900, 4050, 4150, 4300, 4400, 4500, 4600, 4650, 4750, 4900, 5000, 5100, 5200, 5250, 5300, 5375, 5450, 5500, 5550, 5575, 5625, 5650, 5700, 5880, 5950, 6000, 6040, 6100)
+          3800, 3825, 3850, 3900, 4050, 4150, 4300, 4400, 4500, 4600, 4650, 4750, 4900, 5000, 5100, 5200, 5250, 5300, 5375, 5450, 5500, 5550, 5575, 5625, 5650, 5700, 5880, 5950, 6000, 6040, 6100, 6160, 6200, 6260, 6300, 6340)
 SLOT_FRAMES = (1400, 1496, 1511, 1550, 1700, 1800, 2100, 2150, 2300,
                2400, 2600, 2800, 3000, 3100, 3200, 3250, 3300, 3350, 3400, 3450, 3650, 3700, 3750,
-               3800, 3825, 3850, 3900, 4050, 4150, 4300, 4400, 4500, 4600, 4650, 4750, 4900, 5000, 5100, 5200, 5250, 5300, 5375, 5450, 5500, 5550, 5575, 5625, 5650, 5700, 5880, 5950, 6000, 6040, 6100)
+               3800, 3825, 3850, 3900, 4050, 4150, 4300, 4400, 4500, 4600, 4650, 4750, 4900, 5000, 5100, 5200, 5250, 5300, 5375, 5450, 5500, 5550, 5575, 5625, 5650, 5700, 5880, 5950, 6000, 6040, 6100, 6160, 6200, 6260, 6300, 6340)
 # Pinned emulator screenshot of the first-level success screen for the audited v1.5 input.
 MOSES_SUCCESS_SCREEN_SHA256 = 'c3d483860076f9e782d92de0913c671d4ed1aef84f8ce81688423cad40c19346'
 # Pinned second-level success screen for the same audited input.
@@ -245,15 +245,19 @@ def validate_scenario(evidence: dict, expected_state: int, *, inventory: bool = 
                 or frames['5700']['state'] != 7 or slots['5700']['third_descriptor'] != 0x6a
                 or slots['5700']['third_link'] != 0xff
                 or frames['5700']['screenshot_sha256'] == frames['5625']['screenshot_sha256']
-                or any(frames[str(frame)]['state'] != 7 for frame in (5880, 5950, 6000, 6040, 6100))
+                or any(frames[str(frame)]['state'] != 7 for frame in (5880, 5950, 6000, 6040, 6100, 6160, 6200, 6260, 6300, 6340))
                 or slots['5880']['third_descriptor'] != 0x6a or slots['5880']['third_link'] != 0xff
                 or any(slots[str(frame)]['third_descriptor'] != 0x6a
                        or slots[str(frame)]['third_link'] != 1
                        or slots[str(frame)]['third_x'] != slots[str(frame)]['player_x']
                        or slots[str(frame)]['third_y'] >= slots[str(frame)]['player_y']
-                       for frame in (5950, 6000, 6040, 6100))
+                       for frame in (5950, 6000, 6040, 6100, 6160, 6200, 6260, 6300, 6340))
                 or frames['6100']['scroll_x'] != frames['6000']['scroll_x']
-                or slots['6100']['player_x'] + 32 >= slots['6000']['player_x']):
+                or slots['6100']['player_x'] + 32 >= slots['6000']['player_x']
+                or frames['6340']['scroll_x'] + slots['6340']['player_x']
+                   < frames['6100']['scroll_x'] + slots['6100']['player_x'] + 60
+                or frames['6340']['scroll_y'] + slots['6340']['player_y']
+                   >= frames['6100']['scroll_y'] + slots['6100']['player_y']):
             raise ValueError('Moses pickup, carry and recovery observations did not match')
     if (evidence['mapper_value_mismatches'] or evidence['unmapped_mapper_writes']
             or evidence['physical_prg_banks_seen'] != [0, 1]):

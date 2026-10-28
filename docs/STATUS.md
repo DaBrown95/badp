@@ -44,7 +44,7 @@ the original source language and toolchain remain unestablished.
 
 ## v1.5 opening-gameplay evidence
 
-`make verify-gameplay` runs 6,100 NTSC frames each for Noah, Moses and David,
+`make verify-gameplay` runs 6,340 NTSC frames each for Noah, Moses and David,
 plus a separate Noah inventory scenario,
 in pinned MesenCE 2.2.1, with zeroed power-on RAM and fixed mapper/alignment
 settings. It compares the audited reference and verified build under the same
@@ -53,9 +53,9 @@ change in scroll and screenshot after rightward input. The Moses sequence also
 presses B to lift the baby, jumps past the first approaching enemy and crosses
 the first water gap. It recovers him after a later collision, backtracks over the
 position trigger, completes the first two levels and enters level three. There,
-it picks Moses up after a series of jumps and carries him through another jump
-and movement. Sampled slot fields show the link, its loss, recovery and carried
-finish; pinned screenshot hashes check both success screens. The fifty-seven sampled
+it picks Moses up after a series of jumps and carries him through further jumps
+and movement to a higher position. Sampled slot fields show the link, its loss,
+recovery and carried finish; pinned screenshot hashes check both success screens. The sixty-two sampled
 frames, slot fields, state and cycle counts, mapper-write streams, NMI counts, OAM DMA and
 APU-register write streams agreed between the reference and build. Both PRG
 banks appeared in the emulator's mapper-write mapping; every observed write
@@ -78,12 +78,12 @@ instruction starts in local PRG gaps. All 676 observed script pointer/bank
 pairs began inside source-owned regions; this does not verify their complete
 paths or later level-two interactions. The trace remains under
 `analysis/us-v1.5/*stage2-pickup-execution.json`.
-A reference-only trace of the third-level pickup and movement found no native
+A reference-only trace of the third-level pickup and movement to frame 6,340 found no native
 instruction starts in local PRG gaps. Its 747 distinct script pointer/bank
 pairs and 49 record pointer/bank/mode combinations all begin in source-owned
 regions under the existing bank mapping. This checks entry addresses, not
 every byte fetched or the mapping on physical hardware. The trace remains in
-`analysis/us-v1.5/stage3-carry-execution.json`.
+`analysis/us-v1.5/stage3-higher-carry-execution.json`.
 The later second-level crossing trace observed 708 distinct script pointer/bank
 pairs, all beginning in source-owned regions, and no native instruction starts
 in local PRG gaps. The slot-record loader read `$36E5` in mode `$02`; a
@@ -382,7 +382,7 @@ branches or prove execution. Its output is ignored local analysis and does not
 count as reconstructed PRG.
 
 The [script-flow inventory](SCRIPT_FLOW.md) follows reviewed successor rules
-from those candidates. It finds 1,936 candidate commands and stops at 38 nodes
+from those candidates. It finds 1,941 candidate commands and stops at 38 nodes
 with dynamic or unreviewed handlers, with no physical-byte overlaps. Branches
 and resumes remain unverified possibilities; this analysis adds no PRG credit.
 The `$0F` state change now terminates a traced path rather than presuming a

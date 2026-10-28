@@ -277,6 +277,8 @@ def inventory(root: Path = ROOT) -> dict:
                     'direct_script_overlap_bytes': direct_graph['overlapping_physical_bytes'],
                     'direct_record_script_overlap_bytes': direct['record_script_overlaps']['physical_bytes'],
                     'direct_dynamic_slot_pointers': len(direct['dynamic_slot_pointer_commands']),
+                    'direct_incomplete_observed_indexed_jumps': sum(
+                        n['status'] == 'observed_indexed_jump_incomplete' for n in direct_graph['nodes']),
                     'static_sprite_resource_count': len(sprite_candidates['resources']),
                     'static_sprite_frame_count': len(sprite_candidates['frames']),
                     'static_sprite_crossings': len(sprite_candidates['crossings']),
@@ -315,6 +317,7 @@ def main() -> int:
                           'direct_script_overlap_bytes': result['direct_script_overlap_bytes'],
                           'direct_record_script_overlap_bytes': result['direct_record_script_overlap_bytes'],
                           'direct_dynamic_slot_pointers': result['direct_dynamic_slot_pointers'],
+                          'direct_incomplete_observed_indexed_jumps': result['direct_incomplete_observed_indexed_jumps'],
                           'static_sprite_resource_count': result['static_sprite_resource_count'],
                           'static_sprite_frame_count': result['static_sprite_frame_count'],
                           'static_sprite_crossings': result['static_sprite_crossings'],

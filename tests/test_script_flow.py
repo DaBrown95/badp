@@ -362,6 +362,23 @@ class ScriptFlowTests(unittest.TestCase):
         self.assertEqual(node['status'], 'indexed_jump_crosses_bank_boundary')
         self.assertEqual(node['successors'], [])
 
+    def test_observed_indices_are_followed_without_claiming_a_bound(self):
+        b0, b1, lengths = fixture()
+        b1[0x10:0x17] = bytes([0x44, 0x20, 0, 0x30, 0, 0x40, 0])
+        b1[0x20] = b1[0x30] = b1[0x40] = 0x16
+        result = walk(bytes(b0), bytes(b1), bytes(lengths), [0x10],
+                      indexed_jumps={0x10: (0, 2)})
+        nodes = by_pointer(result)
+        self.assertEqual(nodes['0x0010']['status'], 'observed_indexed_jump_incomplete')
+        self.assertEqual(nodes['0x0010']['successors'], [
+            {'kind': 'observed_index_target', 'encoded_pointer': '0x0020'},
+            {'kind': 'observed_index_target', 'encoded_pointer': '0x0040'}])
+        self.assertEqual([record['index'] for record in nodes['0x0010']['jump_records']], [0, 2])
+        self.assertNotIn('0x0030', nodes)
+        for entries in ((), (0, 0), (128,), (-1,), (True,), [0, 1]):
+            with self.subTest(entries=entries), self.assertRaisesRegex(ValueError, 'entry count'):
+                walk(bytes(b0), bytes(b1), bytes(lengths), [0x10], indexed_jumps={0x10: entries})
+
     def test_encoded_bank_transition(self):
         b0, b1, lengths = fixture()
         b1[-1] = 0x21

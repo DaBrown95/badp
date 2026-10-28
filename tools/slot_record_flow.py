@@ -101,7 +101,7 @@ def record_script_overlaps(references: list[dict], graph: dict) -> dict:
 
 
 def trace(bank0: bytes, bank1: bytes, lengths: bytes, seeds: list[tuple[int, int]],
-          indexed_jumps: dict[int, int] | None = None, limit: int = 10000) -> dict:
+          indexed_jumps: dict[int, int | tuple[int, ...]] | None = None, limit: int = 10000) -> dict:
     """Explore candidate (descriptor base, script entry) contexts with a hard limit."""
     if len(bank0) != BANK_SIZE or len(bank1) != BANK_SIZE:
         raise ValueError('expected two full 32 KiB banks')

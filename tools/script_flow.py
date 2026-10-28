@@ -32,9 +32,10 @@ CONDITIONAL_POINTER = frozenset({0x01, 0x02, 0x03, 0x05, 0x15, 0x1B, 0x20,
 UNCONDITIONAL_POINTER = frozenset({0x04})
 YIELD_RESUME = frozenset({0x07, 0x2E, 0x67, 0x6C, 0xB6})
 POSSIBLE_YIELD = frozenset({0x08, 0x11, 0x12, 0x2D, 0x7D, 0x81, 0x96})
-# Candidate bounds from the specific immediately preceding clamp/divide or
-# mask sequences. They do not prove that no other entry reaches these opcodes.
-PRIMARY_INDEXED_JUMPS = {0x362C: 11, 0x548F: 4, 0x671C: 8}
+# Integer counts are candidate bounds from specific immediately preceding
+# clamp/divide or mask sequences; other entries may reach those opcodes.
+# Tuples enumerate observed indices only and never imply a complete bound.
+PRIMARY_INDEXED_JUMPS = {0x362C: 11, 0x548F: 4, 0x671C: 8, 0x7434: (0, 1, 2)}
 
 
 def scan_lookup_table(banks: tuple[bytes, bytes], start: int, limit: int = 256) -> dict:
@@ -68,7 +69,7 @@ def scan_lookup_table(banks: tuple[bytes, bytes], start: int, limit: int = 256) 
 
 
 def walk(bank0: bytes, bank1: bytes, lengths: bytes, seeds: list[int],
-         limit: int = 10000, indexed_jumps: dict[int, int] | None = None) -> dict:
+         limit: int = 10000, indexed_jumps: dict[int, int | tuple[int, ...]] | None = None) -> dict:
     """Explore proven local successor rules, stopping on every unknown opcode."""
     if len(bank0) != BANK_SIZE or len(bank1) != BANK_SIZE:
         raise ValueError('expected two full 32 KiB banks')
@@ -78,9 +79,13 @@ def walk(bank0: bytes, bank1: bytes, lengths: bytes, seeds: list[int],
     indexed_jumps = indexed_jumps if indexed_jumps is not None else {}
     if not isinstance(indexed_jumps, dict):
         raise ValueError('invalid indexed-jump bounds')
-    for site, count in indexed_jumps.items():
+    for site, entries in indexed_jumps.items():
         _locate(site)
-        if type(count) is not int or not 1 <= count <= 128:
+        if type(entries) is int and 1 <= entries <= 128:
+            continue
+        if (not isinstance(entries, tuple) or not entries
+                or any(type(index) is not int or not 0 <= index <= 127 for index in entries)
+                or len(set(entries)) != len(entries)):
             raise ValueError('invalid indexed-jump entry count')
     pending: deque[int] = deque()
     queued: set[int] = set()
@@ -186,10 +191,15 @@ def walk(bank0: bytes, bank1: bytes, lengths: bytes, seeds: list[int],
             edges.append(('fallthrough', following))
         elif opcode == 0x44 and length == 1 and encoded in indexed_jumps:
             # Opcode $44 indexes the following little-endian pointer array.
-            # The supplied count covers only the reviewed predecessor context.
-            node['status'] = 'reviewed_bounded_indexed_jump'
+            # An integer is a predecessor-specific candidate bound. A tuple
+            # lists observed indices while retaining an open set of others.
+            entries = indexed_jumps[encoded]
+            bounded = type(entries) is int
+            indices = range(entries) if bounded else entries
+            node['status'] = ('reviewed_bounded_indexed_jump' if bounded
+                              else 'observed_indexed_jump_incomplete')
             node['jump_records'] = []
-            for index in range(indexed_jumps[encoded]):
+            for index in indices:
                 entry = (following + index * 2) & 0xFFFF
                 entry_bank, entry_offset = _locate(entry)
                 if entry_offset + 2 > BANK_SIZE:
@@ -201,7 +211,7 @@ def walk(bank0: bytes, bank1: bytes, lengths: bytes, seeds: list[int],
                                              'target': target})
                 for pos in range(entry_offset, entry_offset + 2):
                     coverage.setdefault((entry_bank, pos), set()).add(encoded)
-                edges.append(('bounded_index_target', target))
+                edges.append(('bounded_index_target' if bounded else 'observed_index_target', target))
         elif opcode == 0x63 and length >= 3 and data[2] != 0:
             # The record loader restores $53/$54 after its fetch and only
             # installs a record's script pointer when mode $57 is zero.
@@ -280,6 +290,8 @@ def main() -> int:
         output.write_text(json.dumps(result, indent=2) + '\n')
         print(json.dumps({'target': 'us-v1.5', 'candidate_nodes': len(result['nodes']),
                           'unreviewed_or_dynamic': sum(n['status'] == 'unreviewed_or_dynamic_handler' for n in result['nodes']),
+                          'incomplete_observed_indexed_jumps': sum(
+                              n['status'] == 'observed_indexed_jump_incomplete' for n in result['nodes']),
                           'overlapping_physical_bytes': result['overlapping_physical_bytes'],
                           'unprocessed': len(result['unprocessed']),
                           'output': 'analysis/us-v1.5/script-flow.json'}, indent=2))

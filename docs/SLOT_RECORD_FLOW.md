@@ -40,7 +40,8 @@ A separate `make direct-record-flow` walk seeds every named bank-1 script
 entry and checks direct `$16` targets against the resulting script graph.
 It finds 17 candidate commands with 15 distinct direct targets. The possible
 record at `$B077` overlaps two candidate script bytes; neither interpretation
-is accepted there.
+is accepted there. The graph follows three observed `$F434` indexed targets,
+while reporting that site's remaining possible indices as unresolved.
 In the directed 16,000-frame runs, the `$B05D` branch saw slot values `$0001`,
 `$0005` and `$000B` for Noah, Moses and David, respectively, so its `$000F`
 test did not select `$B080`. At `$B076`, the saved-pointer high byte was never

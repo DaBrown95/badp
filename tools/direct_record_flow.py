@@ -78,7 +78,10 @@ def main() -> int:
         result = direct_inventory(bank0, bank1, graph)
         result.update(target='us-v1.5', reference_sha256=target['reference']['file']['sha256'],
                       source_sha256=proof['source_sha256'], seed_count=len(seeds),
-                      candidate_nodes=len(graph['nodes']), script_graph=graph,
+                      candidate_nodes=len(graph['nodes']),
+                      incomplete_observed_indexed_jumps=sum(
+                          n['status'] == 'observed_indexed_jump_incomplete' for n in graph['nodes']),
+                      script_graph=graph,
                       interpretation='candidate direct targets and mode classes, not proven reachability')
         if verify_primary(ROOT, target) != proof:
             raise ValueError('verified build changed during inventory')
@@ -95,6 +98,7 @@ def main() -> int:
                           'direct_commands': len(result['references']) // 4,
                           'distinct_records': len({r['encoded_pointer'] for r in result['references']}),
                           'dynamic_slot_pointers': len(result['dynamic_slot_pointer_commands']),
+                          'incomplete_observed_indexed_jumps': result['incomplete_observed_indexed_jumps'],
                           'record_script_overlap_bytes': result['record_script_overlaps']['physical_bytes'],
                           'output': 'analysis/us-v1.5/direct-record-flow.json'}, indent=2))
     except (OSError, ValueError, KeyError, TypeError) as exc:
