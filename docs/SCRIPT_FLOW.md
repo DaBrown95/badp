@@ -134,3 +134,13 @@ candidate; no runtime entry or descriptor association is established.
 At `$E01A` and `$E023`, two possible nine-byte voice-pointer commands share
 bytes with candidate mode-2 slot records. The source checks both layouts and
 also records the unresolved alternative script boundaries inside those ranges.
+
+The `$F432` predecessor uses `$3F/$24` to compute a value from `$0550,x` in the
+range 0-31. If the same slot reaches `$F434` without an intervening write, those
+are the possible indices. Independent entry may supply any low byte; `$44`
+discards bit 7 when doubling it, yielding 128 distinct read positions. The
+controlled reference/build probes and bank-1 table inventory are available via
+`make indexed-jump-inventory`. Positions beyond the first three overlap script
+or candidate map-layout bytes; this does not establish they are executed as
+table entries. The general script walk still retains only the three observed
+indices and reports the site incomplete.

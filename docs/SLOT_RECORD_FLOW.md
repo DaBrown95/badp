@@ -195,3 +195,10 @@ voice-pointer commands. Their source asserts both nine-byte layouts; additional
 possible script entry points inside them remain unresolved. The `$E106` record
 represents only fields read in mode 2, leaving the two intervening bytes local.
 Descriptor associations and execution are unverified.
+
+For the `$F432` -> `$F434` sequence, a controlled handler probe established the
+0-31 selector range and the 8-bit indexed-address calculation. This applies
+only if the same slot continues without intervening changes; independent entry
+can select any of 128 distinct read positions. The table inventory is kept
+locally by `make indexed-jump-inventory`, and does not claim reachability of
+its candidate entries.

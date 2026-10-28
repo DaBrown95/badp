@@ -151,6 +151,7 @@ and simultaneous press/release handling on the reference and build.
 | `make verify-gameplay` | Compare v1.5 opening scenarios and inventory in MesenCE. |
 | `make verify-controller` | Compare controller bit order and simultaneous transitions. |
 | `make verify-audio-bank` | Check audio selector and mapper behavior with controlled inputs. |
+| `make indexed-jump-inventory` | Check `$F434` index behavior and candidate table reads. |
 | `make progress` | Rebuild and update the per-version tracker. |
 | `make position-records` | Decode v1.5 position records to ignored local analysis. |
 | `make script-entries` | Inventory candidate v1.5 script entry points locally. |

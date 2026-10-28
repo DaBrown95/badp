@@ -1239,3 +1239,20 @@ starts add 234 candidate audio bytes: 230 overlap existing source around
 supplied packed-text data. These are conditional static decodes, not evidence
 of audio playback or of a particular bank mapping. No additional bytes are
 credited as reconstructed source by the inventory change.
+
+A controlled MesenCE probe exercised the `$3F/$24` selector over all 256 slot
+field values and both incoming carry states on the reference and matching
+build. It returned the high nibble plus twice bit 3, yielding 0-31. A second
+probe exercised `$44` over all 256 low-byte values and both carry states; its
+8-bit shift discards bit 7 before adding the index to the pointer. The adjacent
+`$F432` path therefore permits 32 table positions if the same slot continues
+without an intervening write. An independent `$F434` entry may use any of 128
+positions, with inputs differing only in bit 7 aliasing the same position.
+
+Under the assumed bank-1 mapping, positions 0-2 are the three represented table
+entries, positions 3-11 overlap existing script bytes, and positions 12-127
+overlap candidate map layouts. These are possible reads, not evidence that
+out-of-range positions execute or that their words are intended script targets.
+`make indexed-jump-inventory` repeats the controlled probes and keeps the table
+analysis locally. Mapping, slot state and runtime reachability remain separate
+uncertainties.

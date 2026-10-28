@@ -8865,6 +8865,8 @@ ScriptOp24:
     cmp $63                       ; CONTROL_SCRIPT_OP24
     beq ScriptJumpToOperandPointer
     rts
+; Selector $24 returns the high nibble of $0550,x plus twice bit 3. Its
+; possible result is 0-31; it does not establish which values occur in play.
 ScriptGetFieldValue:
     lda $0550,x
     pha
@@ -9414,6 +9416,8 @@ ScriptOp43:
     eor #$FF                     ; CONTROL_SCRIPT_OP43
     sta $18
     rts
+; The low byte is doubled with 8-bit ASL, so bit 7 is discarded. The carry
+; from ASL is cleared before the table-pointer addition.
 ScriptOp44:
     lda $70,x                    ; CONTROL_SCRIPT_OP44
     asl a
@@ -23067,6 +23071,8 @@ RuntimeScriptF434:
     BogusJumpViaSlotIndexedTable
 .assert (* - BankStart) = $7435, error, "bank 1 runtime script $F432 end"
 ; Three adjacent indexed targets. The handler does not bound its index.
+; The preceding $3F/$24 limits it to 0-31 only when the same slot continues
+; without an intervening write or independent entry changing its value.
     BogusIndexedTargetBank1 RuntimeScriptF43B ; CONTROL_EXTENDED_JUMP_F435
     BogusIndexedTargetBank1 RuntimeScriptF441
     BogusIndexedTargetBank1 RuntimeScriptF447
