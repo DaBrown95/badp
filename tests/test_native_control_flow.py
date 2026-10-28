@@ -52,6 +52,17 @@ class NativeControlFlowTests(unittest.TestCase):
         result = inventory(debug, source, bytes(changed), regions)
         self.assertEqual(result['same_bank_non_code_targets'][0]['same_physical_bank']['ownership'], 'local')
 
+    def test_additional_target_classification_preserves_bank_and_boundary(self):
+        debug, source, prg, regions = fixture()
+        result = inventory(debug, source, prg, regions,
+                           extra_targets=((0, 0x8001), (0, 0x8008), (1, 0x8008), (0, 0)))
+        self.assertEqual([item['ownership'] for item in result['extra_targets']],
+                         ['code', 'code', 'data', 'outside_prg'])
+        self.assertEqual([item['span_start'] for item in result['extra_targets']],
+                         [False, True, False, False])
+        with self.assertRaisesRegex(ValueError, 'duplicate extra target'):
+            inventory(debug, source, prg, regions, extra_targets=((0, 0x8008), (0, 0x8008)))
+
     def test_invalid_debug_geometry_and_missing_coverage_are_rejected(self):
         debug, source, prg, regions = fixture()
         with self.assertRaisesRegex(ValueError, 'geometry'):

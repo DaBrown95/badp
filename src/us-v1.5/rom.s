@@ -1083,11 +1083,11 @@ BogusActionOpcode_BogusSetSlotPositionFromOperands = $1D
 ; table at $FDA7 when X is zero. Copy the record to $60 and, if a bank switch
 ; occurred, restore the stored default selection. Record meanings are pending.
 FetchVariableRecord:
-    lda a:$54                    ; CONTROL_RECORD_FETCH
+    lda a:RecordPointerHigh                    ; CONTROL_RECORD_FETCH
     pha
     bmi RecordBankReady
     ora #$80
-    sta a:$54
+    sta a:RecordPointerHigh
     lda SecondaryBankValue
     ldy SecondaryBankIndex
     jsr SwitchBank
@@ -1095,21 +1095,21 @@ RecordBankReady:
     ldy #$00
     cpx #$00
     bne RecordLengthReady
-    lda ($53),y
+    lda (RecordPointerLow),y
     tax
     lda ScriptRecordLengths,x
     tax
 RecordLengthReady:
     stx a:$FE
 RecordCopyLoop:
-    lda ($53),y
-    sta $60,y
+    lda (RecordPointerLow),y
+    sta RecordBuffer0,y
     iny
     dex
     bne RecordCopyLoop
     pla
     bmi SharedReturn
-    sta a:$54
+    sta a:RecordPointerHigh
 RestoreDefaultBank:
     lda DefaultBankValue                    ; CONTROL_RESTORE_BANK
     ldy DefaultBankIndex
@@ -1272,7 +1272,7 @@ BitCopyAdvanceDone:
 ; address below $8000 select the bank in $03C2/$03C3 before making the call.
 ; The helper returns to this routine, which restores the default bank.
 CallScriptNativeBanked:
-    lda a:$62                    ; CONTROL_SCRIPT_NATIVE_CALL
+    lda a:RecordBuffer2                    ; CONTROL_SCRIPT_NATIVE_CALL
     bmi CallScriptNativeReady
     lda SecondaryBankValue
     ldy SecondaryBankIndex
@@ -1281,10 +1281,10 @@ CallScriptNativeReady:
     jsr CallScriptNativeOperand
     jmp RestoreDefaultBank
 CallScriptNativeOperand:
-    lda a:$62
+    lda a:RecordBuffer2
     ora #$80
     pha
-    lda a:$61
+    lda a:RecordBuffer1
     pha
     rts
 .endmacro
@@ -6992,13 +6992,13 @@ InitializeMainState:
     sta $1E
     jsr InitializeState19To1B
     lda DefaultSplitScreenParameters
-    sta $61
+    sta RecordBuffer1
     lda DefaultSplitScreenParameters + 1
-    sta $62
+    sta RecordBuffer2
     lda DefaultSplitScreenParameters + 2
-    sta $63
+    sta RecordBuffer3
     lda DefaultSplitScreenParameters + 3
-    sta $64
+    sta RecordBuffer4
     jmp ConfigureSplitScreen
 
 .assert (* - BankStart) = $4A9E, error, "bank 0 state preparation ca9e boundary"
@@ -8348,9 +8348,9 @@ ScriptLoopSecondCounter:
 ScriptLoopPending:
     lda $04F0,x                  ; CONTROL_SCRIPT_PENDING
     beq ScriptLoopContinue
-    lda $53
+    lda RecordPointerLow
     sta $06E0,x
-    lda $54
+    lda RecordPointerHigh
     sta $06F0,x
     lda $0530,x
     sta $0740,x
@@ -8359,7 +8359,7 @@ ScriptLoopPending:
     lda #$FF
     sta $0790,x
     lda $04F0,x
-    sta $61
+    sta RecordBuffer1
     lda #$00
     sta $04F0,x
     jsr ScriptClear57AndCall
@@ -8381,10 +8381,10 @@ FetchAndDispatchCommand:
     ldx $10
     lda $FE
     clc
-    adc $53
-    sta $53
+    adc RecordPointerLow
+    sta RecordPointerLow
     bcc ScriptPointerAdvanced
-    inc $54
+    inc RecordPointerHigh
 ScriptPointerAdvanced:
     jsr DispatchScriptCommand
     ldx $10
@@ -8399,7 +8399,7 @@ ScriptCountNonnegative:
     bpl ScriptLoopContinue
     jmp UpdateSlotAfterScript
 DispatchScriptCommand:
-    ldy $60                     ; CONTROL_SCRIPT_DISPATCH
+    ldy RecordBuffer0                     ; CONTROL_SCRIPT_DISPATCH
     lda ScriptHandlerHigh,y
     pha
     lda ScriptHandlerLow,y
@@ -8419,14 +8419,14 @@ ScriptOp00:
     sta $06F0,x
 ScriptClear57AndCall:
     lda #$00
-    sta $57
+    sta SlotRecordMode
 ScriptCallF0D8:
-    lda $61
+    lda RecordBuffer1
     jmp LoadSlotRecord
 
 ScriptPushZeroAndCall:
     lda #$00
-    sta $57
+    sta SlotRecordMode
     lda $2A
     jsr SlotRecordAddressFromIndex
     lda #$00
@@ -8438,9 +8438,9 @@ ScriptPushZeroAndCall:
 ; also accepts the opposite orientation before setting the script pointer.
 ScriptOp01OrA3:
     jsr FindSlotCoordinates
-    lda $63
+    lda RecordBuffer3
     sta $03E0
-    lda $64
+    lda RecordBuffer4
     sta $03E1
     lda $FF
     cmp #$FF
@@ -8459,7 +8459,7 @@ ScriptFirstDirectionReady:
     tya
     eor $0500,x
     bpl ScriptCheckFirstDistance
-    lda $60
+    lda RecordBuffer0
     cmp #$A3                     ; CONTROL_SCRIPT_OP01
     bne ScriptConditionalReturn
 ScriptCheckFirstDistance:
@@ -8500,7 +8500,7 @@ ScriptConditionalReturn:
 
 ; Probe a sequence of offsets using $F424 and jump on the first nonzero result.
 ScriptOp02:
-    lda $63
+    lda RecordBuffer3
     asl a
     asl a
     asl a
@@ -8509,12 +8509,12 @@ ScriptOp02:
     ldx #$00                     ; CONTROL_SCRIPT_OP02
     jsr TestSlotOffset
     bne ScriptSetPointerFromOperands
-    dec $63
+    dec RecordBuffer3
     bne ScriptOp02
     rts
 
 ScriptOp03:
-    lda $63
+    lda RecordBuffer3
     clc
     adc $0570,x
     ldy $0660,x
@@ -8530,23 +8530,23 @@ ScriptOp03DirectionReady:
 ; Opcode $04 and several conditions share this entry: command operand bytes
 ; $61/$62 become the next script pointer at $53/$54.
 ScriptSetPointerFromOperands:
-    lda $61                      ; CONTROL_SCRIPT_JUMP
-    sta $53
-    lda $62
-    sta $54
+    lda RecordBuffer1                      ; CONTROL_SCRIPT_JUMP
+    sta RecordPointerLow
+    lda RecordBuffer2
+    sta RecordPointerHigh
 ScriptPointerReturn:
     rts
 
 ScriptOp05:
     jsr AdvanceState19To1B
-    lda $63
+    lda RecordBuffer3
     cmp $1B                      ; CONTROL_SCRIPT_OP05
     bcc ScriptPointerReturn
     jmp ScriptSetPointerFromOperands
 
 ; $FF leaves a field unchanged; zero selects the current slot's $70 value.
 ScriptOp06:
-    lda $61
+    lda RecordBuffer1
     cmp #$FF                     ; CONTROL_SCRIPT_OP06
     beq ScriptOp06SecondField
     cmp #$00
@@ -8555,7 +8555,7 @@ ScriptOp06:
 ScriptOp06StoreFirst:
     sta $05F0,x
 ScriptOp06SecondField:
-    lda $62
+    lda RecordBuffer2
     cmp #$FF
     beq ScriptOp06Return
     cmp #$00
@@ -8575,7 +8575,7 @@ ScriptYield:
     sta $48
     rts
 ScriptOperand61OrSlot:
-    lda $61
+    lda RecordBuffer1
 ScriptOperandOrSlot:
     cmp #$00
     bne ScriptOperandReady
@@ -8584,14 +8584,14 @@ ScriptOperandReady:
     rts
 ScriptResolveOperand61:
     jsr ScriptOperand61OrSlot
-    sta $61
+    sta RecordBuffer1
     rts
 ScriptOperand62OrSlot:
-    lda $62
+    lda RecordBuffer2
     jmp ScriptOperandOrSlot
 ScriptResolveOperand62:
     jsr ScriptOperand62OrSlot
-    sta $62
+    sta RecordBuffer2
     rts
 ScriptYieldIfNonnegative:
     lda $48
@@ -8604,7 +8604,7 @@ ScriptOp08:
 
 ; Opcode $09 stores its operand, substituting $10 for $FF.
 ScriptOp09:
-    lda $61
+    lda RecordBuffer1
     cmp #$FF
     bne ScriptOp09Store
     lda #$10                     ; CONTROL_SCRIPT_OP09
@@ -8691,19 +8691,19 @@ ScriptApplySlotMode:
     rts
 
 ScriptOp0B:
-    lda $61
+    lda RecordBuffer1
     sta $0640,x                  ; CONTROL_SCRIPT_OP0B
-    lda $62
+    lda RecordBuffer2
     sta $0650,x
     rts
 ; Zero operands use the current slot's $70/$80 pair.
 ScriptOp0C:
-    lda $61
+    lda RecordBuffer1
     sta $0670,x                  ; CONTROL_SCRIPT_OP0C
-    lda $62
+    lda RecordBuffer2
     sta $0680,x
     bne ScriptOp0CReturn
-    lda $61
+    lda RecordBuffer1
     bne ScriptOp0CReturn
     lda $70,x
     sta $0670,x
@@ -8718,13 +8718,13 @@ ScriptOp0D:
     jmp ScriptUpdateSlotBits
 ScriptOp0E:
     lda #$CF                     ; CONTROL_SCRIPT_OP0E
-    asl $61
-    asl $61
-    asl $61
-    asl $61
+    asl RecordBuffer1
+    asl RecordBuffer1
+    asl RecordBuffer1
+    asl RecordBuffer1
 ScriptUpdateSlotBits:
     and $0660,x
-    ora $61
+    ora RecordBuffer1
     sta $0660,x
     rts
 
@@ -8740,14 +8740,14 @@ ScriptSetMainState:
 ScriptOp10:
     lda $0630,x
     and #$81                     ; CONTROL_SCRIPT_OP10
-    cmp $61
+    cmp RecordBuffer1
     beq ScriptOp10Return
-    lda $61
+    lda RecordBuffer1
     and #$07
-    sta $61
+    sta RecordBuffer1
     lda $0630,x
     and #$6E
-    ora $61
+    ora RecordBuffer1
     sta $0630,x
     tay
     lda #$FF
@@ -8769,9 +8769,9 @@ ScriptOp10Return:
 ScriptOp11:
     jsr SelectSlotFlagsOrAbort
     lda $3E,y                    ; CONTROL_SCRIPT_OP11
-    sta $61
+    sta RecordBuffer1
     lda #$00
-    sta $62
+    sta RecordBuffer2
     sta $3E,y
 ScriptApplyOperandPair:
     jsr UpdateSlotFieldsMode40
@@ -8779,9 +8779,9 @@ ScriptApplyOperandPair:
 ScriptOp12:
     jsr SelectSlotFlagsOrAbort
     lda $40,y                    ; CONTROL_SCRIPT_OP12
-    sta $62
+    sta RecordBuffer2
     lda #$00
-    sta $61
+    sta RecordBuffer1
     sta $40,y
     jmp ScriptApplyOperandPair
 ScriptOp13:
@@ -8796,7 +8796,7 @@ ScriptOp14:
     rts
 ScriptOp15:
     jsr SelectSlotFlagsOrAbort
-    lda $63
+    lda RecordBuffer3
     and $038D,y                  ; CONTROL_SCRIPT_OP15
     beq ScriptOp10Return
     jmp ScriptSetPointerFromOperands
@@ -8804,12 +8804,12 @@ ScriptOp15:
 ; Use the two operand bytes as a pointer, falling back to the current slot's
 ; $70/$80 pair when both are zero, and tail-call the routine at $F10C.
 ScriptOp16:
-    lda $61
+    lda RecordBuffer1
     sta $FE                      ; CONTROL_SCRIPT_OP16
-    lda $62
+    lda RecordBuffer2
     sta $FF
     bne ScriptOp16PointerReady
-    lda $61
+    lda RecordBuffer1
     bne ScriptOp16PointerReady
     lda $70,x
     sta $FE
@@ -8825,7 +8825,7 @@ ScriptFetchRecordAndRestorePointer:
     ldx $10
     jsr ScriptLoadSlotPointer
 ScriptSetRecordBufferPointer:
-    lda #$60                     ; CONTROL_SCRIPT_FETCH_PAIR
+    lda #<RecordBuffer0          ; CONTROL_SCRIPT_FETCH_PAIR
     sta $FE
     lda #$00
     sta $FF
@@ -8836,9 +8836,9 @@ ScriptOp17:
     lda $06F0,x
     cmp #$FF                     ; CONTROL_SCRIPT_OP17
     beq ScriptOp17Return
-    sta $54
+    sta RecordPointerHigh
     lda $06E0,x
-    sta $53
+    sta RecordPointerLow
     lda $0740,x
     sta $0530,x
     lda $07A0,x
@@ -8862,9 +8862,9 @@ ScriptOp19:
     jsr ScriptYield
 ScriptLoadSlotPointer:
     lda $05B0,x                  ; CONTROL_SCRIPT_SLOT_POINTER
-    sta $53
+    sta RecordPointerLow
     lda $05C0,x
-    sta $54
+    sta RecordPointerHigh
     rts
 ScriptGetSlotPointer:
     lda $05C0,x
@@ -8888,7 +8888,7 @@ ScriptOp1AReturn:
 
 ; Opcode $1B branches to the operand pointer when $63 is at least $0360,x.
 ScriptOp1B:
-    lda $63
+    lda RecordBuffer3
     cmp $0360,x                    ; CONTROL_SCRIPT_OP1B
     bcc ScriptOp1AReturn
     jmp ScriptSetPointerFromOperands
@@ -8897,12 +8897,12 @@ ScriptOp1B:
 ScriptOp1C:
     lda $06D0,x                    ; CONTROL_SCRIPT_OP1C
     bpl ScriptOp1CReturn
-    lda $61
+    lda RecordBuffer1
     cmp #$FF
     beq ScriptOp1CSecond
     sta $0710,x
 ScriptOp1CSecond:
-    lda $62
+    lda RecordBuffer2
     cmp #$FF
     beq ScriptOp1CReturn
     sta $0720,x
@@ -8931,14 +8931,14 @@ ScriptOp1DFinish:
 ; $CC88 to select the buffer byte; its wider role remains unverified.
 ScriptOp1E:
     jsr ScriptYield                ; CONTROL_SCRIPT_OP1E
-    lda $61
+    lda RecordBuffer1
     beq ScriptOp1ECall
     lda $07B0,x
     jsr ScriptSlotBitMask
     ldx $10
     ora $0100,y
     sta $0100,y
-    lda $61
+    lda RecordBuffer1
     cmp #$02
     beq ScriptOp1EReturn
 ScriptOp1ECall:
@@ -8975,15 +8975,15 @@ ScriptOp1F:
     sta $A0,y
     lda #$00
     sta $0620,y
-    lda $64
+    lda RecordBuffer4
     sta $0780,y
     lda $0580,x
     clc
-    adc $62
+    adc RecordBuffer2
     sta $0580,y
     lda $0590,x
     clc
-    adc $63
+    adc RecordBuffer3
     sta $0590,y
 ScriptInitializeOtherSlot:
     jsr ScriptSaveSlotPointer
@@ -8998,9 +8998,9 @@ ScriptInitializeOtherSlot:
     tax
     jmp ScriptLoadSlotPointer
 ScriptSaveSlotPointer:
-    lda $53                       ; CONTROL_SCRIPT_SAVE_POINTER
+    lda RecordPointerLow                       ; CONTROL_SCRIPT_SAVE_POINTER
     sta $05B0,x
-    lda $54
+    lda RecordPointerHigh
     sta $05C0,x
 ScriptSavedPointerReturn:
     rts
@@ -9028,18 +9028,18 @@ ScriptOp21Store:
     sta $0520,x
     rts
 ScriptOp22:
-    lda $63
+    lda RecordBuffer3
     cmp $0520,x                   ; CONTROL_SCRIPT_OP22
     bcs ScriptJumpToOperandPointer
     rts
 ScriptOp23:
-    lda $63
+    lda RecordBuffer3
     cmp $0760,x                   ; CONTROL_SCRIPT_OP23
     beq ScriptJumpToOperandPointer
     rts
 ScriptOp24:
     jsr ScriptGetFieldValue
-    cmp $63                       ; CONTROL_SCRIPT_OP24
+    cmp RecordBuffer3                       ; CONTROL_SCRIPT_OP24
     beq ScriptJumpToOperandPointer
     rts
 ; Selector $24 returns the high nibble of $0550,x plus twice bit 3. Its
@@ -9066,7 +9066,7 @@ ScriptOp25FirstReady:
     jsr NegateA
 ScriptOp25SecondReady:
     sta $06
-    lda $63
+    lda RecordBuffer3
     cmp #$FF
     beq ScriptOp25SecondCompare
     cmp $05
@@ -9074,7 +9074,7 @@ ScriptOp25SecondReady:
 ScriptOp25Return:
     rts
 ScriptOp25SecondCompare:
-    lda $64
+    lda RecordBuffer4
     cmp #$FF
     beq ScriptOp25Jump
     cmp $06
@@ -9096,15 +9096,15 @@ ScriptOp27:
 ScriptOp28:
     lda $10
     jsr GetSlotRecordField06
-    cpx $63                       ; CONTROL_SCRIPT_OP28
+    cpx RecordBuffer3                       ; CONTROL_SCRIPT_OP28
     bcs ScriptOp25Jump
     rts
 ScriptOp29:
-    ldx $61                       ; CONTROL_SCRIPT_OP29
+    ldx RecordBuffer1                       ; CONTROL_SCRIPT_OP29
     lda $10
     jmp UpdateSpriteAttribute20
 ScriptOp2A:
-    lda $63
+    lda RecordBuffer3
     cmp $0770,x                   ; CONTROL_SCRIPT_OP2A
     beq ScriptOp25Jump
     rts
@@ -9112,7 +9112,7 @@ ScriptOp2A:
 
 ; Opcode $2B compares an operand to another per-slot field.
 ScriptOp2B:
-    lda $63
+    lda RecordBuffer3
     cmp $0780,x                   ; CONTROL_SCRIPT_OP2B
     beq ScriptOp25Jump
     rts
@@ -9120,7 +9120,7 @@ ScriptOp2B:
 ; Opcodes $2C-$30 set the loop count, call pending routines, or set and clear
 ; bits in $0790,x. The semantics of $F05C are still unresolved.
 ScriptOp2C:
-    lda $61                       ; CONTROL_SCRIPT_OP2C
+    lda RecordBuffer1                       ; CONTROL_SCRIPT_OP2C
     sta $48
     rts
 ScriptOp2D:
@@ -9132,13 +9132,13 @@ ScriptOp2E:
     jmp ScriptYield
 ScriptOp2F:
     lda $0790,x
-    ora $61                       ; CONTROL_SCRIPT_OP2F
+    ora RecordBuffer1                       ; CONTROL_SCRIPT_OP2F
     sta $0790,x
     rts
 ScriptOp30:
     lda $0790,x
-    ora $61
-    eor $61                       ; CONTROL_SCRIPT_OP30
+    ora RecordBuffer1
+    eor RecordBuffer1                       ; CONTROL_SCRIPT_OP30
     sta $0790,x
     rts
 
@@ -9151,9 +9151,9 @@ ScriptOp31Loop:
     lda $03
     asl a
     tay
-    lda $61,y
+    lda RecordBuffer1,y
     sta $11
-    lda $62,y
+    lda RecordBuffer2,y
     sta $12
     jsr ScriptOp31Pair
     lda $03
@@ -9177,7 +9177,7 @@ ScriptOp31Next:
     inc $03
     rts
 ScriptOp32:
-    lda $61                       ; CONTROL_SCRIPT_OP32
+    lda RecordBuffer1                       ; CONTROL_SCRIPT_OP32
     sta $0730,x
     rts
 
@@ -9186,9 +9186,9 @@ ScriptOp32:
 ScriptOp33:
     jsr SelectSlotFlagsOrAbort                     ; CONTROL_SCRIPT_OP33
     lda $3E,y
-    sta $61
+    sta RecordBuffer1
     lda #$FF
-    sta $62
+    sta RecordBuffer2
     lda #$00
     sta $3E,y
 ScriptCallF061AndYield:
@@ -9197,9 +9197,9 @@ ScriptCallF061AndYield:
 ScriptOp34:
     jsr SelectSlotFlagsOrAbort                     ; CONTROL_SCRIPT_OP34
     lda $40,y
-    sta $62
+    sta RecordBuffer2
     lda #$FF
-    sta $61
+    sta RecordBuffer1
     lda #$00
     sta $40,y
     jmp ScriptCallF061AndYield
@@ -9208,9 +9208,9 @@ ScriptOp34:
 ; Opcode $35 searches slots using operands $63-$65. It follows candidates
 ; until a match has bit $80 clear in $0620,y, then changes the script pointer.
 ScriptOp35:
-    lda $63                       ; CONTROL_SCRIPT_OP35
+    lda RecordBuffer3                       ; CONTROL_SCRIPT_OP35
     sta $03
-    lda $64
+    lda RecordBuffer4
     sta $04
     lda $65
     sta $06
@@ -9274,13 +9274,13 @@ ScriptCheckOtherSlotReturn:
 ; Opcode $36 visits matching slots, temporarily changing $06B0,x around each
 ; call to $D4DA. Operand $62 = $FF selects the alternate scan of flagged slots.
 ScriptOp36:
-    lda $62
+    lda RecordBuffer2
     cmp #$FF                      ; CONTROL_SCRIPT_OP36
     beq ScriptOp36ScanFlagged
     sta $03
-    lda $63
+    lda RecordBuffer3
     sta $04
-    lda $64
+    lda RecordBuffer4
     sta $06
     bne ScriptOp36Find
     lda $04
@@ -9292,7 +9292,7 @@ ScriptOp36Find:
 ScriptOp36Apply:
     lda $06B0,x
     pha
-    lda $61
+    lda RecordBuffer1
     sta $06B0,x
     jsr ScriptMarkOtherSlot
     pla
@@ -9310,7 +9310,7 @@ ScriptOp36ScanLoop:
     bpl ScriptOp36ScanNext
     lda $06B0,x
     pha
-    lda $61
+    lda RecordBuffer1
     sta $06B0,x
     jsr ScriptMarkOtherSlot
     pla
@@ -9331,7 +9331,7 @@ ScriptOp37To3A:
     clc
     adc $46,y
     sta $46,y
-    ldx $62
+    ldx RecordBuffer2
     bmi ScriptOp37Negative
     bcc ScriptOp37Return
     lda #$FF
@@ -9354,12 +9354,12 @@ ScriptOp3C:
     jsr SelectScriptField                    ; CONTROL_SCRIPT_OP3C
     bne ScriptOp3CReturn
     lda $46,y
-    cmp $62
+    cmp RecordBuffer2
     bcc ScriptOp3CReturn
-    lda $63
-    sta $61
-    lda $64
-    sta $62
+    lda RecordBuffer3
+    sta RecordBuffer1
+    lda RecordBuffer4
+    sta RecordBuffer2
     jmp ScriptSetPointerFromOperands
 ScriptOp3CReturn:
     rts
@@ -9371,9 +9371,9 @@ ScriptOp3D:
     bne ScriptOp3CReturn
     jmp ScriptSetPointerFromOperands
 ScriptOp3E:
-    lda $61                      ; CONTROL_SCRIPT_OP3E
+    lda RecordBuffer1                      ; CONTROL_SCRIPT_OP3E
     sta $70,x
-    lda $62
+    lda RecordBuffer2
     sta $80,x
     rts
 
@@ -9381,7 +9381,7 @@ ScriptOp3E:
 ; value or calculation by operand $61. Unknown selectors fall through to $F3CA.
 ScriptOp3F:
     jsr ScriptClearSlotHigh      ; CONTROL_SCRIPT_OP3F
-    ldy $61
+    ldy RecordBuffer1
     lda $0780,x
     cpy #$00
     bne ScriptOp3FCompareOther
@@ -9563,10 +9563,10 @@ ScriptCountUnusedNext:
 
 ; Opcodes $40-$45 operate on the two-byte slot value and script pointer.
 ScriptOp40:
-    lda $61
+    lda RecordBuffer1
     and $70,x                    ; CONTROL_SCRIPT_OP40
     sta $70,x
-    lda $62
+    lda RecordBuffer2
     and $80,x
     sta $80,x
 ScriptOp40Return:
@@ -9574,22 +9574,22 @@ ScriptOp40Return:
 ScriptOp41:
     lda $70,x                    ; CONTROL_SCRIPT_OP41
     sec
-    sbc $63
+    sbc RecordBuffer3
     lda $80,x
-    sbc $64
+    sbc RecordBuffer4
     bcc ScriptOp40Return
     jmp ScriptSetPointerFromOperands
 ScriptOp42:
-    lda $61
+    lda RecordBuffer1
     clc
     adc $70,x                    ; CONTROL_SCRIPT_OP42
     sta $70,x
-    lda $62
+    lda RecordBuffer2
     adc $80,x
     sta $80,x
     rts
 ScriptOp43:
-    lda $61
+    lda RecordBuffer1
     eor #$FF                     ; CONTROL_SCRIPT_OP43
     sta $18
     rts
@@ -9599,22 +9599,22 @@ ScriptOp44:
     lda $70,x                    ; CONTROL_SCRIPT_OP44
     asl a
     clc
-    adc $53
-    sta $53
+    adc RecordPointerLow
+    sta RecordPointerLow
     bcc ScriptOp44PointerReady
-    inc $54
+    inc RecordPointerHigh
 ScriptOp44PointerReady:
     ldx #$02
     jsr FetchVariableRecord
     ldx $10
-    lda $61
-    sta $62
-    lda $60
-    sta $61
+    lda RecordBuffer1
+    sta RecordBuffer2
+    lda RecordBuffer0
+    sta RecordBuffer1
 ScriptOp44Jump:
     jmp ScriptSetPointerFromOperands
 ScriptOp45:
-    lda $63
+    lda RecordBuffer3
     cmp $07C0,x                  ; CONTROL_SCRIPT_OP45
     beq ScriptOp44Jump
     rts
@@ -9650,7 +9650,7 @@ ScriptOp47WritePair:
     sta $0121,y
     rts
 ScriptSelectValueArray:
-    ldy $61                      ; CONTROL_SCRIPT_VALUE_ARRAY
+    ldy RecordBuffer1                      ; CONTROL_SCRIPT_VALUE_ARRAY
     cpy #$FF
     bne ScriptSelectArrayReturn
     lda $10
@@ -9683,18 +9683,18 @@ ScriptOp48AddPair:
 ; Opcode $49 uses the same stop/start audio helpers as the four-voice loop.
 ; Opcode $50 enters this sequence at the second load of $62.
 ScriptOp49:
-    lda $62
+    lda RecordBuffer2
     cmp #$FF                     ; CONTROL_SCRIPT_OP49
     beq ScriptOp49Return
     lda #$04
     jsr StopAudioVoice
 ScriptOp50:
-    lda $62                      ; CONTROL_SCRIPT_OP50
+    lda RecordBuffer2                      ; CONTROL_SCRIPT_OP50
     beq ScriptOp49Return
     cmp #$FF
     beq ScriptOp49Return
     tay
-    lda $61
+    lda RecordBuffer1
     tax
     lda #$04
     jsr StartAudioVoice
@@ -9706,7 +9706,7 @@ ScriptOp4A:
 ScriptOp4AReturn:
     rts
 ScriptOp4B:
-    lda $63
+    lda RecordBuffer3
     cmp $0370,x                  ; CONTROL_SCRIPT_OP4B
     bcc ScriptOp4AReturn
     jmp ScriptSetPointerFromOperands
@@ -9719,8 +9719,8 @@ ScriptOp4C:
 ; Opcodes $4D and $4E select related $CCxx routines. A zero pair is replaced
 ; with the current slot's two-byte value before calling the paired routines.
 ScriptOp4D:
-    ldx $61                     ; CONTROL_SCRIPT_OP4D
-    ldy $62
+    ldx RecordBuffer1                     ; CONTROL_SCRIPT_OP4D
+    ldy RecordBuffer2
     cpy #$FF
     bne ScriptOp4DPair
     jmp SelectFirstRelatedPointer
@@ -9739,8 +9739,8 @@ ScriptResolvePair:
 ScriptResolvePairReturn:
     rts
 ScriptOp4E:
-    ldx $61                     ; CONTROL_SCRIPT_OP4E
-    ldy $62
+    ldx RecordBuffer1                     ; CONTROL_SCRIPT_OP4E
+    ldy RecordBuffer2
     cpy #$FF
     bne ScriptOp4EPair
     jmp SelectSecondRelatedPointer
@@ -9748,28 +9748,28 @@ ScriptOp4EPair:
     jsr ScriptResolvePair
     jmp ApplySecondRelatedPointer
 ScriptOp4F:
-    lda $61                     ; CONTROL_SCRIPT_OP4F
+    lda RecordBuffer1                     ; CONTROL_SCRIPT_OP4F
     sta $03BC
 ScriptOp4FReturn:
     rts
 
 ; Opcodes $51-$53 compare fields and may jump to the operand pointer.
 ScriptOp51:
-    lda $63
+    lda RecordBuffer3
     cmp $0700,x                 ; CONTROL_SCRIPT_OP51
     bcc ScriptOp4FReturn
 ScriptOp51Jump:
     jmp ScriptSetPointerFromOperands
 ScriptOp52:
-    lda $63
+    lda RecordBuffer3
     cmp $B0,x                   ; CONTROL_SCRIPT_OP52
     bcs ScriptOp51Jump
     rts
 ScriptOp53:
-    lda $63
+    lda RecordBuffer3
     cmp $70,x                   ; CONTROL_SCRIPT_OP53
     bne ScriptOp4FReturn
-    lda $64
+    lda RecordBuffer4
     cmp $80,x
     beq ScriptOp51Jump
     rts
@@ -9778,30 +9778,30 @@ ScriptOp53:
 ; operands to the slot value, then restores the saved command pointer.
 ScriptOp54:
     jsr ScriptSaveSlotPointer   ; CONTROL_SCRIPT_OP54
-    lda $61
+    lda RecordBuffer1
     clc
     adc $70,x
-    sta $53
-    lda $62
+    sta RecordPointerLow
+    lda RecordBuffer2
     adc $80,x
-    sta $54
+    sta RecordPointerHigh
     ldx #$02
     jsr FetchVariableRecord
     ldx $10
-    lda $60
+    lda RecordBuffer0
     sta $70,x
-    lda $61
+    lda RecordBuffer1
     sta $80,x
     jmp ScriptLoadSlotPointer
 ScriptOp55:
     lda $13
-    ora $61                     ; CONTROL_SCRIPT_OP55
+    ora RecordBuffer1                     ; CONTROL_SCRIPT_OP55
     sta $13
     rts
 ScriptOp56:
     lda $13
-    ora $61
-    eor $61                     ; CONTROL_SCRIPT_OP56
+    ora RecordBuffer1
+    eor RecordBuffer1                     ; CONTROL_SCRIPT_OP56
     sta $13
     rts
 
@@ -9810,20 +9810,20 @@ ScriptOp57To58:
     jsr ScriptSelectValueArray  ; CONTROL_SCRIPT_OP57
     beq ScriptOp57ReadPair
     lda #$00
-    sta $64
+    sta RecordBuffer4
     lda $0140,y
     jmp ScriptOp57Compare
 ScriptOp57ReadPair:
     lda $0121,y
-    sta $64
+    sta RecordBuffer4
     lda $0120,y
 ScriptOp57Compare:
     tay
-    lda $62
-    sta $61
-    lda $63
-    sta $62
-    sty $63
+    lda RecordBuffer2
+    sta RecordBuffer1
+    lda RecordBuffer3
+    sta RecordBuffer2
+    sty RecordBuffer3
     jmp ScriptOp41
 ScriptOp59:
     jsr ScriptResolveOperand61  ; CONTROL_SCRIPT_OP59
@@ -9853,10 +9853,10 @@ ScriptOp5AExchangePair:
     sta $80,x
     jmp ScriptOp5AStoreLow
 ScriptOp5B:
-    lda $61
+    lda RecordBuffer1
     eor $70,x                   ; CONTROL_SCRIPT_OP5B
     sta $70,x
-    lda $62
+    lda RecordBuffer2
     eor $80,x
     sta $80,x
     rts
@@ -9868,17 +9868,17 @@ ScriptOp5CTo5D:
 ScriptOp5E:
     jsr ScriptResolveOperand61  ; CONTROL_SCRIPT_OP5E
     ora $D0,x
-    eor $61
+    eor RecordBuffer1
     sta $D0,x
 ScriptOp5EReturn:
     rts
 ScriptOp5F:
-    lda $63
+    lda RecordBuffer3
     and $D0,x                   ; CONTROL_SCRIPT_OP5F
     beq ScriptOp5EReturn
     jmp ScriptSetPointerFromOperands
 ScriptOp60:
-    lda $63
+    lda RecordBuffer3
     and $D0,x                   ; CONTROL_SCRIPT_OP60
     bne ScriptOp5EReturn
     jmp ScriptSetPointerFromOperands
@@ -9900,11 +9900,11 @@ ScriptOp61:
     sta $A0,y
     lda #$00
     sta $0620,y
-    lda $64
+    lda RecordBuffer4
     sta $0780,y
-    lda $62
+    lda RecordBuffer2
     sta $0580,y
-    lda $63
+    lda RecordBuffer3
     sta $0590,y
     tya
     pha
@@ -9927,7 +9927,7 @@ ScriptOp62Test:
     stx $05
     jsr TestSlotOffset
     beq ScriptOp66Return
-    lda $63
+    lda RecordBuffer3
     asl a
     asl a
     asl a
@@ -9939,22 +9939,22 @@ ScriptOp62Test:
 ScriptOp62Jump:
     jmp ScriptSetPointerFromOperands
 ScriptOp63:
-    lda $62                      ; CONTROL_SCRIPT_OP63
-    sta $57
+    lda RecordBuffer2                      ; CONTROL_SCRIPT_OP63
+    sta SlotRecordMode
     jmp ScriptCallF0D8
 ScriptOp64:
-    lda $61
+    lda RecordBuffer1
     eor #$FF                     ; CONTROL_SCRIPT_OP64
     sta $3B
     rts
 ScriptOp65:
     lda $0750,x                  ; CONTROL_SCRIPT_OP65
-    ldy $61
+    ldy RecordBuffer1
     beq ScriptOp65Second
     and #$F0
     ora #$03
 ScriptOp65Second:
-    ldy $62
+    ldy RecordBuffer2
     beq ScriptOp65Store
     and #$0F
     ora #$20
@@ -9962,7 +9962,7 @@ ScriptOp65Store:
     sta $0750,x
     rts
 ScriptOp66:
-    lda $63                      ; CONTROL_SCRIPT_OP66
+    lda RecordBuffer3                      ; CONTROL_SCRIPT_OP66
     asl a
     asl a
     asl a
@@ -9970,7 +9970,7 @@ ScriptOp66:
     ldx #$00
     jsr TestSlotOffset
     bne ScriptOp62Jump
-    dec $63
+    dec RecordBuffer3
     bne ScriptOp66
 ScriptOp66Return:
     rts
@@ -9981,9 +9981,9 @@ ScriptOp67:
     jsr ScriptOp67FindAndSet     ; CONTROL_SCRIPT_OP67
     jmp ScriptYield
 ScriptOp67FindAndSet:
-    lda $63
+    lda RecordBuffer3
     sta $03
-    lda $64
+    lda RecordBuffer4
     sta $04
     lda $65
     sta $06
@@ -9992,7 +9992,7 @@ ScriptOp67FindAndSet:
     jsr ScriptOperandOrSlot
     sta $04
 ScriptOp67Select:
-    lda $63
+    lda RecordBuffer3
     cmp #$23
     bne ScriptOp67Search
     ldy $0540,x
@@ -10004,7 +10004,7 @@ ScriptOp67Search:
 ScriptOp67Selected:
     tya
     sta $06D0,x
-    lda $61
+    lda RecordBuffer1
     cmp #$FF
     bne ScriptOp67StoreFirst
     lda $0580,x
@@ -10012,7 +10012,7 @@ ScriptOp67Selected:
     sbc $0580,y
 ScriptOp67StoreFirst:
     sta $0710,x
-    lda $62
+    lda RecordBuffer2
     cmp #$FF
     bne ScriptOp67StoreSecond
     lda $0590,x
@@ -10034,16 +10034,16 @@ ScriptOp68:
 ; Opcode $69 creates a slot with $61/$62 offsets and temporarily makes it
 ; current for a call to $EFA0. On failure it discards both saved operands.
 ScriptOp69:
-    lda $62                      ; CONTROL_SCRIPT_OP69
+    lda RecordBuffer2                      ; CONTROL_SCRIPT_OP69
     pha
     lda #$FF
-    sta $62
-    lda $63
+    sta RecordBuffer2
+    lda RecordBuffer3
     pha
     lda #$F8
     sec
     sbc $03EC
-    sta $63
+    sta RecordBuffer3
     jsr ScriptOp61
     bne ScriptOp69Failure
     lda $10
@@ -10066,7 +10066,7 @@ ScriptOp69Failure:
 ScriptOp6A:
     lda $0630,x
     and #$BF                     ; CONTROL_SCRIPT_OP6A
-    ldy $61
+    ldy RecordBuffer1
     cpy #$FF
     beq ScriptOp6AStore
     ora #$40
@@ -10080,13 +10080,13 @@ ScriptOp6B:
     beq ScriptOp6AReturn
     jmp ScriptSetPointerFromOperands
 ScriptOp6C:
-    lda $61
+    lda RecordBuffer1
     cmp #$FF                     ; CONTROL_SCRIPT_OP6C
     beq ScriptOp6CSecond
     jsr ScriptOperandOrSlot
     sta $0710,x
 ScriptOp6CSecond:
-    lda $62
+    lda RecordBuffer2
     cmp #$FF
     beq ScriptOp6CYield
     jsr ScriptOperandOrSlot
@@ -10103,13 +10103,13 @@ ScriptWaitForState:
     jsr ScriptLoadSlotPointer
     jmp ScriptYield
 ScriptOp6DSetup:
-    lda $61
+    lda RecordBuffer1
     sta $EA
-    lda $62
+    lda RecordBuffer2
     sta $EB
-    lda $63
+    lda RecordBuffer3
     sta $E8
-    lda $64
+    lda RecordBuffer4
     sta $E9
     lda #$6E
     sta $04D9
@@ -10121,15 +10121,15 @@ ScriptOp6DSetup:
 ScriptOp6F:
     lda $E7                      ; CONTROL_SCRIPT_OP6F
     bne ScriptWaitForState
-    lda $61
+    lda RecordBuffer1
     sta $E8
-    lda $62
+    lda RecordBuffer2
     sta $E9
-    lda $63
+    lda RecordBuffer3
     sta $EA
     lda #$6F
     sta $04D9
-    lda $64
+    lda RecordBuffer4
     sta $04D8
     lda $65
     sta $E7
@@ -10210,10 +10210,10 @@ ScriptOp75To76:
 ; Opcode $77 examines up to four audio voice states. The helper discards
 ; its return address on a successful test before jumping to the script target.
 ScriptOp77:
-    ldx $63                      ; CONTROL_SCRIPT_OP77
+    ldx RecordBuffer3                      ; CONTROL_SCRIPT_OP77
     lda #$00
     jsr ScriptOp77Test
-    ldx $64
+    ldx RecordBuffer4
     lda #$01
     jsr ScriptOp77Test
     ldx $65
@@ -10259,22 +10259,22 @@ ScriptOp78Loop:
 ScriptFetchIndexedEight:
     jsr ScriptSaveSlotPointer
     lda #$00
-    sta $54
+    sta RecordPointerHigh
     lda $70,x
     jsr ScriptShiftPointerOffset
     jsr ScriptShiftPointerOffset
     jsr ScriptShiftPointerOffset
     clc
-    adc $61
-    sta $53
-    lda $62
-    adc $54
-    sta $54
+    adc RecordBuffer1
+    sta RecordPointerLow
+    lda RecordBuffer2
+    adc RecordPointerHigh
+    sta RecordPointerHigh
     ldx #$08
     jmp ScriptFetchRecordAndRestorePointer
 ScriptShiftPointerOffset:
     asl a
-    rol $54
+    rol RecordPointerHigh
     rts
 ScriptOp79:
     stx $03                      ; CONTROL_SCRIPT_OP79
@@ -10294,21 +10294,21 @@ ScriptOp79Next:
 ScriptOp7A:
     jsr ScriptOperand61OrSlot    ; CONTROL_SCRIPT_OP7A
     ldy #$00
-    sty $61
+    sty RecordBuffer1
 ScriptOp7ALoop:
     cmp $04E0,y
     bne ScriptOp7ANext
-    inc $61
+    inc RecordBuffer1
 ScriptOp7ANext:
     iny
     cpy #$10
     bne ScriptOp7ALoop
     lda #$00
-    sta $62
+    sta RecordBuffer2
     jmp ScriptOp3E
 ScriptOp7B:
-    ldx $63                      ; CONTROL_SCRIPT_OP7B
-    ldy $64
+    ldx RecordBuffer3                      ; CONTROL_SCRIPT_OP7B
+    ldy RecordBuffer4
     jsr TestSlotOffset
     beq ScriptOp7BReturn
     jmp ScriptSetPointerFromOperands
@@ -10324,9 +10324,9 @@ ScriptOp7CTo7D:
     ldy $0540,x
     lda $0660,y
     bpl ScriptOp7CCall
-    lda $61
+    lda RecordBuffer1
     jsr NegateA
-    sta $61
+    sta RecordBuffer1
 ScriptOp7CCall:
     jsr UpdateSlotFieldsModeC0
     jmp ScriptYieldIfNonnegative
@@ -10349,30 +10349,30 @@ ScriptOp7FFetch:
     lda $70,x
     asl a
     clc
-    adc $61
-    sta $53
-    lda $62
+    adc RecordBuffer1
+    sta RecordPointerLow
+    lda RecordBuffer2
     adc #$00
-    sta $54
+    sta RecordPointerHigh
     ldx #$02
     jsr FetchVariableRecord
     ldx $10
     jsr ScriptLoadSlotPointer
-    lda $61
-    sta $62
-    lda $60
-    sta $61
+    lda RecordBuffer1
+    sta RecordBuffer2
+    lda RecordBuffer0
+    sta RecordBuffer1
     jmp ScriptOp6DSetup
 ScriptOp80:
-    lda $61                      ; CONTROL_SCRIPT_OP80
+    lda RecordBuffer1                      ; CONTROL_SCRIPT_OP80
     sec
     sbc $70,x
-    lda $62
+    lda RecordBuffer2
     sbc $80,x
     bcs ScriptOp80Return
-    lda $61
+    lda RecordBuffer1
     sta $70,x
-    lda $62
+    lda RecordBuffer2
     sta $80,x
 ScriptOp80Return:
     rts
@@ -10381,32 +10381,32 @@ ScriptOp81:
     jsr ScriptResolveOperand62
     lda $0660,x
     bpl ScriptOp81Second
-    lda $61
+    lda RecordBuffer1
     cmp #$FF
     bne ScriptOp81NegateFirst
     lda #$00
 ScriptOp81NegateFirst:
     jsr NegateA
-    sta $61
+    sta RecordBuffer1
 ScriptOp81Second:
     lda $0660,x
     and #$40
     beq ScriptOp81Call
-    lda $62
+    lda RecordBuffer2
     cmp #$FF
     bne ScriptOp81NegateSecond
     lda #$00
 ScriptOp81NegateSecond:
     jsr NegateA
-    sta $62
+    sta RecordBuffer2
 ScriptOp81Call:
     jsr UpdateSlotFieldsMode40
     jmp ScriptYieldIfNonnegative
 ScriptOp82:
-    lda $63
+    lda RecordBuffer3
     cmp $70,x                    ; CONTROL_SCRIPT_OP82
     bne ScriptOp82Jump
-    lda $64
+    lda RecordBuffer4
     cmp $80,x
     beq ScriptOp80Return
 ScriptOp82Jump:
@@ -10414,9 +10414,9 @@ ScriptOp82Jump:
 ScriptOp83:
     lda $E7                      ; CONTROL_SCRIPT_OP83
     bne ScriptOp83Wait
-    lda $61
+    lda RecordBuffer1
     sta $E9
-    lda $62
+    lda RecordBuffer2
     sta $E8
     lda #$83
     sta $04D9
@@ -10427,7 +10427,7 @@ ScriptOp83Wait:
     jmp ScriptWaitForState
 ScriptOp84:
     jsr SelectSlotFlagsOrAbort                    ; CONTROL_SCRIPT_OP84
-    lda $61
+    lda RecordBuffer1
     sta $15,y
     rts
 ScriptOp85:
@@ -10435,7 +10435,7 @@ ScriptOp85:
     tay
     lda $70,x
     tax
-    lda $61
+    lda RecordBuffer1
     jsr DivideUnsigned16By8
     txa
     ldx $10
@@ -10475,34 +10475,34 @@ ScriptOp88:
 ScriptOp89:
     jsr ScriptSaveSlotPointer    ; CONTROL_SCRIPT_OP89_FETCH
     ldy #$07
-    lda $61
-    sta $53
-    lda $62
-    sta $54
+    lda RecordBuffer1
+    sta RecordPointerLow
+    lda RecordBuffer2
+    sta RecordPointerHigh
 ScriptOp89IndexLoop:
     lda $70,x
     clc
-    adc $53
-    sta $53
-    lda $54
+    adc RecordPointerLow
+    sta RecordPointerLow
+    lda RecordPointerHigh
     adc #$00
-    sta $54
+    sta RecordPointerHigh
     dey
     bne ScriptOp89IndexLoop
     ldx #$07
     jsr FetchVariableRecord
     ldx $10
     jsr ScriptLoadSlotPointer
-    lda $60
+    lda RecordBuffer0
     cmp #$FF
     bne ScriptOp89CheckBounds
 ScriptOp89TestRelative:
     jmp ScriptOp89Relative
 ScriptOp89CheckBounds:
-    lda $64
+    lda RecordBuffer4
     cmp #$FF
     bne ScriptOp89Setup
-    lda $63
+    lda RecordBuffer3
     cmp #$FF
     bne ScriptOp89Setup
     cmp $01
@@ -10515,7 +10515,7 @@ ScriptOp89Setup:
     sta $58
     lda #$FF
     sta $03C9
-    lda $60
+    lda RecordBuffer0
     cmp #$FF
     beq ScriptOp89SetPosition
     sta $00
@@ -10524,13 +10524,13 @@ ScriptOp89Setup:
     lda #$00
     sta $03C9
 ScriptOp89SetPosition:
-    lda $63
+    lda RecordBuffer3
     sta $0B
-    lda $64
+    lda RecordBuffer4
     sta $0C
     cmp #$FF
     bne ScriptOp89SetVertical
-    lda $63
+    lda RecordBuffer3
     cmp #$FF
     bne ScriptOp89SetVertical
     lda $65
@@ -10545,11 +10545,11 @@ ScriptOp89SetPosition:
     sta $0B
     sta $0C
 ScriptOp89SetVertical:
-    lda $62                      ; CONTROL_SCRIPT_OP89_POSITION
+    lda RecordBuffer2                      ; CONTROL_SCRIPT_OP89_POSITION
     sta $1C
     cmp #$FF
     bne ScriptOp89Convert
-    lda $61
+    lda RecordBuffer1
     sec
     sbc #$10
     sta $1C
@@ -10558,16 +10558,16 @@ ScriptOp89SetVertical:
     sta $1C
 ScriptOp89VerticalReady:
     lda $1C
-    sta $62
+    sta RecordBuffer2
 ScriptOp89Convert:
     lda #$00
     jsr ScriptOp89ShiftVertical
     jsr ScriptOp89ShiftVertical
     jsr ScriptOp89ShiftVertical
     sta $1D
-    lda $61
+    lda RecordBuffer1
     sec
-    sbc $62
+    sbc RecordBuffer2
     jsr ShiftALeft3
     sta $0590,x
     lda $65
@@ -10605,16 +10605,16 @@ ScriptOp89Relative:
     bcs ScriptOp89RetrySetup
     cmp #$01
     bcc ScriptOp89RetrySetup
-    lda $61
+    lda RecordBuffer1
     sec
     sbc $4F
     cmp #$18
     bcs ScriptOp89RetrySetup
     cmp #$05
     bcc ScriptOp89RetrySetup
-    lda $61
+    lda RecordBuffer1
     sec
-    sbc $62
+    sbc RecordBuffer2
     jsr ShiftALeft3
     tay
     sta $0590,x
@@ -10636,7 +10636,7 @@ ScriptOp89Relative:
 ; Opcode $8A clears a 32-byte stack-page buffer when $61 is $FF; otherwise it
 ; clears a selected bit using the same mask helper as opcode $1E.
 ScriptOp8A:
-    lda $61                      ; CONTROL_SCRIPT_OP8A
+    lda RecordBuffer1                      ; CONTROL_SCRIPT_OP8A
     cmp #$FF
     bne ScriptOp8AClearBit
     lda #$00
@@ -10712,21 +10712,21 @@ ScriptOp91:
     sta ($FE),y
     rts
 ScriptSetIndirectOperand:
-    lda $61                      ; CONTROL_SCRIPT_INDIRECT_OPERAND
+    lda RecordBuffer1                      ; CONTROL_SCRIPT_INDIRECT_OPERAND
     sta $FE
-    lda $62
+    lda RecordBuffer2
     sta $FF
     ldy #$00
 ScriptIndirectReturn:
     rts
 ScriptOp92:
     jsr SelectSlotFlagsOrAbort                    ; CONTROL_SCRIPT_OP92
-    lda $63
+    lda RecordBuffer3
     and $038D,y
     bne ScriptIndirectReturn
     jmp ScriptSetPointerFromOperands
 ScriptOp93:
-    lda $63
+    lda RecordBuffer3
     cmp $0360,x                  ; CONTROL_SCRIPT_OP93
     bcs ScriptIndirectReturn
     jmp ScriptSetPointerFromOperands
@@ -10735,7 +10735,7 @@ ScriptOp94:
     bpl ScriptOp94Compare
     jsr NegateA
 ScriptOp94Compare:
-    cmp $63
+    cmp RecordBuffer3
     bcs ScriptIndirectReturn
     jmp ScriptSetPointerFromOperands
 
@@ -10746,34 +10746,34 @@ ScriptOp95:
     jsr FetchVariableRecord
     ldx $10
     jsr AdvanceScriptPointerTwice
-    lda $60
-    ora $61
+    lda RecordBuffer0
+    ora RecordBuffer1
     beq ScriptIndirectReturn
     jsr AdvanceScriptPointerTwice
-    lda $62
+    lda RecordBuffer2
     cmp $70,x
     bne ScriptOp95
-    lda $63
+    lda RecordBuffer3
     cmp $80,x
     bne ScriptOp95
-    lda $61
-    sta $62
-    lda $60
-    sta $61
+    lda RecordBuffer1
+    sta RecordBuffer2
+    lda RecordBuffer0
+    sta RecordBuffer1
     jmp ScriptSetPointerFromOperands
 ScriptOp96:
-    lda $61                      ; CONTROL_SCRIPT_OP96
+    lda RecordBuffer1                      ; CONTROL_SCRIPT_OP96
     ldy $0700,x
     bpl ScriptOp96FirstReady
     jsr NegateA
 ScriptOp96FirstReady:
-    sta $61
-    lda $62
+    sta RecordBuffer1
+    lda RecordBuffer2
     ldy $B0,x
     bpl ScriptOp96SecondReady
     jsr NegateA
 ScriptOp96SecondReady:
-    sta $62
+    sta RecordBuffer2
     jsr UpdateSlotFieldsMode40
     jmp ScriptYieldIfNonnegative
 ScriptOp97:
@@ -10817,7 +10817,7 @@ ScriptOp98:
     sta $4D
     lda $16
     sta $4E
-    lda $61
+    lda RecordBuffer1
     sta $00
     lda #$0F
     sta $11
@@ -10840,13 +10840,13 @@ ScriptOp99:
     lda #$FF                     ; CONTROL_SCRIPT_OP99
     sta $0A
     lda $49
-    sta $61
+    sta RecordBuffer1
     lda $4A
-    sta $62
+    sta RecordBuffer2
     lda $4B
-    sta $63
+    sta RecordBuffer3
     lda $4C
-    sta $64
+    sta RecordBuffer4
     jsr ConfigureSplitScreen
     lda $27
     bne ScriptOp99Set
@@ -10871,7 +10871,7 @@ ScriptCompareStateReturn:
 ScriptOp9B:
     jmp CallScriptNativeBanked   ; CONTROL_SCRIPT_OP9B
 ScriptOp9C:
-    lda $61
+    lda RecordBuffer1
     eor #$FF                     ; CONTROL_SCRIPT_OP9C
     sta $03ED
     rts
@@ -10889,10 +10889,10 @@ ScriptOp9E:
     adc #$00
     sta $12
 ScriptCompareOffset:
-    lda $63
+    lda RecordBuffer3
     sec
     sbc $11
-    lda $64
+    lda RecordBuffer4
     sbc $12
     bcc ScriptOp9D
     jmp ScriptSetPointerFromOperands
@@ -10943,7 +10943,7 @@ ScriptOpA2:
 ScriptOpA4:
     lda $0630,x
     and #$FB                    ; CONTROL_SCRIPT_OPA4
-    ldy $61
+    ldy RecordBuffer1
     cpy #$FF
     beq ScriptOpA4Store
     ora #$04
@@ -10963,12 +10963,12 @@ ScriptOpA5:
     ldx $10
     jmp ScriptStoreSlotLowAndClearHigh
 ScriptOpA6:
-    lda $62                     ; CONTROL_SCRIPT_OPA6
-    sta $64
+    lda RecordBuffer2                     ; CONTROL_SCRIPT_OPA6
+    sta RecordBuffer4
     lda $70,x
-    sta $62
+    sta RecordBuffer2
     lda $80,x
-    sta $63
+    sta RecordBuffer3
     jmp ScriptOp1F
 .assert (* - BankStart) = $67D3, error, "bank 0 script handlers through opcode $A6"
 
@@ -10978,11 +10978,11 @@ ScriptOpA7:
     lda $0580,x                 ; CONTROL_SCRIPT_OPA7
     clc
     adc $70,x
-    sta $61
+    sta RecordBuffer1
     lda $0590,x
     clc
     adc $80,x
-    sta $62
+    sta RecordBuffer2
     ldy #$00
 ScriptOpA7Scan:
     jsr ScriptCheckOtherSlot
@@ -10993,7 +10993,7 @@ ScriptOpA7Scan:
     bcs ScriptOpA7FirstLow
     lda #$00
 ScriptOpA7FirstLow:
-    cmp $62
+    cmp RecordBuffer2
     bcs ScriptOpA7Next
     lda $B0,y
     clc
@@ -11001,7 +11001,7 @@ ScriptOpA7FirstLow:
     bcc ScriptOpA7FirstHigh
     lda #$FF
 ScriptOpA7FirstHigh:
-    cmp $62
+    cmp RecordBuffer2
     bcc ScriptOpA7Next
     lda $0580,y
     sec
@@ -11009,7 +11009,7 @@ ScriptOpA7FirstHigh:
     bcs ScriptOpA7SecondLow
     lda #$00
 ScriptOpA7SecondLow:
-    cmp $61
+    cmp RecordBuffer1
     bcs ScriptOpA7Next
     lda $0580,y
     clc
@@ -11022,7 +11022,7 @@ ScriptOpA7SecondExtent:
     bcc ScriptOpA7SecondHigh
     lda #$FF
 ScriptOpA7SecondHigh:
-    cmp $61
+    cmp RecordBuffer1
     bcc ScriptOpA7Next
     lda $04E0,y
     jmp ScriptStoreSlotLowAndClearHigh
@@ -11054,22 +11054,22 @@ ScriptOpA8:
     sta $80,x
     rts
 ScriptOpA9:
-    lda $61                     ; CONTROL_SCRIPT_OPA9
+    lda RecordBuffer1                     ; CONTROL_SCRIPT_OPA9
     bne ScriptOpA9Adjust
-    lda $62
+    lda RecordBuffer2
     bne ScriptOpA9Adjust
     lda $70,x
-    sta $61
+    sta RecordBuffer1
     lda $80,x
-    sta $62
+    sta RecordBuffer2
 ScriptOpA9Adjust:
     lda $0580,x
     clc
-    adc $61
+    adc RecordBuffer1
     sta $0580,x
     lda $0590,x
     clc
-    adc $62
+    adc RecordBuffer2
     sta $0590,x
     jmp UpdateSlotBounds
 ScriptOpAA:
@@ -11083,17 +11083,17 @@ ScriptOpAANonnegative:
 ; $AB and $BF share this busy-state handler and write their command byte to
 ; $04D9 when the state is available.
 ScriptOpABOrBF:
-    ldy $60                     ; CONTROL_SCRIPT_OPAB
+    ldy RecordBuffer0                     ; CONTROL_SCRIPT_OPAB
     lda $E7
     beq ScriptOpABSetup
     jmp ScriptWaitForState
 ScriptOpABSetup:
-    lda $61
+    lda RecordBuffer1
     sta $EA
-    lda $62
+    lda RecordBuffer2
     sta $EB
     bne ScriptOpABStore
-    lda $61
+    lda RecordBuffer1
     bne ScriptOpABStore
     lda $70,x
     sta $EA
@@ -11115,11 +11115,11 @@ ScriptOpAD:
     sta $0140,y
     rts
 ScriptOpAE:
-    lda $61                     ; CONTROL_SCRIPT_OPAE
+    lda RecordBuffer1                     ; CONTROL_SCRIPT_OPAE
     sta $03
-    lda $62
+    lda RecordBuffer2
     sta $04
-    lda $63
+    lda RecordBuffer3
     sta $06
     jsr ScriptDefaultSearchFields
     jsr ScriptFindSlot
@@ -11136,21 +11136,21 @@ ScriptOpAEReturn:
 ScriptOpAF:
     jsr ScriptClearSlotHigh       ; CONTROL_SCRIPT_OPAF
     lda $27
-    ldy $61
+    ldy RecordBuffer1
     cpy #$0F
     beq ScriptOpAFStore
     tay
     asl a
     sta $03
     lda $A37E,y
-    ldy $61
+    ldy RecordBuffer1
     cpy #$AA
     beq ScriptOpAFStore
     ldy $03
     lda $A395,y
     sta $80,x
     lda $A394,y
-    ldy $61
+    ldy RecordBuffer1
     cpy #$4D
     beq ScriptOpAFStore
     ldy $03
@@ -11171,21 +11171,21 @@ ScriptOpB1Loop:
     jsr FetchVariableRecord
     ldx $10
     jsr AdvanceScriptPointerTwice
-    lda $60
-    ora $61
+    lda RecordBuffer0
+    ora RecordBuffer1
     beq ScriptOpB1End
     jsr AdvanceScriptPointerTwice
     lda $03
     bne ScriptOpB1Loop
-    lda $60
+    lda RecordBuffer0
     cmp $70,x
     bne ScriptOpB1Loop
-    lda $61
+    lda RecordBuffer1
     cmp $80,x
     bne ScriptOpB1Loop
-    lda $62
+    lda RecordBuffer2
     sta $70,x
-    lda $63
+    lda RecordBuffer3
     sta $80,x
     lda #$FF
     sta $03
@@ -11199,7 +11199,7 @@ ScriptOpB1Return:
 ScriptOpB2:
     lda $05E0,x
     and #$BF                      ; CONTROL_SCRIPT_OPB2
-    ldy $61
+    ldy RecordBuffer1
     cpy #$FF
     beq ScriptOpB2Store
     ora #$40
@@ -11212,25 +11212,25 @@ ScriptOpB2Store:
 ScriptOpB3:
     jsr ScriptSaveSlotPointer     ; CONTROL_SCRIPT_OPB3
     lda $70,x
-    sta $53
+    sta RecordPointerLow
     lda $80,x
-    sta $54
-    asl $53
-    rol $54
-    lda $61
+    sta RecordPointerHigh
+    asl RecordPointerLow
+    rol RecordPointerHigh
+    lda RecordBuffer1
     clc
-    adc $53
-    sta $53
-    lda $62
-    adc $54
-    sta $54
+    adc RecordPointerLow
+    sta RecordPointerLow
+    lda RecordBuffer2
+    adc RecordPointerHigh
+    sta RecordPointerHigh
     ldx #$02
     jsr FetchVariableRecord
     ldx $10
-    lda $61
-    sta $62
-    lda $60
-    sta $61
+    lda RecordBuffer1
+    sta RecordBuffer2
+    lda RecordBuffer0
+    sta RecordBuffer1
     jsr ScriptLoadSlotPointer
     jmp ScriptOp50
 ScriptOpB4ToB5:
@@ -11310,20 +11310,20 @@ ScriptOpB8Next:
     sta $06D0,x
     rts
 ScriptOpB9:
-    lda $61                       ; CONTROL_SCRIPT_OPB9
+    lda RecordBuffer1                       ; CONTROL_SCRIPT_OPB9
     ora $0640,x
-    eor $61
+    eor RecordBuffer1
     sta $0640,x
-    lda $62
+    lda RecordBuffer2
     ora $0650,x
-    eor $62
+    eor RecordBuffer2
     sta $0650,x
     rts
 ScriptOpBA:
-    lda $61                       ; CONTROL_SCRIPT_OPBA
+    lda RecordBuffer1                       ; CONTROL_SCRIPT_OPBA
     ora $0640,x
     sta $0640,x
-    lda $62
+    lda RecordBuffer2
     ora $0650,x
     sta $0650,x
     rts
@@ -11338,12 +11338,12 @@ ScriptOpBBReturn:
 ; $BC/$BD follow a chain of $06D0 references to a requested depth. $BC calls
 ; $D4DA with a temporary value, while $BD clears a bit in the found slot.
 ScriptOpBC:
-    lda $62                       ; CONTROL_SCRIPT_OPBC
+    lda RecordBuffer2                       ; CONTROL_SCRIPT_OPBC
     jsr ScriptFindRelatedDepth
     beq ScriptOpBCReturn
     lda $06B0,x
     pha
-    lda $61
+    lda RecordBuffer1
     sta $06B0,x
     jsr ScriptMarkOtherSlot
     pla
@@ -11372,7 +11372,7 @@ ScriptFindDepthNext:
     bne ScriptFindDepthScan
     rts
 ScriptOpBD:
-    lda $61                       ; CONTROL_SCRIPT_OPBD
+    lda RecordBuffer1                       ; CONTROL_SCRIPT_OPBD
     jsr ScriptFindRelatedDepth
     beq ScriptOpBDReturn
     lda $0630,y
@@ -11387,10 +11387,10 @@ ScriptOpBE:
     rts
 ; $BF shares the previously reconstructed $AB handler.
 ScriptOpC0:
-    lda $61
+    lda RecordBuffer1
     ora $70,x                     ; CONTROL_SCRIPT_OPC0
     sta $70,x
-    lda $62
+    lda RecordBuffer2
     ora $80,x
     sta $80,x
     rts
@@ -11428,9 +11428,9 @@ ScriptOpC4:
     lda $10
     jsr StoreSlotRecordField0A
     lda #$00
-    sta $61
+    sta RecordBuffer1
     lda #$01
-    sta $62
+    sta RecordBuffer2
     ldx $10
     jmp ScriptOp63
 .assert (* - BankStart) = $6AF6, error, "bank 0 script handlers through opcode $C4"
@@ -11440,38 +11440,38 @@ ScriptOpC4:
 ConfigureSplitScreen:
     jsr ScriptCompareState27     ; CONTROL_CONFIGURE_SPLIT_SCREEN
     bne SplitScreenSetBounds
-    lda $61
+    lda RecordBuffer1
     sta $49
-    lda $62
+    lda RecordBuffer2
     sta $4A
-    lda $63
+    lda RecordBuffer3
     sta $4B
-    lda $64
+    lda RecordBuffer4
     sta $4C
 SplitScreenSetBounds:
     lda #$F8                     ; CONTROL_SPLIT_SCREEN_SET_BOUNDS
     sta $03B9
-    lda $61
+    lda RecordBuffer1
     sta $03B8
     beq SplitScreenSetControl
     lda #$F0
     sec
-    sbc $61
+    sbc RecordBuffer1
     sta $03B8
-    lda $62
+    lda RecordBuffer2
     sec
     sbc #$09
     sta $03B9
 ; Set the control fields and derive mapper selection from the packed operand.
 SplitScreenSetControl:
-    lda $63                      ; CONTROL_SPLIT_SCREEN_SET_CONTROL
+    lda RecordBuffer3                      ; CONTROL_SPLIT_SCREEN_SET_CONTROL
     sta $03BA
-    lda $64
+    lda RecordBuffer4
     and #$01
     jsr ShiftALeft4
     ora #$08
     sta $03BB
-    lda $64
+    lda RecordBuffer4
     rol a
     rol a
     rol a
@@ -11479,9 +11479,9 @@ SplitScreenSetControl:
     jsr ComputeBankSelection
     sta $03BE
     stx $03BF
-    lda $62
+    lda RecordBuffer2
     clc                          ; Original SBC intentionally includes borrow.
-    sbc $63
+    sbc RecordBuffer3
     sta $03EC
     jsr InitializeSplitSprite
 ; Compute the attribute base by subtracting four times the rounded-up $61.
@@ -11489,16 +11489,16 @@ SplitScreenSetControl:
     sta $04DA
     lda #$C0
     sta $04DB
-    lda $61
+    lda RecordBuffer1
     clc
     adc #$07
     and #$F8
     asl a
     asl a
-    sta $62
+    sta RecordBuffer2
     lda $04DB
     sec
-    sbc $62
+    sbc RecordBuffer2
     sta $04DB
     lda $04DA
     sbc #$00
@@ -11525,7 +11525,7 @@ ComputeBankSelection:
 ; Select one of two indexed fields from $61, or use the current/related
 ; slot's $0630 flags. A nonzero result indicates an unavailable selection.
 SelectScriptField:
-    lda $61                       ; CONTROL_SELECT_SCRIPT_FIELD
+    lda RecordBuffer1                       ; CONTROL_SELECT_SCRIPT_FIELD
     cmp #$02
     bcc ScriptFieldSelected
     bne ScriptFieldRelatedSlot
@@ -12253,13 +12253,13 @@ UpdateSlotFields:
     sta $05                       ; CONTROL_SLOT_FIELDS_COMMON
     ldx $10
     lda $0750,x
-    ldy $61
+    ldy RecordBuffer1
     sty $03
     beq UpdateSlotFieldsSecondFlags
     and #$F0
     ora #$03
 UpdateSlotFieldsSecondFlags:
-    ldy $62
+    ldy RecordBuffer2
     sty $04
     beq UpdateSlotFieldsStoreFlags
     and #$0F
@@ -12271,40 +12271,40 @@ UpdateSlotFieldsStoreFlags:
     bne UpdateSlotFieldsChooseMode
     jsr ComputeSlotDirectionFlags
     bpl UpdateSlotFieldsSecondSign
-    lda $61
+    lda RecordBuffer1
     jsr NegateA
-    sta $61
+    sta RecordBuffer1
 UpdateSlotFieldsSecondSign:
     lda $03DE
     and #$01
     beq UpdateSlotFieldsChooseMode
-    lda $62
+    lda RecordBuffer2
     jsr NegateA
-    sta $62
+    sta RecordBuffer2
 UpdateSlotFieldsChooseMode:
     lda $05
     bpl UpdateSlotFieldsAdd
     lda $03
     cmp #$FF
     beq UpdateSlotFieldsStoreSecond
-    lda $61
+    lda RecordBuffer1
     sta $0500,x
 UpdateSlotFieldsStoreSecond:
     lda $04
     cmp #$FF
     beq UpdateSlotFieldsReturn
-    lda $62
+    lda RecordBuffer2
     sta $0510,x
 UpdateSlotFieldsReturn:
     rts
 UpdateSlotFieldsAdd:
-    lda $61
+    lda RecordBuffer1
     clc
     adc $0500,x
     bvs UpdateSlotFieldsAddSecond
     sta $0500,x
 UpdateSlotFieldsAddSecond:
-    lda $62
+    lda RecordBuffer2
     clc
     adc $0510,x
     bvs UpdateSlotFieldsAddReturn
@@ -12328,7 +12328,7 @@ LoadSlotRecordIndirect:
     pla
     sta $FE
     pla
-    ldy $57
+    ldy SlotRecordMode
     bpl SlotRecordOffsetAdd
     tay
     lda $FE
@@ -12351,34 +12351,34 @@ SlotRecordOffsetAdd:
 ; Fetch ten bytes without losing the current command pointer. Some modes may
 ; replace the current slot pointer with the pointer in bytes 2 and 3.
 LoadSlotRecordAtFE:
-    lda $53                      ; CONTROL_SLOT_RECORD_FETCH
+    lda RecordPointerLow                      ; CONTROL_SLOT_RECORD_FETCH
     pha
-    lda $54
+    lda RecordPointerHigh
     pha
     lda $FE
-    sta $53
+    sta RecordPointerLow
     lda $FF
-    sta $54
+    sta RecordPointerHigh
     ldx #$0A
     jsr FetchVariableRecord
     pla
-    sta $54
+    sta RecordPointerHigh
     pla
-    sta $53
+    sta RecordPointerLow
     jsr ScriptSetRecordBufferPointer
     ldx $10
     ldy #$03
-    lda $57
+    lda SlotRecordMode
     bne SlotRecordCheckData
     lda ($FE),y
     cmp #$FF
     beq SlotRecordCheckData
     dey
     sta $05C0,x
-    sta $54
+    sta RecordPointerHigh
     lda ($FE),y
     sta $05B0,x
-    sta $53
+    sta RecordPointerLow
 SlotRecordCheckData:
     ldy #$01
     lda ($FE),y
@@ -12387,13 +12387,13 @@ SlotRecordCheckData:
     jmp SlotRecordFinish
 SlotRecordReadFields:
     ldy #$04                     ; CONTROL_SLOT_RECORD_FIELDS
-    lda $57
+    lda SlotRecordMode
     bpl SlotRecordReadMode
     ldy #$02
 SlotRecordReadMode:
     lda ($FE),y
     sta $11
-    lda $57
+    lda SlotRecordMode
     bmi SlotRecordReadPointer
     cmp #$01
     beq SlotRecordReadPointer
@@ -12606,9 +12606,9 @@ DoubleFEPointer:
 AdvanceScriptPointerTwice:
     jsr AdvanceScriptPointerOnce  ; CONTROL_SCRIPT_ADVANCE_TWICE
 AdvanceScriptPointerOnce:
-    inc $53
+    inc RecordPointerLow
     bne ScriptPointerIncremented
-    inc $54
+    inc RecordPointerHigh
 ScriptPointerIncremented:
     rts
 .assert (* - BankStart) = $72D6, error, "bank 0 script pointer advance helper"

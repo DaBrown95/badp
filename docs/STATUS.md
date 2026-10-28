@@ -1591,3 +1591,25 @@ emulator's mapper model and those controlled producer values. It does not
 establish physical cartridge wiring, CHR mapping, arbitrary RAM values, or
 execution of the NMI path. In particular, startup clears the default value but does not by itself
 prove the index is initialized before every possible interrupt.
+
+The shared record-fetch pointer, slot-record mode and first five record-buffer
+bytes now have provisional zero-page names in 392 physical instruction
+operands. These locations also serve arithmetic and general scratch uses; the
+names do not imply exclusive ownership by the script engine. Independent
+include-file controls check each symbol's changed bytes, including instructions
+whose original absolute addressing must remain three bytes. This improves
+readability of already-owned source without claiming additional PRG bytes.
+
+`make native-script-calls` now inventories candidate BOGUS `$9B` calls from
+the source-labelled script graph, calculating the CPU destination from the
+actual OR, stack and RTS sequence and classifying both physical-bank targets.
+At this checkpoint it finds 35 candidates: 24 encode the address of the reviewed
+bank-0 palette fade, one encodes the bank-1 text decoder's address, and ten have
+unreviewed targets. The actual selected bank remains unproven. Of the ten, six
+candidate command starts are local bytes and four overlap source-owned
+native spans without a debug span starting at that byte. The possible target
+at `$CA04` remains local in both banks. These counts describe the incomplete
+static candidate graph, not reachability, an instruction-boundary proof, a
+mapper guarantee, or a complete inventory of dynamically constructed calls.
+The metadata and input identities are retained locally in
+`analysis/us-v1.5/native-script-calls.json`.

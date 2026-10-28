@@ -88,6 +88,23 @@ class SourceOwnershipTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "reviewed code operands"):
             verify_symbol_control(reference, candidate, [{"kind": "data", "file_offset": 0, "size": 6}], "ScrollAxisOrder")
 
+    def test_zero_page_symbol_control_checks_each_changed_operand(self):
+        include = "SlotRecordMode = $0057\n"
+        self.assertEqual(mutate_include(include, "SlotRecordMode"), "SlotRecordMode = $0056\n")
+        reference = bytes([0xA5, 0x57] * 7)
+        candidate = bytes([0xA5, 0x56] * 7)
+        regions = [{"kind": "code", "file_offset": 0, "size": len(reference)}]
+        self.assertEqual(verify_symbol_control(reference, candidate, regions, "SlotRecordMode"),
+                         list(range(1, len(reference), 2)))
+        bad = bytearray(candidate)
+        bad[0] ^= 1
+        with self.assertRaisesRegex(ValueError, "reviewed code operands"):
+            verify_symbol_control(reference, bytes(bad), regions, "SlotRecordMode")
+        with self.assertRaisesRegex(ValueError, "reviewed code operands"):
+            verify_symbol_control(reference, candidate,
+                                  [{"kind": "code", "file_offset": 0, "size": len(reference) - 1}],
+                                  "SlotRecordMode")
+
     def test_retiring_control_intermediates_preserves_proof_inputs(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

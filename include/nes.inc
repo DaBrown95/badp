@@ -8,6 +8,17 @@ PPUDATA   = $2007
 OAMDMA    = $4014
 JOY1      = $4016
 
+; Shared record-fetch workspace. The pointer is also reused for intermediate
+; arithmetic, and the buffer holds both BOGUS commands and other record types.
+RecordPointerLow = $0053
+RecordPointerHigh = $0054
+SlotRecordMode = $0057
+RecordBuffer0 = $0060
+RecordBuffer1 = $0061
+RecordBuffer2 = $0062
+RecordBuffer3 = $0063
+RecordBuffer4 = $0064
+
 ; Provisional mapper selection names, based on their producers and consumers.
 ; The secondary selection does not always map physical bank 1.
 DefaultBankValue = $03C0

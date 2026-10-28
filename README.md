@@ -164,6 +164,7 @@ and simultaneous press/release handling on the reference and build.
 | `make verify-audio-bank` | Check audio selector and mapper behavior with controlled inputs. |
 | `make indexed-jump-inventory` | Check `$F434` index behavior and candidate table reads. |
 | `make native-control-flow` | Inventory reconstructed native transfers and bank alternatives. |
+| `make native-script-calls` | Classify candidate BOGUS native-call targets in both banks. |
 | `make progress` | Rebuild and update the per-version tracker. |
 | `make position-records` | Decode v1.5 position records to ignored local analysis. |
 | `make script-entries` | Inventory candidate v1.5 script entry points locally. |

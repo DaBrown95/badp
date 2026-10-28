@@ -34,7 +34,8 @@ def _fields(line: str) -> dict[str, str]:
 
 
 def inventory(debug: str, source: str, prg: bytes, regions: list[dict], *,
-              include_script_dispatch: bool = False) -> dict:
+              include_script_dispatch: bool = False,
+              extra_targets: tuple[tuple[int, int], ...] = ()) -> dict:
     """Inspect source-associated spans, preserving physical-bank alternatives."""
     if len(prg) != 2 * BANK_SIZE:
         raise ValueError('expected two 32 KiB PRG banks')
@@ -160,6 +161,13 @@ def inventory(debug: str, source: str, prg: bytes, regions: list[dict], *,
               'interpretation': 'Static source-associated spans; absolute targets have two physical bank alternatives. '
                                 'A span boundary is not proof of an instruction boundary or runtime execution. '
                                 'Returns and indirect or dynamically constructed transfers remain unresolved.'}
+    if extra_targets:
+        if (len(set(extra_targets)) != len(extra_targets)
+                or any(bank not in (0, 1) or type(target) is not int or not 0 <= target <= 0xffff
+                       for bank, target in extra_targets)):
+            raise ValueError('invalid or duplicate extra target')
+        result['extra_targets'] = [{'bank': bank, 'cpu': f'0x{target:04x}', **classify(bank, target)}
+                                   for bank, target in extra_targets]
     if include_script_dispatch:
         # DispatchScriptCommand indexes two bank-0 tables and pushes an
         # address one byte before the handler; RTS then increments it. The
