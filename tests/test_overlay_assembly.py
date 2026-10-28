@@ -18,7 +18,11 @@ class OverlayAssemblyTests(unittest.TestCase):
         source = (ROOT / 'src/us-v1.5/rom.s').read_text()
         names = ('BogusJumpBank1', 'BogusSetSlotMode', 'BogusSetSlotD0Bits', 'BogusSetDispatchCounter',
                  'BogusSelectRelativeSlotAndYield', 'AudioNote', 'AudioLoop', 'AudioWriteFive',
-                 'AudioWriteRegister', 'BogusOrSlotValue', 'BogusSetSlot07F0',
+                 'AudioWriteRegister', 'AudioRestorePointer', 'AudioSelectChannel', 'AudioInstrument',
+                 'BogusOrSlotValue', 'BogusSetSlot07F0', 'BogusBranchIfSlotD0Bits',
+                 'BogusBranchIfSlot07C0Equal', 'BogusBranchPrefix',
+                 'AudioBranchNoteRestoreChannelInstrument', 'AudioBranchNotesRestore',
+                 'AudioLongBranchNotesRestoreChannel',
                  'BogusJumpCompactOverlay', 'BogusModeResourceOverlay',
                  'BogusSetJumpRecordOverlay', 'AudioNoteBogusOverlay',
                  'BogusSetSlotC0', 'BogusSetSlot0670Pair', 'BogusMaskSlotValue',
@@ -184,6 +188,42 @@ AudioWriteRegister $02, $67
         result, error, script = self.assemble('BogusSetSlot07F0 $EE')
         self.assertEqual(result, 0, error)
         self.assertEqual(audio[1:3], script)
+
+    def test_mixed_audio_branch_views_and_selector_bounds(self):
+        cases = (
+            ('AudioBranchNoteRestoreChannelInstrument BogusBranchIfSlot0520AtMost, $22, $01, $02, $02, $09',
+             'AudioNote $01, $02\nAudioRestorePointer\nAudioSelectChannel $02\nAudioInstrument $09'),
+            ('AudioBranchNotesRestore BogusBranchIfSlotD0Bits, $5F, $3031, $02, $1F, $01, $11, $01, $10',
+             'AudioNote $02, $1F\nAudioNote $01, $11\nAudioNote $01, $10\nAudioRestorePointer'),
+            ('AudioLongBranchNotesRestoreChannel BogusBranchIfMatchingSlotReady, $35, $3937, $38, $02, $01, $15, $01, $17, $01, $19, $01, $18',
+             'AudioNote $01, $15\nAudioNote $01, $17\nAudioNote $01, $19\nAudioNote $01, $18\nAudioRestorePointer\nAudioSelectChannel $02'),
+        )
+        for script, audio in cases:
+            with self.subTest(script=script):
+                result, error, script_bytes = self.assemble(script)
+                self.assertEqual(result, 0, error)
+                result, error, audio_bytes = self.assemble(audio)
+                self.assertEqual(result, 0, error)
+                self.assertEqual(script_bytes, audio_bytes)
+        bad = cases[0][0].replace('$02, $09', '$04, $09')
+        result, error, _ = self.assemble(bad)
+        self.assertNotEqual(result, 0)
+        self.assertIn('invalid audio selector', error)
+        bad = cases[2][0].replace('$02, $01, $15', '$04, $01, $15')
+        result, error, _ = self.assemble(bad)
+        self.assertNotEqual(result, 0)
+        self.assertIn('invalid audio channel', error)
+        bad = cases[1][0].replace('$02, $1F', '$02, $1E')
+        result, error, _ = self.assemble(bad)
+        self.assertNotEqual(result, 0)
+        self.assertIn('audio/script byte disagreement', error)
+
+    def test_branch_prefix_shares_its_final_byte_with_following_data(self):
+        result, error, prefix = self.assemble('BogusBranchPrefix BogusBranchIfSlot07C0Equal, $3456')
+        self.assertEqual(result, 0, error)
+        result, error, branch = self.assemble('BogusBranchIfSlot07C0Equal BankStart + $3456, $78')
+        self.assertEqual(result, 0, error)
+        self.assertEqual(prefix, branch[:3])
 
     def test_multi_byte_audio_script_forms(self):
         # Synthetic commands exercise every operand layout, including target

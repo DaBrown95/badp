@@ -34,9 +34,9 @@ independent source trees or treat one version's evidence as verifying the rest.
 simultaneous reconstruction. Keep progress and completion evidence per target.
 
 The v1.5 build now assembles and links to the exact reference, with 21,474 bytes
-of source code and 21,524 bytes of structured data across the physical PRG banks.
-It still includes 22,538 local PRG bytes and 65,536 local CHR bytes. A total of
-1,498 independent source-change controls verify every listed reconstructed region.
+of source code and 21,577 bytes of structured data across the physical PRG banks.
+It still includes 22,485 local PRG bytes and 65,536 local CHR bytes. A total of
+1,514 independent source-change controls verify every listed reconstructed region.
 Passing input audits or whole-ROM equality alone is not reconstruction
 completion. The developer identifies BOGUS as the
 state-machine engine in the [Vance Kozik interview](https://www.nesworld.com/kozik.php);
@@ -339,12 +339,12 @@ either table have not been established.
 map, descriptor-context, native-event and direct-target scripts and records, palette setup,
 candidate audio and PPU-stream uses, round-tripped packed text, and optional
 validated audio and sprite traces. It counts physical bytes once while
-retaining overlapping uses. With the current local traces, 776 PRG bytes have no use
+retaining overlapping uses. With the current local traces, 757 PRG bytes have no use
 in these inventories; that number is not a count of remaining code. The report
 also retains 7,633 possible map/script overlap bytes and 858 possible record/script
 overlap bytes across the combined inventories. The expanded field-setter walk
 introduces many speculative competing decodes; it does not establish their
-reachability. It also reports 7,697 source-owned bytes covered by candidate
+reachability. It also reports 7,730 source-owned bytes covered by candidate
 data uses, which can include compatible uses as well as competing ones. The
 report records its input identities and writes metadata only to
 ignored `analysis/us-v1.5/prg-inventory.json`.
@@ -1337,7 +1337,7 @@ descriptor/path associations remain static candidates.
 
 `make indexed-jump-inventory` now inventories all 128 distinct read positions
 at each of the three predecessor-bounded sites as well as `$F434`. Outside the
-predecessor ranges, 5 of 117 reads at `$B62C` and 37 of 124 at `$D48F` touch
+predecessor ranges, 5 of 117 reads at `$B62C` and 36 of 124 at `$D48F` touch
 locally included bytes; all 120 at `$E71C` read source-owned bytes. Under the
 candidate encoded-bank mapping, some resulting words point into native source,
 script/data source or local regions. These are possible indexed reads and
@@ -1404,3 +1404,30 @@ The 73 bytes at bank-0 `$FD3F-$FD87`, between the controller mode gate and
 the shared native-call wrapper, are all zero in the pinned v1.5 reference.
 There is no established use or padding boundary for that span; it remains a
 local inclusion and is not credited as code or structured data.
+
+The candidate `$B082` direct record load can inspect the `$B077` record's
+script-pointer sentinel and mode-selected fields. The sentinel and the next
+five fields are now represented; the skipped low pointer byte at `$B079` stays
+local. Candidate commands at `$B07B` and `$B07E` share those fields. The
+candidate `$AF00`, `$D228` and `$D555` paths now describe branches whose
+opcodes or operands overlap a neighboring command, contact pointer or record.
+The `$DA56`, `$DB22`, `$E018` and overlapping `$E104`/`$E105` entries continue
+existing candidate script decodes. These paths and record modes remain static
+possibilities, not execution evidence.
+
+Further overlapping audio and script commands are represented at `$A9B9`,
+`$A9F2-$A9F5`, `$AA77`, `$AA9E-$AAAE` and `$AAD4-$AAD7`. Mixed note, restore,
+channel and instrument forms now check the shared branch fields. The existing
+audio observations cover `$AAA3-$AAAE`; they do not establish the candidate
+script paths. The current static audio graph covers 1,677 unique PRG bytes,
+of which 1,670 are source-owned. Its seven remaining local bytes are the first
+three bytes of the `$A78D` write and the possible audio sequence at
+`$CA3F-$CA42`. This is not an inventory of every possible audio stream.
+
+The chunk-offset table contains aligned offsets for 145 distinct slots between
+zero and its largest referenced offset, leaving slot 22 at bank-1
+`$85D8-$861B` unreferenced by that table. The inventory now records this
+68-byte interval separately as a possible unreferenced map slot. It overlaps
+49 bytes in the candidate script graph; both labels are retained, and the span
+remains local. Alignment alone does not establish that it is map data, padding,
+or executable script, and independent or out-of-range indexing remains open.

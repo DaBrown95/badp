@@ -38,13 +38,14 @@ their assumed descriptor associations and interpretations remain unverified.
 The overlaps do not establish which path actually executes.
 A separate `make direct-record-flow` walk seeds every named bank-1 script
 entry and checks direct `$16` targets against the resulting script graph.
-The latest scan starts from 1,854 named candidate script entries and finds 30
+The latest scan starts from 1,872 named candidate script entries and finds 30
 possible direct-load commands with 28 distinct direct targets. Its widened
-walk contains 10,021 bytes with overlapping script decodes and 76 possible
+walk contains 10,021 bytes with overlapping script decodes and 81 possible
 record/script overlap bytes. The added entries are candidate contexts, so
 these counts do not establish execution or mutually incompatible behavior. The
-possible record at `$B077` overlaps two candidate script bytes; both views are
-represented in the same source extent with an assembler consistency check.
+possible record at `$B077` overlaps candidate script commands at `$B077`,
+`$B07B` and `$B07E`; those views are represented, while the skipped low
+script-pointer byte remains local.
 The graph follows three observed `$F434` indices and 29 more candidates under
 the `$F432` predecessor condition; other independent-entry indices remain open.
 The `$B62C`, `$D48F` and `$E71C` tables likewise retain predecessor-specific

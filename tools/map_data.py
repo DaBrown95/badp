@@ -95,6 +95,19 @@ def inventory(bank0: bytes, bank1: bytes) -> dict:
                               'location': _location(1, offset), 'decoded': decoded,
                               'table_indices': []}
         chunks[offset]['table_indices'].append(index)
+    # A hole between aligned, referenced offsets is only a possible slot. It
+    # may contain something else or be reachable through an unmodelled index.
+    # Keep it separate from referenced chunks and do not claim source ownership.
+    aligned = bool(offsets) and min(offsets) == 0 and all(offset % CHUNK_SIZE == 0 for offset in offsets)
+    unreferenced_slots = []
+    if aligned:
+        referenced = set(offsets)
+        for offset in range(0, max(offsets) + 1, CHUNK_SIZE):
+            if offset not in referenced:
+                unreferenced_slots.append({'slot_index': offset // CHUNK_SIZE,
+                                           'encoded_pointer': f'0x{offset:04x}',
+                                           'location': _location(1, offset),
+                                           'size': CHUNK_SIZE})
     layouts = {}
     states = []
     for index in range(STATE_COUNT):
@@ -125,6 +138,7 @@ def inventory(bank0: bytes, bank1: bytes) -> dict:
             layout_coverage[key] = layout_coverage.get(key, 0) + 1
     return {'states': states, 'layouts': list(layouts.values()),
             'chunk_table_offsets': offsets, 'chunks': [chunks[p] for p in sorted(chunks)],
+            'chunk_offsets_aligned': aligned, 'unreferenced_aligned_chunk_slots': unreferenced_slots,
             'overlapping_chunk_bytes': sum(n > 1 for n in chunk_coverage.values()),
             'overlapping_layout_bytes': sum(n > 1 for n in layout_coverage.values()),
             'layout_chunk_overlap_bytes': sum((1, p) in layout_coverage for p in chunk_coverage)}
@@ -195,6 +209,8 @@ def main() -> int:
         print(json.dumps({'states': len(result['states']), 'distinct_layouts': len(result['layouts']),
                           'chunk_table_entries': len(result['chunk_table_offsets']),
                           'distinct_chunks': len(result['chunks']),
+                          'chunk_offsets_aligned': result['chunk_offsets_aligned'],
+                          'unreferenced_aligned_chunk_slots': len(result['unreferenced_aligned_chunk_slots']),
                           'overlapping_chunk_bytes': result['overlapping_chunk_bytes'],
                           'overlapping_layout_bytes': result['overlapping_layout_bytes'],
                           'layout_chunk_overlap_bytes': result['layout_chunk_overlap_bytes'],

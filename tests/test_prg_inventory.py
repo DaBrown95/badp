@@ -46,6 +46,17 @@ class PrgInventoryTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             summarize({'unknown': [(0, 1)]}, bank_size=8, bank_count=2)
 
+    def test_unreferenced_map_slot_does_not_hide_candidate_script(self):
+        result = summarize({'candidate_unreferenced_map_slots': [(1, 4)],
+                            'candidate_script_bytes': [(3, 3)]}, bank_size=8, bank_count=1)
+        self.assertEqual(result['category_bytes']['candidate_unreferenced_map_slots'], 4)
+        self.assertEqual(result['unreferenced_map_slot_and_candidate_script_bytes'], 2)
+        self.assertEqual(result['map_and_candidate_script_bytes'], 0)
+        self.assertEqual(result['source_and_candidate_data_bytes'], 0)
+        self.assertEqual(result['uncatalogued_bytes'], 3)
+        groups = {tuple(g['uses']): g['bytes'] for g in result['use_combinations']}
+        self.assertEqual(groups[('candidate_unreferenced_map_slots', 'candidate_script_bytes')], 2)
+
     def test_candidate_audio_remains_distinct_from_runtime_observations(self):
         result = summarize({'observed_audio_commands': [(0, 2)],
                             'candidate_audio_commands': [(1, 3)]}, bank_size=8, bank_count=1)

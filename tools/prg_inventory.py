@@ -23,6 +23,7 @@ from .script_flow import ConditionalIndexedJump, PRIMARY_INDEXED_JUMPS, walk
 from .setup_mesen import spec
 
 CATEGORIES = ('source_code', 'source_data', 'candidate_map_chunks', 'candidate_map_layouts',
+              'candidate_unreferenced_map_slots',
               'packed_text_records', 'observed_audio_commands', 'candidate_sprite_bytes',
               'candidate_script_bytes', 'candidate_record_bytes', 'candidate_palette_setup_bytes',
               'candidate_audio_commands', 'candidate_ppu_stream_bytes', 'candidate_sprite_static_bytes')
@@ -77,6 +78,7 @@ def summarize(spans: dict[str, list[tuple[int, int]]], *, bank_size: int = BANK_
     data_mask = ((1 << len(CATEGORIES)) - 1) ^ source_mask ^ script_mask
     map_mask = ((1 << CATEGORIES.index('candidate_map_chunks'))
                 | (1 << CATEGORIES.index('candidate_map_layouts')))
+    unreferenced_map_mask = 1 << CATEGORIES.index('candidate_unreferenced_map_slots')
     record_mask = 1 << CATEGORIES.index('candidate_record_bytes')
     observed_audio_mask = 1 << CATEGORIES.index('observed_audio_commands')
     candidate_audio_mask = 1 << CATEGORIES.index('candidate_audio_commands')
@@ -90,6 +92,8 @@ def summarize(spans: dict[str, list[tuple[int, int]]], *, bank_size: int = BANK_
                                                      for mask in masks),
             'map_and_candidate_script_bytes': sum(bool(mask & map_mask) and bool(mask & script_mask)
                                                   for mask in masks),
+            'unreferenced_map_slot_and_candidate_script_bytes': sum(
+                bool(mask & unreferenced_map_mask) and bool(mask & script_mask) for mask in masks),
             'record_and_candidate_script_bytes': sum(bool(mask & record_mask) and bool(mask & script_mask)
                                                      for mask in masks),
             'observed_and_candidate_audio_bytes': sum(bool(mask & observed_audio_mask)
@@ -201,6 +205,9 @@ def inventory(root: Path = ROOT) -> dict:
                                      for x in maps['chunks']]
     spans['candidate_map_layouts'] = [(x['location']['physical_prg_offset'], x['decoded']['size'])
                                       for x in maps['layouts']]
+    spans['candidate_unreferenced_map_slots'] = [
+        (x['location']['physical_prg_offset'], x['size'])
+        for x in maps['unreferenced_aligned_chunk_slots']]
     records = packed_text.decode_records(bank1, packed_text.TABLE_OFFSET, packed_text.RECORD_COUNT,
                                          packed_text.DATA_END,
                                          bank1[packed_text.PRIMARY_OFFSET:packed_text.PRIMARY_OFFSET + 32],
@@ -369,6 +376,7 @@ def main() -> int:
                           'uncatalogued_bytes': result['uncatalogued_bytes'],
                           'source_and_candidate_data_bytes': result['source_and_candidate_data_bytes'],
                           'map_and_candidate_script_bytes': result['map_and_candidate_script_bytes'],
+                          'unreferenced_map_slot_and_candidate_script_bytes': result['unreferenced_map_slot_and_candidate_script_bytes'],
                           'record_and_candidate_script_bytes': result['record_and_candidate_script_bytes'],
                           'observed_and_candidate_audio_bytes': result['observed_and_candidate_audio_bytes'],
                           'observed_and_static_sprite_bytes': result['observed_and_static_sprite_bytes'],

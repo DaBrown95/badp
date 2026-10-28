@@ -205,15 +205,17 @@ AudioOpcodeLoop = $C0
     .byte AudioOpcodeLoop, count
     .word target
 .endmacro
+AudioOpcodeSelectChannel = $E0
 .macro AudioSelectChannel channel
-    .byte ($E0 | channel)
+    .byte (AudioOpcodeSelectChannel | channel)
 .endmacro
 AudioOpcodeStopVoice = $E8
 .macro AudioStopVoice
     .byte AudioOpcodeStopVoice
 .endmacro
+AudioOpcodeRestorePointer = $E4
 .macro AudioRestorePointer
-    .byte $E4
+    .byte AudioOpcodeRestorePointer
 .endmacro
 .macro AudioRestartChannel
     .byte $F0
@@ -224,8 +226,9 @@ AudioOpcodeStopVoice = $E8
 .macro AudioClearChannelMask
     .byte $C3
 .endmacro
+AudioOpcodeInstrument = $A0
 .macro AudioInstrument instrument
-    .byte ($A0 | instrument)
+    .byte (AudioOpcodeInstrument | instrument)
 .endmacro
 .macro AudioNote duration_index, note_index
     .byte ((duration_index << 5) | note_index)
@@ -326,6 +329,10 @@ AudioOpcodeStopVoice = $E8
 .endmacro
 .macro BogusWait frames
     .byte $07, frames
+.endmacro
+; Opcode $33 shares the indexed-field transfer handler with $34.
+.macro BogusTransferIndexedFieldAndClear
+    .byte $33
 .endmacro
 .macro BogusSetSlotFields80 first, second
     .byte $2D, first, second
@@ -1329,6 +1336,11 @@ ResetEntry:
 .endmacro
 
 ; Named action opcodes bind overlapping BOGUS, record and audio views.
+BogusActionOpcode_BogusTransferIndexedFieldAndClear = $33
+BogusActionOpcode_BogusSetSlot0730 = $32
+BogusActionOpcode_BogusSetSlotFields80 = $2D
+BogusActionOpcode_BogusSelectStateTableValue = $AF
+BogusActionOpcode_BogusBranchIfSlotB0AtMost = $52
 BogusActionOpcode_BogusOrSlotValue = $C0
 BogusActionOpcode_BogusJumpBank1 = $04
 BogusActionOpcode_BogusAdvanceAndBranchState1B = $05
@@ -1488,6 +1500,40 @@ BogusActionOpcode_BogusWait = $07
     AudioNoteView duration7, note7, <word3
     AudioNoteView duration8, note8, >word3
     action word0, word1, word2, word3
+.endmacro
+
+; Mixed audio commands can occupy the operands of a single BOGUS branch.
+; Each encoded field is derived from the independently named audio view.
+.macro AudioBranchNoteRestoreChannelInstrument action, opcode, duration, note, channel, instrument
+    .assert opcode = .ident(.concat("BogusActionOpcode_", .string(action))), error, "BOGUS action opcode disagreement"
+    .assert (channel >= 0) .and (channel <= 3) .and (instrument >= 0) .and (instrument <= $1F), error, "invalid audio selector"
+    AudioNoteView duration, note, opcode
+    action (BankStart + AudioOpcodeRestorePointer + ((AudioOpcodeSelectChannel | channel) * $100)), (AudioOpcodeInstrument | instrument)
+.endmacro
+
+.macro AudioBranchNotesRestore action, opcode, encoded, duration0, note0, duration1, note1, duration2, note2
+    .assert opcode = .ident(.concat("BogusActionOpcode_", .string(action))), error, "BOGUS action opcode disagreement"
+    AudioNoteView duration0, note0, opcode
+    AudioNoteView duration1, note1, <encoded
+    AudioNoteView duration2, note2, >encoded
+    action (BankStart + encoded), AudioOpcodeRestorePointer
+.endmacro
+
+.macro AudioLongBranchNotesRestoreChannel action, opcode, encoded, first, channel, duration0, note0, duration1, note1, duration2, note2, duration3, note3
+    .assert opcode = .ident(.concat("BogusActionOpcode_", .string(action))), error, "BOGUS action opcode disagreement"
+    .assert (channel >= 0) .and (channel <= 3), error, "invalid audio channel"
+    AudioNoteView duration0, note0, opcode
+    AudioNoteView duration1, note1, <encoded
+    AudioNoteView duration2, note2, >encoded
+    AudioNoteView duration3, note3, first
+    action (BankStart + encoded), first, AudioOpcodeRestorePointer, (AudioOpcodeSelectChannel | channel)
+.endmacro
+
+; A candidate branch can share its last operand with a following command or
+; record. This emits only the opcode and target, leaving that operand to its owner.
+.macro BogusBranchPrefix action, encoded
+    .byte .ident(.concat("BogusActionOpcode_", .string(action)))
+    .word encoded
 .endmacro
 
 ; Single-byte BOGUS commands can also be read as audio notes. The symbolic
@@ -14585,7 +14631,9 @@ AudioScriptA9AD:
 AudioScriptA9B4:
     AudioScriptQuad BogusMarkMatchingSlots, $36, $2C, $35, $2A, $2E, $01, $16, $01, $0C, $01, $15, $01, $0A, $01, $0E ; CONTROL_AUDIO_COMMAND_A9B4
 .assert (* - BankStart) = $29B9, error, "bank 1 audio/script command a9b4 end"
-    .incbin "bank1_a9b9_a9ba.bin"
+; A single possible BOGUS handler is also an audio note.
+AudioScriptA9B9:
+    AudioNoteBogusOverlay $01, $13, BogusActionOpcode_BogusTransferIndexedFieldAndClear ; CONTROL_AUDIO_SCRIPT_A9B9
 ; Candidate audio flow under bank-1 selection; reachability is unverified.
 AudioCandidateA9BA:
     AudioNote $01, $16 ; CONTROL_AUDIO_CANDIDATE_A9BA
@@ -14661,7 +14709,9 @@ AudioCandidateA9DD:
     AudioNote $02, $11
     AudioNote $02, $07
 .assert (* - BankStart) = $29F2, error, "bank 1 audio candidate A9DD end"
-    .incbin "bank1_a9f2_a9f6.bin"
+; A possible branch overlaps a note, restore, channel selection and instrument.
+AudioScriptA9F2:
+    AudioBranchNoteRestoreChannelInstrument BogusBranchIfSlot07C0Equal, $45, $02, $05, $01, $0F ; CONTROL_AUDIO_SCRIPT_A9F2
 ; Candidate audio flow under bank-1 selection; reachability is unverified.
 AudioCandidateA9F6:
     AudioNote $04, $1F ; CONTROL_AUDIO_CANDIDATE_A9F6
@@ -14801,7 +14851,9 @@ AudioScriptAA6B:
 AudioScriptAA71:
     AudioScriptTargetTriple BogusBranchIfMatchingSlotReady, $35, $3533, $31, $30, $31, $01, $15, $01, $13, $01, $15, $01, $11, $01, $10, $01, $11
 .assert (* - BankStart) = $2A77, error, "bank 1 audio/script command aa6b end"
-    .incbin "bank1_aa77_aa78.bin"
+; A single possible BOGUS handler is also an audio note.
+AudioScriptAA77:
+    AudioNoteBogusOverlay $01, $13, BogusActionOpcode_BogusTransferIndexedFieldAndClear ; CONTROL_AUDIO_SCRIPT_AA77
 ; Candidate audio flow under bank-1 selection; reachability is unverified.
 AudioCandidateAA78:
     AudioNote $01, $0C ; CONTROL_AUDIO_CANDIDATE_AA78
@@ -14847,7 +14899,28 @@ AudioScriptAA8FTarget = $382E
 AudioScriptAA95:
     AudioScriptFourWords BogusSetVoicePointers, $31, $312C, $3130, $3835, $383D, $01, $11, $01, $0C, $01, $11, $01, $10, $01, $11, $01, $15, $01, $18, $01, $1D, $01, $18
 .assert (* - BankStart) = $2A9E, error, "bank 1 audio/script command aa8f end"
-    .incbin "bank1_aa9e_aaaf.bin"
+; These overlapping script entries share notes and audio state commands.
+; Audio was observed for part of the sequence; script execution is unverified.
+AudioScriptAA9ETarget = $3531
+AudioScriptAA9E:
+CandidateScriptAAA1 = AudioScriptAA9E + 3
+    AudioLongBranchNotesRestoreChannel BogusBranchIfMatchingSlotReady, $35, AudioScriptAA9ETarget, BogusActionOpcode_BogusAddSelectedFieldClamped, $01, $01, $15, $01, $11, $01, $15, $01, $18
+.assert (AudioOpcodeInstrument | $0F) = BogusActionOpcode_BogusSelectStateTableValue, error, "AAA4 audio/script opcode disagreement"
+AudioScriptAAA4:
+    AudioInstrument $0F
+AudioScriptAAA5Target = $513F ; CONTROL_AUDIO_SCRIPT_AA9E
+.assert <AudioScriptAAA5Target = BogusActionOpcode_BogusReadSlotValue, error, "AAA6 alternate opcode disagreement"
+AudioScriptAAA5:
+CandidateScriptAAA6 = AudioScriptAAA5 + 1
+CandidateScriptAAA8 = AudioScriptAAA5 + 3
+    AudioScriptTargetByte BogusBranchIfSlot07C0Equal, $45, AudioScriptAAA5Target, BogusActionOpcode_BogusReadSlotValue, $02, $05, $01, $1F, $02, (>(AudioScriptAAA5Target) & $1F), $01, $1F
+AudioScriptAAA9Value = $293F
+.assert <AudioScriptAAA9Value = BogusActionOpcode_BogusReadSlotValue, error, "AAAA alternate opcode disagreement"
+AudioScriptAAA9:
+CandidateScriptAAAA = AudioScriptAAA9 + 1
+    AudioScriptWord BogusAddSlotValue, $42, AudioScriptAAA9Value, $02, $02, $01, $1F, $01, $09
+AudioScriptAAAC:
+    AudioScriptTarget BogusBranchAndClearSlot0620Bit08, $27, $4229, $01, $07, $01, $09, $02, $02
 ; Candidate BOGUS commands and audio-note sequence share these bytes.
 ; Script context, bank selection and execution remain unverified.
 AudioScriptAAAF:
@@ -14885,7 +14958,9 @@ AudioScriptAACF:
 AudioScriptAAD2:
     AudioScriptByte BogusReadSlotValue, $3F, $65, $01, $1F, $03, $05
 .assert (* - BankStart) = $2AD4, error, "bank 1 audio/script command aaaf end"
-    .incbin "bank1_aad4_aad8.bin"
+; Three candidate audio notes and a restore byte form a possible BOGUS branch.
+AudioScriptAAD4:
+    AudioBranchNotesRestore BogusBranchIfSlotD0Bits, $5F, $3F40, $02, $1F, $02, $00, $01, $1F ; CONTROL_AUDIO_SCRIPT_AAD4
 ; Partial audio commands observed in reference playback.
 AudioObservedAAD8:
     AudioSelectChannel $02 ; CONTROL_AUDIO_OBSERVED_AAD8
@@ -15550,7 +15625,15 @@ InteractionScriptAEFC:
 InteractionScriptAEFE:
     BogusJumpBank1 InteractionScriptAF05
 .assert (* - BankStart) = $2F01, error, "bank 1 interaction script $AEFC end"
-    .incbin "bank1_af01_af05.bin"
+; The jump target high byte is also the candidate setter at AF00. Its operand
+; and the next candidate branch prefix end at the already-owned AF05 opcode.
+.assert >(InteractionScriptAF05 - BankStart) = BogusActionOpcode_BogusSetSlot0790Bits, error, "AF00 alternate opcode disagreement"
+CandidateScriptAF00 = InteractionScriptAEFE + 2
+CandidateScriptAF01Operand:
+    .byte $15
+CandidateScriptAF02:
+    BogusBranchPrefix BogusAdvanceAndBranchState1B, $E02F ; CONTROL_SCRIPT_PREFIX_AF02
+.assert BogusActionOpcode_BogusSetSlotFields80 = $2D, error, "AF05 branch operand disagreement"
 ; Command entries observed in the varied-input emulator exploration.
 InteractionScriptAF05:
     BogusSetSlotFields80 $00, $82 ; CONTROL_INTERACTION_SCRIPT_AF05
@@ -15868,7 +15951,15 @@ InteractionScriptB076:
 OverlayScriptB077:
     BogusModeResourceOverlay $B7, $B70A ; CONTROL_OVERLAY_B077
 .assert (* - BankStart) = $3079, error, "bank 1 candidate overlay b077 end"
-    .incbin "bank1_b079_b080.bin"
+    .incbin "bank1_b079_b07a.bin"
+; The direct $B082 load can inspect this sentinel and the following fields.
+; Candidate script entries use the same record fields as a mask and a load.
+CandidateRecordB077ScriptHigh:
+    .byte $FF ; CONTROL_RECORD_B077_HIGH
+CandidateScriptB07B:
+    BogusMaskSlotValue $00FF ; CONTROL_RECORD_SCRIPT_B07B
+CandidateScriptB07E:
+    BogusLoadRecordAndClearSavedState $00 ; CONTROL_RECORD_SCRIPT_B07E
 ; Candidate path from a literal branch target in maintained source.
 ; Independent entries are labelled; runtime reachability is not implied.
 BranchScriptB080:
@@ -18160,7 +18251,15 @@ ContactRecordD226:
     .byte $FF ; CONTROL_CONTACT_RECORD_D226
     .word ContactScriptD237 - BankStart
 .assert (* - BankStart) = $5229, error, "bank 1 contact record D226 end"
-    .incbin "bank1_d229_d22e.bin"
+; The contact pointer high byte is also a possible branch at D228. The
+; following bytes supply its target and operand, then another load command.
+.assert >(ContactScriptD237 - BankStart) = BogusActionOpcode_BogusBranchIfSlotB0AtMost, error, "D228 contact/script opcode disagreement"
+CandidateScriptD228 = ContactRecordD226 + 2
+CandidateScriptD228Operands:
+    .word $FF40 ; CONTROL_SCRIPT_OPERANDS_D228
+    .byte $00
+CandidateScriptD22C:
+    BogusLoadRecordAndClearSavedState $00 ; CONTROL_CANDIDATE_SCRIPT_D22C
 ; Candidate script entries from the reviewed slot-record context trace.
 ContextScriptD22E:
     BogusClearMatchingSlotFlag20 $01, $01, $00 ; CONTROL_CONTEXT_D22E
@@ -18589,7 +18688,11 @@ ContextResourceSentinelD54F:
 ContextScriptPointerD54F:
     .word (LongScriptD98E - BankStart) ; CONTROL_CONTEXT_FIELDS_D551
 .assert (* - BankStart) = $5553, error, "bank 1 candidate record field $D551 end"
-    .incbin "bank1_d553_d558.bin"
+    .incbin "bank1_d553_d555.bin"
+; The branch's final operand is the next record's resource low byte.
+CandidateScriptD555:
+    BogusBranchPrefix BogusBranchIfSlot07C0Equal, $3162 ; CONTROL_SCRIPT_PREFIX_D555
+CandidateScriptD555Value = $27
 ; Candidate mode-zero record for descriptor $D52B and the $D928 load.
 ; Alternate entries at $D559, $D55C and $D55F decode as a pair-bit clear,
 ; value mask and conditional branch. The preceding $D555 candidate branch
@@ -18598,7 +18701,7 @@ CandidateRecordD558:
 CandidateScriptD559 = CandidateRecordD558 + 1
 CandidateScriptD55C = CandidateRecordD558 + 4
 CandidateScriptD55F = CandidateRecordD558 + 7
-    SlotRecordScriptOverlay $B927, (RetainedScriptD92A - BankStart), $40, $FE, $45, $62, $31, $27 ; CONTROL_RECORD_SCRIPT_D558
+    SlotRecordScriptOverlay $B927, (RetainedScriptD92A - BankStart), $40, $FE, $45, $62, $31, CandidateScriptD555Value ; CONTROL_RECORD_SCRIPT_D558
     .incbin "bank1_d561_d562.bin"
 ; Candidate descriptor-context access; runtime reachability remains unverified.
 ; Resource high byte $FF skips visual fields and low pointer byte.
@@ -19551,7 +19654,11 @@ CandidateScriptDA51:
 CandidateScriptDA53:
     BogusMaskSlotValue $00FF ; CONTROL_CANDIDATE_SCRIPT_DA53
 .assert (* - BankStart) = $5A56, error, "bank 1 candidate script da53 end"
-    .incbin "bank1_da56_da61.bin"
+; Possible continuation of the preceding candidate mask command. The
+; record-load interpretation and its descriptor context remain unverified.
+CandidateScriptDA56:
+    BogusLoadRecordAndClearSavedState $00 ; CONTROL_CANDIDATE_SCRIPT_DA56
+    .incbin "bank1_da58_da61.bin"
 ; Candidate descriptor $DA46, command $EA26, mode $00.
 SlotFlowDA61:
     SlotRuntimeRecord $B63D, $6AA2, $00, $FF, $00, $00, $00 ; CONTROL_SLOT_FLOW_DA61
@@ -19686,7 +19793,10 @@ ObservedRecordDB1BScript:
 CandidateScriptDB1F:
     BogusMaskSlotValue $00FF ; CONTROL_CANDIDATE_SCRIPT_DB1F
 .assert (* - BankStart) = $5B22, error, "bank 1 candidate script db1f end"
-    .incbin "bank1_db22_db24.bin"
+; Possible continuation of the preceding candidate mask command. The
+; record-load interpretation and its descriptor context remain unverified.
+CandidateScriptDB22:
+    BogusLoadRecordAndClearSavedState $00 ; CONTROL_CANDIDATE_SCRIPT_DB22
 ; Resource pointer read by the slot-record loader. Unread neighbouring bytes remain local.
 PartialRecordDB24Resource:
     .word $B87F ; CONTROL_PARTIAL_RESOURCE_DB24
@@ -20380,7 +20490,10 @@ CandidateScriptE013:
 CandidateScriptE015:
     BogusMaskSlotValue $00FF ; CONTROL_CANDIDATE_SCRIPT_E015
 .assert (* - BankStart) = $6018, error, "bank 1 candidate script e015 end"
-    .incbin "bank1_e018_e01a.bin"
+; Possible continuation of the preceding candidate mask command. The
+; record-load interpretation and its descriptor context remain unverified.
+CandidateScriptE018:
+    BogusLoadRecordAndClearSavedState $00 ; CONTROL_CANDIDATE_SCRIPT_E018
 ; Candidate mode-$02 record and voice command share these bytes.
 ; Other possible script entries overlap; execution is unverified.
 CandidateRecordE01A:
@@ -20619,7 +20732,12 @@ CandidateScriptE0FF:
 CandidateScriptE101:
     BogusMaskSlotValue $00FF ; CONTROL_CANDIDATE_SCRIPT_E101
 .assert (* - BankStart) = $6104, error, "bank 1 candidate script e101 end"
-    .incbin "bank1_e104_e106.bin"
+; Two possible record-load entries share a byte; the second command takes
+; its operand from the next record's already represented resource pointer.
+CandidateScriptE104:
+CandidateScriptE105 = CandidateScriptE104 + 1
+    .byte BogusOpcodeLoadRecordAndClearSavedState ; CONTROL_CANDIDATE_SCRIPT_E104
+    .byte BogusOpcodeLoadRecordAndClearSavedState
 ; Candidate descriptor $E0F4, scripts $E1DC/$E207/$E232, mode $02.
 ; A separate possible script command starts at $E105 and overlaps this field.
 CandidateRecordE106Resource:

@@ -1519,6 +1519,22 @@
     {"id": "bank1-audio-script-aa85", "bank": 1, "cpu": "0xaa85", "size": 6, "kind": "data", "control": "audio_script_aa85"},
     {"id": "bank1-audio-script-ab0b", "bank": 1, "cpu": "0xab0b", "size": 5, "kind": "data", "control": "audio_script_ab0b"},
     {"id": "bank1-audio-script-ac40", "bank": 1, "cpu": "0xac40", "size": 9, "kind": "data", "control": "audio_script_ac40"},
+    {"id": "bank1-audio-script-a9b9", "bank": 1, "cpu": "0xa9b9", "size": 1, "kind": "data", "control": "audio_script_a9b9"},
+    {"id": "bank1-audio-script-a9f2", "bank": 1, "cpu": "0xa9f2", "size": 4, "kind": "data", "control": "audio_script_a9f2"},
+    {"id": "bank1-audio-script-aa77", "bank": 1, "cpu": "0xaa77", "size": 1, "kind": "data", "control": "audio_script_aa77"},
+    {"id": "bank1-audio-script-aa9e", "bank": 1, "cpu": "0xaa9e", "size": 17, "kind": "data", "control": "audio_script_aa9e"},
+    {"id": "bank1-audio-script-aad4", "bank": 1, "cpu": "0xaad4", "size": 4, "kind": "data", "control": "audio_script_aad4"},
+    {"id": "bank1-record-b077-high", "bank": 1, "cpu": "0xb07a", "size": 1, "kind": "data", "control": "record_b077_high"},
+    {"id": "bank1-record-script-b07b", "bank": 1, "cpu": "0xb07b", "size": 3, "kind": "data", "control": "record_script_b07b"},
+    {"id": "bank1-record-script-b07e", "bank": 1, "cpu": "0xb07e", "size": 2, "kind": "data", "control": "record_script_b07e"},
+    {"id": "bank1-script-prefix-af02", "bank": 1, "cpu": "0xaf01", "size": 4, "kind": "data", "control": "script_prefix_af02"},
+    {"id": "bank1-script-operands-d228", "bank": 1, "cpu": "0xd229", "size": 3, "kind": "data", "control": "script_operands_d228"},
+    {"id": "bank1-candidate-script-d22c", "bank": 1, "cpu": "0xd22c", "size": 2, "kind": "data", "control": "candidate_script_d22c"},
+    {"id": "bank1-script-prefix-d555", "bank": 1, "cpu": "0xd555", "size": 3, "kind": "data", "control": "script_prefix_d555"},
+    {"id": "bank1-candidate-script-da56", "bank": 1, "cpu": "0xda56", "size": 2, "kind": "data", "control": "candidate_script_da56"},
+    {"id": "bank1-candidate-script-db22", "bank": 1, "cpu": "0xdb22", "size": 2, "kind": "data", "control": "candidate_script_db22"},
+    {"id": "bank1-candidate-script-e018", "bank": 1, "cpu": "0xe018", "size": 2, "kind": "data", "control": "candidate_script_e018"},
+    {"id": "bank1-candidate-script-e104", "bank": 1, "cpu": "0xe104", "size": 2, "kind": "data", "control": "candidate_script_e104"},
     {"id": "bank1-vectors", "bank": 1, "cpu": "0xfffa", "size": 6, "kind": "data", "control": "vectors"}
   ]
 }
