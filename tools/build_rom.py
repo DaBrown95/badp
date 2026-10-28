@@ -11,7 +11,7 @@ import subprocess
 import sys
 import tempfile
 
-from . import map_assets
+from . import map_assets, map_layout_assets
 from .identify_rom import inspect_rom
 from .project import IDENTITY_PARTS, load_target
 from .setup import verified_tools
@@ -20,7 +20,7 @@ from .setup import verified_tools
 ROOT = Path(__file__).resolve().parents[1]
 TARGET = "us-v1.5"
 PROOF_INPUTS = ("tools/build_rom.py", "tools/identify_rom.py", "tools/project.py",
-                "tools/setup.py", "tools/map_assets.py", "tools/map_data.py", "tools/script_entries.py",
+                "tools/setup.py", "tools/map_assets.py", "tools/map_layout_assets.py", "tools/map_data.py", "tools/script_entries.py",
                 "config/cc65-toolchain.json")
 
 # Each shared RAM symbol gets an independent operand-change control. Counts
@@ -892,6 +892,10 @@ MUTATIONS = {
     "audio_candidate_a760": ("CONTROL_AUDIO_CANDIDATE_A760", "AudioSelectChannel $03", "AudioSelectChannel $00"),
     "audio_candidate_a78c": ("CONTROL_AUDIO_CANDIDATE_A78C", "AudioSelectChannel $00", "AudioSelectChannel $01"),
     "audio_candidate_a78d": ("CONTROL_AUDIO_CANDIDATE_A78D", "AudioWriteFivePrefix $AE, $8E", "AudioWriteFivePrefix $AF, $8E"),
+    "record_b077_negative_flags": ("CONTROL_RECORD_B077_NEGATIVE_FLAGS", ".byte $FF", ".byte $FE"),
+    "candidate_script_f40a": ("CONTROL_CANDIDATE_SCRIPT_F40A", "BogusReleaseOtherSlots", "BogusSwapSlotValueBytes"),
+    "candidate_script_f40b": ("CONTROL_CANDIDATE_SCRIPT_F40B", "BogusPositionOrPrefix CandidateCompactRecordF40AFlags", "BogusPositionOrPrefix (CandidateCompactRecordF40AFlags ^ 1)"),
+    "candidate_script_f40e": ("CONTROL_CANDIDATE_SCRIPT_F40E", "BogusSetMainState CandidateCompactRecordF40DFlags", "BogusSetMainState (CandidateCompactRecordF40DFlags ^ 1)"),
     "audio_candidate_a792": ("CONTROL_AUDIO_CANDIDATE_A792", "AudioDelay $18", "AudioDelay $19"),
     "audio_candidate_a807": ("CONTROL_AUDIO_CANDIDATE_A807", "AudioSelectChannel $00", "AudioSelectChannel $01"),
     "audio_candidate_a844": ("CONTROL_AUDIO_CANDIDATE_A844", "AudioSelectChannel $01", "AudioSelectChannel $02"),
@@ -1835,6 +1839,17 @@ def build() -> dict:
             raise ValueError("map asset region does not match the local gap")
         asset_input.write_bytes(asset_payload)
         (work / "inputs/map-chunks.json").write_bytes(map_assets.serialize(asset))
+        layouts, layout_spans, layout_source, layout_input_hash = map_layout_assets.select(
+            ROOT, prg, parsed["file"]["sha256"])
+        layout_gaps = map_layout_assets.gap_payloads(prg, regions, layout_spans)
+        if map_assets.GAP_NAME in layout_gaps:
+            raise ValueError("map chunks and layout grids share an input gap")
+        for name, payload in layout_gaps.items():
+            path = work / "inputs" / name
+            if not path.is_file() or path.stat().st_size != len(payload):
+                raise ValueError("map layout gap does not match the local source complement")
+            path.write_bytes(payload)
+        (work / "inputs/map-layouts.json").write_bytes(map_layout_assets.serialize(layouts))
         output_path = assemble(work, tool_paths, Path("source/rom.s"), Path("bible-adventures"))
         output = output_path.read_bytes()
         if output != reference:
@@ -1900,6 +1915,33 @@ def build() -> dict:
                                       "payload_sha256": digest(changed_payload),
                                       "candidate_sha256": digest(asset_candidate),
                                       "changed_offsets": asset_changed}}
+        layout_control_dir = work / "controls/layout_asset"
+        layout_control_dir.mkdir(parents=True)
+        (layout_control_dir / "rom.s").write_text(source)
+        changed_layouts = map_layout_assets.changed_asset(layouts)
+        changed_layout_json = map_layout_assets.serialize(changed_layouts)
+        changed_layout_spans = map_layout_assets.encode(changed_layouts, prg, parsed["file"]["sha256"])
+        changed_layout_gaps = map_layout_assets.gap_payloads(prg, regions, changed_layout_spans)
+        changed_names = [name for name in layout_gaps if changed_layout_gaps[name] != layout_gaps[name]]
+        if not changed_names or set(changed_names) != set(layout_gaps):
+            raise ValueError("layout asset control must affect every layout input gap")
+        (layout_control_dir / "map-layouts.json").write_bytes(changed_layout_json)
+        (layout_control_dir / "gaps").mkdir()
+        shutil.copytree(work / "inputs", layout_control_dir / "inputs")
+        for name in changed_names:
+            (layout_control_dir / "gaps" / name).write_bytes(changed_layout_gaps[name])
+            (layout_control_dir / "inputs" / name).write_bytes(changed_layout_gaps[name])
+        layout_control_rom = assemble(work, tool_paths, Path("controls/layout_asset/rom.s"),
+                                      Path("controls/layout_asset/candidate"), Path("controls/layout_asset/inputs"))
+        layout_candidate = layout_control_rom.read_bytes()
+        layout_changed = map_layout_assets.verify_control(reference, layout_candidate, parsed["prg"]["offset"], layouts)
+        retire_control_intermediates(layout_control_dir)
+        shutil.rmtree(layout_control_dir / "inputs")
+        layout_evidence = {"source": layout_source, "input_sha256": layout_input_hash,
+                           "gap_sha256": {name: digest(payload) for name, payload in layout_gaps.items()},
+                           "control": {"asset_sha256": digest(changed_layout_json),
+                                       "gap_sha256": {name: digest(changed_layout_gaps[name]) for name in changed_names},
+                                       "candidate_sha256": digest(layout_candidate), "changed_offsets": layout_changed}}
         counts = {kind: sum(r["size"] for r in regions if r["kind"] == kind)
                   for kind in ("code", "data")}
         pin = json.loads((ROOT / "config/cc65-toolchain.json").read_text())
@@ -1916,6 +1958,7 @@ def build() -> dict:
             "tool_sha256": {name: digest(path.read_bytes()) for name, path in tool_paths.items()},
             "verification_input_sha256": {name: digest((ROOT / name).read_bytes()) for name in PROOF_INPUTS},
             "source_regions": regions, "local_prg_gaps": gaps, "map_assets": asset_evidence,
+            "layout_assets": layout_evidence,
             "counts": {"matching_code_bytes": counts["code"], "structured_data_bytes": counts["data"],
                        "local_prg_bytes": sum(g["size"] for g in gaps),
                        "local_chr_bytes": len(chr_data), "container_header_bytes": 16},

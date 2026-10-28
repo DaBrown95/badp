@@ -5,7 +5,7 @@ export BADP_TARGET = $(TARGET)
 export BADP_ROM = $(ROM)
 .DEFAULT_GOAL := help
 
-.PHONY: help setup setup-mesen targets identify audit audit-all build progress verify-gameplay verify-controller verify-audio-bank indexed-jump-inventory native-control-flow position-records script-entries script-flow slot-record-flow contact-record-flow native-event-flow direct-record-flow packed-text ppu-streams trace-audio trace-audio-route audio-inventory audio-flow trace-sprites sprite-inventory map-data trace-map extract-map-chunks prg-inventory trace-runtime-extents runtime-extents test
+.PHONY: help setup setup-mesen targets identify audit audit-all build progress verify-gameplay verify-controller verify-audio-bank indexed-jump-inventory native-control-flow position-records script-entries script-flow slot-record-flow contact-record-flow native-event-flow direct-record-flow packed-text ppu-streams trace-audio trace-audio-route audio-inventory audio-flow trace-sprites sprite-inventory map-data trace-map extract-map-chunks extract-map-layouts prg-inventory trace-runtime-extents runtime-extents test
 help:
 	@echo 'make targets   Show the primary target and sequential target order'
 	@echo 'make identify  Inspect a ROM (default: primary target; override TARGET=id or ROM=path)'
@@ -37,6 +37,7 @@ help:
 	@echo 'make sprite-inventory Validate and decode the local sprite trace'
 	@echo 'make map-data        Decode v1.5 map layouts and chunks locally'
 	@echo 'make extract-map-chunks  Export editable v1.5 map chunks locally'
+	@echo 'make extract-map-layouts Export editable v1.5 map grids locally'
 	@echo 'make trace-map       Check mapped map fetches in MesenCE'
 	@echo 'make prg-inventory   Combine source and local PRG-use evidence'
 	@echo 'make trace-runtime-extents  Capture sampled Moses interpreter and record accesses'
@@ -132,6 +133,9 @@ map-data:
 
 extract-map-chunks:
 	$(PYTHON) -m tools.map_assets
+
+extract-map-layouts:
+	$(PYTHON) -m tools.map_layout_assets
 
 trace-map:
 	$(PYTHON) -m tools.trace_map

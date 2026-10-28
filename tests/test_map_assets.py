@@ -19,6 +19,16 @@ def synthetic_prg():
         prg[start:start + 2] = offset.to_bytes(2, 'little')
     for index in range(map_assets.REGION_SIZE):
         prg[map_assets.BANK_SIZE + index] = (index * 13 + 5) & 255
+    # Fourteen synthetic 3x3 layouts in bank 1; the 22-state table repeats
+    # eight of them. They do not overlap the candidate chunk region.
+    for index in range(14):
+        offset = 0x2800 + index * 11
+        base = map_assets.BANK_SIZE + offset
+        prg[base:base + 11] = bytes([3, 3] + [(index + cell) % 145 for cell in range(9)])
+    for state in range(22):
+        offset = 0x2800 + (state % 14) * 11
+        base = 0x21b2 + state * 2
+        prg[base:base + 2] = offset.to_bytes(2, 'little')
     return bytes(prg)
 
 

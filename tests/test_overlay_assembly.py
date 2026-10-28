@@ -17,6 +17,7 @@ class OverlayAssemblyTests(unittest.TestCase):
             raise unittest.SkipTest(f'pinned assembler unavailable: {exc}') from exc
         source = (ROOT / 'src/us-v1.5/rom.s').read_text()
         names = ('BogusJumpBank1', 'BogusSetSlotMode', 'BogusSetSlotD0Bits', 'BogusSetDispatchCounter',
+                 'BogusReleaseOtherSlots', 'BogusPositionOrPrefix', 'BogusSetSlotPositionFromOperands', 'BogusSetMainState',
                  'BogusSelectRelativeSlotAndYield', 'AudioNote', 'AudioLoop', 'AudioWriteFive',
                  'PpuStreamAbsolute', 'PpuStreamRelative', 'MapLayoutDimensions',
                  'PackedTextDestination',
@@ -303,6 +304,21 @@ PpuStreamRelative $0123
                 result, error, _ = self.assemble(bad)
                 self.assertNotEqual(result, 0)
                 self.assertIn('audio/script byte disagreement', error)
+
+    def test_position_prefix_shares_compact_record_and_or_views(self):
+        result, error, output = self.assemble(
+            'BogusReleaseOtherSlots\nBogusPositionOrPrefix $34\nBogusSetMainState $12')
+        self.assertEqual(result, 0, error)
+        for statement, start, end in (
+            ('SlotCompactRecord $1D79, $34', 0, 3),
+            ('BogusSetSlotPositionFromOperands $34, $C0', 1, 4),
+            ('SlotCompactRecord $0FC0, $12', 3, 6),
+            ('BogusOrSlotValue $120F', 3, 6),
+        ):
+            with self.subTest(view=statement):
+                result, error, view = self.assemble(statement)
+                self.assertEqual(result, 0, error)
+                self.assertEqual(output[start:end], view)
 
     def test_audio_note_components_are_bounded(self):
         for duration, note in ((-1, 0), (5, 0), (0, -1), (0, 32)):

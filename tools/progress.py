@@ -6,7 +6,7 @@ import json
 from pathlib import Path
 import sys
 
-from . import map_assets
+from . import map_assets, map_layout_assets
 from .build_rom import (MUTATIONS, PROOF_INPUTS, SYMBOL_CONTROLS, digest, mutate_include, mutate_source,
                         source_regions, verify_control, verify_symbol_control)
 from .identify_rom import inspect_rom
@@ -107,6 +107,34 @@ def verify_primary(root: Path, target: dict) -> dict:
     regions = source_regions(source_map, parsed["prg"]["offset"])
     if proof.get("source_regions") != regions:
         raise ValueError("source ownership differs from the build proof")
+    layouts, layout_spans, layout_source, layout_input_hash = map_layout_assets.select(root, prg, digest(reference))
+    layout_gaps = map_layout_assets.gap_payloads(prg, regions, layout_spans)
+    layout_evidence = proof.get("layout_assets", {})
+    if (layout_evidence.get("source") != layout_source
+            or layout_evidence.get("input_sha256") != layout_input_hash
+            or layout_evidence.get("gap_sha256") != {name: digest(payload) for name, payload in layout_gaps.items()}
+            or (directory / "inputs/map-layouts.json").read_bytes() != map_layout_assets.serialize(layouts)
+            or any((directory / "inputs" / name).read_bytes() != payload for name, payload in layout_gaps.items())):
+        raise ValueError("map layout build evidence is stale")
+    changed_layouts = map_layout_assets.changed_asset(layouts)
+    changed_layout_json = map_layout_assets.serialize(changed_layouts)
+    changed_layout_spans = map_layout_assets.encode(changed_layouts, prg, digest(reference))
+    changed_layout_gaps = map_layout_assets.gap_payloads(prg, regions, changed_layout_spans)
+    changed_names = [name for name in layout_gaps if changed_layout_gaps[name] != layout_gaps[name]]
+    if not changed_names or set(changed_names) != set(layout_gaps):
+        raise ValueError("map layout control does not affect every input gap")
+    layout_dir = directory / "controls/layout_asset"
+    layout_candidate = (layout_dir / "candidate.nes").read_bytes()
+    layout_control = layout_evidence.get("control", {})
+    if ((layout_dir / "rom.s").read_bytes() != source_bytes
+            or (layout_dir / "map-layouts.json").read_bytes() != changed_layout_json
+            or any((layout_dir / "gaps" / name).read_bytes() != changed_layout_gaps[name] for name in changed_names)
+            or layout_control.get("asset_sha256") != digest(changed_layout_json)
+            or layout_control.get("gap_sha256") != {name: digest(changed_layout_gaps[name]) for name in changed_names}
+            or layout_control.get("candidate_sha256") != digest(layout_candidate)
+            or layout_control.get("changed_offsets") != map_layout_assets.verify_control(reference, layout_candidate,
+                                                                                             prg_offset, layouts)):
+        raise ValueError("map layout source-change control is stale or invalid")
     code = sum(region["size"] for region in regions if region["kind"] == "code")
     data = sum(region["size"] for region in regions if region["kind"] == "data")
     counts = proof["counts"]

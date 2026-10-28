@@ -309,8 +309,9 @@ AudioOpcodeInstrument = $A0
 .macro BogusSetSlotC0 value
     .byte $09, value
 .endmacro
+BogusActionOpcode_BogusSetVoicePointers = $31
 .macro BogusSetVoicePointers voice0, voice1, voice2, voice3
-    .byte $31
+    .byte BogusActionOpcode_BogusSetVoicePointers
     .word voice0, voice1, voice2, voice3
 .endmacro
 .macro BogusSetUnlinkedFields first, second
@@ -326,8 +327,9 @@ AudioOpcodeInstrument = $A0
 .macro BogusSetSelectedState15 value
     .byte $84, value
 .endmacro
+BogusActionOpcode_BogusReleaseOtherSlots = $79
 .macro BogusReleaseOtherSlots
-    .byte $79
+    .byte BogusActionOpcode_BogusReleaseOtherSlots
 .endmacro
 .macro BogusClearSlot0790Bits mask
     .byte $30, mask
@@ -687,8 +689,9 @@ BogusOpcodeLoadRecordAndClearSavedState = $00
 .macro BogusLoadRecordAndClearSavedState value
     .byte BogusOpcodeLoadRecordAndClearSavedState, value
 .endmacro
+BogusActionOpcode_BogusSetSlotPositionFromOperands = $1D
 .macro BogusSetSlotPositionFromOperands first, second
-    .byte $1D, first, second
+    .byte BogusActionOpcode_BogusSetSlotPositionFromOperands, first, second
 .endmacro
 .macro BogusBranchIfSlot0370AtMost target, value
     .byte $4B
@@ -1356,6 +1359,12 @@ BogusActionOpcode_BogusSetSlot0630Bit04UnlessFF = $A4
 BogusOpcodeAddSelectedField39 = $39
 BogusActionOpcode_BogusRefreshSlotDrawPosition = $C3
 BogusActionOpcode_BogusOrSlotValue = $C0
+
+; The final position operand is also the opcode of an alternative OR entry.
+.macro BogusPositionOrPrefix first
+    .byte BogusActionOpcode_BogusSetSlotPositionFromOperands, first
+    .byte BogusActionOpcode_BogusOrSlotValue
+.endmacro
 BogusActionOpcode_BogusJumpBank1 = $04
 BogusActionOpcode_BogusAdvanceAndBranchState1B = $05
 BogusActionOpcode_BogusBranchIfOffsetProbe = $02
@@ -1403,7 +1412,6 @@ BogusActionOpcode_BogusSetSlotC0 = $09
 BogusActionOpcode_BogusSetSpriteAttribute20 = $29
 BogusActionOpcode_BogusSetSpritePalettePointer = $4E
 BogusActionOpcode_BogusSetState03BC = $4F
-BogusActionOpcode_BogusSetVoicePointers = $31
 BogusActionOpcode_BogusSetVoicesFromIndexedRecord = $78
 BogusActionOpcode_BogusStoreSlotValueArray = $47
 BogusActionOpcode_BogusWait = $07
@@ -16028,11 +16036,19 @@ InteractionScriptB076:
 OverlayScriptB077:
     BogusModeResourceOverlay $B7, $B70A ; CONTROL_OVERLAY_B077
 .assert (* - BankStart) = $3079, error, "bank 1 candidate overlay b077 end"
-    .incbin "bank1_b079_b07a.bin"
+; Under the candidate negative mode at $B082 this is a record flag. It is
+; also the fourth voice pointer's low byte in a possible entry at $B072.
+CandidateScriptB072 = BranchScriptB070 + 2
+CandidateRecordB077NegativeFlags:
+CandidateRecordB077ScriptLow = CandidateRecordB077NegativeFlags
+    .byte $FF ; CONTROL_RECORD_B077_NEGATIVE_FLAGS
+.assert >(BranchScriptB121 - BankStart) = BogusActionOpcode_BogusSetVoicePointers, error, "B072 voice opcode overlap"
+.assert CandidateRecordB077NegativeFlags = CandidateScriptB072 + 7, error, "B079 voice operand overlap"
 ; The direct $B082 load can inspect this sentinel and the following fields.
 ; Candidate script entries use the same record fields as a mask and a load.
 CandidateRecordB077ScriptHigh:
     .byte $FF ; CONTROL_RECORD_B077_HIGH
+.assert CandidateRecordB077ScriptHigh = CandidateScriptB072 + 8, error, "B07A voice operand overlap"
 CandidateScriptB07B:
     BogusMaskSlotValue $00FF ; CONTROL_RECORD_SCRIPT_B07B
 CandidateScriptB07E:
@@ -24159,7 +24175,26 @@ ContextScriptF401:
     BogusStoreSlotValueArray $23
     BogusSetMainState $10
 .assert (* - BankStart) = $740A, error, "bank 1 contextual script F401 end"
-    .incbin "bank1_f40a_f410.bin"
+; A saved pointer can resume here only if the state transition retains the
+; slot. The same bytes have candidate negative-mode compact-record views;
+; neither the resume nor the candidate record contexts are proven to run.
+CandidateCompactRecordF40AFlags = $FE
+CandidateCompactRecordF40DFlags = $00
+CandidateScriptF40A:
+CandidateCompactRecordF40A = CandidateScriptF40A
+    BogusReleaseOtherSlots ; CONTROL_CANDIDATE_SCRIPT_F40A
+CandidateScriptF40B:
+    BogusPositionOrPrefix CandidateCompactRecordF40AFlags ; CONTROL_CANDIDATE_SCRIPT_F40B
+CandidateScriptF40D = CandidateScriptF40B + 2
+CandidateCompactRecordF40D = CandidateScriptF40D
+CandidateScriptF40E:
+    BogusSetMainState CandidateCompactRecordF40DFlags ; CONTROL_CANDIDATE_SCRIPT_F40E
+.assert CandidateScriptF40E = CandidateScriptF40D + 1, error, "F40D OR operand overlap"
+.assert BogusActionOpcode_BogusReleaseOtherSlots = <$1D79, error, "F40A record low byte"
+.assert BogusActionOpcode_BogusSetSlotPositionFromOperands = >$1D79, error, "F40A record high byte"
+.assert BogusActionOpcode_BogusOrSlotValue = <$0FC0, error, "F40D record low byte"
+.assert BogusActionOpcode_BogusSetMainState = >$0FC0, error, "F40D record high byte"
+.assert (* - BankStart) = $7410, error, "bank 1 candidate script F40A end"
 ; Record accesses observed at the bank-0 loader in the opening scenarios.
 ; Fields behind a $FFFF resource pointer may not be read by the loader.
 RuntimeRecordF410:

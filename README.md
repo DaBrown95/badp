@@ -46,7 +46,7 @@ are not measures of gameplay completion.
 <!-- BEGIN GENERATED PROGRESS -->
 | Version | Reconstructed PRG | Status |
 | --- | ---: | --- |
-| USA v1.5 | **66.19%** (43,379 / 65,536 bytes) | In progress |
+| USA v1.5 | **66.20%** (43,386 / 65,536 bytes) | In progress |
 | USA v1.4 | **0.00%** (0 / 65,536 bytes) | Not started |
 | USA v1.3 | **0.00%** (0 / 65,536 bytes) | Not started |
 | USA v1.2 | **0.00%** (0 / 65,536 bytes) | Not started |
@@ -115,8 +115,10 @@ local, along with the extracted inputs and control builds. The optional
 `make extract-map-chunks` command exports the 145 referenced map chunks as editable
 local tile and attribute rows under `extracted/`. If present, the build encodes
 that file; otherwise it derives the same local input from the audited ROM. The
-one unreferenced slot stays opaque. A changed tile makes the matching comparison
-fail, and these local assets do not count as reconstructed PRG source.
+one unreferenced slot stays opaque. `make extract-map-layouts` similarly exports
+the 14 map grids locally; their dimensions remain in tracked source. Changing a
+tile or grid cell makes the matching comparison fail. These local assets do not
+count as reconstructed PRG source.
 
 On macOS with Apple silicon and Homebrew's SDL2 installed, an optional emulator
 check exercises the opening of each adventure:
@@ -175,6 +177,7 @@ and simultaneous press/release handling on the reference and build.
 | `make sprite-inventory` | Validate and decode the local sprite trace; payloads remain local. |
 | `make map-data` | Decode candidate map layouts and chunks to local analysis. |
 | `make extract-map-chunks` | Export editable map chunks to ignored local storage. |
+| `make extract-map-layouts` | Export editable map grids to ignored local storage. |
 | `make trace-map` | Check map fetches in extended v1.5 emulator inputs. |
 | `make prg-inventory` | Combine verified source ownership with candidate and observed data uses. |
 | `make trace-runtime-extents` | Capture sampled Moses script and record accesses. |

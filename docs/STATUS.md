@@ -34,9 +34,9 @@ independent source trees or treat one version's evidence as verifying the rest.
 simultaneous reconstruction. Keep progress and completion evidence per target.
 
 The v1.5 build now assembles and links to the exact reference, with 21,474 bytes
-of source code and 21,905 bytes of structured data across the physical PRG banks.
-It still includes 22,157 local PRG bytes and 65,536 local CHR bytes. A total of
-1,615 independent source-change controls verify every listed reconstructed region.
+of source code and 21,912 bytes of structured data across the physical PRG banks.
+It still includes 22,150 local PRG bytes and 65,536 local CHR bytes. A total of
+1,619 independent source-change controls verify every listed reconstructed region.
 Passing input audits or whole-ROM equality alone is not reconstruction
 completion. The developer identifies BOGUS as the
 state-machine engine in the [Vance Kozik interview](https://www.nesworld.com/kozik.php);
@@ -341,10 +341,10 @@ candidate audio and PPU-stream uses, round-tripped packed text, and optional
 validated audio and sprite traces. It counts physical bytes once while
 retaining overlapping uses. With the current local traces, 757 PRG bytes have no use
 in these inventories; that number is not a count of remaining code. The report
-also retains 7,633 possible map/script overlap bytes and 858 possible record/script
+also retains 7,633 possible map/script overlap bytes and 864 possible record/script
 overlap bytes across the combined inventories. The expanded field-setter walk
 introduces many speculative competing decodes; it does not establish their
-reachability. It also reports 8,058 source-owned bytes covered by candidate
+reachability. It also reports 8,065 source-owned bytes covered by candidate
 data uses, which can include compatible uses as well as competing ones. The
 report records its input identities and writes metadata only to
 ignored `analysis/us-v1.5/prg-inventory.json`.
@@ -1407,8 +1407,11 @@ local inclusion and is not credited as code or structured data.
 
 The candidate `$B082` direct record load can inspect the `$B077` record's
 script-pointer sentinel and mode-selected fields. The sentinel and the next
-five fields are now represented; the skipped low pointer byte at `$B079` stays
-local. Candidate commands at `$B07B` and `$B07E` share those fields. The
+five fields are now represented. `$B079` is skipped as a script-pointer low
+byte in zero mode, but a negative mode can inspect the same byte as a record
+flag; a possible `$B072` voice command also uses it as an operand. Its source
+representation retains both candidate views. Candidate commands at `$B07B` and
+`$B07E` share the following fields. The
 candidate `$AF00`, `$D228` and `$D555` paths now describe branches whose
 opcodes or operands overlap a neighboring command, contact pointer or record.
 The `$DA56`, `$DB22`, `$E018` and overlapping `$E104`/`$E105` entries continue
@@ -1520,3 +1523,27 @@ overlapping decodes, not evidence of additional reachable native calls; their
 active bank and target interpretation remain open. The candidate addresses and
 both physical-bank alternatives remain in ignored local analysis at
 `analysis/us-v1.5/native-script-call-candidates.json`.
+
+The candidate state-change command at `$F408` saves its advanced pointer at
+`$F40A`. If the state transition retains the slot and later resumes it, those
+six bytes decode as three commands. The `$F40A` and `$F40D` entries also have
+possible negative-mode compact-record interpretations; `$F40D` can additionally
+start a candidate OR command whose operand overlaps the next state command.
+The source emits these bytes once and asserts the shared opcode relationships.
+Slot retention, record contexts, bank mapping and execution remain unverified.
+The neighboring all-zero `$FD6A` continuation remains local and unclassified.
+
+The 14 identified map layout grids can now be exported to ignored local storage
+with `make extract-map-layouts`. Their 2,131 grid bytes are encoded into the
+local gap inputs, while the already-owned dimension headers remain in source.
+A retained control edits one cell in each layout before assembly and verifies
+exactly the corresponding 14 physical ROM bytes change. Local grid data is not
+counted as source; possible script and record overlaps are preserved rather than resolved by this format.
+
+The refreshed descriptor-rooted walk has 691 candidate record accesses and no
+unowned bytes among the fields those selected modes inspect. It has no pending
+contexts, but it does not exhaust native-event contexts, dynamic entries or
+unbounded indices. In the broader inventory, 19 local bytes have only a
+candidate-record label; that absence of other labels does not establish their
+use or make them code. The metadata-only comparison is retained locally at
+`analysis/us-v1.5/descriptor-record-ownership-review.json`.

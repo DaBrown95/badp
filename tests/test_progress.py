@@ -10,7 +10,7 @@ from unittest.mock import patch
 
 from test_build import synthetic_map
 from test_map_assets import synthetic_prg
-from tools import map_assets
+from tools import map_assets, map_layout_assets
 from tools.build_rom import (MUTATIONS, PROOF_INPUTS, SYMBOL_CONTROLS, digest, mutate_include,
                              mutate_source, source_regions)
 from tools.identify_rom import inspect_rom
@@ -156,6 +156,37 @@ class ProofFreshnessTests(unittest.TestCase):
                                       "payload_sha256": digest(changed_payload),
                                       "candidate_sha256": digest(asset_candidate),
                                       "changed_offsets": [16 + map_assets.BANK_SIZE]}}
+        layouts, spans, layout_source, layout_hash = map_layout_assets.select(self.root, prg, digest(reference))
+        layout_gaps = map_layout_assets.gap_payloads(prg, regions, spans)
+        (inputs / "map-layouts.json").write_bytes(map_layout_assets.serialize(layouts))
+        for name, payload in layout_gaps.items():
+            (inputs / name).write_bytes(payload)
+        changed_layouts = map_layout_assets.changed_asset(layouts)
+        changed_layout_json = map_layout_assets.serialize(changed_layouts)
+        changed_spans = map_layout_assets.encode(changed_layouts, prg, digest(reference))
+        changed_gaps = map_layout_assets.gap_payloads(prg, regions, changed_spans)
+        changed_names = [name for name in layout_gaps if layout_gaps[name] != changed_gaps[name]]
+        if not changed_names or set(changed_names) != set(layout_gaps):
+            raise ValueError("invalid synthetic layout control")
+        changed_reference = bytearray(reference)
+        changed_offsets = sorted(16 + item['bank'] * map_layout_assets.BANK_SIZE + int(item['cpu'], 0) - 0x8000 + 2
+                                 for item in layouts['layouts'])
+        for changed_offset in changed_offsets:
+            changed_reference[changed_offset] ^= 1
+        layout_candidate = bytes(changed_reference)
+        layout_dir = self.proof_dir / "controls/layout_asset"
+        layout_dir.mkdir(parents=True)
+        (layout_dir / "rom.s").write_bytes(source)
+        (layout_dir / "map-layouts.json").write_bytes(changed_layout_json)
+        (layout_dir / "gaps").mkdir()
+        for name in changed_names:
+            (layout_dir / "gaps" / name).write_bytes(changed_gaps[name])
+        (layout_dir / "candidate.nes").write_bytes(layout_candidate)
+        layout_evidence = {"source": layout_source, "input_sha256": layout_hash,
+                           "gap_sha256": {name: digest(payload) for name, payload in layout_gaps.items()},
+                           "control": {"asset_sha256": digest(changed_layout_json),
+                                       "gap_sha256": {name: digest(changed_gaps[name]) for name in changed_names},
+                                       "candidate_sha256": digest(layout_candidate), "changed_offsets": changed_offsets}}
         controls = []
         for name in MUTATIONS:
             selected = [r for r in regions if r["control"] == name]
@@ -199,7 +230,7 @@ class ProofFreshnessTests(unittest.TestCase):
             "toolchain_revision": "synthetic", "tool_sha256": {n: digest(p.read_bytes()) for n, p in self.tools.items()},
             "output_sha256": digest(reference), "reference_sha256": digest(reference),
             "component_matches": {p: True for p in IDENTITY_PARTS}, "source_regions": regions,
-            "map_assets": asset_evidence,
+            "map_assets": asset_evidence, "layout_assets": layout_evidence,
             "counts": {"matching_code_bytes": code, "structured_data_bytes": data,
                        "local_prg_bytes": 65536 - code - data, "local_chr_bytes": 65536},
             "controls": controls, "symbol_controls": symbol_controls,
@@ -232,6 +263,30 @@ class ProofFreshnessTests(unittest.TestCase):
         self.proof["symbol_controls"].pop()
         self.save_proof()
         with self.assertRaisesRegex(ValueError, "controls are incomplete"):
+            self.verify()
+
+    def test_changed_layout_asset_or_control_is_rejected(self):
+        asset_path = self.root / map_layout_assets.ASSET_PATH
+        asset_path.parent.mkdir(parents=True)
+        raw = (self.proof_dir / "inputs/map-layouts.json").read_bytes()
+        asset = json.loads(raw)
+        asset_path.write_bytes(raw)
+        with self.assertRaisesRegex(ValueError, "map layout build evidence is stale"):
+            self.verify()
+        self.proof["layout_assets"]["source"] = "local"
+        self.proof["layout_assets"]["input_sha256"] = digest(raw)
+        self.save_proof()
+        self.verify()
+        asset_path.write_bytes(map_layout_assets.serialize(map_layout_assets.changed_asset(asset)))
+        with self.assertRaisesRegex(ValueError, "map layout build evidence is stale"):
+            self.verify()
+        asset_path.unlink()
+        self.proof["layout_assets"]["source"] = "reference"
+        self.proof["layout_assets"]["input_sha256"] = digest(raw)
+        self.save_proof()
+        gap_name = next(iter(self.proof["layout_assets"]["control"]["gap_sha256"]))
+        (self.proof_dir / "controls/layout_asset/gaps" / gap_name).write_bytes(b"changed")
+        with self.assertRaisesRegex(ValueError, "map layout source-change control"):
             self.verify()
 
     def test_changed_map_asset_or_control_is_rejected(self):
