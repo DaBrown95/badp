@@ -14101,7 +14101,58 @@ AudioObservedAC49:
     AudioDelay $0B
     AudioRestorePointer
 .assert (* - BankStart) = $2C53, error, "bank 1 observed audio AC49 end"
-    .incbin "bank1_ac53_ac88.bin"
+    .incbin "bank1_ac53_ac58.bin"
+; Audio commands observed during the extended Moses route.
+AudioObservedAC58:
+    AudioSelectChannel $00 ; CONTROL_AUDIO_OBSERVED_AC58
+    AudioInstrument $01
+    AudioNote $00, $16
+    AudioNote $00, $14
+    AudioNote $00, $12
+    AudioNote $00, $14
+    AudioNote $00, $16
+    AudioNote $00, $14
+    AudioNote $00, $12
+    AudioNote $00, $14
+    AudioNote $00, $16
+    AudioNote $00, $14
+    AudioNote $00, $12
+    AudioNote $00, $14
+    AudioNote $00, $16
+    AudioNote $00, $14
+    AudioNote $00, $12
+    AudioNote $00, $14
+    AudioNote $02, $18
+    AudioNote $01, $1F
+    AudioNote $01, $16
+    AudioNote $02, $15
+    AudioNote $02, $18
+.assert (* - BankStart) = $2C6F, error, "bank 1 observed audio AC58 end"
+    .incbin "bank1_ac6f_ac70.bin"
+; Audio commands observed during the extended Moses route.
+AudioObservedAC70:
+    AudioSelectChannel $01 ; CONTROL_AUDIO_OBSERVED_AC70
+    AudioInstrument $0F
+    AudioNote $00, $06
+    AudioNote $00, $08
+    AudioNote $00, $0A
+    AudioNote $00, $08
+    AudioNote $00, $06
+    AudioNote $00, $08
+    AudioNote $00, $0A
+    AudioNote $00, $08
+    AudioNote $00, $06
+    AudioNote $00, $08
+    AudioNote $00, $0A
+    AudioNote $00, $08
+    AudioNote $00, $06
+.assert (* - BankStart) = $2C7F, error, "bank 1 observed audio AC70 end"
+    .incbin "bank1_ac7f_ac86.bin"
+; Audio commands observed during the extended Moses route.
+AudioObservedAC86:
+    AudioNote $02, $05 ; CONTROL_AUDIO_OBSERVED_AC86
+.assert (* - BankStart) = $2C87, error, "bank 1 observed audio AC86 end"
+    .incbin "bank1_ac87_ac88.bin"
 ; Partial audio commands observed in reference playback.
 AudioObservedAC88:
     AudioSelectChannel $00 ; CONTROL_AUDIO_OBSERVED_AC88
@@ -16021,7 +16072,17 @@ ContactScriptB79D:
     BogusBranchIfSlotB0AtMost ContactScriptB79D, $E6
     BogusYieldAndSlotAction $00
 .assert (* - BankStart) = $37A3, error, "bank 1 contact script B787 end"
-    .incbin "bank1_b7a3_b7b5.bin"
+; Audio commands observed during the extended Moses route.
+AudioObservedB7A3:
+    AudioSelectChannel $00 ; CONTROL_AUDIO_OBSERVED_B7A3
+    AudioWriteFive $A7, $A5, $3A, $00
+    AudioDelay $08
+    AudioStopVoice
+    AudioSelectChannel $00
+    AudioWriteFive $A7, $A5, $4A, $00
+    AudioDelay $08
+    AudioStopVoice
+.assert (* - BankStart) = $37B5, error, "bank 1 observed audio B7A3 end"
 ; Descriptor-linked slot record; resource data remains local.
 SlotRuntimeB7B5:
     SlotRuntimeRecord $BC83, (CandidateB7C7 - BankStart), $00, $FF, $00, $00, $00 ; CONTROL_SLOT_RUNTIME_B7B5

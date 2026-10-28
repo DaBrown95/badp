@@ -42,7 +42,7 @@ are not measures of gameplay completion.
 <!-- BEGIN GENERATED PROGRESS -->
 | Version | Reconstructed PRG | Status |
 | --- | ---: | --- |
-| USA v1.5 | **64.12%** (42,023 / 65,536 bytes) | In progress |
+| USA v1.5 | **64.21%** (42,080 / 65,536 bytes) | In progress |
 | USA v1.4 | **0.00%** (0 / 65,536 bytes) | Not started |
 | USA v1.3 | **0.00%** (0 / 65,536 bytes) | Not started |
 | USA v1.2 | **0.00%** (0 / 65,536 bytes) | Not started |
@@ -155,6 +155,7 @@ and simultaneous press/release handling on the reference and build.
 | `make packed-text` | Decode v1.5 packed text to local analysis. |
 | `make ppu-streams` | Inventory candidate PPU command streams without exporting text. |
 | `make trace-audio` | Capture audio-command reads during extended v1.5 emulator inputs. |
+| `make trace-audio-route` | Compare audio fetch counts and bytes on the maintained Moses route. |
 | `make audio-inventory` | Validate and decode the local audio trace; payloads remain local. |
 | `make audio-flow` | Trace candidate audio-command paths from literal voice starts. |
 | `make trace-sprites` | Capture sprite resource and frame entries during extended v1.5 inputs. |

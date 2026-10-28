@@ -1061,3 +1061,14 @@ round-trip locally, but they remain uncredited: the stack-copy routine selects
 its physical bank using state-dependent `$03C2`/`$03C3`, and the mapping for
 these unobserved paths has not been established. The candidate report and
 decoded blocks are retained in ignored local analysis for further investigation.
+
+The longer Moses route through frame 11,650 recorded 3,210 audio fetches on
+each ROM with identical mapped addresses and bytes. Among the commands not in
+the earlier sweep, 47 occupy four unowned, uncontested regions totaling 57
+bytes at bank 1 `$AC58`–`$AC86` and `$B7A3`–`$B7B4`. These commands are now
+structured source, with one changed-source control per region. Other newly
+observed audio commands overlap candidate script uses and remain local. The
+route probe and its reference/build observations are retained in local analysis.
+`make trace-audio-route` reproduces these 47 command starts through frame 4,300
+using the maintained Moses input and validates the physical-bank reads on both
+ROMs. It does not establish all audio paths or cartridge behavior.

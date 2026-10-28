@@ -5,7 +5,7 @@ export BADP_TARGET = $(TARGET)
 export BADP_ROM = $(ROM)
 .DEFAULT_GOAL := help
 
-.PHONY: help setup setup-mesen targets identify audit audit-all build progress verify-gameplay verify-controller position-records script-entries script-flow slot-record-flow contact-record-flow native-event-flow direct-record-flow packed-text ppu-streams trace-audio audio-inventory audio-flow trace-sprites sprite-inventory map-data trace-map prg-inventory trace-runtime-extents runtime-extents test
+.PHONY: help setup setup-mesen targets identify audit audit-all build progress verify-gameplay verify-controller position-records script-entries script-flow slot-record-flow contact-record-flow native-event-flow direct-record-flow packed-text ppu-streams trace-audio trace-audio-route audio-inventory audio-flow trace-sprites sprite-inventory map-data trace-map prg-inventory trace-runtime-extents runtime-extents test
 help:
 	@echo 'make targets   Show the primary target and sequential target order'
 	@echo 'make identify  Inspect a ROM (default: primary target; override TARGET=id or ROM=path)'
@@ -27,6 +27,7 @@ help:
 	@echo 'make packed-text     Decode v1.5 packed text to local analysis'
 	@echo 'make ppu-streams    Inventory candidate PPU command streams locally'
 	@echo 'make trace-audio     Capture v1.5 audio reads locally in MesenCE'
+	@echo 'make trace-audio-route Compare audio reads on the maintained Moses route'
 	@echo 'make audio-inventory Validate and decode the local audio trace'
 	@echo 'make audio-flow      Trace candidate audio-command paths locally'
 	@echo 'make trace-sprites   Capture v1.5 sprite entries locally in MesenCE'
@@ -97,6 +98,9 @@ ppu-streams:
 
 trace-audio:
 	$(PYTHON) -m tools.trace_audio
+
+trace-audio-route:
+	$(PYTHON) -m tools.trace_audio_route
 
 audio-inventory:
 	$(PYTHON) -m tools.audio_commands

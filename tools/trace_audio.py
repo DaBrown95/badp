@@ -15,7 +15,9 @@ from .script_entries import ROOT, load_audited_banks
 from .setup_mesen import digest_file, spec, verify_emulator
 
 
-def parse_output(output: str) -> dict:
+def parse_output(output: str, *, frames: int = 16000) -> dict:
+    if type(frames) is not int or frames <= 0:
+        raise ValueError('invalid expected frame count')
     reads = {}
     done = None
     for line in output.splitlines():
@@ -38,7 +40,7 @@ def parse_output(output: str) -> dict:
                 done = tuple(map(int, parts[1:]))
             except ValueError as exc:
                 raise ValueError('malformed audio trace summary') from exc
-    if (done is None or not reads or done[0] != 16000 or done[1] != 0
+    if (done is None or not reads or done[0] != frames or done[1] != 0
             or done[2] != done[3] or done[3] != sum(reads.values())
             or done[4] != 0 or done[5] != 0):
         raise ValueError('incomplete audio trace or bank crossing')
