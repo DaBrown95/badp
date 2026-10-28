@@ -18,10 +18,10 @@ from .setup_mesen import ROOT, digest_file, spec, verify_emulator
 
 FRAMES = (240, 650, 1200, 1400, 1496, 1511, 1550, 1700, 1800, 2100, 2150, 2300,
           2400, 2600, 2800, 3000, 3100, 3200, 3250, 3300, 3350, 3400, 3450, 3650, 3700, 3750,
-          3800, 3825, 3850, 3900, 4050, 4150, 4300, 4400, 4500, 4600, 4650, 4750, 4900, 5000, 5100, 5200, 5250, 5300, 5375, 5450, 5500, 5550, 5575, 5625, 5650, 5700, 5880, 5950, 6000, 6040, 6100, 6160, 6200, 6260, 6300, 6340, 6500, 6690, 6740, 6780, 6800, 6840, 6900, 7000, 7020, 7100, 7200, 7300, 7400)
+          3800, 3825, 3850, 3900, 4050, 4150, 4300, 4400, 4500, 4600, 4650, 4750, 4900, 5000, 5100, 5200, 5250, 5300, 5375, 5450, 5500, 5550, 5575, 5625, 5650, 5700, 5880, 5950, 6000, 6040, 6100, 6160, 6200, 6260, 6300, 6340, 6500, 6690, 6740, 6780, 6800, 6840, 6900, 7000, 7020, 7100, 7200, 7300, 7400, 7600, 7700, 7800, 7890, 7900, 7920, 8000, 8100, 8200)
 SLOT_FRAMES = (1400, 1496, 1511, 1550, 1700, 1800, 2100, 2150, 2300,
                2400, 2600, 2800, 3000, 3100, 3200, 3250, 3300, 3350, 3400, 3450, 3650, 3700, 3750,
-               3800, 3825, 3850, 3900, 4050, 4150, 4300, 4400, 4500, 4600, 4650, 4750, 4900, 5000, 5100, 5200, 5250, 5300, 5375, 5450, 5500, 5550, 5575, 5625, 5650, 5700, 5880, 5950, 6000, 6040, 6100, 6160, 6200, 6260, 6300, 6340, 6500, 6690, 6740, 6780, 6800, 6840, 6900, 7000, 7020, 7100, 7200, 7300, 7400)
+               3800, 3825, 3850, 3900, 4050, 4150, 4300, 4400, 4500, 4600, 4650, 4750, 4900, 5000, 5100, 5200, 5250, 5300, 5375, 5450, 5500, 5550, 5575, 5625, 5650, 5700, 5880, 5950, 6000, 6040, 6100, 6160, 6200, 6260, 6300, 6340, 6500, 6690, 6740, 6780, 6800, 6840, 6900, 7000, 7020, 7100, 7200, 7300, 7400, 7600, 7700, 7800, 7890, 7900, 7920, 8000, 8100, 8200)
 # Pinned emulator screenshot of the first-level success screen for the audited v1.5 input.
 MOSES_SUCCESS_SCREEN_SHA256 = 'c3d483860076f9e782d92de0913c671d4ed1aef84f8ce81688423cad40c19346'
 # Pinned second-level success screen for the same audited input.
@@ -49,6 +49,8 @@ def parse_output(output: str) -> tuple[dict, dict[int, bytes], dict[str, bytes]]
     dma: list[str] = []
     ppu: list[str] = []
     ppu_summary = None
+    exit_summary = None
+    level4 = None
     ppu_visible_control = ppu_visible_data = 0
     mismatches = unmapped = 0
     banks: set[int] = set()
@@ -116,6 +118,23 @@ def parse_output(output: str) -> tuple[dict, dict[int, bytes], dict[str, bytes]]
             ppu_summary = int(parts[1])
             if ppu_summary < 0:
                 raise ValueError('invalid PPU timing count')
+        elif line.startswith('BADP_EXIT_SUMMARY '):
+            parts = line.split()
+            if exit_summary is not None or len(parts) != 6:
+                raise ValueError('malformed or duplicate exit summary')
+            exit_summary = tuple(map(int, parts[1:]))
+            if (any(value < 0 for value in exit_summary)
+                    or exit_summary[2] > FRAMES[-1] or exit_summary[3] > FRAMES[-1]
+                    or exit_summary[4] > 255):
+                raise ValueError('invalid exit summary')
+        elif line.startswith('BADP_LEVEL4 '):
+            parts = line.split()
+            if level4 is not None or len(parts) != 8:
+                raise ValueError('malformed or duplicate fourth-level sample')
+            values = tuple(map(int, parts[1:]))
+            if any(not 0 <= value <= 255 for value in values):
+                raise ValueError('invalid fourth-level sample')
+            level4 = values
         elif line.startswith('BADP_FRAME '):
             parts = line.split()
             if len(parts) != 10:
@@ -211,7 +230,7 @@ def parse_output(output: str) -> tuple[dict, dict[int, bytes], dict[str, bytes]]
     expected_targets = ({f'script:{address:04X}' for address in SCRIPT_TARGETS}
                         | {f'record:{address:04X}' for address in RECORD_TARGETS})
     if (set(frames) != set(FRAMES) or set(slots) != set(SLOT_FRAMES) or reported != expected or not writes
-            or ppu_summary != len(ppu) or not ppu
+            or ppu_summary != len(ppu) or not ppu or exit_summary is None or level4 is None
             or probes is None or inventory is None or stage2_record is None or position_event is None
             or controller_events is None or controlled09 is None
             or set(targets) != expected_targets):
@@ -239,6 +258,12 @@ def parse_output(output: str) -> tuple[dict, dict[int, bytes], dict[str, bytes]]
              'controller_event_24_matches': controller_events[0], 'controller_event_2d_matches': controller_events[1],
              'controller_event_36_matches': controller_events[2], 'controller_event_mismatches': controller_events[3],
              'controlled09_disabled_samples': controlled09[0], 'controlled09_other_samples': controlled09[1],
+             'exit_carried_samples': exit_summary[0], 'exit_bad_samples': exit_summary[1],
+             'exit_last_carried_frame': exit_summary[2], 'exit_transition_frame': exit_summary[3],
+             'exit_transition_state': exit_summary[4],
+             'level4_player_descriptor': level4[0], 'level4_player_x': level4[1],
+             'level4_player_y': level4[2], 'level4_baby_descriptor': level4[3],
+             'level4_baby_link': level4[4], 'level4_baby_x': level4[5], 'level4_baby_y': level4[6],
              'contested_target_hits': dict(sorted(targets.items())),
              'uninitialized_read_warnings': warnings}, images,
             {'mapper': write_data, 'apu': audio_data, 'ppu': ppu_data, 'oam_dma': dma_data})
@@ -273,7 +298,7 @@ def validate_scenario(evidence: dict, expected_state: int, *, inventory: bool = 
         carried_frames = (5950, 6000, 6040, 6100, 6160, 6200, 6260, 6300, 6340,
                           6500, 6690, 6740, 6780, 6800, 6840, 6900, 7000, 7020)
         if roof:
-            carried_frames += (7100, 7200, 7300, 7400)
+            carried_frames += (7100, 7200, 7300, 7400, 7600, 7700, 7800, 7890, 7900, 7920)
         if (not evidence['stage2_record_mode2']
                 or any(slots[str(frame)]['player_descriptor'] != 1 or
                 slots[str(frame)]['object_descriptor'] != 0x6a for frame in SLOT_FRAMES if frame <= 3350)
@@ -323,8 +348,8 @@ def validate_scenario(evidence: dict, expected_state: int, *, inventory: bool = 
                 or slots['5880']['third_descriptor'] != 0x6a or slots['5880']['third_link'] != 0xff
                 or any(slots[str(frame)]['third_descriptor'] != 0x6a
                        or slots[str(frame)]['third_link'] != 1
-                       # The carried slot can trail by four pixels at the two jump samples.
-                       or abs(slots[str(frame)]['third_x'] - slots[str(frame)]['player_x']) > (4 if frame in (6690, 6780) else 0)
+                       # The carried slot trails during the observed jump samples.
+                       or abs(slots[str(frame)]['third_x'] - slots[str(frame)]['player_x']) > (7 if frame in (7890, 7920) else 4 if frame in (6690, 6780) else 0)
                        or slots[str(frame)]['third_y'] >= slots[str(frame)]['player_y']
                        for frame in carried_frames)
                 or any(slots[str(frame)]['player_descriptor'] != 1 for frame in carried_frames if frame >= 6500)
@@ -341,8 +366,23 @@ def validate_scenario(evidence: dict, expected_state: int, *, inventory: bool = 
             raise ValueError('Moses pickup, carry and recovery observations did not match')
         if roof and (frames['6900']['scroll_y'] + slots['6900']['player_y'] > 120
                      or frames['7100']['scroll_x'] + slots['7100']['player_x'] < 600
-                     or frames['7400']['scroll_x'] + slots['7400']['player_x'] < 1200):
+                     or frames['7400']['scroll_x'] + slots['7400']['player_x'] < 1200
+                     or frames['7800']['scroll_x'] + slots['7800']['player_x'] < 2000):
             raise ValueError('Moses roof route did not reach the stairs while carrying')
+        # The same Great Work screen is used after levels two and three.
+        if roof and (evidence['exit_carried_samples'] < 100 or evidence['exit_bad_samples']
+                     or evidence['exit_last_carried_frame'] < 7800
+                     or evidence['exit_carried_samples'] != evidence['exit_last_carried_frame'] - 7799
+                     or evidence['exit_transition_frame'] != evidence['exit_last_carried_frame'] + 1
+                     or evidence['exit_transition_state'] != 16
+                     or frames['8000']['state'] != 16
+                     or frames['8000']['screenshot_sha256'] != MOSES_LEVEL_TWO_SUCCESS_SHA256
+                     or any(frames[str(frame)]['state'] != 8 for frame in (8100, 8200))
+                     or (evidence['level4_player_descriptor'], evidence['level4_player_x'],
+                         evidence['level4_player_y'], evidence['level4_baby_descriptor'],
+                         evidence['level4_baby_link'], evidence['level4_baby_x'],
+                         evidence['level4_baby_y']) != (1, 104, 96, 0x6a, 0xff, 176, 160)):
+            raise ValueError('Moses third-level success or fourth-level entry was not observed')
     if (evidence['mapper_value_mismatches'] or evidence['unmapped_mapper_writes']
             or evidence['physical_prg_banks_seen'] != [0, 1]):
         raise ValueError('mapper write evidence did not meet the observed-bank checks')

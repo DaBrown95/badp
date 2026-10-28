@@ -914,3 +914,25 @@ included in that particular trace.
 The maintained lower-route trace was refreshed through frame 7,400 as well:
 it observed 60,596 script fetches, 668 record loads and 48,974 inline lookups,
 with no sampled extents in local gaps.
+
+The roof route now reaches the end of the third Moses level. An independent
+reference-only link probe observed the player and baby linked at every end of
+frame from 7,800 through 7,945; the success state began at frame 7,946. The
+reference and build replays both showed the success screen at frame 8,000 and
+entered the fourth level by frame 8,100. Releasing the controls on that level's
+entry leaves the player and baby at their spawn points at frame 8,200. The
+permanent scenario checks the carried link through the transition, the success
+screen and the new level's spawn, in addition to reference/build event and
+screenshot comparisons. It does not complete the fourth level.
+A reference-only interpreter probe through frame 8,200 sampled 71,491 script
+fetches and 845 record loads, with no sampled unowned command extents,
+consumed record fields or native instruction starts. Inline lookup payloads
+were not included in that probe. These samples are not a complete inventory.
+The maintained lower-route trace through frame 8,200 observed 64,243 script
+fetches, 736 record loads and 51,851 inline lookups. All sampled command,
+record and inline extents were source-owned, and no native instruction starts
+were observed in local gaps.
+A fourth-level pickup search found an input that linked the baby to the player
+by frame 8,280. Reference and build power-on replays matched at the sampled
+frames, but the route reached state 17 by frame 8,600 after the player fell.
+This is a failed continuation, not a fourth-level gameplay completion.
