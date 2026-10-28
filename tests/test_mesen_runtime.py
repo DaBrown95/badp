@@ -13,7 +13,8 @@ from tools.mesen_runtime import (FRAMES, SLOT_FRAMES, PNG_SIGNATURE, MOSES_SUCCE
 
 def synthetic_output(state=1, *, inventory=False):
     lines = ['BADP_WRITE 0 FFB7 0C 32767 12', 'BADP_WRITE 1 FFC6 0D 65534 13',
-             'BADP_APU 1 4000 30', 'BADP_DMA 1 4014 02']
+             'BADP_APU 1 4000 30', 'BADP_DMA 1 4014 02',
+             'BADP_PPU 1 123 42 100 2000 80 1']
     for frame in FRAMES:
         scene = 0 if frame == 240 else 16 if frame == 650 else state
         if state == 5 and frame in (3400, 3450, 3650):
@@ -41,6 +42,7 @@ def synthetic_output(state=1, *, inventory=False):
             third_y = 60 if frame == 6740 else 80
             lines.append(f'BADP_SLOT {frame} 1 106 {link} 96 {y} {x} {player_y} 106 {third_link} {x} {third_y}')
     lines.append('BADP_SUMMARY 2 0 0 1 1 7020 1 1')
+    lines.append('BADP_PPU_SUMMARY 1')
     lines.append('BADP_PROBE 4 2')
     lines.append(f'BADP_STAGE2_RECORD {int(state == 5)}')
     lines.append(f'BADP_POSITION_EVENT {int(state == 11)} 0')
@@ -70,6 +72,8 @@ class MesenRuntimeTests(unittest.TestCase):
         self.assertIn(b'BADP_WRITE', events['mapper'])
         self.assertIn(b'BADP_APU', events['apu'])
         self.assertIn(b'BADP_DMA', events['oam_dma'])
+        self.assertIn(b'BADP_PPU', events['ppu'])
+        self.assertEqual(evidence['ppu_visible_rendering_control_writes'], 1)
         validate_scenario(evidence, 1)
 
     def test_missing_duplicate_or_inconsistent_evidence_fails(self):
@@ -97,10 +101,23 @@ class MesenRuntimeTests(unittest.TestCase):
                         text + 'BADP_SLOT 1400 1 106 255 96 160 96 144 106 255 96 80\n',
                         text.replace('BADP_SLOT 1400 1 106 255', 'BADP_SLOT 1400 1 106 256'),
                         text.replace('BADP_SUMMARY 2 0 0 1 1 7020 1 1', 'BADP_SUMMARY 2 1 0 1 1 7020 1 1'),
+                        text.replace('BADP_PPU_SUMMARY 1', 'BADP_PPU_SUMMARY 2'),
+                        text.replace('BADP_PPU 1 123 42 100 2000 80 1', 'BADP_PPU 1 123 42 341 2000 80 1'),
+                        text.replace('BADP_PPU 1 123 42 100 2000 80 1', 'BADP_PPU 1 123 42 100 2004 80 1'),
+                        text + 'BADP_PPU_SUMMARY 1\n',
                         text.replace('BADP_APU 1 4000 30', 'BADP_APU 1 4014 30'),
                         text.replace('BADP_WRITE 0 FFB7 0C 32767 12', 'BADP_WRITE 0 FFB7 XX 32767 12')):
             with self.subTest(invalid=invalid[:50]), self.assertRaises(ValueError):
                 parse_output(invalid)
+
+    def test_ppu_timing_difference_changes_retained_event_evidence(self):
+        original = synthetic_output()
+        altered = original.replace('BADP_PPU 1 123 42 100 2000 80 1',
+                                   'BADP_PPU 1 123 42 101 2000 80 1')
+        before, _, before_events = parse_output(original)
+        after, _, after_events = parse_output(altered)
+        self.assertNotEqual(before['ppu_write_sha256'], after['ppu_write_sha256'])
+        self.assertNotEqual(before_events['ppu'], after_events['ppu'])
 
     def test_wrong_game_or_no_movement_does_not_pass(self):
         evidence, _, _ = parse_output(synthetic_output(state=5))

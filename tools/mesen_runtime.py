@@ -47,6 +47,9 @@ def parse_output(output: str) -> tuple[dict, dict[int, bytes], dict[str, bytes]]
     writes: list[str] = []
     audio: list[str] = []
     dma: list[str] = []
+    ppu: list[str] = []
+    ppu_summary = None
+    ppu_visible_control = ppu_visible_data = 0
     mismatches = unmapped = 0
     banks: set[int] = set()
     reported = None
@@ -91,6 +94,28 @@ def parse_output(output: str) -> tuple[dict, dict[int, bytes], dict[str, bytes]]
                 dma.append(line)
             else:
                 raise ValueError('unexpected hardware write address')
+        elif line.startswith('BADP_PPU '):
+            parts = line.split()
+            if len(parts) != 8:
+                raise ValueError('malformed PPU timing event')
+            frame, cpu_cycle, scanline, dot = map(int, parts[1:5])
+            address, value, rendering = int(parts[5], 16), int(parts[6], 16), int(parts[7])
+            if (not 0 <= frame <= FRAMES[-1] or cpu_cycle < 0
+                    or not -1 <= scanline <= 260 or not 0 <= dot <= 340
+                    or not 0x2000 <= address <= 0x2007 or address == 0x2004
+                    or not 0 <= value <= 255 or rendering not in (0, 1)):
+                raise ValueError('out-of-range PPU timing event')
+            if 0 <= scanline < 240 and rendering:
+                ppu_visible_control += address == 0x2000
+                ppu_visible_data += address == 0x2007
+            ppu.append(line)
+        elif line.startswith('BADP_PPU_SUMMARY '):
+            parts = line.split()
+            if ppu_summary is not None or len(parts) != 2:
+                raise ValueError('malformed or duplicate PPU timing summary')
+            ppu_summary = int(parts[1])
+            if ppu_summary < 0:
+                raise ValueError('invalid PPU timing count')
         elif line.startswith('BADP_FRAME '):
             parts = line.split()
             if len(parts) != 10:
@@ -186,6 +211,7 @@ def parse_output(output: str) -> tuple[dict, dict[int, bytes], dict[str, bytes]]
     expected_targets = ({f'script:{address:04X}' for address in SCRIPT_TARGETS}
                         | {f'record:{address:04X}' for address in RECORD_TARGETS})
     if (set(frames) != set(FRAMES) or set(slots) != set(SLOT_FRAMES) or reported != expected or not writes
+            or ppu_summary != len(ppu) or not ppu
             or probes is None or inventory is None or stage2_record is None or position_event is None
             or controller_events is None or controlled09 is None
             or set(targets) != expected_targets):
@@ -193,13 +219,17 @@ def parse_output(output: str) -> tuple[dict, dict[int, bytes], dict[str, bytes]]
     write_data = ('\n'.join(writes) + '\n').encode('ascii')
     audio_data = ('\n'.join(audio) + '\n').encode('ascii')
     dma_data = ('\n'.join(dma) + '\n').encode('ascii')
+    ppu_data = ('\n'.join(ppu) + '\n').encode('ascii')
     return ({'frames': {str(k): frames[k] for k in FRAMES},
              'slots': {str(k): slots[k] for k in SLOT_FRAMES},
              'mapper_writes': len(writes), 'mapper_write_sha256': digest(write_data),
              'mapper_value_mismatches': mismatches, 'unmapped_mapper_writes': unmapped,
              'physical_prg_banks_seen': sorted(banks),
              'nmi_count': expected[5], 'apu_writes': len(audio),
-             'apu_write_sha256': digest(audio_data), 'oam_dma_writes': len(dma),
+             'apu_write_sha256': digest(audio_data), 'ppu_writes': len(ppu),
+             'ppu_write_sha256': digest(ppu_data),
+             'ppu_visible_rendering_control_writes': ppu_visible_control,
+             'ppu_visible_rendering_data_writes': ppu_visible_data, 'oam_dma_writes': len(dma),
              'oam_dma_write_sha256': digest(dma_data),
              'script_fetch_probes': probes[0], 'record_load_probes': probes[1],
              'inventory_list_index_zero': inventory[0], 'inventory_template_index_zero': inventory[1],
@@ -211,7 +241,7 @@ def parse_output(output: str) -> tuple[dict, dict[int, bytes], dict[str, bytes]]
              'controlled09_disabled_samples': controlled09[0], 'controlled09_other_samples': controlled09[1],
              'contested_target_hits': dict(sorted(targets.items())),
              'uninitialized_read_warnings': warnings}, images,
-            {'mapper': write_data, 'apu': audio_data, 'oam_dma': dma_data})
+            {'mapper': write_data, 'apu': audio_data, 'ppu': ppu_data, 'oam_dma': dma_data})
 
 
 def validate_scenario(evidence: dict, expected_state: int, *, inventory: bool = False) -> None:

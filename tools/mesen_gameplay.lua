@@ -10,6 +10,7 @@ local banks={[0]=false,[1]=false}
 local nmis=0
 local apu_writes=0
 local dma_writes=0
+local ppu_writes=0
 local fetch_probes=0
 local record_probes=0
 local stage2_record_mode2=0
@@ -63,6 +64,16 @@ emu.addMemoryCallback(function(addr,value)
  dma_writes=dma_writes+1
  print(string.format('BADP_DMA %d %04X %02X',frames,addr,value))
 end,emu.callbackType.write,0x4014,0x4014)
+-- Record PPU register timing without logging $2004 OAM-DMA transfer bytes.
+-- The state is sampled by the emulator at the CPU write callback.
+emu.addMemoryCallback(function(addr,value)
+ if not recording or addr==0x2004 then return end
+ local state=emu.getState()
+ local enabled=state['ppu.mask.backgroundEnabled'] or state['ppu.mask.spritesEnabled']
+ ppu_writes=ppu_writes+1
+ print(string.format('BADP_PPU %d %d %d %d %04X %02X %d',frames,state['cpu.cycleCount'],
+  state['ppu.scanline'],state['ppu.cycle'],addr,value,enabled and 1 or 0))
+end,emu.callbackType.write,0x2000,0x2007)
 emu.addEventCallback(function() if recording then nmis=nmis+1 end end,emu.eventType.nmi)
 -- Check only the bank-0 interpreter and record-loader entry points. Debug
 -- reads have no side effects; candidate identities are encoded pointers.
@@ -273,6 +284,7 @@ emu.addEventCallback(function()
   -- stop() can return before the emulator stops invoking callbacks.
   recording=false
   print(string.format('BADP_SUMMARY %d %d %d %d %d %d %d %d',writes,mismatch,unmapped,banks[0] and 1 or 0,banks[1] and 1 or 0,nmis,apu_writes,dma_writes))
+  print(string.format('BADP_PPU_SUMMARY %d',ppu_writes))
   print(string.format('BADP_PROBE %d %d',fetch_probes,record_probes))
   print(string.format('BADP_STAGE2_RECORD %d',stage2_record_mode2))
   print(string.format('BADP_POSITION_EVENT %d %d',position_event_matches,position_event_mismatches))

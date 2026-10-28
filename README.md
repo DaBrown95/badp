@@ -118,7 +118,8 @@ make verify-gameplay
 ```
 
 The check runs the reference and matching build under the same inputs, comparing
-screenshots, state, mapper writes, NMI, OAM DMA and audio-register writes. The
+screenshots, state, mapper writes, NMI, OAM DMA, audio-register writes and
+direct `$2000`–`$2007` write timing (excluding `$2004` OAM-data writes). The
 Moses sequence carries and recovers the baby, completes the first two levels,
 and carries him through the upper platforms and farther right in the third. A separate Noah sequence opens
 and closes the inventory and checks its table reads. These sequences check
