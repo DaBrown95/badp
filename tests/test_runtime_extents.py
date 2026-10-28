@@ -5,7 +5,7 @@ from unittest.mock import patch
 
 from tools.runtime_extents import coverage, validate_identity
 from tools.script_entries import BANK_SIZE
-from tools.trace_runtime_extents import capture
+from tools.trace_runtime_extents import capture, capture_script
 
 
 def fixture():
@@ -23,6 +23,14 @@ def fixture():
 
 
 class RuntimeExtentTests(unittest.TestCase):
+    def test_capture_selects_roof_route_and_rejects_ambiguous_stop(self):
+        script = capture_script('before\n  emu.stop(0)\nafter', 'PROBE\n', 'RESULT\n')
+        self.assertTrue(script.startswith('local SCENARIO=4\n'))
+        self.assertIn('RESULT\n  emu.stop(0)', script)
+        for invalid in ('no stop', '  emu.stop(0)\n  emu.stop(0)'):
+            with self.subTest(invalid=invalid), self.assertRaisesRegex(ValueError, 'stop marker'):
+                capture_script(invalid, '', '')
+
     def test_command_operands_and_mode_selected_record_fields(self):
         b0, b1, lengths, gaps, trace = fixture()
         result = coverage(bytes(b0), bytes(b1), lengths, gaps, trace)

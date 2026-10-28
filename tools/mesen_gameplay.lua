@@ -18,6 +18,8 @@ local fourth_reload=false;local fourth_reload_count=0;local fourth_reload_bad=0
 local fourth_transition=0;local fourth_state=0;local fourth_last_world=0;local fourth_reset_count=0
 local fifth_first=0;local fifth_count=0;local fifth_bad=0;local fifth_absent=0
 local fifth_reload=false;local fifth_reload_count=0;local fifth_reload_bad=0;local fifth_last_world=0
+local noah_first=0;local noah_count=0;local noah_bad=0;local noah_absent=0
+local noah_reload=false;local noah_reload_count=0;local noah_reload_bad=0;local noah_last_world=0
 local fetch_probes=0
 local record_probes=0
 local stage2_record_mode2=0
@@ -94,6 +96,17 @@ emu.addMemoryCallback(function(_,value)
  elseif value==1 and pc==0xF226 and physical==0x7226 and fifth_reload then
   fifth_reload=false;fifth_reload_count=fifth_reload_count+1
  else fifth_reload_bad=fifth_reload_bad+1 end
+end,emu.callbackType.write,0x04E1,0x04E1)
+-- Noah's player slot uses the same record allocator while carrying an animal.
+emu.addMemoryCallback(function(_,value)
+ if SCENARIO~=5 or noah_first==0 or frames>=2100 then return end
+ local state=emu.getState();local pc=state['cpu.pc'];local m=emu.convertAddress(pc,emu.memType.nesMemory)
+ local physical=(m and m.memType==emu.memType.nesPrgRom) and m.address or -1
+ if value==0xFF and pc==0xF1F7 and physical==0x71F7 and not noah_reload then
+  noah_reload=true
+ elseif value==1 and pc==0xF226 and physical==0x7226 and noah_reload then
+  noah_reload=false;noah_reload_count=noah_reload_count+1
+ else noah_reload_bad=noah_reload_bad+1 end
 end,emu.callbackType.write,0x04E1,0x04E1)
 emu.addMemoryCallback(function(addr,value)
  if not recording then return end
@@ -363,13 +376,18 @@ emu.addEventCallback(function()
    left=direction==1;right=direction==2;jump=action>3
   end
  end
+ if SCENARIO==5 and frames>=1400 then
+  -- Approach an animal, pick it up, then carry it to the right.
+  left=false;right=(frames<1510) or (frames>=1700 and frames<2100)
+  jump=false;pickup=frames>=1525 and frames<1535;route_up=false;start=false
+ end
  local select=false
  if SCENARIO==3 then
   right=false
   jump=false
   select=(frames>=1500 and frames<1510) or (frames>=2600 and frames<2610)
  end
- emu.setInput({up=route_up or (move and (SCENARIO==0 or SCENARIO==3)),down=move and SCENARIO==2,left=left,right=right,start=start,select=select,a=jump,b=pickup},0)
+ emu.setInput({up=route_up or (move and (SCENARIO==0 or SCENARIO==3 or SCENARIO==5)),down=move and SCENARIO==2,left=left,right=right,start=start,select=select,a=jump,b=pickup},0)
 end,emu.eventType.inputPolled)
 emu.addEventCallback(function()
  frames=frames+1
@@ -414,6 +432,20 @@ emu.addEventCallback(function()
    if player==0xFF and fifth_reload then fifth_absent=fifth_absent+1
    elseif player~=1 or fifth_reload then fifth_bad=fifth_bad+1 end
    fifth_last_world=emu.read(0x03EE,emu.memType.nesDebug)+256*emu.read(0x03EF,emu.memType.nesDebug)+emu.read(0x0581,emu.memType.nesDebug)
+  end
+ end
+ if SCENARIO==5 and frames>=1500 and frames<=2100 then
+  local state=emu.read(1,emu.memType.nesDebug)
+  local player=emu.read(0x04E1,emu.memType.nesDebug)
+  local animal=emu.read(0x04E2,emu.memType.nesDebug)
+  local link=emu.read(0x06D2,emu.memType.nesDebug)
+  if noah_first==0 and state==1 and player==1 and animal==0x0E and link==1 then noah_first=frames end
+  if noah_first>0 then
+   noah_count=noah_count+1
+   if state~=1 or animal~=0x0E or link~=1 then noah_bad=noah_bad+1 end
+   if player==0xFF and noah_reload then noah_absent=noah_absent+1
+   elseif player~=1 or noah_reload then noah_bad=noah_bad+1 end
+   noah_last_world=emu.read(0x03EE,emu.memType.nesDebug)+256*emu.read(0x03EF,emu.memType.nesDebug)+emu.read(0x0581,emu.memType.nesDebug)
   end
  end
  if frames>=1200 then
@@ -461,6 +493,8 @@ emu.addEventCallback(function()
    fourth_reload_bad,fourth_reload and 1 or 0,fourth_transition,fourth_state,fourth_last_world,fourth_reset_count))
   print(string.format('BADP_LEVEL5_CARRY %d %d %d %d %d %d %d %d',
    fifth_count,fifth_bad,fifth_first,fifth_absent,fifth_reload_count,fifth_reload_bad,fifth_reload and 1 or 0,fifth_last_world))
+  print(string.format('BADP_NOAH_CARRY %d %d %d %d %d %d %d %d',
+   noah_count,noah_bad,noah_first,noah_absent,noah_reload_count,noah_reload_bad,noah_reload and 1 or 0,noah_last_world))
   print(string.format('BADP_PROBE %d %d',fetch_probes,record_probes))
   print(string.format('BADP_STAGE2_RECORD %d',stage2_record_mode2))
   print(string.format('BADP_POSITION_EVENT %d %d',position_event_matches,position_event_mismatches))

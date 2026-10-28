@@ -1034,8 +1034,9 @@ matched in an independent continuous-link probe. Four one-frame player-slot
 transients were paired with the same record-loader clear and restore writes;
 the maintained scenario checks those writes and the uninterrupted baby link.
 The five-scenario reference/build comparison passed with this extension. The
-reference-only runtime trace observed 77,869 script fetches, 997 record loads
-and 62,601 inline reads without finding sampled local extents in those paths.
+then-current reference-only runtime trace observed 77,869 script fetches, 997
+record loads and 62,601 inline reads without finding sampled local extents.
+That collector selected the lower Moses route, not this fifth-level route.
 
 The observed audio commands at bank 1 `$AB10`–`$AC3F` are now structured
 source: 45 delays, 42 five-register commands and one loop. All 88 command
@@ -1078,6 +1079,19 @@ baby remained linked for 1,115 consecutive end-of-frame samples, from frame
 10,786 through 11,900, with the player reaching world x=1,252. The same four
 one-frame player-slot transients were observed as in the shorter route. The
 maintained comparison now checks this longer carry; it does not yet reach a
-fifth-level success screen. The corresponding reference-only trace recorded
-81,516 script fetches, 1,064 record loads and 65,536 inline reads without
-finding sampled local extents along the maintained path.
+fifth-level success screen. A reference-only trace recorded 81,516 script
+fetches, 1,064 record loads and 65,536 inline reads without finding sampled
+local extents, but selected the lower Moses route rather than this roof route.
+The collector has been corrected to select and validate the roof route.
+The corrected reference-only roof-route trace reached frame 11,900 and recorded
+109,402 script fetches, 1,331 record loads and 80,392 inline reads. It found no
+sampled native instruction starts or decoded script, record or inline bytes in
+the current local PRG gaps.
+
+An independent Noah pickup route was replayed from power-on on the reference
+and matching build. The selected animal stayed linked for 571 consecutive
+samples, from frame 1,530 through 2,100, while Noah reached world x=1,004.
+Two one-frame player-slot transients were paired with the existing allocator's
+clear and restore writes; the maintained comparison checks those writes and
+the continuous animal link. This route does not yet verify animal delivery or
+completion of a Noah level.

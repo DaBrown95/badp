@@ -16,6 +16,13 @@ from .script_entries import load_audited_banks
 from .setup_mesen import ROOT, digest_file, spec, verify_emulator
 
 
+def capture_script(template: str, prelude: str, ending: str) -> str:
+    """Attach the collector to the maintained roof-route scenario."""
+    if template.count('  emu.stop(0)') != 1:
+        raise ValueError('gameplay stop marker is ambiguous')
+    return 'local SCENARIO=4\n' + prelude + template.replace('  emu.stop(0)', ending + '  emu.stop(0)')
+
+
 def capture() -> dict:
     if os.environ.get('BADP_TARGET') not in (None, '', 'us-v1.5'):
         raise ValueError('runtime trace supports us-v1.5 only')
@@ -91,9 +98,7 @@ for k,n in pairs(records) do print(string.format('RECORD_EXEC %s %d',k,n)) end
 for k,n in pairs(inline_counts) do print(string.format('INLINE_READ %s %d',k,n)) end
 print(string.format('INLINE_SUMMARY %d %d %d %d',inline_done,inline_bad,inline_nonrom,inline and 1 or 0))
 '''
-    if template.count('  emu.stop(0)') != 1:
-        raise ValueError('gameplay stop marker is ambiguous')
-    source = 'local SCENARIO=1\n' + prelude + template.replace('  emu.stop(0)', ending + '  emu.stop(0)')
+    source = capture_script(template, prelude, ending)
     analysis = ROOT / 'analysis'
     directory = analysis / 'us-v1.5'
     if analysis.is_symlink() or directory.is_symlink():
@@ -108,7 +113,7 @@ print(string.format('INLINE_SUMMARY %d %d %d %d',inline_done,inline_bad,inline_n
         proc = subprocess.run([str(verify_emulator(ROOT)), *flags, str(lua), str(rom)],
                               cwd=ROOT, capture_output=True, text=True, timeout=240, check=True)
     evidence, _, _ = parse_output(proc.stdout)
-    validate_scenario(evidence, 5)
+    validate_scenario(evidence, 5, roof=True)
     results: dict[str, dict[str, int]] = {'code': {}, 'scripts': {}, 'records': {}, 'inline': {}}
     names = {'CODE_GAP': 'code', 'SCRIPT_EXEC': 'scripts', 'RECORD_EXEC': 'records', 'INLINE_READ': 'inline'}
     inline_summary = None
@@ -142,7 +147,7 @@ print(string.format('INLINE_SUMMARY %d %d %d %d',inline_done,inline_bad,inline_n
               'source_map_sha256': verified['source_map_sha256'], 'build_proof_sha256': proof_sha,
               'collector_sha256': collector_sha, 'runtime_input_sha256': inputs,
               'emulator_core_sha256': spec(ROOT)['core_sha256'],
-              'scope': 'reference-only Moses route through 11900 frames',
+              'scope': 'reference-only Moses roof and fifth-level carry through 11900 frames',
               'inline_summary': inline_summary, 'results': results}
     output = ROOT / TRACE
     if output.is_symlink():

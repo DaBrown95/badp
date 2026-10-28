@@ -27,7 +27,8 @@ SLOT_FRAMES = (1400, 1496, 1511, 1550, 1700, 1800, 2100, 2150, 2300,
 MOSES_SUCCESS_SCREEN_SHA256 = 'c3d483860076f9e782d92de0913c671d4ed1aef84f8ce81688423cad40c19346'
 # Pinned second-level success screen for the same audited input.
 MOSES_LEVEL_TWO_SUCCESS_SHA256 = '74a782b79533afa78724df4550879634814f4c4e15cdeb4291380df2c7b225ca'
-SCENARIOS = (('noah', 1), ('moses', 5), ('david', 11), ('inventory', 1), ('moses-roof', 5))
+SCENARIOS = (('noah', 1), ('moses', 5), ('david', 11), ('inventory', 1), ('moses-roof', 5),
+             ('noah-carry', 1))
 SCRIPT_TARGETS = (0x3D21, 0x3D22, 0x5CFE, 0x5D00, 0x5D01, 0x5D04, 0x5D06, 0x5D08, 0x5D0A)
 RECORD_TARGETS = (0x5A40, 0x6D71, 0x6E65, 0x6E7F, 0x6ECD, 0x6EE5, 0x6EFD)
 PNG_SIGNATURE = b'\x89PNG\r\n\x1a\n'
@@ -99,6 +100,7 @@ def parse_output(output: str) -> tuple[dict, dict[int, bytes], dict[str, bytes]]
     level4 = None
     level4_carry = None
     level5_carry = None
+    noah_carry = None
     ppu_visible_control = ppu_visible_data = 0
     mismatches = unmapped = 0
     banks: set[int] = set()
@@ -202,6 +204,15 @@ def parse_output(output: str) -> tuple[dict, dict[int, bytes], dict[str, bytes]]
                     or values[6] not in (0, 1) or values[7] > 65535):
                 raise ValueError('invalid fifth-level carry summary')
             level5_carry = values
+        elif line.startswith('BADP_NOAH_CARRY '):
+            parts = line.split()
+            if noah_carry is not None or len(parts) != 9:
+                raise ValueError('malformed or duplicate Noah carry summary')
+            values = tuple(map(int, parts[1:]))
+            if (any(value < 0 for value in values) or values[2] > FRAMES[-1]
+                    or values[6] not in (0, 1) or values[7] > 65535):
+                raise ValueError('invalid Noah carry summary')
+            noah_carry = values
         elif line.startswith('BADP_FRAMEBUFFER '):
             parts = line.split()
             if len(parts) != 6:
@@ -305,7 +316,7 @@ def parse_output(output: str) -> tuple[dict, dict[int, bytes], dict[str, bytes]]
     expected_targets = ({f'script:{address:04X}' for address in SCRIPT_TARGETS}
                         | {f'record:{address:04X}' for address in RECORD_TARGETS})
     if (set(frames) != set(FRAMES) or set(framebuffers) != set(FRAMES) or set(slots) != set(SLOT_FRAMES) or reported != expected or not writes
-            or ppu_summary != len(ppu) or not ppu or exit_summary is None or level4 is None or level4_carry is None or level5_carry is None
+            or ppu_summary != len(ppu) or not ppu or exit_summary is None or level4 is None or level4_carry is None or level5_carry is None or noah_carry is None
             or probes is None or inventory is None or stage2_record is None or position_event is None
             or controller_events is None or controlled09 is None
             or set(targets) != expected_targets):
@@ -351,12 +362,17 @@ def parse_output(output: str) -> tuple[dict, dict[int, bytes], dict[str, bytes]]
              'fifth_carry_first': level5_carry[2], 'fifth_player_absent': level5_carry[3],
              'fifth_reload_count': level5_carry[4], 'fifth_reload_bad': level5_carry[5],
              'fifth_reload_open': level5_carry[6], 'fifth_last_world_x': level5_carry[7],
+             'noah_carry_samples': noah_carry[0], 'noah_carry_bad': noah_carry[1],
+             'noah_carry_first': noah_carry[2], 'noah_player_absent': noah_carry[3],
+             'noah_reload_count': noah_carry[4], 'noah_reload_bad': noah_carry[5],
+             'noah_reload_open': noah_carry[6], 'noah_last_world_x': noah_carry[7],
              'contested_target_hits': dict(sorted(targets.items())),
              'uninitialized_read_warnings': warnings}, images,
             {'mapper': write_data, 'apu': audio_data, 'ppu': ppu_data, 'oam_dma': dma_data})
 
 
-def validate_scenario(evidence: dict, expected_state: int, *, inventory: bool = False, roof: bool = False) -> None:
+def validate_scenario(evidence: dict, expected_state: int, *, inventory: bool = False, roof: bool = False,
+                      noah_carry: bool = False) -> None:
     frames = evidence['frames']
     expected_frames = ((1200, 1), (1400, 1), (1800, 16), (2100, 16), (2300, 16), (2800, 1)) if inventory else tuple(
         (frame, expected_state) for frame in (1200, 1400, 1800, 2100, 2300))
@@ -380,6 +396,17 @@ def validate_scenario(evidence: dict, expected_state: int, *, inventory: bool = 
     elif (frames['1800']['scroll_x'] <= frames['1400']['scroll_x']
           or frames['1800']['screenshot_sha256'] == frames['1400']['screenshot_sha256']):
         raise ValueError('rightward input did not produce the expected opening-area change')
+    if noah_carry:
+        slots = evidence['slots']
+        if (expected_state != 1 or evidence['noah_carry_first'] != 1530
+                or evidence['noah_carry_samples'] != 2101 - evidence['noah_carry_first']
+                or evidence['noah_carry_bad'] or evidence['noah_player_absent'] != 2
+                or evidence['noah_reload_count'] < 2 or evidence['noah_reload_bad'] or evidence['noah_reload_open']
+                or evidence['noah_last_world_x'] < 1000
+                or slots['1400']['object_descriptor'] != 0x0e or slots['1400']['object_link'] != 0xff
+                or any(slots[str(frame)]['object_descriptor'] != 0x0e
+                       or slots[str(frame)]['object_link'] != 1 for frame in (1550, 1700, 1800, 2100))):
+            raise ValueError('Noah animal pickup and carry was not observed')
     if expected_state == 5:
         slots = evidence['slots']
         carried_frames = (5950, 6000, 6040, 6100, 6160, 6200, 6260, 6300, 6340,
@@ -603,8 +630,10 @@ def run(root: Path = ROOT) -> dict:
             if digest_file(SDL2) != sdl_digest:
                 raise ValueError('SDL2 changed during runtime verification')
             try:
-                validate_scenario(ref, expected_state, inventory=name == 'inventory', roof=name == 'moses-roof')
-                validate_scenario(candidate, expected_state, inventory=name == 'inventory', roof=name == 'moses-roof')
+                validate_scenario(ref, expected_state, inventory=name == 'inventory', roof=name == 'moses-roof',
+                                  noah_carry=name == 'noah-carry')
+                validate_scenario(candidate, expected_state, inventory=name == 'inventory', roof=name == 'moses-roof',
+                                  noah_carry=name == 'noah-carry')
                 if comparable_runtime_evidence(ref) != comparable_runtime_evidence(candidate) or ref_events != candidate_events:
                     raise ValueError('reference and build runtime evidence differ')
             except ValueError as exc:
@@ -638,7 +667,7 @@ def run(root: Path = ROOT) -> dict:
         destination = output / run_name
         if destination.exists():
             raise ValueError('runtime evidence directory already exists')
-        report = {'schema_version': 1, 'target': 'us-v1.5', 'scope': 'opening gameplay, Moses roof route and Noah inventory',
+        report = {'schema_version': 1, 'target': 'us-v1.5', 'scope': 'opening gameplay, Moses roof route, Noah carry and inventory',
                   'reference_sha256': target['reference']['file']['sha256'],
                   'source_sha256': verified['source_sha256'],
                   'source_map_sha256': verified['source_map_sha256'],

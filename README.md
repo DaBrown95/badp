@@ -125,7 +125,8 @@ PNG screenshots are retained as visual evidence. The
 Moses sequences carry and recover the baby, complete the first four levels,
 and carry the baby into the fifth. The third-level checks cover both a
 lower-platform route and the completed route over the roof and down the stairs.
-A separate Noah sequence opens and closes the inventory and checks its table reads. These sequences check
+A Noah sequence picks up and carries an animal; another opens and closes the
+inventory and checks its table reads. These sequences check
 controller actions against their record loads; David's opening also checks a
 native position event against its record load.
 It keeps its evidence in the ignored `reports/us-v1.5/runtime/` directory. These
