@@ -890,6 +890,60 @@ MUTATIONS = {
     'contact_script_d237': ('CONTROL_CONTACT_SCRIPT_D237', 'BogusWait $0A', 'BogusWait $0B'),
     'contact_script_fc81': ('CONTROL_CONTACT_SCRIPT_FC81', 'ContactScriptFC9F, $00', 'ContactScriptFC9F, $01'),
     'contact_script_fc9f': ('CONTROL_CONTACT_SCRIPT_FC9F', 'BogusWait $12', 'BogusWait $13'),
+    'reviewed_contact_d447': ('CONTROL_REVIEWED_CONTACT_D447', '$C533', '$C532'),
+    'reviewed_contact_d534': ('CONTROL_REVIEWED_CONTACT_D534', '$C5B1', '$C5B0'),
+    'reviewed_contact_da25': ('CONTROL_REVIEWED_CONTACT_DA25', '$FF', '$FE'),
+    'reviewed_contact_da82': ('CONTROL_REVIEWED_CONTACT_DA82', '$FF', '$FE'),
+    'reviewed_contact_dab5': ('CONTROL_REVIEWED_CONTACT_DAB5', '$FF', '$FE'),
+    'reviewed_contact_db57': ('CONTROL_REVIEWED_CONTACT_DB57', '$FF', '$FE'),
+    'reviewed_contact_dd6b': ('CONTROL_REVIEWED_CONTACT_DD6B', '$FF', '$FE'),
+    'reviewed_contact_dd98': ('CONTROL_REVIEWED_CONTACT_DD98', '$FF', '$FE'),
+    'reviewed_contact_ddc5': ('CONTROL_REVIEWED_CONTACT_DDC5', '$FF', '$FE'),
+    'reviewed_contact_ddf2': ('CONTROL_REVIEWED_CONTACT_DDF2', '$FF', '$FE'),
+    'reviewed_contact_e04c': ('CONTROL_REVIEWED_CONTACT_E04C', '$FF', '$FE'),
+    'reviewed_contact_e0c2': ('CONTROL_REVIEWED_CONTACT_E0C2', '$FF', '$FE'),
+    'reviewed_contact_e305': ('CONTROL_REVIEWED_CONTACT_E305', '$FF', '$FE'),
+    'reviewed_contact_e3a1': ('CONTROL_REVIEWED_CONTACT_E3A1', '$FF', '$FE'),
+    'reviewed_contact_e43d': ('CONTROL_REVIEWED_CONTACT_E43D', '$FF', '$FE'),
+    'reviewed_contact_eaf6': ('CONTROL_REVIEWED_CONTACT_EAF6', '$FF', '$FE'),
+    'reviewed_contact_eb1c': ('CONTROL_REVIEWED_CONTACT_EB1C', '$FF', '$FE'),
+    'reviewed_contact_eb7d': ('CONTROL_REVIEWED_CONTACT_EB7D', '$FF', '$FE'),
+    'reviewed_contact_ebdc': ('CONTROL_REVIEWED_CONTACT_EBDC', '$FF', '$FE'),
+    'reviewed_contact_ed2a': ('CONTROL_REVIEWED_CONTACT_ED2A', '$FF', '$FE'),
+    'reviewed_contact_ed5f': ('CONTROL_REVIEWED_CONTACT_ED5F', '$FF', '$FE'),
+    'reviewed_contact_ee71': ('CONTROL_REVIEWED_CONTACT_EE71', '$FF', '$FE'),
+    'reviewed_contact_ee8b': ('CONTROL_REVIEWED_CONTACT_EE8B', '$FF', '$FE'),
+    'reviewed_contact_ee9d': ('CONTROL_REVIEWED_CONTACT_EE9D', '$FF', '$FE'),
+    'reviewed_contact_eef1': ('CONTROL_REVIEWED_CONTACT_EEF1', '$FF', '$FE'),
+    'reviewed_contact_ef09': ('CONTROL_REVIEWED_CONTACT_EF09', '$FF', '$FE'),
+    'mode_record_b893_resource': ('CONTROL_MODE_RECORD_B893_RESOURCE', '$B5FD', '$B5FC'),
+    'mode_record_b893_fields': ('CONTROL_MODE_RECORD_B893_FIELDS', '.byte $00, $FF, $00, $00, $00', '.byte $01, $FF, $00, $00, $00'),
+    'mode_record_dabe_resource': ('CONTROL_MODE_RECORD_DABE_RESOURCE', '$B664', '$B665'),
+    'mode_record_dabe_fields': ('CONTROL_MODE_RECORD_DABE_FIELDS', '.byte $00', '.byte $01'),
+    'mode_record_dc2c_resource': ('CONTROL_MODE_RECORD_DC2C_RESOURCE', '$B6D8', '$B6D9'),
+    'mode_record_dc2c_fields': ('CONTROL_MODE_RECORD_DC2C_FIELDS', '.byte $23, $00, $16, $61, $22', '.byte $22, $00, $16, $61, $22'),
+    'mode_record_e05e_resource': ('CONTROL_MODE_RECORD_E05E_RESOURCE', '$B9F1', '$B9F0'),
+    'mode_record_e05e_fields': ('CONTROL_MODE_RECORD_E05E_FIELDS', '.byte $00, $FF, $00, $00, $00', '.byte $01, $FF, $00, $00, $00'),
+    'mode_record_e099_resource': ('CONTROL_MODE_RECORD_E099_RESOURCE', '$B693', '$B692'),
+    'mode_record_e099_fields': ('CONTROL_MODE_RECORD_E099_FIELDS', '.byte $00, $FF, $00, $00, $00', '.byte $01, $FF, $00, $00, $00'),
+    'mode_record_e0cb_resource': ('CONTROL_MODE_RECORD_E0CB_RESOURCE', '$B611', '$B610'),
+    'mode_record_e0cb_fields': ('CONTROL_MODE_RECORD_E0CB_FIELDS', '.byte $00, $FF, $00, $00, $00', '.byte $01, $FF, $00, $00, $00'),
+    'mode_record_e0d4_resource': ('CONTROL_MODE_RECORD_E0D4_RESOURCE', '$B611', '$B610'),
+    'mode_record_e0d4_fields': ('CONTROL_MODE_RECORD_E0D4_FIELDS', '.byte $00, $FF, $00, $00, $00', '.byte $01, $FF, $00, $00, $00'),
+    'mode_record_e10f_resource': ('CONTROL_MODE_RECORD_E10F_RESOURCE', '$B626', '$B627'),
+    'mode_record_e10f_fields': ('CONTROL_MODE_RECORD_E10F_FIELDS', '.byte $00, $FF, $00, $00, $00', '.byte $01, $FF, $00, $00, $00'),
+    'mode_record_eaff_resource': ('CONTROL_MODE_RECORD_EAFF_RESOURCE', '$BAE9', '$BAE8'),
+    'mode_record_eaff_fields': ('CONTROL_MODE_RECORD_EAFF_FIELDS', '.byte $00, $FF, $00, $00, $00', '.byte $01, $FF, $00, $00, $00'),
+    'mode_record_eb49_resource': ('CONTROL_MODE_RECORD_EB49_RESOURCE', '$B8F7', '$B8F6'),
+    'mode_record_eb49_fields': ('CONTROL_MODE_RECORD_EB49_FIELDS', '.byte $00, $FF, $00, $00, $00', '.byte $01, $FF, $00, $00, $00'),
+    'mode_record_eb86_resource': ('CONTROL_MODE_RECORD_EB86_RESOURCE', '$B858', '$B859'),
+    'mode_record_eb86_fields': ('CONTROL_MODE_RECORD_EB86_FIELDS', '.byte $00, $FF, $00, $00, $00', '.byte $01, $FF, $00, $00, $00'),
+    'mode_record_ebe5_resource': ('CONTROL_MODE_RECORD_EBE5_RESOURCE', '$B9CA', '$B9CB'),
+    'mode_record_ebe5_fields': ('CONTROL_MODE_RECORD_EBE5_FIELDS', '.byte $00, $01, $25, $FF, $12', '.byte $01, $01, $25, $FF, $12'),
+    'mode_record_ed33_sentinel': ('CONTROL_MODE_RECORD_ED33_SENTINEL', '$FF', '$FE'),
+    'mode_record_ed68_resource': ('CONTROL_MODE_RECORD_ED68_RESOURCE', '$B683', '$B682'),
+    'mode_record_ed68_fields': ('CONTROL_MODE_RECORD_ED68_FIELDS', '.byte $00', '.byte $01'),
+    'mode_record_d4ee_full': ('CONTROL_MODE_RECORD_D4EE_FULL', '$B701', '$B700'),
     'context_contact_d4cb': ('CONTROL_CONTEXT_CONTACT_D4CB', '$FF', '$FE'),
     'position_sentinel_d4dd': ('CONTROL_POSITION_SENTINEL_D4DD', '$FF', '$FE'),
     'position_sentinel_d4df': ('CONTROL_POSITION_SENTINEL_D4DF', '$FF', '$FE'),
@@ -1344,6 +1398,12 @@ def mutate_source(source: str, control: str) -> str:
     return "".join(lines)
 
 
+def validate_mutations(source: str, controls: list[str]) -> None:
+    """Reject ambiguous controls before running the full set of builds."""
+    for control in controls:
+        mutate_source(source, control)
+
+
 def verify_control(reference: bytes, candidate: bytes, regions: list[dict], control: str) -> list[int]:
     if len(candidate) != len(reference):
         raise ValueError(f"control {control}: output size changed")
@@ -1397,6 +1457,7 @@ def build() -> dict:
         raise ValueError("source map target differs from build target")
     regions = source_regions(config, parsed["prg"]["offset"])
     source = (ROOT / config["source"]).read_text()
+    validate_mutations(source, list(MUTATIONS))
     include = (ROOT / "include/nes.inc").read_bytes()
     linker = (ROOT / config["linker_config"]).read_bytes()
     prg = reference[parsed["prg"]["offset"]:parsed["prg"]["offset"] + parsed["prg"]["size"]]

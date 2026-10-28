@@ -7,7 +7,7 @@ from pathlib import Path
 import unittest
 
 from tools.build_rom import (MUTATIONS, extract_gaps, mutate_source, retire_control_intermediates,
-                             source_regions, verify_control)
+                             source_regions, validate_mutations, verify_control)
 from tools.setup import unpack_verified
 
 
@@ -67,6 +67,12 @@ class SourceOwnershipTests(unittest.TestCase):
         for invalid in ("sei\n", line * 2, "    cli ; CONTROL_BOOT\n"):
             with self.subTest(source=invalid), self.assertRaisesRegex(ValueError, "one marked"):
                 mutate_source(invalid, "boot")
+
+    def test_preflight_rejects_a_later_invalid_control(self):
+        source = "    sei ; CONTROL_BOOT\n"
+        validate_mutations(source, ["boot"])
+        with self.assertRaisesRegex(ValueError, "control wait"):
+            validate_mutations(source, ["boot", "wait"])
 
     def test_retiring_control_intermediates_preserves_proof_inputs(self):
         with tempfile.TemporaryDirectory() as directory:

@@ -50,6 +50,13 @@ the tested inputs; other slot states may take either path.
 The same graph also finds one overlapping script byte at
 `$F156-$F157`, where a candidate fallthrough conflicts with the existing
 `$F157` entry. All of these paths remain provisional.
+In the expanded native-event walk, one possible `$F156` record load associated
+with base `$EF5A` reads a record at `$EF86`. Its putative script pointer comes
+from two operand bytes in the existing `$EF87` script and points to `$C020`.
+Following that candidate introduces thousands of additional overlapping
+decodes. Neither the fallthrough nor this descriptor association is established
+by the retained gameplay traces; the resulting graph does not resolve whether
+those bytes have multiple uses.
 
 `make contact-record-flow` separately models the native contact marker. Slot
 initialization sets `$0790` bit 0, and a contact marker may queue offset `$09`
@@ -135,6 +142,12 @@ and byte matches do not establish gameplay reachability or hardware behavior.
 Seventeen later candidate locations represent only the fields consumed by the
 reviewed mode and sentinel checks. They have no observed runtime access yet;
 their descriptor associations are provisional.
+
+The later contact and contextual review represents 183 more bytes in 41
+candidate records. It retains only mode-selected fields, leaving skipped fields
+local, and excludes competing record interpretations and candidate script or
+asset uses from these extents. These associations are still static candidates;
+the separate source-change controls establish matching bytes, not execution.
 
 Twenty additional script regions from the merged trace are represented as
 named commands. They were non-overlapping under the earlier trace; the expanded

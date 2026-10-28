@@ -34,9 +34,9 @@ independent source trees or treat one version's evidence as verifying the rest.
 simultaneous reconstruction. Keep progress and completion evidence per target.
 
 The v1.5 build now assembles and links to the exact reference, with 21,474 bytes
-of source code and 19,504 bytes of structured data across the physical PRG banks.
-It still includes 24,558 local PRG bytes and 65,536 local CHR bytes. A total of
-1,252 independent source-change controls verify every listed reconstructed region.
+of source code and 19,687 bytes of structured data across the physical PRG banks.
+It still includes 24,375 local PRG bytes and 65,536 local CHR bytes. A total of
+1,306 independent source-change controls verify every listed reconstructed region.
 Passing input audits or whole-ROM equality alone is not reconstruction
 completion. The developer identifies BOGUS as the
 state-machine engine in the [Vance Kozik interview](https://www.nesworld.com/kozik.php);
@@ -306,7 +306,7 @@ in these inventories; that number is not a count of remaining code. The report
 also retains 4,561 possible map/script overlap bytes and 516 possible record/script
 overlap bytes across the combined inventories. The expanded field-setter walk
 introduces many speculative competing decodes; it does not establish their
-reachability. It also reports 4,074 source-owned bytes covered by candidate
+reachability. It also reports 4,257 source-owned bytes covered by candidate
 data uses, which can include compatible uses as well as competing ones. The
 report records its input identities and writes metadata only to
 ignored `analysis/us-v1.5/prg-inventory.json`.
@@ -638,6 +638,15 @@ mode-dependent direct record at `$D68F`, a possible preserved-pointer jump at
 `$D735`, and three position-event records. The `$D68F` fields cover candidate
 loader modes; its tenth fetched byte is the following script opcode. The new
 paths and record associations remain static candidates, not observed gameplay.
+
+Another 41 candidate record accesses are represented by 183 consumed bytes.
+Twenty-six are possible contact records: two include all nine fields and 24
+include only the resource sentinel and installed script pointer. Fifteen more
+use loader modes zero, one or two; their source contains only fields selected
+by the examined mode and sentinel checks. The skipped bytes remain local.
+The descriptor associations and contact conditions are static candidates, not
+observed gameplay. The reviewed extents did not overlap competing candidate
+script, map, sprite, audio or PPU uses in the current inventory.
 
 Four zero-terminated byte lists at `$FCA7-$FCE2` are structured source. The
 candidate `$FD05` script selects their bases through `$FCE3`, reads each value
