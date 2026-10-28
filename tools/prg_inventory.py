@@ -23,8 +23,9 @@ from .script_flow import ConditionalIndexedJump, PRIMARY_INDEXED_JUMPS, walk
 from .setup_mesen import spec
 
 CATEGORIES = ('source_code', 'source_data', 'candidate_map_chunks', 'candidate_map_layouts',
-              'candidate_unreferenced_map_slots',
-              'packed_text_records', 'observed_audio_commands', 'candidate_sprite_bytes',
+              'candidate_map_header_bytes', 'candidate_map_grid_bytes', 'candidate_unreferenced_map_slots',
+              'packed_text_records', 'packed_text_header_bytes', 'packed_text_payload_bytes',
+              'observed_audio_commands', 'candidate_sprite_bytes',
               'candidate_script_bytes', 'candidate_record_bytes', 'candidate_palette_setup_bytes',
               'candidate_audio_commands', 'candidate_ppu_stream_bytes', 'candidate_ppu_control_bytes',
               'candidate_ppu_payload_bytes', 'candidate_sprite_static_bytes')
@@ -83,6 +84,10 @@ def summarize(spans: dict[str, list[tuple[int, int]]], *, bank_size: int = BANK_
     record_mask = 1 << CATEGORIES.index('candidate_record_bytes')
     observed_audio_mask = 1 << CATEGORIES.index('observed_audio_commands')
     candidate_audio_mask = 1 << CATEGORIES.index('candidate_audio_commands')
+    map_header_mask = 1 << CATEGORIES.index('candidate_map_header_bytes')
+    map_grid_mask = 1 << CATEGORIES.index('candidate_map_grid_bytes')
+    text_header_mask = 1 << CATEGORIES.index('packed_text_header_bytes')
+    text_payload_mask = 1 << CATEGORIES.index('packed_text_payload_bytes')
     ppu_control_mask = 1 << CATEGORIES.index('candidate_ppu_control_bytes')
     ppu_payload_mask = 1 << CATEGORIES.index('candidate_ppu_payload_bytes')
     observed_sprite_mask = 1 << CATEGORIES.index('candidate_sprite_bytes')
@@ -99,6 +104,14 @@ def summarize(spans: dict[str, list[tuple[int, int]]], *, bank_size: int = BANK_
                 bool(mask & unreferenced_map_mask) and bool(mask & script_mask) for mask in masks),
             'record_and_candidate_script_bytes': sum(bool(mask & record_mask) and bool(mask & script_mask)
                                                      for mask in masks),
+            'source_and_candidate_map_header_bytes': sum(
+                bool(mask & source_mask) and bool(mask & map_header_mask) for mask in masks),
+            'source_and_candidate_map_grid_bytes': sum(
+                bool(mask & source_mask) and bool(mask & map_grid_mask) for mask in masks),
+            'source_and_packed_text_header_bytes': sum(
+                bool(mask & source_mask) and bool(mask & text_header_mask) for mask in masks),
+            'source_and_packed_text_payload_bytes': sum(
+                bool(mask & source_mask) and bool(mask & text_payload_mask) for mask in masks),
             'source_and_candidate_ppu_control_bytes': sum(
                 bool(mask & source_mask) and bool(mask & ppu_control_mask) for mask in masks),
             'source_and_candidate_ppu_payload_bytes': sum(
@@ -212,6 +225,10 @@ def inventory(root: Path = ROOT) -> dict:
                                      for x in maps['chunks']]
     spans['candidate_map_layouts'] = [(x['location']['physical_prg_offset'], x['decoded']['size'])
                                       for x in maps['layouts']]
+    spans['candidate_map_header_bytes'] = [(x['location']['physical_prg_offset'], 2)
+                                           for x in maps['layouts']]
+    spans['candidate_map_grid_bytes'] = [(x['location']['physical_prg_offset'] + 2, x['decoded']['size'] - 2)
+                                         for x in maps['layouts'] if x['decoded']['size'] > 2]
     spans['candidate_unreferenced_map_slots'] = [
         (x['location']['physical_prg_offset'], x['size'])
         for x in maps['unreferenced_aligned_chunk_slots']]
@@ -220,6 +237,8 @@ def inventory(root: Path = ROOT) -> dict:
                                          bank1[packed_text.PRIMARY_OFFSET:packed_text.PRIMARY_OFFSET + 32],
                                          bank1[packed_text.SECONDARY_OFFSET:packed_text.SECONDARY_OFFSET + 32])
     spans['packed_text_records'] = [(BANK_SIZE + x['bank_offset'], x['size']) for x in records]
+    spans['packed_text_header_bytes'] = [(BANK_SIZE + x['bank_offset'], 2) for x in records]
+    spans['packed_text_payload_bytes'] = [(BANK_SIZE + x['bank_offset'] + 2, x['size'] - 2) for x in records]
     # State-selected streams and the candidate $FD05 sprite-palette table.
     # The reader executes in bank 0; other mapping or callers remain possible.
     spans['candidate_palette_setup_bytes'] = (
@@ -391,6 +410,10 @@ def main() -> int:
                           'map_and_candidate_script_bytes': result['map_and_candidate_script_bytes'],
                           'unreferenced_map_slot_and_candidate_script_bytes': result['unreferenced_map_slot_and_candidate_script_bytes'],
                           'record_and_candidate_script_bytes': result['record_and_candidate_script_bytes'],
+                          'source_and_candidate_map_header_bytes': result['source_and_candidate_map_header_bytes'],
+                          'source_and_candidate_map_grid_bytes': result['source_and_candidate_map_grid_bytes'],
+                          'source_and_packed_text_header_bytes': result['source_and_packed_text_header_bytes'],
+                          'source_and_packed_text_payload_bytes': result['source_and_packed_text_payload_bytes'],
                           'source_and_candidate_ppu_control_bytes': result['source_and_candidate_ppu_control_bytes'],
                           'source_and_candidate_ppu_payload_bytes': result['source_and_candidate_ppu_payload_bytes'],
                           'observed_and_candidate_audio_bytes': result['observed_and_candidate_audio_bytes'],

@@ -18,7 +18,8 @@ class OverlayAssemblyTests(unittest.TestCase):
         source = (ROOT / 'src/us-v1.5/rom.s').read_text()
         names = ('BogusJumpBank1', 'BogusSetSlotMode', 'BogusSetSlotD0Bits', 'BogusSetDispatchCounter',
                  'BogusSelectRelativeSlotAndYield', 'AudioNote', 'AudioLoop', 'AudioWriteFive',
-                 'PpuStreamAbsolute', 'PpuStreamRelative',
+                 'PpuStreamAbsolute', 'PpuStreamRelative', 'MapLayoutDimensions',
+                 'PackedTextDestination',
                  'AudioWriteRegister', 'AudioRestorePointer', 'AudioSelectChannel', 'AudioInstrument',
                  'BogusOrSlotValue', 'BogusSetSlot07F0', 'BogusBranchIfSlotD0Bits',
                  'BogusBranchIfSlot07C0Equal', 'BogusBranchPrefix',
@@ -230,6 +231,25 @@ AudioWriteRegister $02, $67
         result, error, branch = self.assemble('BogusBranchIfSlot07C0Equal BankStart + $3456, $78')
         self.assertEqual(result, 0, error)
         self.assertEqual(prefix, branch[:3])
+
+    def test_map_dimensions_and_text_destination_are_structured_headers(self):
+        from tools.map_data import decode_layout
+        from tools.script_entries import BANK_SIZE
+
+        result, error, dimensions = self.assemble('MapLayoutDimensions $03, $02')
+        self.assertEqual(result, 0, error)
+        bank = bytearray(BANK_SIZE)
+        bank[0x100:0x108] = dimensions + bytes([0, 1, 2, 3, 4, 5])
+        layout = decode_layout(bytes(bank), 0x100, 6)
+        self.assertEqual((layout['width_chunks'], layout['height_chunks']), (3, 2))
+        self.assertEqual(layout['chunk_rows'], [[0, 1, 2], [3, 4, 5]])
+
+        result, error, destination = self.assemble('PackedTextDestination $2345')
+        self.assertEqual(result, 0, error)
+        result, error, ppu_command = self.assemble('PpuStreamAbsolute $2345')
+        self.assertEqual(result, 0, error)
+        self.assertEqual(destination, bytes.fromhex('45 23'))
+        self.assertEqual(ppu_command, bytes([0xff]) + destination)
 
     def test_ppu_stream_controls_encode_and_decode_synthetic_payload(self):
         from tools.ppu_streams import decode_stream

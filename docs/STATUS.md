@@ -34,9 +34,9 @@ independent source trees or treat one version's evidence as verifying the rest.
 simultaneous reconstruction. Keep progress and completion evidence per target.
 
 The v1.5 build now assembles and links to the exact reference, with 21,474 bytes
-of source code and 21,770 bytes of structured data across the physical PRG banks.
-It still includes 22,292 local PRG bytes and 65,536 local CHR bytes. A total of
-1,548 independent source-change controls verify every listed reconstructed region.
+of source code and 21,902 bytes of structured data across the physical PRG banks.
+It still includes 22,160 local PRG bytes and 65,536 local CHR bytes. A total of
+1,614 independent source-change controls verify every listed reconstructed region.
 Passing input audits or whole-ROM equality alone is not reconstruction
 completion. The developer identifies BOGUS as the
 state-machine engine in the [Vance Kozik interview](https://www.nesworld.com/kozik.php);
@@ -333,8 +333,8 @@ requires further investigation. Temporary transcriptions were retired after inte
 
 The map lookup uses 146 two-byte offsets, each a multiple of 68, into locally
 supplied map-chunk data. The offset table and state-indexed vertical-base seeds
-are source; map layouts and chunk contents remain local. Runtime bounds on
-either table have not been established.
+and layout dimensions are source; map grids and chunk contents remain local.
+Runtime bounds on either table have not been established.
 `make prg-inventory` combines the current verified source map with candidate
 map, descriptor-context, native-event and direct-target scripts and records, palette setup,
 candidate audio and PPU-stream uses, round-tripped packed text, and optional
@@ -344,7 +344,7 @@ in these inventories; that number is not a count of remaining code. The report
 also retains 7,633 possible map/script overlap bytes and 858 possible record/script
 overlap bytes across the combined inventories. The expanded field-setter walk
 introduces many speculative competing decodes; it does not establish their
-reachability. It also reports 7,923 source-owned bytes covered by candidate
+reachability. It also reports 8,055 source-owned bytes covered by candidate
 data uses, which can include compatible uses as well as competing ones. The
 report records its input identities and writes metadata only to
 ignored `analysis/us-v1.5/prg-inventory.json`.
@@ -1442,3 +1442,27 @@ checked where their positions are known. The PPU stream inventory distinguishes 
 without exporting their contents; it retains overlaps if different stream
 entries interpret the same byte differently. The logical stream layout does not
 establish queue timing, runtime reachability or physical cartridge mapping.
+
+The two-byte dimensions of all 14 identified map layouts are now structured
+source. The inventory counts all 28 header bytes as source-owned and all
+2,131 chunk-index grid bytes as local game data. The earlier map trace
+observed headers at `$A302`, `$A32A`, `$F44D`, `$F625` and `$F965` under the
+recorded emulator mapping; the other layout selections remain static
+candidates. Four bank-0 headers also have possible sprite-frame reads, and
+several headers have candidate BOGUS interpretations. At `$F44D` the same
+bytes can additionally form an indexed-jump entry and a mode-zero record field.
+The source retains these alternative views without asserting they execute.
+
+All 52 known packed-text records now represent their two-byte PPU destinations
+as structured source. The native decoder places those bytes after an absolute
+PPU command; the inventory counts all 104 destination bytes as source-owned
+and all 3,873 compressed message bytes as local. Some destinations
+also overlap candidate BOGUS commands or inline lookup cases, which are
+labelled separately. Static table coverage and matching bytes do not establish
+message reachability or the runtime bounds of the selecting index.
+
+A source-comment review found older notes that still call the map row helpers,
+`$49` audio helpers, pending PPU consumer and `$70/$71` arithmetic helper
+unconverted, although their current bodies are present in source. Those comments
+need correction in a subsequent source batch; their presence does not imply
+that the helpers' higher-level semantics or runtime coverage are fully reviewed.

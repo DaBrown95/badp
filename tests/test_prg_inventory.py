@@ -89,6 +89,18 @@ class PrgInventoryTests(unittest.TestCase):
         self.assertEqual(result['uncatalogued_bytes'], 4)
         self.assertEqual(result['category_bytes']['candidate_sprite_static_bytes'], 3)
 
+    def test_map_and_text_headers_do_not_claim_payloads(self):
+        result = summarize({'source_data': [(1, 2), (6, 2)],
+                            'candidate_map_header_bytes': [(1, 2)],
+                            'candidate_map_grid_bytes': [(3, 3)],
+                            'packed_text_header_bytes': [(6, 2)],
+                            'packed_text_payload_bytes': [(8, 3)]}, bank_size=16, bank_count=1)
+        self.assertEqual(result['source_and_candidate_map_header_bytes'], 2)
+        self.assertEqual(result['source_and_candidate_map_grid_bytes'], 0)
+        self.assertEqual(result['source_and_packed_text_header_bytes'], 2)
+        self.assertEqual(result['source_and_packed_text_payload_bytes'], 0)
+        self.assertEqual(result['source_and_candidate_data_bytes'], 4)
+
     def test_ppu_control_and_payload_ownership_are_counted_separately(self):
         result = summarize({'source_data': [(1, 2)],
                             'candidate_ppu_control_bytes': [(1, 2)],

@@ -1348,6 +1348,7 @@ BogusActionOpcode_BogusLoadSlotRecord = $63
 BogusActionOpcode_BogusSetInvertedState3B = $64
 BogusActionOpcode_BogusSetSlot0630Bit04UnlessFF = $A4
 BogusOpcodeAddSelectedField39 = $39
+BogusActionOpcode_BogusRefreshSlotDrawPosition = $C3
 BogusActionOpcode_BogusOrSlotValue = $C0
 BogusActionOpcode_BogusJumpBank1 = $04
 BogusActionOpcode_BogusAdvanceAndBranchState1B = $05
@@ -1422,6 +1423,16 @@ BogusActionOpcode_BogusWait = $07
 .macro AudioNoteView duration, note, expected
     .assert (duration >= 0) .and (duration <= 4) .and (note >= 0) .and (note <= $1F), error, "invalid audio note"
     .assert (duration * $20 + note) = expected, error, "audio/script byte disagreement"
+.endmacro
+
+; Each map layout begins with dimensions in eight-tile chunks. Packed text
+; records begin with the little-endian PPU destination used by the decoder.
+; Their grids and compressed message payloads remain local.
+.macro MapLayoutDimensions width, height
+    .byte width, height
+.endmacro
+.macro PackedTextDestination destination
+    .word destination
 .endmacro
 
 ; PPU stream control opcodes are reconstructed; tile and text payloads stay local.
@@ -6078,7 +6089,37 @@ MapChunkOffsets:
     .word $44 * $8A, $44 * $43, $44 * $8B, $44 * $8C, $44 * $8D, $44 * $8E, $44 * $8F, $44 * $90
     .word $44 * $91
 .assert (* - BankStart) = $2302, error, "bank 0 map chunk offset table end"
-    .incbin "bank0_a302_a368.bin"
+; Reconstructed header fields; intervening game content remains local.
+; Competing BOGUS, lookup and sprite views are static candidates.
+; Possible BOGUS commands at $A302, $A303 also read this header.
+MapCandidateEntryA302 = MapHeaderA302
+MapCandidateEntryA303 = MapHeaderA302 + 1
+; Candidate bank-0 sprite frame reads also include these dimension bytes.
+MapHeaderA302:
+    MapLayoutDimensions BogusActionOpcode_BogusJumpBank1, BogusActionOpcode_BogusAdvanceAndBranchState1B ; CONTROL_MAP_HEADER_A302
+    .incbin "bank0_a304_a318.bin"
+; Possible BOGUS commands at $A318 also read this header.
+MapCandidateEntryA318 = MapHeaderA318
+; Candidate bank-0 sprite frame reads also include these dimension bytes.
+MapHeaderA318:
+    MapLayoutDimensions BogusActionOpcode_BogusJumpBank1, $04 ; CONTROL_MAP_HEADER_A318
+    .incbin "bank0_a31a_a32a.bin"
+; Possible BOGUS commands at $A329, $A32B also read this header.
+MapCandidateEntryA329 = MapHeaderA32A - 1
+MapCandidateEntryA32B = MapHeaderA32A + 1
+; Candidate bank-0 sprite frame reads also include these dimension bytes.
+MapHeaderA32A:
+    MapLayoutDimensions $04, BogusActionOpcode_BogusJumpBank1 ; CONTROL_MAP_HEADER_A32A
+    .incbin "bank0_a32c_a33c.bin"
+; Possible BOGUS commands at $A33C also read this header.
+MapCandidateEntryA33C = MapHeaderA33C
+; Candidate bank-0 sprite frame reads also include these dimension bytes.
+MapHeaderA33C:
+    MapLayoutDimensions BogusActionOpcode_BogusJumpBank1, $04 ; CONTROL_MAP_HEADER_A33C
+    .incbin "bank0_a33e_a34e.bin"
+MapHeaderA34E:
+    MapLayoutDimensions $04, $06 ; CONTROL_MAP_HEADER_A34E
+    .incbin "bank0_a350_a368.bin"
 ; State-indexed vertical base seeds are multiplied by eight on the
 ; non-restored path. Valid state indices remain unverified.
 InitialVerticalBaseSeeds:
@@ -18186,7 +18227,303 @@ PackedTextPrimaryCharacters:
 PackedTextSecondaryCharacters:
     .byte "247J59!6;08", $27, "X-)*QZ?xxxxxxxxxxxxx"
 .assert (* - BankStart) = $403E, error, "bank 1 packed text tables end"
-    .incbin "bank1_c03e_cfc7.bin"
+; Reconstructed header fields; intervening game content remains local.
+; Competing BOGUS, lookup and sprite views are static candidates.
+; Possible BOGUS commands at $C03D, $C03E also read this header.
+TextCandidateEntryC03D = TextHeaderC03E - 1
+TextCandidateEntryC03E = TextHeaderC03E
+TextCandidateCaseC03E = TextHeaderC03E
+; Candidate inline lookup(s) from $BF01 also consume header bytes.
+TextDestinationC03E = $2143 ; CONTROL_TEXT_DESTINATION_C03E
+.assert <TextDestinationC03E = BogusActionOpcode_BogusSetInvertedState18, error, "C03E text/script opcode disagreement"
+TextHeaderC03E:
+    PackedTextDestination TextDestinationC03E
+    .incbin "bank1_c040_c071.bin"
+; Possible BOGUS commands at $C06F, $C070, $C072 also read this header.
+TextCandidateEntryC06F = TextHeaderC071 - 2
+TextCandidateEntryC070 = TextHeaderC071 - 1
+TextCandidateEntryC072 = TextHeaderC071 + 1
+TextCandidateCaseC06E = TextHeaderC071 - 3
+TextCandidateCaseC072 = TextHeaderC071 + 1
+; Candidate inline lookup(s) from $BF01 also consume header bytes.
+TextDestinationC071 = $2143 ; CONTROL_TEXT_DESTINATION_C071
+.assert >TextDestinationC071 = BogusActionOpcode_BogusSubtractSlotPriorityFromField0520, error, "C071 text/script opcode disagreement"
+TextHeaderC071:
+    PackedTextDestination TextDestinationC071
+    .incbin "bank1_c073_c0af.bin"
+; Possible BOGUS commands at $C0AE also read this header.
+TextCandidateEntryC0AE = TextHeaderC0AF - 1
+TextCandidateCaseC0AE = TextHeaderC0AF - 1
+; Candidate inline lookup(s) from $BF01 also consume header bytes.
+TextHeaderC0AF:
+    PackedTextDestination $2143 ; CONTROL_TEXT_DESTINATION_C0AF
+    .incbin "bank1_c0b1_c0eb.bin"
+TextCandidateCaseC0EA = TextHeaderC0EB - 1
+; Candidate inline lookup(s) from $BF01 also consume header bytes.
+TextHeaderC0EB:
+    PackedTextDestination $2163 ; CONTROL_TEXT_DESTINATION_C0EB
+    .incbin "bank1_c0ed_c11a.bin"
+TextCandidateCaseC11A = TextHeaderC11A
+; Candidate inline lookup(s) from $BF01 also consume header bytes.
+TextHeaderC11A:
+    PackedTextDestination $2103 ; CONTROL_TEXT_DESTINATION_C11A
+    .incbin "bank1_c11c_c160.bin"
+; Possible BOGUS commands at $C160, $C161 also read this header.
+TextCandidateEntryC160 = TextHeaderC160
+TextCandidateEntryC161 = TextHeaderC160 + 1
+TextCandidateCaseC15E = TextHeaderC160 - 2
+; Candidate inline lookup(s) from $BF01 also consume header bytes.
+TextHeaderC160:
+    PackedTextDestination (BogusActionOpcode_BogusRefreshSlotDrawPosition + (BogusActionOpcode_BogusSubtractSlotPriorityFromField0520 * $100)) ; CONTROL_TEXT_DESTINATION_C160
+    .incbin "bank1_c162_c179.bin"
+; Possible BOGUS commands at $C176 also read this header.
+TextCandidateEntryC176 = TextHeaderC179 - 3
+TextCandidateCaseC176 = TextHeaderC179 - 3
+TextCandidateCaseC17A = TextHeaderC179 + 1
+; Candidate inline lookup(s) from $BF01 also consume header bytes.
+TextHeaderC179:
+    PackedTextDestination $21C3 ; CONTROL_TEXT_DESTINATION_C179
+    .incbin "bank1_c17b_c19c.bin"
+; Possible BOGUS commands at $C199 also read this header.
+TextCandidateEntryC199 = TextHeaderC19C - 3
+TextCandidateCaseC19A = TextHeaderC19C - 2
+; Candidate inline lookup(s) from $BF01 also consume header bytes.
+TextHeaderC19C:
+    PackedTextDestination $21C3 ; CONTROL_TEXT_DESTINATION_C19C
+    .incbin "bank1_c19e_c1be.bin"
+TextCandidateCaseC1BE = TextHeaderC1BE
+; Candidate inline lookup(s) from $BF01 also consume header bytes.
+TextHeaderC1BE:
+    PackedTextDestination $2123 ; CONTROL_TEXT_DESTINATION_C1BE
+    .incbin "bank1_c1c0_c1f4.bin"
+; Possible BOGUS commands at $C1F4, $C1F5 also read this header.
+TextCandidateEntryC1F4 = TextHeaderC1F4
+TextCandidateEntryC1F5 = TextHeaderC1F4 + 1
+TextCandidateCaseC1F2 = TextHeaderC1F4 - 2
+; Candidate inline lookup(s) from $BF01 also consume header bytes.
+TextHeaderC1F4:
+    PackedTextDestination (BogusActionOpcode_BogusBranchIfDirectionalOffsetClear + (BogusActionOpcode_BogusSubtractSlotPriorityFromField0520 * $100)) ; CONTROL_TEXT_DESTINATION_C1F4
+    .incbin "bank1_c1f6_c24b.bin"
+TextCandidateCaseC24A = TextHeaderC24B - 1
+; Candidate inline lookup(s) from $BF01 also consume header bytes.
+TextHeaderC24B:
+    PackedTextDestination $20E3 ; CONTROL_TEXT_DESTINATION_C24B
+    .incbin "bank1_c24d_c326.bin"
+; Possible BOGUS commands at $C325, $C326 also read this header.
+TextCandidateEntryC325 = TextHeaderC326 - 1
+TextCandidateEntryC326 = TextHeaderC326
+TextDestinationC326 = $2143 ; CONTROL_TEXT_DESTINATION_C326
+.assert <TextDestinationC326 = BogusActionOpcode_BogusSetInvertedState18, error, "C326 text/script opcode disagreement"
+TextHeaderC326:
+    PackedTextDestination TextDestinationC326
+    .incbin "bank1_c328_c364.bin"
+; Possible BOGUS commands at $C365 also read this header.
+TextCandidateEntryC365 = TextHeaderC364 + 1
+TextDestinationC364 = $2183 ; CONTROL_TEXT_DESTINATION_C364
+.assert >TextDestinationC364 = BogusActionOpcode_BogusSubtractSlotPriorityFromField0520, error, "C364 text/script opcode disagreement"
+TextHeaderC364:
+    PackedTextDestination TextDestinationC364
+    .incbin "bank1_c366_c399.bin"
+TextCandidateCaseC397 = TextHeaderC399 - 2
+; Candidate inline lookup(s) from $C372 also consume header bytes.
+TextHeaderC399:
+    PackedTextDestination $20C3 ; CONTROL_TEXT_DESTINATION_C399
+    .incbin "bank1_c39b_c40e.bin"
+TextCandidateCaseC40B = TextHeaderC40E - 3
+TextCandidateCaseC40F = TextHeaderC40E + 1
+TextCandidateCaseC40D = TextHeaderC40E - 1
+; Candidate inline lookup(s) from $C372, $C3AC also consume header bytes.
+TextHeaderC40E:
+    PackedTextDestination $2143 ; CONTROL_TEXT_DESTINATION_C40E
+    .incbin "bank1_c410_c469.bin"
+TextCandidateCaseC467 = TextHeaderC469 - 2
+TextCandidateCaseC469 = TextHeaderC469
+; Candidate inline lookup(s) from $C372, $C3AC also consume header bytes.
+TextHeaderC469:
+    PackedTextDestination $2163 ; CONTROL_TEXT_DESTINATION_C469
+    .incbin "bank1_c46b_c494.bin"
+TextCandidateCaseC491 = TextHeaderC494 - 3
+TextCandidateCaseC495 = TextHeaderC494 + 1
+; Candidate inline lookup(s) from $C3AC also consume header bytes.
+TextHeaderC494:
+    PackedTextDestination $2143 ; CONTROL_TEXT_DESTINATION_C494
+    .incbin "bank1_c496_c4f1.bin"
+TextCandidateCaseC4F1 = TextHeaderC4F1
+; Candidate inline lookup(s) from $C3AC also consume header bytes.
+TextHeaderC4F1:
+    PackedTextDestination $2143 ; CONTROL_TEXT_DESTINATION_C4F1
+    .incbin "bank1_c4f3_c540.bin"
+TextCandidateCaseC53D = TextHeaderC540 - 3
+TextCandidateCaseC541 = TextHeaderC540 + 1
+; Candidate inline lookup(s) from $C3AC also consume header bytes.
+TextHeaderC540:
+    PackedTextDestination $20C3 ; CONTROL_TEXT_DESTINATION_C540
+    .incbin "bank1_c542_c666.bin"
+TextCandidateCaseC665 = TextHeaderC666 - 1
+TextCandidateCaseC664 = TextHeaderC666 - 2
+; Candidate inline lookup(s) from $C3AC, $C653 also consume header bytes.
+TextHeaderC666:
+    PackedTextDestination $2184 ; CONTROL_TEXT_DESTINATION_C666
+    .incbin "bank1_c668_c69a.bin"
+TextCandidateCaseC699 = TextHeaderC69A - 1
+TextCandidateCaseC698 = TextHeaderC69A - 2
+; Candidate inline lookup(s) from $C3AC, $C653 also consume header bytes.
+TextHeaderC69A:
+    PackedTextDestination $21C3 ; CONTROL_TEXT_DESTINATION_C69A
+    .incbin "bank1_c69c_c6b7.bin"
+; Possible BOGUS commands at $C6B7 also read this header.
+TextCandidateEntryC6B7 = TextHeaderC6B7
+TextCandidateCaseC6B5 = TextHeaderC6B7 - 2
+TextCandidateCaseC6B4 = TextHeaderC6B7 - 3
+TextCandidateCaseC6B8 = TextHeaderC6B7 + 1
+; Candidate inline lookup(s) from $C3AC, $C653 also consume header bytes.
+TextDestinationC6B7 = $2143 ; CONTROL_TEXT_DESTINATION_C6B7
+.assert <TextDestinationC6B7 = BogusActionOpcode_BogusSetInvertedState18, error, "C6B7 text/script opcode disagreement"
+TextHeaderC6B7:
+    PackedTextDestination TextDestinationC6B7
+    .incbin "bank1_c6b9_c701.bin"
+TextCandidateCaseC701 = TextHeaderC701
+TextCandidateCaseC700 = TextHeaderC701 - 1
+; Candidate inline lookup(s) from $C3AC, $C653 also consume header bytes.
+TextHeaderC701:
+    PackedTextDestination $2143 ; CONTROL_TEXT_DESTINATION_C701
+    .incbin "bank1_c703_c73c.bin"
+TextCandidateCaseC739 = TextHeaderC73C - 3
+TextCandidateCaseC73D = TextHeaderC73C + 1
+TextCandidateCaseC73C = TextHeaderC73C
+; Candidate inline lookup(s) from $C3AC, $C653 also consume header bytes.
+TextHeaderC73C:
+    PackedTextDestination $2103 ; CONTROL_TEXT_DESTINATION_C73C
+    .incbin "bank1_c73e_c7a2.bin"
+TextCandidateCaseC7A1 = TextHeaderC7A2 - 1
+TextCandidateCaseC7A0 = TextHeaderC7A2 - 2
+; Candidate inline lookup(s) from $C3AC, $C653 also consume header bytes.
+TextHeaderC7A2:
+    PackedTextDestination $2143 ; CONTROL_TEXT_DESTINATION_C7A2
+    .incbin "bank1_c7a4_c7ef.bin"
+TextCandidateCaseC7EC = TextHeaderC7EF - 3
+TextCandidateCaseC7F0 = TextHeaderC7EF + 1
+; Candidate inline lookup(s) from $C653 also consume header bytes.
+TextHeaderC7EF:
+    PackedTextDestination $2143 ; CONTROL_TEXT_DESTINATION_C7EF
+    .incbin "bank1_c7f1_c832.bin"
+; Possible BOGUS commands at $C82A, $C833 also read this header.
+TextCandidateEntryC82A = TextHeaderC832 - 8
+TextCandidateEntryC833 = TextHeaderC832 + 1
+TextCandidateCaseC830 = TextHeaderC832 - 2
+; Candidate inline lookup(s) from $C653 also consume header bytes.
+TextDestinationC832 = $2143 ; CONTROL_TEXT_DESTINATION_C832
+.assert >TextDestinationC832 = BogusActionOpcode_BogusSubtractSlotPriorityFromField0520, error, "C832 text/script opcode disagreement"
+TextHeaderC832:
+    PackedTextDestination TextDestinationC832
+    .incbin "bank1_c834_c872.bin"
+; Possible BOGUS commands at $C872 also read this header.
+TextCandidateEntryC872 = TextHeaderC872
+TextCandidateCaseC870 = TextHeaderC872 - 2
+; Candidate inline lookup(s) from $C653 also consume header bytes.
+TextDestinationC872 = $2143 ; CONTROL_TEXT_DESTINATION_C872
+.assert <TextDestinationC872 = BogusActionOpcode_BogusSetInvertedState18, error, "C872 text/script opcode disagreement"
+TextHeaderC872:
+    PackedTextDestination TextDestinationC872
+    .incbin "bank1_c874_c8b2.bin"
+; Possible BOGUS commands at $C8B0 also read this header.
+TextCandidateEntryC8B0 = TextHeaderC8B2 - 2
+TextCandidateCaseC8B0 = TextHeaderC8B2 - 2
+; Candidate inline lookup(s) from $C653 also consume header bytes.
+TextHeaderC8B2:
+    PackedTextDestination $20E3 ; CONTROL_TEXT_DESTINATION_C8B2
+    .incbin "bank1_c8b4_c91c.bin"
+TextCandidateCaseC91C = TextHeaderC91C
+; Candidate inline lookup(s) from $C653 also consume header bytes.
+TextHeaderC91C:
+    PackedTextDestination $2143 ; CONTROL_TEXT_DESTINATION_C91C
+    .incbin "bank1_c91e_c966.bin"
+TextCandidateCaseC964 = TextHeaderC966 - 2
+; Candidate inline lookup(s) from $C653 also consume header bytes.
+TextHeaderC966:
+    PackedTextDestination $20E3 ; CONTROL_TEXT_DESTINATION_C966
+    .incbin "bank1_c968_c9f9.bin"
+TextCandidateCaseC9F8 = TextHeaderC9F9 - 1
+; Candidate inline lookup(s) from $C653 also consume header bytes.
+TextHeaderC9F9:
+    PackedTextDestination $2143 ; CONTROL_TEXT_DESTINATION_C9F9
+    .incbin "bank1_c9fb_ca51.bin"
+TextCandidateCaseCA50 = TextHeaderCA51 - 1
+; Candidate inline lookup(s) from $C653 also consume header bytes.
+TextHeaderCA51:
+    PackedTextDestination $2143 ; CONTROL_TEXT_DESTINATION_CA51
+    .incbin "bank1_ca53_caa4.bin"
+TextHeaderCAA4:
+    PackedTextDestination $2143 ; CONTROL_TEXT_DESTINATION_CAA4
+    .incbin "bank1_caa6_caee.bin"
+TextHeaderCAEE:
+    PackedTextDestination $2143 ; CONTROL_TEXT_DESTINATION_CAEE
+    .incbin "bank1_caf0_cb3d.bin"
+TextHeaderCB3D:
+    PackedTextDestination $2143 ; CONTROL_TEXT_DESTINATION_CB3D
+    .incbin "bank1_cb3f_cb87.bin"
+; Possible BOGUS commands at $CB85, $CB88 also read this header.
+TextCandidateEntryCB85 = TextHeaderCB87 - 2
+TextCandidateEntryCB88 = TextHeaderCB87 + 1
+TextDestinationCB87 = $2143 ; CONTROL_TEXT_DESTINATION_CB87
+.assert >TextDestinationCB87 = BogusActionOpcode_BogusSubtractSlotPriorityFromField0520, error, "CB87 text/script opcode disagreement"
+TextHeaderCB87:
+    PackedTextDestination TextDestinationCB87
+    .incbin "bank1_cb89_cbb7.bin"
+TextHeaderCBB7:
+    PackedTextDestination $2143 ; CONTROL_TEXT_DESTINATION_CBB7
+    .incbin "bank1_cbb9_cbf2.bin"
+TextHeaderCBF2:
+    PackedTextDestination $2143 ; CONTROL_TEXT_DESTINATION_CBF2
+    .incbin "bank1_cbf4_cc37.bin"
+TextHeaderCC37:
+    PackedTextDestination $2143 ; CONTROL_TEXT_DESTINATION_CC37
+    .incbin "bank1_cc39_cc70.bin"
+TextHeaderCC70:
+    PackedTextDestination $21C4 ; CONTROL_TEXT_DESTINATION_CC70
+    .incbin "bank1_cc72_cc93.bin"
+; Possible BOGUS commands at $CC90 also read this header.
+TextCandidateEntryCC90 = TextHeaderCC93 - 3
+TextHeaderCC93:
+    PackedTextDestination $20E3 ; CONTROL_TEXT_DESTINATION_CC93
+    .incbin "bank1_cc95_cd14.bin"
+TextHeaderCD14:
+    PackedTextDestination $2123 ; CONTROL_TEXT_DESTINATION_CD14
+    .incbin "bank1_cd16_cd69.bin"
+TextHeaderCD69:
+    PackedTextDestination $20C3 ; CONTROL_TEXT_DESTINATION_CD69
+    .incbin "bank1_cd6b_ce92.bin"
+TextHeaderCE92:
+    PackedTextDestination $2123 ; CONTROL_TEXT_DESTINATION_CE92
+    .incbin "bank1_ce94_cef8.bin"
+TextHeaderCEF8:
+    PackedTextDestination $21C4 ; CONTROL_TEXT_DESTINATION_CEF8
+    .incbin "bank1_cefa_cf17.bin"
+TextHeaderCF17:
+    PackedTextDestination $21A8 ; CONTROL_TEXT_DESTINATION_CF17
+    .incbin "bank1_cf19_cf2d.bin"
+TextHeaderCF2D:
+    PackedTextDestination $21C3 ; CONTROL_TEXT_DESTINATION_CF2D
+    .incbin "bank1_cf2f_cf52.bin"
+; Possible BOGUS commands at $CF50, $CF53 also read this header.
+TextCandidateEntryCF50 = TextHeaderCF52 - 2
+TextCandidateEntryCF53 = TextHeaderCF52 + 1
+TextDestinationCF52 = $21C5 ; CONTROL_TEXT_DESTINATION_CF52
+.assert >TextDestinationCF52 = BogusActionOpcode_BogusSubtractSlotPriorityFromField0520, error, "CF52 text/script opcode disagreement"
+TextHeaderCF52:
+    PackedTextDestination TextDestinationCF52
+    .incbin "bank1_cf54_cf6e.bin"
+TextHeaderCF6E:
+    PackedTextDestination $21C4 ; CONTROL_TEXT_DESTINATION_CF6E
+    .incbin "bank1_cf70_cf8e.bin"
+; Possible BOGUS commands at $CF8D also read this header.
+TextCandidateEntryCF8D = TextHeaderCF8E - 1
+TextHeaderCF8E:
+    PackedTextDestination $21E7 ; CONTROL_TEXT_DESTINATION_CF8E
+    .incbin "bank1_cf90_cf9c.bin"
+TextHeaderCF9C:
+    PackedTextDestination $2184 ; CONTROL_TEXT_DESTINATION_CF9C
+    .incbin "bank1_cf9e_cfc7.bin"
 ; This branch target adjusts the slot value and queues one of two state
 ; requests; downstream indirect operations remain local.
 ScriptCFC7:
@@ -23868,7 +24205,55 @@ RuntimeScriptF447:
 RuntimeScriptF44A:
     BogusJumpBank1 (BankStart + $742D)
 .assert (* - BankStart) = $744D, error, "bank 1 runtime script $F43B end"
-    .incbin "bank1_f44d_fc58.bin"
+; Reconstructed header fields; intervening game content remains local.
+; Competing BOGUS, lookup and sprite views are static candidates.
+MapHeaderValueF44D = $0934 ; CONTROL_MAP_HEADER_F44D
+MapCandidateIndexedCaseF44D = MapHeaderF44D
+MapCandidateRecordF445Field6C = MapHeaderF44D
+MapHeaderF44D:
+    MapLayoutDimensions <MapHeaderValueF44D, >MapHeaderValueF44D
+    .incbin "bank1_f44f_f625.bin"
+MapHeaderF625:
+    MapLayoutDimensions $1C, $06 ; CONTROL_MAP_HEADER_F625
+    .incbin "bank1_f627_f6cf.bin"
+; Possible BOGUS commands at $F6CD also read this header.
+MapCandidateEntryF6CD = MapHeaderF6CF - 2
+MapHeaderF6CF:
+    MapLayoutDimensions $0A, $0A ; CONTROL_MAP_HEADER_F6CF
+    .incbin "bank1_f6d1_f735.bin"
+; Possible BOGUS commands at $F733 also read this header.
+MapCandidateEntryF733 = MapHeaderF735 - 2
+MapHeaderF735:
+    MapLayoutDimensions $12, $05 ; CONTROL_MAP_HEADER_F735
+    .incbin "bank1_f737_f791.bin"
+; Possible BOGUS commands at $F78E, $F791, $F792 also read this header.
+MapCandidateEntryF78E = MapHeaderF791 - 3
+MapCandidateEntryF791 = MapHeaderF791
+MapCandidateEntryF792 = MapHeaderF791 + 1
+MapHeaderF791:
+    MapLayoutDimensions BogusActionOpcode_BogusBranchIfSlot0620Bit10, BogusActionOpcode_BogusWait ; CONTROL_MAP_HEADER_F791
+    .incbin "bank1_f793_f873.bin"
+; Possible BOGUS commands at $F871 also read this header.
+MapCandidateEntryF871 = MapHeaderF873 - 2
+MapHeaderF873:
+    MapLayoutDimensions $10, $0F ; CONTROL_MAP_HEADER_F873
+    .incbin "bank1_f875_f965.bin"
+; Possible BOGUS commands at $F962, $F966 also read this header.
+MapCandidateEntryF962 = MapHeaderF965 - 3
+MapCandidateEntryF966 = MapHeaderF965 + 1
+MapHeaderF965:
+    MapLayoutDimensions $23, BogusActionOpcode_BogusWait ; CONTROL_MAP_HEADER_F965
+    .incbin "bank1_f967_fa5c.bin"
+; Possible BOGUS commands at $FA5A also read this header.
+MapCandidateEntryFA5A = MapHeaderFA5C - 2
+MapHeaderFA5C:
+    MapLayoutDimensions $23, $07 ; CONTROL_MAP_HEADER_FA5C
+    .incbin "bank1_fa5e_fb53.bin"
+; Possible BOGUS commands at $FB51 also read this header.
+MapCandidateEntryFB51 = MapHeaderFB53 - 2
+MapHeaderFB53:
+    MapLayoutDimensions $25, $07 ; CONTROL_MAP_HEADER_FB53
+    .incbin "bank1_fb55_fc58.bin"
 ; Descriptor-linked slot record; resource data remains local.
 SlotRuntimeFC58:
     SlotRuntimeRecord $BF6B, (CandidateFC6A - BankStart), $00, $FF, $00, $00, $00 ; CONTROL_SLOT_RUNTIME_FC58
