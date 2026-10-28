@@ -805,3 +805,27 @@ The repository retains the Sims project's MIT licence, AI disclosure,
 owner-run contribution policy and strict matching standard. The GitHub
 repository was created private on 2026-10-27, with issues, discussions, projects
 and wiki disabled.
+
+A reference-only v1.5 exploratory run used inputs adapted from
+[DrD2k9's v1.3 tool-assisted recording](https://tasvideos.org/5223S); see its
+[attribution notice](../licenses/tasvideos-5223.md). The input stream did not
+reproduce the published run in MesenCE. During its first 20,000 frames, the
+loader entered zero-mode record `$5B1B` eight times with bank byte `$0D`.
+The resource high-byte sentinel and script pointer at bank 1 `$DB1C-$DB1E`
+are source, with the latter resolving to the existing `$E764` script. The
+record's uninspected neighbours remain local. A static candidate graph also
+interprets `$DB1D-$DB1E` as a script command, reached through a path that has
+not been established as executable; this observation establishes the record
+use, not that the competing interpretation is impossible. The same trace saw
+1,019 script-pointer/bank pairs and 86 record-pointer/bank/mode combinations;
+all sampled script instruction extents were already source, and the record
+fragment was the only sampled used extent still local. No native instruction
+entry in a local gap was observed. These counts describe this emulator input,
+not a complete execution inventory or a completed gameplay run.
+
+A direct replay of the v1.3 recording on each local v1.3 and v1.5 reference
+did not finish the recorded route. A 20-frame input delay selected Noah on
+v1.3, but the run remained in that adventure at frame 20,000. A separate
+243-case continuation of the best third-level Moses checkpoint lost the
+carried baby in every case by its final checkpoint. These are failed route
+experiments, not gameplay verification.

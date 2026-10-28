@@ -1094,6 +1094,7 @@
     {"id": "bank1-partial-record-fields-ad1c", "bank": 1, "cpu": "0xad1c", "size": 1, "kind": "data", "control": "partial_fields_ad1c"},
     {"id": "bank1-partial-record-resource-ba1a", "bank": 1, "cpu": "0xba1a", "size": 2, "kind": "data", "control": "partial_resource_ba1a"},
     {"id": "bank1-partial-record-fields-ba1e", "bank": 1, "cpu": "0xba1e", "size": 1, "kind": "data", "control": "partial_fields_ba1e"},
+    {"id": "bank1-observed-record-db1b", "bank": 1, "cpu": "0xdb1c", "size": 3, "kind": "data", "control": "observed_record_db1b"},
     {"id": "bank1-partial-record-resource-db24", "bank": 1, "cpu": "0xdb24", "size": 2, "kind": "data", "control": "partial_resource_db24"},
     {"id": "bank1-partial-record-fields-db28", "bank": 1, "cpu": "0xdb28", "size": 1, "kind": "data", "control": "partial_fields_db28"},
     {"id": "bank1-partial-record-resource-db3f", "bank": 1, "cpu": "0xdb3f", "size": 2, "kind": "data", "control": "partial_resource_db3f"},

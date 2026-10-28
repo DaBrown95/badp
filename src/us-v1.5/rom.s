@@ -18209,7 +18209,15 @@ CompactContextDB0F:
 SlotRuntimeDB12:
     SlotRuntimeRecord $C4AD, (ScriptE691 - BankStart), $22, $FF, $00, $00, $00 ; CONTROL_SLOT_RUNTIME_DB12
 .assert (* - BankStart) = $5B1B, error, "bank 1 slot record DB12 end"
-    .incbin "bank1_db1b_db24.bin"
+    .incbin "bank1_db1b_db1c.bin"
+; Observed zero-mode record: resource sentinel and installed script pointer.
+; Unread neighbouring bytes stay local; a separate static walk also decodes
+; the pointer bytes as a candidate script and has not established reachability.
+ObservedRecordDB1BScript:
+    .byte $FF
+    .word RuntimeScriptE764 - BankStart ; CONTROL_OBSERVED_RECORD_DB1B
+.assert (* - BankStart) = $5B1F, error, "bank 1 observed record db1b end"
+    .incbin "bank1_db1f_db24.bin"
 ; Resource pointer read by the slot-record loader. Unread neighbouring bytes remain local.
 PartialRecordDB24Resource:
     .word $B87F ; CONTROL_PARTIAL_RESOURCE_DB24

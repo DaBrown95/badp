@@ -895,6 +895,7 @@ MUTATIONS = {
     'reviewed_contact_da25': ('CONTROL_REVIEWED_CONTACT_DA25', '$FF', '$FE'),
     'reviewed_contact_da82': ('CONTROL_REVIEWED_CONTACT_DA82', '$FF', '$FE'),
     'reviewed_contact_dab5': ('CONTROL_REVIEWED_CONTACT_DAB5', '$FF', '$FE'),
+    'observed_record_db1b': ('CONTROL_OBSERVED_RECORD_DB1B', 'RuntimeScriptE764 - BankStart', 'RuntimeScriptE764 - BankStart + 1'),
     'reviewed_contact_db57': ('CONTROL_REVIEWED_CONTACT_DB57', '$FF', '$FE'),
     'reviewed_contact_dd6b': ('CONTROL_REVIEWED_CONTACT_DD6B', '$FF', '$FE'),
     'reviewed_contact_dd98': ('CONTROL_REVIEWED_CONTACT_DD98', '$FF', '$FE'),
