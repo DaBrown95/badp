@@ -18,6 +18,7 @@ local fourth_reload=false;local fourth_reload_count=0;local fourth_reload_bad=0
 local fourth_transition=0;local fourth_state=0;local fourth_last_world=0;local fourth_reset_count=0
 local fifth_first=0;local fifth_count=0;local fifth_bad=0;local fifth_absent=0
 local fifth_reload=false;local fifth_reload_count=0;local fifth_reload_bad=0;local fifth_last_world=0
+local fifth_transition=0;local fifth_state=0;local fifth_reset_count=0
 local noah_first=0;local noah_count=0;local noah_bad=0;local noah_absent=0
 local noah_reload=false;local noah_reload_count=0;local noah_reload_bad=0;local noah_last_world=0
 local fetch_probes=0
@@ -88,13 +89,17 @@ emu.addMemoryCallback(function(_,value)
  else fourth_reload_bad=fourth_reload_bad+1 end
 end,emu.callbackType.write,0x04E4,0x04E4)
 emu.addMemoryCallback(function(_,value)
- if SCENARIO~=4 or fifth_first==0 then return end
+ if SCENARIO~=4 or fifth_first==0 or fifth_transition~=0 or emu.read(1,emu.memType.nesDebug)~=9 then return end
  local state=emu.getState();local pc=state['cpu.pc'];local m=emu.convertAddress(pc,emu.memType.nesMemory)
  local physical=(m and m.memType==emu.memType.nesPrgRom) and m.address or -1
  if value==0xFF and pc==0xF1F7 and physical==0x71F7 and not fifth_reload then
   fifth_reload=true
  elseif value==1 and pc==0xF226 and physical==0x7226 and fifth_reload then
   fifth_reload=false;fifth_reload_count=fifth_reload_count+1
+ elseif value==0xFF and pc==0xCB0B and physical==0x4B0B and not fifth_reload
+        and emu.read(0,emu.memType.nesDebug)==16 then
+  -- The main-state transition clears the slot before $01 changes to 16.
+  fifth_reset_count=fifth_reset_count+1
  else fifth_reload_bad=fifth_reload_bad+1 end
 end,emu.callbackType.write,0x04E1,0x04E1)
 -- Noah's player slot uses the same record allocator while carrying an animal.
@@ -374,6 +379,19 @@ emu.addEventCallback(function()
    local action=string.byte('FFCDDACDEFFACDEFDCDDDAFFBAAACFECADECEDEFDCEFFDCEBDCCFBFDACFDACFDDFAFDAFFEAF',step)-64
    local direction=(action-1)%3
    left=direction==1;right=direction==2;jump=action>3
+  elseif frames>=11900 and frames<12550 then
+   local step=math.floor((frames-11900)/10)+1
+   local action=string.byte('ACFDAAAFFBAAFDECDFDDCACEAECDCDECCEDCFBCDACDCFEDACFDFFCEDBAFFDDCED',step)-64
+   local direction=(action-1)%3
+   left=direction==1;right=direction==2;jump=action>3
+  elseif frames>=12550 and frames<12690 then
+   local step=math.floor((frames-12550)/10)+1
+   local action=string.byte('CCCDDCCCEDAAAA',step)-64
+   local direction=(action-1)%3
+   left=direction==1;right=direction==2;jump=action>3
+  elseif frames>=12900 and frames<12910 then
+   -- Advance the fifth-level success screen with A.
+   jump=true
   end
  end
  if SCENARIO==5 and frames>=1400 then
@@ -420,18 +438,21 @@ emu.addEventCallback(function()
    end
   end
  end
- if SCENARIO==4 and frames>=10750 then
+ if SCENARIO==4 and frames>=10750 and fifth_transition==0 then
   local state=emu.read(1,emu.memType.nesDebug)
   local player=emu.read(0x04E1,emu.memType.nesDebug)
   local baby=emu.read(0x04E2,emu.memType.nesDebug)
   local link=emu.read(0x06D2,emu.memType.nesDebug)
   if fifth_first==0 and state==9 and player==1 and baby==0x6A and link==1 then fifth_first=frames end
   if fifth_first>0 then
-   fifth_count=fifth_count+1
-   if state~=9 or baby~=0x6A or link~=1 then fifth_bad=fifth_bad+1 end
-   if player==0xFF and fifth_reload then fifth_absent=fifth_absent+1
-   elseif player~=1 or fifth_reload then fifth_bad=fifth_bad+1 end
-   fifth_last_world=emu.read(0x03EE,emu.memType.nesDebug)+256*emu.read(0x03EF,emu.memType.nesDebug)+emu.read(0x0581,emu.memType.nesDebug)
+   if state~=9 then fifth_transition=frames;fifth_state=state
+   else
+    fifth_count=fifth_count+1
+    if baby~=0x6A or link~=1 then fifth_bad=fifth_bad+1 end
+    if player==0xFF and fifth_reload then fifth_absent=fifth_absent+1
+    elseif player~=1 or fifth_reload then fifth_bad=fifth_bad+1 end
+    fifth_last_world=emu.read(0x03EE,emu.memType.nesDebug)+256*emu.read(0x03EF,emu.memType.nesDebug)+emu.read(0x0581,emu.memType.nesDebug)
+   end
   end
  end
  if SCENARIO==5 and frames>=1500 and frames<=2100 then
@@ -459,14 +480,14 @@ emu.addEventCallback(function()
    end
   end
  end
- if frames==240 or frames==650 or frames==1200 or frames==1400 or frames==1496 or frames==1511 or frames==1550 or frames==1700 or frames==1800 or frames==2100 or frames==2150 or frames==2300 or frames==2400 or frames==2600 or frames==2800 or frames==3000 or frames==3100 or frames==3200 or frames==3250 or frames==3300 or frames==3350 or frames==3400 or frames==3450 or frames==3650 or frames==3700 or frames==3750 or frames==3800 or frames==3825 or frames==3850 or frames==3900 or frames==4050 or frames==4150 or frames==4300 or frames==4400 or frames==4500 or frames==4600 or frames==4650 or frames==4750 or frames==4900 or frames==5000 or frames==5100 or frames==5200 or frames==5250 or frames==5300 or frames==5375 or frames==5450 or frames==5500 or frames==5550 or frames==5575 or frames==5625 or frames==5650 or frames==5700 or frames==5880 or frames==5950 or frames==6000 or frames==6040 or frames==6100 or frames==6160 or frames==6200 or frames==6260 or frames==6300 or frames==6340 or frames==6500 or frames==6690 or frames==6740 or frames==6780 or frames==6800 or frames==6840 or frames==6900 or frames==7000 or frames==7020 or frames==7100 or frames==7200 or frames==7300 or frames==7400 or frames==7600 or frames==7700 or frames==7800 or frames==7890 or frames==7900 or frames==7920 or frames==8000 or frames==8100 or frames==8200 or frames==8280 or frames==8300 or frames==8400 or frames==8500 or frames==8570 or frames==8700 or frames==8800 or frames==8870 or frames==9000 or frames==9200 or frames==9400 or frames==9600 or frames==9800 or frames==10000 or frames==10200 or frames==10400 or frames==10500 or frames==10600 or frames==10700 or frames==10750 or frames==10800 or frames==10830 or frames==10850 or frames==10900 or frames==11000 or frames==11030 or frames==11100 or frames==11150 or frames==11200 or frames==11400 or frames==11600 or frames==11800 or frames==11900 then
+ if frames==240 or frames==650 or frames==1200 or frames==1400 or frames==1496 or frames==1511 or frames==1550 or frames==1700 or frames==1800 or frames==2100 or frames==2150 or frames==2300 or frames==2400 or frames==2600 or frames==2800 or frames==3000 or frames==3100 or frames==3200 or frames==3250 or frames==3300 or frames==3350 or frames==3400 or frames==3450 or frames==3650 or frames==3700 or frames==3750 or frames==3800 or frames==3825 or frames==3850 or frames==3900 or frames==4050 or frames==4150 or frames==4300 or frames==4400 or frames==4500 or frames==4600 or frames==4650 or frames==4750 or frames==4900 or frames==5000 or frames==5100 or frames==5200 or frames==5250 or frames==5300 or frames==5375 or frames==5450 or frames==5500 or frames==5550 or frames==5575 or frames==5625 or frames==5650 or frames==5700 or frames==5880 or frames==5950 or frames==6000 or frames==6040 or frames==6100 or frames==6160 or frames==6200 or frames==6260 or frames==6300 or frames==6340 or frames==6500 or frames==6690 or frames==6740 or frames==6780 or frames==6800 or frames==6840 or frames==6900 or frames==7000 or frames==7020 or frames==7100 or frames==7200 or frames==7300 or frames==7400 or frames==7600 or frames==7700 or frames==7800 or frames==7890 or frames==7900 or frames==7920 or frames==8000 or frames==8100 or frames==8200 or frames==8280 or frames==8300 or frames==8400 or frames==8500 or frames==8570 or frames==8700 or frames==8800 or frames==8870 or frames==9000 or frames==9200 or frames==9400 or frames==9600 or frames==9800 or frames==10000 or frames==10200 or frames==10400 or frames==10500 or frames==10600 or frames==10700 or frames==10750 or frames==10800 or frames==10830 or frames==10850 or frames==10900 or frames==11000 or frames==11030 or frames==11100 or frames==11150 or frames==11200 or frames==11400 or frames==11600 or frames==11800 or frames==11900 or frames==12500 or frames==12550 or frames==12600 or frames==12650 or frames==12690 or frames==12700 or frames==12750 or frames==12800 or frames==12900 or frames==12950 or frames==13000 or frames==13050 then
   local state=emu.getState()
   local p=emu.convertAddress(0x8000,emu.memType.nesMemory)
   print(string.format('BADP_FRAME %d %d %d %d %d %d %d %d %s',frames,emu.read(0,emu.memType.nesDebug),emu.read(1,emu.memType.nesDebug),emu.read(0x03ee,emu.memType.nesDebug)+256*emu.read(0x03ef,emu.memType.nesDebug),emu.read(0x03f0,emu.memType.nesDebug)+256*emu.read(0x03f1,emu.memType.nesDebug),p.address,state['cpu.cycleCount'],nmis,hex(emu.takeScreenshot())))
   local width,height,palette,runs=frame_buffer_evidence()
   print(string.format('BADP_FRAMEBUFFER %d %d %d %s %s',frames,width,height,palette,runs))
  end
- if frames==1400 or frames==1496 or frames==1511 or frames==1550 or frames==1700 or frames==1800 or frames==2100 or frames==2150 or frames==2300 or frames==2400 or frames==2600 or frames==2800 or frames==3000 or frames==3100 or frames==3200 or frames==3250 or frames==3300 or frames==3350 or frames==3400 or frames==3450 or frames==3650 or frames==3700 or frames==3750 or frames==3800 or frames==3825 or frames==3850 or frames==3900 or frames==4050 or frames==4150 or frames==4300 or frames==4400 or frames==4500 or frames==4600 or frames==4650 or frames==4750 or frames==4900 or frames==5000 or frames==5100 or frames==5200 or frames==5250 or frames==5300 or frames==5375 or frames==5450 or frames==5500 or frames==5550 or frames==5575 or frames==5625 or frames==5650 or frames==5700 or frames==5880 or frames==5950 or frames==6000 or frames==6040 or frames==6100 or frames==6160 or frames==6200 or frames==6260 or frames==6300 or frames==6340 or frames==6500 or frames==6690 or frames==6740 or frames==6780 or frames==6800 or frames==6840 or frames==6900 or frames==7000 or frames==7020 or frames==7100 or frames==7200 or frames==7300 or frames==7400 or frames==7600 or frames==7700 or frames==7800 or frames==7890 or frames==7900 or frames==7920 or frames==8000 or frames==8100 or frames==8200 or frames==10750 or frames==10800 or frames==11150 or frames==11900 then
+ if frames==1400 or frames==1496 or frames==1511 or frames==1550 or frames==1700 or frames==1800 or frames==2100 or frames==2150 or frames==2300 or frames==2400 or frames==2600 or frames==2800 or frames==3000 or frames==3100 or frames==3200 or frames==3250 or frames==3300 or frames==3350 or frames==3400 or frames==3450 or frames==3650 or frames==3700 or frames==3750 or frames==3800 or frames==3825 or frames==3850 or frames==3900 or frames==4050 or frames==4150 or frames==4300 or frames==4400 or frames==4500 or frames==4600 or frames==4650 or frames==4750 or frames==4900 or frames==5000 or frames==5100 or frames==5200 or frames==5250 or frames==5300 or frames==5375 or frames==5450 or frames==5500 or frames==5550 or frames==5575 or frames==5625 or frames==5650 or frames==5700 or frames==5880 or frames==5950 or frames==6000 or frames==6040 or frames==6100 or frames==6160 or frames==6200 or frames==6260 or frames==6300 or frames==6340 or frames==6500 or frames==6690 or frames==6740 or frames==6780 or frames==6800 or frames==6840 or frames==6900 or frames==7000 or frames==7020 or frames==7100 or frames==7200 or frames==7300 or frames==7400 or frames==7600 or frames==7700 or frames==7800 or frames==7890 or frames==7900 or frames==7920 or frames==8000 or frames==8100 or frames==8200 or frames==10750 or frames==10800 or frames==11150 or frames==11900 or frames==12950 or frames==13000 or frames==13050 then
   print(string.format('BADP_SLOT %d %d %d %d %d %d %d %d %d %d %d %d',frames,
    emu.read(0x04E1,emu.memType.nesDebug),emu.read(0x04E2,emu.memType.nesDebug),
    emu.read(0x06D2,emu.memType.nesDebug),emu.read(0x0582,emu.memType.nesDebug),
@@ -482,7 +503,7 @@ emu.addEventCallback(function()
    emu.read(0x06D6,emu.memType.nesDebug),emu.read(0x0586,emu.memType.nesDebug),
    emu.read(0x0596,emu.memType.nesDebug)))
  end
- if frames==11900 then
+ if frames==13050 then
   -- stop() can return before the emulator stops invoking callbacks.
   recording=false
   print(string.format('BADP_SUMMARY %d %d %d %d %d %d %d %d',writes,mismatch,unmapped,banks[0] and 1 or 0,banks[1] and 1 or 0,nmis,apu_writes,dma_writes))
@@ -491,8 +512,9 @@ emu.addEventCallback(function()
   print(string.format('BADP_LEVEL4_CARRY %d %d %d %d %d %d %d %d %d %d %d',
    fourth_count,fourth_bad,fourth_first,fourth_absent,fourth_reload_count,
    fourth_reload_bad,fourth_reload and 1 or 0,fourth_transition,fourth_state,fourth_last_world,fourth_reset_count))
-  print(string.format('BADP_LEVEL5_CARRY %d %d %d %d %d %d %d %d',
-   fifth_count,fifth_bad,fifth_first,fifth_absent,fifth_reload_count,fifth_reload_bad,fifth_reload and 1 or 0,fifth_last_world))
+  print(string.format('BADP_LEVEL5_CARRY %d %d %d %d %d %d %d %d %d %d %d',
+   fifth_count,fifth_bad,fifth_first,fifth_absent,fifth_reload_count,fifth_reload_bad,fifth_reload and 1 or 0,
+   fifth_transition,fifth_state,fifth_last_world,fifth_reset_count))
   print(string.format('BADP_NOAH_CARRY %d %d %d %d %d %d %d %d',
    noah_count,noah_bad,noah_first,noah_absent,noah_reload_count,noah_reload_bad,noah_reload and 1 or 0,noah_last_world))
   print(string.format('BADP_PROBE %d %d',fetch_probes,record_probes))

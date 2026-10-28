@@ -1094,4 +1094,18 @@ samples, from frame 1,530 through 2,100, while Noah reached world x=1,004.
 Two one-frame player-slot transients were paired with the existing allocator's
 clear and restore writes; the maintained comparison checks those writes and
 the continuous animal link. This route does not yet verify animal delivery or
-completion of a Noah level.
+completion of a Noah level. A separate power-on reference/build replay kept the
+animal linked through frame 3,300 and reached world x=3,054; animal delivery
+remains unverified. The maintained check still stops its carry sampling at 2,100.
+
+The extended Moses replay completed the fifth level on both ROMs. The baby
+remained linked for 1,901 consecutive end-of-frame samples, from frame 10,786
+through 12,686; the success state began at frame 12,687. Five one-frame player
+slot transients were attributed to the existing allocator, and the transition
+reset was traced separately. The success screen advanced to a sixth-level
+spawn at frame 12,950. An independent reference trace through frame 13,050
+recorded 119,818 script fetches and 1,474 record loads without sampled local
+script, record or native instruction gaps; it did not trace inline lookups.
+The maintained roof-route collector reproduced those counts and captured
+86,824 inline lookups without finding sampled local inline bytes.
+The sixth-level spawn does not establish completion of that level or adventure.

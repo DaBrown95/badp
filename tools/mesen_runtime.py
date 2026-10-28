@@ -19,10 +19,10 @@ from .setup_mesen import ROOT, digest_file, spec, verify_emulator
 
 FRAMES = (240, 650, 1200, 1400, 1496, 1511, 1550, 1700, 1800, 2100, 2150, 2300,
           2400, 2600, 2800, 3000, 3100, 3200, 3250, 3300, 3350, 3400, 3450, 3650, 3700, 3750,
-          3800, 3825, 3850, 3900, 4050, 4150, 4300, 4400, 4500, 4600, 4650, 4750, 4900, 5000, 5100, 5200, 5250, 5300, 5375, 5450, 5500, 5550, 5575, 5625, 5650, 5700, 5880, 5950, 6000, 6040, 6100, 6160, 6200, 6260, 6300, 6340, 6500, 6690, 6740, 6780, 6800, 6840, 6900, 7000, 7020, 7100, 7200, 7300, 7400, 7600, 7700, 7800, 7890, 7900, 7920, 8000, 8100, 8200, 8280, 8300, 8400, 8500, 8570, 8700, 8800, 8870, 9000, 9200, 9400, 9600, 9800, 10000, 10200, 10400, 10500, 10600, 10700, 10750, 10800, 10830, 10850, 10900, 11000, 11030, 11100, 11150, 11200, 11400, 11600, 11800, 11900)
+          3800, 3825, 3850, 3900, 4050, 4150, 4300, 4400, 4500, 4600, 4650, 4750, 4900, 5000, 5100, 5200, 5250, 5300, 5375, 5450, 5500, 5550, 5575, 5625, 5650, 5700, 5880, 5950, 6000, 6040, 6100, 6160, 6200, 6260, 6300, 6340, 6500, 6690, 6740, 6780, 6800, 6840, 6900, 7000, 7020, 7100, 7200, 7300, 7400, 7600, 7700, 7800, 7890, 7900, 7920, 8000, 8100, 8200, 8280, 8300, 8400, 8500, 8570, 8700, 8800, 8870, 9000, 9200, 9400, 9600, 9800, 10000, 10200, 10400, 10500, 10600, 10700, 10750, 10800, 10830, 10850, 10900, 11000, 11030, 11100, 11150, 11200, 11400, 11600, 11800, 11900, 12500, 12550, 12600, 12650, 12690, 12700, 12750, 12800, 12900, 12950, 13000, 13050)
 SLOT_FRAMES = (1400, 1496, 1511, 1550, 1700, 1800, 2100, 2150, 2300,
                2400, 2600, 2800, 3000, 3100, 3200, 3250, 3300, 3350, 3400, 3450, 3650, 3700, 3750,
-               3800, 3825, 3850, 3900, 4050, 4150, 4300, 4400, 4500, 4600, 4650, 4750, 4900, 5000, 5100, 5200, 5250, 5300, 5375, 5450, 5500, 5550, 5575, 5625, 5650, 5700, 5880, 5950, 6000, 6040, 6100, 6160, 6200, 6260, 6300, 6340, 6500, 6690, 6740, 6780, 6800, 6840, 6900, 7000, 7020, 7100, 7200, 7300, 7400, 7600, 7700, 7800, 7890, 7900, 7920, 8000, 8100, 8200, 10750, 10800, 11150, 11900)
+               3800, 3825, 3850, 3900, 4050, 4150, 4300, 4400, 4500, 4600, 4650, 4750, 4900, 5000, 5100, 5200, 5250, 5300, 5375, 5450, 5500, 5550, 5575, 5625, 5650, 5700, 5880, 5950, 6000, 6040, 6100, 6160, 6200, 6260, 6300, 6340, 6500, 6690, 6740, 6780, 6800, 6840, 6900, 7000, 7020, 7100, 7200, 7300, 7400, 7600, 7700, 7800, 7890, 7900, 7920, 8000, 8100, 8200, 10750, 10800, 11150, 11900, 12950, 13000, 13050)
 # Pinned emulator screenshot of the first-level success screen for the audited v1.5 input.
 MOSES_SUCCESS_SCREEN_SHA256 = 'c3d483860076f9e782d92de0913c671d4ed1aef84f8ce81688423cad40c19346'
 # Pinned second-level success screen for the same audited input.
@@ -197,11 +197,12 @@ def parse_output(output: str) -> tuple[dict, dict[int, bytes], dict[str, bytes]]
             level4_carry = values
         elif line.startswith('BADP_LEVEL5_CARRY '):
             parts = line.split()
-            if level5_carry is not None or len(parts) != 9:
+            if level5_carry is not None or len(parts) != 12:
                 raise ValueError('malformed or duplicate fifth-level carry summary')
             values = tuple(map(int, parts[1:]))
             if (any(value < 0 for value in values) or values[2] > FRAMES[-1]
-                    or values[6] not in (0, 1) or values[7] > 65535):
+                    or values[6] not in (0, 1) or values[7] > FRAMES[-1]
+                    or values[8] > 255 or values[9] > 65535 or values[10] > 1):
                 raise ValueError('invalid fifth-level carry summary')
             level5_carry = values
         elif line.startswith('BADP_NOAH_CARRY '):
@@ -361,7 +362,9 @@ def parse_output(output: str) -> tuple[dict, dict[int, bytes], dict[str, bytes]]
              'fifth_carry_samples': level5_carry[0], 'fifth_carry_bad': level5_carry[1],
              'fifth_carry_first': level5_carry[2], 'fifth_player_absent': level5_carry[3],
              'fifth_reload_count': level5_carry[4], 'fifth_reload_bad': level5_carry[5],
-             'fifth_reload_open': level5_carry[6], 'fifth_last_world_x': level5_carry[7],
+             'fifth_reload_open': level5_carry[6], 'fifth_transition_frame': level5_carry[7],
+             'fifth_transition_state': level5_carry[8], 'fifth_last_world_x': level5_carry[9],
+             'fifth_exit_reset_count': level5_carry[10],
              'noah_carry_samples': noah_carry[0], 'noah_carry_bad': noah_carry[1],
              'noah_carry_first': noah_carry[2], 'noah_player_absent': noah_carry[3],
              'noah_reload_count': noah_carry[4], 'noah_reload_bad': noah_carry[5],
@@ -512,14 +515,20 @@ def validate_scenario(evidence: dict, expected_state: int, *, inventory: bool = 
                          slots['10750']['object_x'], slots['10750']['object_y']) != (1, 0x6a, 0xff, 64, 96, 160)):
             raise ValueError('Moses fourth-level success or fifth-level entry was not observed')
         if roof and (evidence['fifth_carry_first'] != 10786
-                     or evidence['fifth_carry_samples'] != FRAMES[-1] + 1 - evidence['fifth_carry_first']
-                     or evidence['fifth_carry_bad'] or evidence['fifth_player_absent'] != 4
-                     or evidence['fifth_reload_count'] < 4 or evidence['fifth_reload_bad'] or evidence['fifth_reload_open']
-                     or evidence['fifth_last_world_x'] < 1200
+                     or evidence['fifth_carry_samples'] != evidence['fifth_transition_frame'] - evidence['fifth_carry_first']
+                     or evidence['fifth_carry_bad'] or evidence['fifth_player_absent'] != 5
+                     or evidence['fifth_reload_count'] < 5 or evidence['fifth_reload_bad'] or evidence['fifth_reload_open']
+                     or evidence['fifth_exit_reset_count'] != 1 or evidence['fifth_transition_state'] != 16
+                     or evidence['fifth_last_world_x'] < 2100
                      or any(frames[str(frame)]['state'] != 9 for frame in (10800, 11150, 11900))
                      or any((slots[str(frame)]['player_descriptor'], slots[str(frame)]['object_descriptor'],
-                             slots[str(frame)]['object_link']) != (1, 0x6a, 1) for frame in (10800, 11150, 11900))):
-            raise ValueError('Moses fifth-level pickup and carry was not observed')
+                             slots[str(frame)]['object_link']) != (1, 0x6a, 1) for frame in (10800, 11150, 11900))
+                     or frames['12750']['state'] != 16
+                     or frames['12750']['screenshot_sha256'] != MOSES_SUCCESS_SCREEN_SHA256
+                     or any(frames[str(frame)]['state'] != 10 for frame in (12950, 13000, 13050))
+                     or any((slots[str(frame)]['player_descriptor'], slots[str(frame)]['third_descriptor'],
+                             slots[str(frame)]['third_link']) != (1, 0x6a, 0xff) for frame in (12950, 13000, 13050))):
+            raise ValueError('Moses fifth-level success or sixth-level entry was not observed')
     if (evidence['mapper_value_mismatches'] or evidence['unmapped_mapper_writes']
             or evidence['physical_prg_banks_seen'] != [0, 1]):
         raise ValueError('mapper write evidence did not meet the observed-bank checks')
