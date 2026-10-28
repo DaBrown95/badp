@@ -339,12 +339,12 @@ either table have not been established.
 map, descriptor-context, native-event and direct-target scripts and records, palette setup,
 candidate audio and PPU-stream uses, round-tripped packed text, and optional
 validated audio and sprite traces. It counts physical bytes once while
-retaining overlapping uses. With the current local traces, 793 PRG bytes have no use
+retaining overlapping uses. With the current local traces, 776 PRG bytes have no use
 in these inventories; that number is not a count of remaining code. The report
-also retains 6,490 possible map/script overlap bytes and 827 possible record/script
+also retains 7,513 possible map/script overlap bytes and 858 possible record/script
 overlap bytes across the combined inventories. The expanded field-setter walk
 introduces many speculative competing decodes; it does not establish their
-reachability. It also reports 7,157 source-owned bytes covered by candidate
+reachability. It also reports 7,517 source-owned bytes covered by candidate
 data uses, which can include compatible uses as well as competing ones. The
 report records its input identities and writes metadata only to
 ignored `analysis/us-v1.5/prg-inventory.json`.
@@ -1260,11 +1260,11 @@ uncertainties.
 The static script and record walks now follow the 29 additional `$F434`
 positions only as predecessor-conditioned candidates, distinct from the three
 observed indices. The jump remains incomplete for independent entry. The
-merged native-event walk now contains 551 candidate contexts and 827 possible
+merged native-event walk now contains 580 candidate contexts and 858 possible
 record/script overlap bytes. Paths introduced by the additional edges depend on
 the condition; the merged graph does not retain complete provenance or prove
-execution. The observed-index comparison adds 83 candidate script bytes and
-302 candidate record-field bytes, with shared roots potentially hiding other
+execution. The observed-index comparison adds 79 candidate script bytes and
+303 candidate record-field bytes, with shared roots potentially hiding other
 conditional paths. Source aliases and assertions describe the already
 known overlapping entries at `$A9FF`, `$AA01`, `$AA90` and `$AA91` without
 claiming another physical byte or a unique interpretation.
@@ -1277,3 +1277,25 @@ selects an installable script pointer in its overlapping candidate record, so
 that context does not establish a fallthrough to `$FC87`. Other entries or
 contexts are not excluded. The zero-filled `$FD6A-$FD87` region is also left
 local: zero content alone does not prove padding or exclude another use.
+
+The candidate graph now also follows the reviewed `$3C` field comparison,
+eight additional normal-return operations, two possible yields, the `$74`
+saved-pointer retry, and the `$57` fallthrough with its dynamic target still
+unresolved. The engine saves the script pointer after each dispatched
+command at `$DACE`; `$74` restores that saved pointer before yielding. These
+additional edges expose competing script and data interpretations, not proven
+execution. The unowned, uniquely decoded candidate script extents identified
+by this wider walk fall in local map, sprite, palette or menu data, so this
+review adds no source ownership.
+
+The wider record walk also identifies a negative-mode compact record at
+`$DB63`, reached by candidate `$DB66`/`$E764` contexts. Its resource high byte
+is the already-represented mode-1 field of the overlapping `$DB60` record.
+At `$E055`, a candidate mode-2 access for descriptor `$E043` reads a resource
+pointer and two fields; the following fields have competing candidate script
+uses. At `$E087`, the candidate contact record's resource sentinel and script
+pointer low byte are now represented, while the overlapping high byte remains
+local. The same `$E764` path also gives partial negative-mode records at
+`$E040` and `$EB10`; their noncompeting resource or mode bytes are represented
+and their competing script bytes remain local. These associations are static
+candidates, not evidence of execution.

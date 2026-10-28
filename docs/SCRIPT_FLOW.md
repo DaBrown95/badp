@@ -50,9 +50,13 @@ The `$11/$12` selectors have a possible next or yield path; `$65`, `$A2`,
 `$AF`, `$B2` and `$B8-$BA` can return to the next command. Opcodes `$70`, `$71`
 and `$AD` can write into the active stack page, so only their normal-return
 edges are modeled. The field setters `$37-$3A` and `$88` can return normally.
-Opcode `$45` conditionally selects its encoded pointer, but following both
-paths in every speculative native-event context exceeded the traversal limit;
-its paths remain unmodeled until their contexts can be bounded. The `$B8`
+The `$3C` field comparison uses the last two operands as its conditional
+target; the selector and comparison byte are not part of that address. `$73`,
+`$75`, `$7E`, `$97`, `$B0`, `$B4/$B5` and `$C1` have normal-return successors;
+`$59` and `$7C` can return or yield. `$74` restores the last saved command
+pointer and yields, so it can retry without falling through. `$57` may fall
+through, but its possible branch target uses a stale high operand and remains
+unresolved. The `$B8`
 linked-slot scan can loop indefinitely, so this edge assumes a return. The
 `$77` voice check can branch to its encoded target or continue.
 Opcode `$17` can continue if its saved-pointer high byte is `$FF`; otherwise
@@ -150,8 +154,8 @@ the merged graph does not retain complete path provenance. It is an
 over-approximation and does not establish that any such path executes.
 
 `make prg-inventory` compares this expansion with a candidate graph using only
-the observed indices and the same roots. In the current scan it adds 83 script
-bytes and 302 record-field bytes. Shared roots can obscure further conditional
+the observed indices and the same roots. In the current scan it adds 79 script
+bytes and 303 record-field bytes. Shared roots can obscure further conditional
 paths, and neither graph proves execution.
 
 The source now labels the alternate candidate entries at `$A9FF`, `$AA01`,

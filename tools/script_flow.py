@@ -23,8 +23,8 @@ FALLTHROUGH = frozenset({0x06, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x10,
                          0x31, 0x32, 0x36, 0x37, 0x38, 0x39, 0x3A, 0x3B, 0x3E, 0x3F, 0x40, 0x42, 0x43, 0x46,
                          0x47, 0x48, 0x49, 0x4A, 0x4C, 0x4D, 0x4E, 0x4F, 0x50, 0x54, 0x55,
                          0x56, 0x5A, 0x5B, 0x5C, 0x5D, 0x5E, 0x61, 0x64, 0x65, 0x68, 0x69, 0x6A,
-                         0x72, 0x76, 0x78, 0x79, 0x7A, 0x80, 0x84, 0x85, 0x86, 0x87, 0x88, 0x8C, 0x8D, 0x8E, 0x8F, 0x90,
-                         0x9C, 0x9D, 0xA1, 0xA2, 0xA4, 0xA5, 0xA6, 0xA7, 0xA8, 0xA9, 0xAA, 0xAC, 0xAE, 0xAF, 0xB2, 0xB3, 0xB7, 0xB8, 0xB9, 0xBA, 0xBC, 0xBD, 0xBE, 0xC0, 0xC3})
+                         0x72, 0x73, 0x75, 0x76, 0x78, 0x79, 0x7A, 0x7E, 0x80, 0x84, 0x85, 0x86, 0x87, 0x88, 0x8C, 0x8D, 0x8E, 0x8F, 0x90,
+                         0x97, 0x9C, 0x9D, 0xA1, 0xA2, 0xA4, 0xA5, 0xA6, 0xA7, 0xA8, 0xA9, 0xAA, 0xAC, 0xAE, 0xAF, 0xB0, 0xB2, 0xB3, 0xB4, 0xB5, 0xB7, 0xB8, 0xB9, 0xBA, 0xBC, 0xBD, 0xBE, 0xC0, 0xC1, 0xC3})
 CONDITIONAL_POINTER = frozenset({0x01, 0x02, 0x03, 0x05, 0x15, 0x1B, 0x20,
                                  0x22, 0x23, 0x24, 0x25, 0x27, 0x28, 0x2A, 0x2B,
                                  0x35, 0x3D, 0x41, 0x45, 0x4B, 0x51, 0x52, 0x53, 0x5F, 0x60,
@@ -32,7 +32,7 @@ CONDITIONAL_POINTER = frozenset({0x01, 0x02, 0x03, 0x05, 0x15, 0x1B, 0x20,
                                  0x9E, 0x9F, 0xA0, 0xA3, 0xBB, 0xC2})
 UNCONDITIONAL_POINTER = frozenset({0x04})
 YIELD_RESUME = frozenset({0x07, 0x2E, 0x67, 0x6C, 0xB6})
-POSSIBLE_YIELD = frozenset({0x08, 0x11, 0x12, 0x2D, 0x33, 0x34, 0x7D, 0x81, 0x96})
+POSSIBLE_YIELD = frozenset({0x08, 0x11, 0x12, 0x2D, 0x33, 0x34, 0x59, 0x7C, 0x7D, 0x81, 0x96})
 # Integer counts are candidate bounds from specific immediately preceding
 # clamp/divide or mask sequences; other entries may reach those opcodes.
 # Tuples enumerate observed indices only and never imply a complete bound.
@@ -186,6 +186,10 @@ def walk(bank0: bytes, bank1: bytes, lengths: bytes, seeds: list[int],
         elif opcode in (0x0F, 0x99):
             # Later scheduling after these state changes is not established.
             node['status'] = 'reviewed_main_state_change'
+        elif opcode == 0x74 and length == 5:
+            # This entry always restores the slot's old pointer and yields.
+            node['status'] = 'reviewed_yield_retry'
+            edges.append(('possible_retry', encoded))
         elif opcode in (0x19, 0x6D, 0x6E, 0x6F, 0x83, 0xAB, 0xBF):
             # The wait path restores the prior slot pointer and yields, retrying
             # the command; the other path continues to the next command.
@@ -214,11 +218,22 @@ def walk(bank0: bytes, bank1: bytes, lengths: bytes, seeds: list[int],
             # palette fade at $B51C. PPU polling may prevent its return.
             node['status'] = 'reviewed_palette_fade_native_call'
             edges.append(('possible_next', following))
+        elif opcode == 0x57 and length == 3:
+            # The branch high byte is stale $63, but the comparison can fail
+            # and leave the advanced pointer intact. Do not guess the target.
+            node['status'] = 'reviewed_partial_dynamic_target'
+            node['unresolved_target_high_byte'] = 'stale_63'
+            edges.append(('possible_fallthrough', following))
         elif opcode == 0x58 and length == 4:
-            # $58's selector precedes its little-endian branch target. $57
-            # has only three bytes and relies on stale $63, so it still stops.
+            # $58's selector precedes its little-endian branch target.
             node['status'] = 'reviewed_selector_conditional'
             edges.append(('target', int.from_bytes(data[2:4], 'little')))
+            edges.append(('fallthrough', following))
+        elif opcode == 0x3C and length == 5:
+            # The selector and comparison byte precede the branch target.
+            # Unavailable fields return without branching.
+            node['status'] = 'reviewed_field_conditional'
+            edges.append(('target', int.from_bytes(data[3:5], 'little')))
             edges.append(('fallthrough', following))
         elif opcode == 0x44 and length == 1 and encoded in indexed_jumps:
             # Opcode $44 indexes the following little-endian pointer array.
@@ -330,7 +345,9 @@ def main() -> int:
             raise ValueError('analysis output escapes its local directory')
         output.write_text(json.dumps(result, indent=2) + '\n')
         print(json.dumps({'target': 'us-v1.5', 'candidate_nodes': len(result['nodes']),
-                          'unreviewed_or_dynamic': sum(n['status'] == 'unreviewed_or_dynamic_handler' for n in result['nodes']),
+                          'unreviewed_or_dynamic': sum(
+                              n['status'] in ('unreviewed_or_dynamic_handler', 'reviewed_partial_dynamic_target')
+                              for n in result['nodes']),
                           'incomplete_observed_indexed_jumps': sum(
                               n['status'] == 'observed_indexed_jump_incomplete' for n in result['nodes']),
                           'overlapping_physical_bytes': result['overlapping_physical_bytes'],

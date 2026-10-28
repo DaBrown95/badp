@@ -301,7 +301,7 @@ class ScriptFlowTests(unittest.TestCase):
         self.assertEqual(nodes['0x0050']['successors'], [
             {'kind': 'possible_next', 'encoded_pointer': '0x0053'}])
 
-    def test_selector_branch_uses_later_target_and_short_variant_stops(self):
+    def test_selector_branch_uses_later_target_and_short_variant_keeps_dynamic_target(self):
         b0, b1, lengths = fixture()
         lengths[0x58], lengths[0x57] = 4, 3
         b1[0x10:0x14] = bytes([0x58, 0x32, 0x30, 0])
@@ -311,7 +311,52 @@ class ScriptFlowTests(unittest.TestCase):
         self.assertEqual(nodes['0x0010']['successors'], [
             {'kind': 'target', 'encoded_pointer': '0x0030'},
             {'kind': 'fallthrough', 'encoded_pointer': '0x0014'}])
-        self.assertEqual(nodes['0x0040']['status'], 'unreviewed_or_dynamic_handler')
+        self.assertEqual(nodes['0x0040']['status'], 'reviewed_partial_dynamic_target')
+        self.assertEqual(nodes['0x0040']['unresolved_target_high_byte'], 'stale_63')
+        self.assertEqual(nodes['0x0040']['successors'], [
+            {'kind': 'possible_fallthrough', 'encoded_pointer': '0x0043'}])
+
+    def test_field_comparison_uses_last_two_operands_as_target(self):
+        b0, b1, lengths = fixture()
+        lengths[0x3c] = 5
+        b1[0x10:0x15] = bytes([0x3c, 2, 7, 0x30, 0])
+        b1[0x15] = b1[0x30] = 0x16
+        nodes = by_pointer(walk(bytes(b0), bytes(b1), bytes(lengths), [0x10]))
+        self.assertEqual(nodes['0x0010']['status'], 'reviewed_field_conditional')
+        self.assertEqual(nodes['0x0010']['successors'], [
+            {'kind': 'target', 'encoded_pointer': '0x0030'},
+            {'kind': 'fallthrough', 'encoded_pointer': '0x0015'}])
+        lengths[0x3c] = 4
+        short = by_pointer(walk(bytes(b0), bytes(b1), bytes(lengths), [0x10]))
+        self.assertEqual(short['0x0010']['status'], 'unreviewed_or_dynamic_handler')
+        self.assertEqual(short['0x0010']['successors'], [])
+
+    def test_reviewed_setters_scans_and_yields_have_possible_successors(self):
+        b0, b1, lengths = fixture()
+        ordinary = (0x73, 0x75, 0x7e, 0x97, 0xb0, 0xb4, 0xb5, 0xc1)
+        maybe_yield = (0x59, 0x7c)
+        for index, opcode in enumerate(ordinary + maybe_yield):
+            pointer = 0x100 + index * 4
+            lengths[opcode] = 2
+            b1[pointer:pointer + 3] = bytes([opcode, 0, 0x16])
+        nodes = by_pointer(walk(bytes(b0), bytes(b1), bytes(lengths),
+                                [0x100 + i * 4 for i in range(len(ordinary + maybe_yield))]))
+        for index, opcode in enumerate(ordinary + maybe_yield):
+            pointer = 0x100 + index * 4
+            with self.subTest(opcode=opcode):
+                self.assertEqual(nodes[f'0x{pointer:04x}']['successors'], [{
+                    'kind': 'next' if opcode in ordinary else 'next_or_possible_resume',
+                    'encoded_pointer': f'0x{pointer + 2:04x}'}])
+
+    def test_wait_state_restores_pointer_and_retries_without_fallthrough(self):
+        b0, b1, lengths = fixture()
+        lengths[0x74] = 5
+        b1[0x10:0x16] = bytes([0x74, 1, 2, 3, 4, 0x16])
+        nodes = by_pointer(walk(bytes(b0), bytes(b1), bytes(lengths), [0x10]))
+        self.assertEqual(nodes['0x0010']['status'], 'reviewed_yield_retry')
+        self.assertEqual(nodes['0x0010']['successors'], [
+            {'kind': 'possible_retry', 'encoded_pointer': '0x0010'}])
+        self.assertNotIn('0x0015', nodes)
 
     def test_main_state_change_stops_before_following_data(self):
         b0, b1, lengths = fixture()

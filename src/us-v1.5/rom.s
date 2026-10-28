@@ -19554,12 +19554,12 @@ ReviewedContactDB57:
 CompactContextDB60:
     SlotCompactRecord $B876, $22 ; CONTROL_COMPACT_CONTEXT_DB60
 .assert (* - BankStart) = $5B63, error, "bank 1 compact candidate db60 end"
-    .incbin "bank1_db63_db64.bin"
-; Candidate mode-$01 flag for a record based at $DB60; other modes differ.
-CandidateRecordDB60Mode1Flag:
-    .byte $C3 ; CONTROL_RECORD_DB60_MODE1_FLAG
-.assert (* - BankStart) = $5B65, error, "bank 1 candidate record DB60 mode-1 flag end"
-    .incbin "bank1_db65_db66.bin"
+; Candidate negative-mode record for descriptor $DB66 and the $E764 path.
+; Its resource high byte is also the mode-$01 flag for a record at $DB60.
+CompactContextDB63:
+CandidateRecordDB60Mode1Flag = CompactContextDB63 + 1
+    SlotCompactRecord $C3B3, $00 ; CONTROL_RECORD_DB60_MODE1_FLAG
+.assert (* - BankStart) = $5B66, error, "bank 1 overlapping candidate record DB63 end"
 ; Descriptor-linked slot record; resource data remains local.
 SlotRuntimeDB66:
     SlotRuntimeRecord $B876, (ScriptDB81 - BankStart), $22, $FF, $00, $00, $00 ; CONTROL_SLOT_RUNTIME_DB66
@@ -20205,7 +20205,11 @@ SlotFlowE037:
 SlotFlowE03A:
     SlotCompactRecord $B9F8, $00
 .assert (* - BankStart) = $603D, error, "bank 1 slot record flow E034 end"
-    .incbin "bank1_e03d_e043.bin"
+    .incbin "bank1_e03d_e041.bin"
+; Candidate negative-mode record for descriptor $E043 and the $E764 path.
+; The resource low byte has a competing script interpretation and stays local.
+CompactContextE040HighAndMode:
+    .byte $C7, $00 ; CONTROL_COMPACT_E040_HIGH_MODE
 ; Descriptor-linked slot record; resource data remains local.
 SlotRuntimeE043:
     SlotRuntimeRecord $B9E1, (ScriptE067 - BankStart), $00, $FF, $00, $00, $00 ; CONTROL_SLOT_RUNTIME_E043
@@ -20216,7 +20220,15 @@ ReviewedContactE04C:
     .byte $FF ; CONTROL_REVIEWED_CONTACT_E04C
     .word RuntimeScriptE764 - BankStart
 .assert (* - BankStart) = $6050, error, "bank 1 candidate contact e04c end"
-    .incbin "bank1_e050_e05e.bin"
+    .incbin "bank1_e050_e055.bin"
+; Candidate descriptor $E043, script $E262, mode $02. Other fields have
+; competing script interpretations and remain local.
+ModeRecordE055Resource:
+    .word $B9F1 ; CONTROL_MODE_RECORD_E055_RESOURCE
+    .incbin "bank1_e057_e059.bin"
+ModeRecordE055Fields:
+    .byte $00, $FF ; CONTROL_MODE_RECORD_E055_FIELDS
+    .incbin "bank1_e05b_e05e.bin"
 ; Candidate descriptor $E043, script $E262, mode $02.
 ModeRecordE05EResource:
     .word $B9F1 ; CONTROL_MODE_RECORD_E05E_RESOURCE
@@ -20246,7 +20258,12 @@ SlotFlowE075:
 SlotRuntimeE07E:
     SlotRuntimeRecord $BCB1, (ScriptE0A2 - BankStart), $00, $FF, $00, $00, $00 ; CONTROL_SLOT_RUNTIME_E07E
 .assert (* - BankStart) = $6087, error, "bank 1 slot record E07E end"
-    .incbin "bank1_e087_e099.bin"
+; Possible contact entry for descriptor $E07E. The script pointer's high
+; byte also has a candidate script interpretation and remains local.
+    .incbin "bank1_e087_e088.bin"
+ContactRecordE087HighAndScriptLow:
+    .byte $FF, <(RuntimeScriptE764 - BankStart) ; CONTROL_CONTACT_E087_FIELDS
+    .incbin "bank1_e08a_e099.bin"
 ; Candidate descriptor $E07E, script $E262, mode $02.
 ModeRecordE099Resource:
     .word $B693 ; CONTROL_MODE_RECORD_E099_RESOURCE
@@ -21822,7 +21839,12 @@ ModeRecordEAFFFields:
 SlotFlowEB0A:
     SlotCompactRecord $B608, $22 ; CONTROL_SLOT_FLOW_EB0A
 .assert (* - BankStart) = $6B0D, error, "bank 1 slot record flow EB0A end"
-    .incbin "bank1_eb0d_eb13.bin"
+    .incbin "bank1_eb0d_eb10.bin"
+; Candidate negative-mode record for descriptor $EB13 and the $E764 path.
+; Its following mode byte has a competing script interpretation.
+CompactContextEB10Resource:
+    .word $BAF1 ; CONTROL_COMPACT_EB10_RESOURCE
+    .incbin "bank1_eb12_eb13.bin"
 ; Descriptor-linked slot record; resource data remains local.
 SlotRuntimeEB13:
     SlotRuntimeRecord $B608, (ScriptEC03 - BankStart), $22, $00, $16, $61, $22 ; CONTROL_SLOT_RUNTIME_EB13
