@@ -14558,7 +14558,10 @@ SweepRecordAD0F:
 PartialRecordAD18Resource:
     .word $B725 ; CONTROL_PARTIAL_RESOURCE_AD18
 .assert (* - BankStart) = $2D1A, error, "bank 1 partial record $AD18 end"
-    .incbin "bank1_ad1a_ad1b.bin"
+; Negative-mode candidate reads this byte as its compact flag.
+CandidateRecordAD18CompactFlag:
+    .byte $FF ; CONTROL_AD18_COMPACT_FLAG
+.assert (* - BankStart) = $2D1B, error, "bank 1 candidate AD18 compact flag end"
 ; In the observed zero mode, $FF suppresses installing a script pointer.
 ObservedRecordAD18ScriptSentinel:
     .byte $FF ; CONTROL_AD18_SCRIPT_SENTINEL
@@ -14582,12 +14585,11 @@ RuntimeRecordAD2A:
 RuntimeRecordAD33:
     SlotRuntimeRecord $BFF1, $FFFF, $23, $FF, $00, $00, $00
 .assert (* - BankStart) = $2D3C, error, "bank 1 runtime records $AD2A end"
-; Candidate direct-record target of the script at $B391. The resource pointer
-; is read when the loader returns through this record; mode-dependent bytes stay local.
-CandidateDirectRecordAD3CResource:
-    .word $BFD3 ; CONTROL_AD3C_RESOURCE
-.assert (* - BankStart) = $2D3E, error, "bank 1 direct record $AD3C resource end"
-    .incbin "bank1_ad3e_ad45.bin"
+; Candidate direct-record target of the script at $B391. The calling mode is
+; not known; its possible zero, positive and negative reads cover these fields.
+CandidateDirectRecordAD3C:
+    SlotRuntimeRecord $BFD3, $FFFF, $00, $FF, $00, $00, $00 ; CONTROL_AD3C_RESOURCE
+.assert (* - BankStart) = $2D45, error, "bank 1 direct record $AD3C end"
 ; Candidate script path; object role and execution remain unverified.
 CandidateAD45:
     BogusSetDispatchCounter $8F ; CONTROL_BOGUS_AD45
@@ -21625,7 +21627,10 @@ ModeRecordED68Resource:
 ModeRecordED68Fields:
     .byte $00 ; CONTROL_MODE_RECORD_ED68_FIELDS
 .assert (* - BankStart) = $6D6D, error, "bank 1 candidate mode record ed68 fields end"
-    .incbin "bank1_ed6d_ed71.bin"
+; Candidate descriptor $ED56, command $DCFE, mode $02 reads these fields.
+CandidateModeRecordED68VisualFields:
+    .byte $FF, $00, $00, $00 ; CONTROL_ED68_VISUAL_FIELDS
+.assert (* - BankStart) = $6D71, error, "bank 1 candidate record ED68 visual fields end"
 ; Shared slot state graph with one unconverted branch destination.
 ScriptEE1A = BankStart + $6E1A
 ScriptED71:
@@ -21798,7 +21803,13 @@ ContextRecordEEA3:
 SlotRuntimeEEA6:
     SlotRuntimeRecord $C7C5, (ScriptEFDD - BankStart), $00, $FF, $00, $00, $00 ; CONTROL_SLOT_RUNTIME_EEA6
 .assert (* - BankStart) = $6EAF, error, "bank 1 slot record EEA6 end"
-    .incbin "bank1_eeaf_eeb5.bin"
+    .incbin "bank1_eeaf_eeb0.bin"
+; Possible contact for descriptor base $EEA6; execution remains unverified.
+ReviewedContactEEAF:
+    .byte $FF ; CONTROL_REVIEWED_CONTACT_EEAF
+    .word InteractionScriptF00F - BankStart
+.assert (* - BankStart) = $6EB3, error, "bank 1 candidate contact eeaf end"
+    .incbin "bank1_eeb3_eeb5.bin"
 ; Candidate descriptor-context access; runtime reachability remains unverified.
 ContextRecordEEB5:
     SlotCompactRecord $0000, $00 ; CONTROL_CONTEXT_FIELDS_EEB5
@@ -21807,7 +21818,13 @@ ContextRecordEEB5:
 SlotRuntimeEEB8:
     SlotRuntimeRecord $BAD5, $6ECA, $00, $FF, $00, $00, $00 ; CONTROL_SLOT_RUNTIME_EEB8
 .assert (* - BankStart) = $6EC1, error, "bank 1 slot record EEB8 end"
-    .incbin "bank1_eec1_eeca.bin"
+    .incbin "bank1_eec1_eec2.bin"
+; Possible contact for descriptor base $EEB8; execution remains unverified.
+ReviewedContactEEC1:
+    .byte $FF ; CONTROL_REVIEWED_CONTACT_EEC1
+    .word InteractionScriptF00F - BankStart
+.assert (* - BankStart) = $6EC5, error, "bank 1 candidate contact eec1 end"
+    .incbin "bank1_eec5_eeca.bin"
 ; Possible continuation after a retained script pointer; reachability is unverified.
 RetainedScriptEECA:
     BogusSetSlot0640Pair $00, $44 ; CONTROL_RETAINED_SCRIPT_EECA
@@ -21817,7 +21834,13 @@ RetainedScriptEECA:
 SlotRuntimeEED0:
     SlotRuntimeRecord $C7D5, $6EE2, $00, $00, $20, $D9, $11 ; CONTROL_SLOT_RUNTIME_EED0
 .assert (* - BankStart) = $6ED9, error, "bank 1 slot record EED0 end"
-    .incbin "bank1_eed9_eee2.bin"
+    .incbin "bank1_eed9_eeda.bin"
+; Possible contact for descriptor base $EED0; execution remains unverified.
+ReviewedContactEED9:
+    .byte $FF ; CONTROL_REVIEWED_CONTACT_EED9
+    .word InteractionScriptF00F - BankStart
+.assert (* - BankStart) = $6EDD, error, "bank 1 candidate contact eed9 end"
+    .incbin "bank1_eedd_eee2.bin"
 ; Possible continuation after a retained script pointer; reachability is unverified.
 RetainedScriptEEE2:
     BogusSetSlot0640Pair $40, $40 ; CONTROL_RETAINED_SCRIPT_EEE2
@@ -21858,7 +21881,13 @@ ContextRecordEF0F:
 SlotRuntimeEF12:
     SlotRuntimeRecord $C397, (ScriptEFE9 - BankStart), $00, $FF, $00, $00, $00 ; CONTROL_SLOT_RUNTIME_EF12
 .assert (* - BankStart) = $6F1B, error, "bank 1 slot record EF12 end"
-    .incbin "bank1_ef1b_ef21.bin"
+    .incbin "bank1_ef1b_ef1c.bin"
+; Possible contact for descriptor base $EF12; execution remains unverified.
+ReviewedContactEF1B:
+    .byte $FF ; CONTROL_REVIEWED_CONTACT_EF1B
+    .word InteractionScriptF00F - BankStart
+.assert (* - BankStart) = $6F1F, error, "bank 1 candidate contact ef1b end"
+    .incbin "bank1_ef1f_ef21.bin"
 ; Candidate descriptor-context access; runtime reachability remains unverified.
 ContextRecordEF21:
     SlotCompactRecord $0000, $00 ; CONTROL_CONTEXT_FIELDS_EF21
@@ -21867,7 +21896,13 @@ ContextRecordEF21:
 SlotRuntimeEF24:
     SlotRuntimeRecord $BAAF, (ScriptEFE9 - BankStart), $00, $FF, $00, $00, $00 ; CONTROL_SLOT_RUNTIME_EF24
 .assert (* - BankStart) = $6F2D, error, "bank 1 slot record EF24 end"
-    .incbin "bank1_ef2d_ef33.bin"
+    .incbin "bank1_ef2d_ef2e.bin"
+; Possible contact for descriptor base $EF24; execution remains unverified.
+ReviewedContactEF2D:
+    .byte $FF ; CONTROL_REVIEWED_CONTACT_EF2D
+    .word InteractionScriptF00F - BankStart
+.assert (* - BankStart) = $6F31, error, "bank 1 candidate contact ef2d end"
+    .incbin "bank1_ef31_ef33.bin"
 ; Candidate descriptor-context access; runtime reachability remains unverified.
 ContextRecordEF33:
     SlotCompactRecord $0000, $00 ; CONTROL_CONTEXT_FIELDS_EF33
@@ -21876,7 +21911,13 @@ ContextRecordEF33:
 SlotRuntimeEF36:
     SlotRuntimeRecord $BAB3, (ScriptEFF0 - BankStart), $00, $FF, $00, $00, $00 ; CONTROL_SLOT_RUNTIME_EF36
 .assert (* - BankStart) = $6F3F, error, "bank 1 slot record EF36 end"
-    .incbin "bank1_ef3f_ef48.bin"
+    .incbin "bank1_ef3f_ef40.bin"
+; Possible contact for descriptor base $EF36; execution remains unverified.
+ReviewedContactEF3F:
+    .byte $FF ; CONTROL_REVIEWED_CONTACT_EF3F
+    .word InteractionScriptF00F - BankStart
+.assert (* - BankStart) = $6F43, error, "bank 1 candidate contact ef3f end"
+    .incbin "bank1_ef43_ef48.bin"
 ; Descriptor-linked slot record; resource data remains local.
 SlotRuntimeEF48:
     SlotRuntimeRecord $BA23, (ScriptEF87 - BankStart), $00, $00, $20, $D9, $11 ; CONTROL_SLOT_RUNTIME_EF48
@@ -21897,7 +21938,13 @@ InteractionRecordEF63:
 SlotRuntimeEF6C:
     SlotRuntimeRecord $C533, (ScriptEF7E - BankStart), $00, $00, $20, $D9, $11 ; CONTROL_SLOT_RUNTIME_EF6C
 .assert (* - BankStart) = $6F75, error, "bank 1 slot record EF6C end"
-    .incbin "bank1_ef75_ef7e.bin"
+    .incbin "bank1_ef75_ef76.bin"
+; Possible contact for descriptor base $EF6C; execution remains unverified.
+ReviewedContactEF75:
+    .byte $FF ; CONTROL_REVIEWED_CONTACT_EF75
+    .word InteractionScriptF00F - BankStart
+.assert (* - BankStart) = $6F79, error, "bank 1 candidate contact ef75 end"
+    .incbin "bank1_ef79_ef7e.bin"
 ; Slot sequence joining the existing $EFF3 path.
 ScriptEF7E:
     BogusSetSlot0640Pair $00, $40 ; CONTROL_BOGUS_EF7E

@@ -1133,3 +1133,21 @@ and each region has its own changed-source control. They remain labelled as
 static candidates: execution, stream boundaries and the bank selected in every
 possible context are not established. The separately observed 57 bytes were
 already accounted for; competing uses remain local.
+
+The static slot-record inventory also supports seven possible contact entries
+at `$EEAF`, `$EEC1`, `$EED9`, `$EF1B`, `$EF2D`, `$EF3F` and `$EF75`. Each
+associated descriptor has a candidate script path that clears the contact
+inhibit bit, and each selected record's script pointer targets `$F00F`. Only
+the three bytes actually consulted in zero mode are claimed here; their
+execution remains unverified. A candidate direct record at `$AD3C` has been
+expressed in its nine-byte layout because the union of its possible loader
+modes reads those fields. The negative-mode flag at `$AD1A` and four fields at
+`$ED6D`–`$ED70` are also represented from their candidate contexts. Loader mode,
+slot identity and whether these candidate paths execute remain separate from
+the byte-match proof. Competing record/script interpretations remain open.
+
+Five possible three-byte script jumps at `$EE65`, `$EE7F`, `$EECD`, `$EEE5`
+and `$EEFD` also coincide with possible negative-mode compact records. Their
+script and record interpretations cannot yet be separated by the available
+static evidence, so those bytes remain local. The same applies to the possible
+script/record interpretations at `$D57C` and `$B077`.
