@@ -1321,3 +1321,8 @@ after setting shared state. The graph now records both possible successors and
 the 128 distinct even offsets while leaving the indexed data and bank mapping
 unresolved. This adds candidate paths, largely over map data, without adding
 source ownership or proving that the paths execute.
+
+The graph's `$B62C`, `$D48F` and `$E71C` index counts are now explicitly
+marked as predecessor-conditioned and incomplete for independent entry. The
+same table bytes and candidate edges remain in the inventory; this change does
+not claim that other targets execute or add source ownership.

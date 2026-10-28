@@ -47,6 +47,8 @@ possible record at `$B077` overlaps two candidate script bytes; both views are
 represented in the same source extent with an assembler consistency check.
 The graph follows three observed `$F434` indices and 29 more candidates under
 the `$F432` predecessor condition; other independent-entry indices remain open.
+The `$B62C`, `$D48F` and `$E71C` tables likewise retain predecessor-specific
+bounds and remain incomplete for independent entry.
 In the directed 16,000-frame runs, the `$B05D` branch saw slot values `$0001`,
 `$0005` and `$000B` for Noah, Moses and David, respectively, so its `$000F`
 test did not select `$B080`. At `$B076`, the saved-pointer high byte was never

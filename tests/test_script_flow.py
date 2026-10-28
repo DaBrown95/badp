@@ -2,7 +2,7 @@
 import unittest
 
 from tools.script_entries import BANK_SIZE
-from tools.script_flow import ConditionalIndexedJump, scan_lookup_table, walk
+from tools.script_flow import ConditionalIndexedJump, PredecessorIndexedJump, scan_lookup_table, walk
 
 
 def fixture():
@@ -519,6 +519,24 @@ class ScriptFlowTests(unittest.TestCase):
         for candidate in invalid:
             with self.subTest(candidate=candidate), self.assertRaisesRegex(ValueError, 'conditional'):
                 walk(bytes(b0), bytes(b1), bytes(lengths), [0x10], indexed_jumps={0x10: candidate})
+
+    def test_predecessor_bound_does_not_close_independent_entry(self):
+        b0, b1, lengths = fixture()
+        b1[0x10:0x15] = bytes([0x44, 0x20, 0, 0x30, 0])
+        b1[0x20] = b1[0x30] = 0x16
+        spec = PredecessorIndexedJump(2, 'same slot after the mask')
+        node = by_pointer(walk(bytes(b0), bytes(b1), bytes(lengths), [0x10],
+                               indexed_jumps={0x10: spec}))['0x0010']
+        self.assertEqual(node['status'], 'predecessor_indexed_jump_incomplete')
+        self.assertEqual(node['conditional_index_scope'], 'same slot after the mask')
+        self.assertEqual([r['evidence'] for r in node['jump_records']],
+                         ['conditional_predecessor', 'conditional_predecessor'])
+        self.assertEqual([s['kind'] for s in node['successors']],
+                         ['conditional_predecessor_index_target', 'conditional_predecessor_index_target'])
+        for invalid in (PredecessorIndexedJump(0, 'mask'), PredecessorIndexedJump(129, 'mask'),
+                        PredecessorIndexedJump(True, 'mask'), PredecessorIndexedJump(2, '')):
+            with self.subTest(invalid=invalid), self.assertRaisesRegex(ValueError, 'predecessor'):
+                walk(bytes(b0), bytes(b1), bytes(lengths), [0x10], indexed_jumps={0x10: invalid})
 
     def test_thirty_two_candidate_positions_do_not_become_a_global_bound(self):
         b0, b1, lengths = fixture()

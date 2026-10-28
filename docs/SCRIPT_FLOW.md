@@ -36,9 +36,12 @@ the reviewed decoder and palette fade.
 Three `$44` indexed jumps have explicit candidate bounds of 11, 4 and 8
 entries, derived from their immediately preceding clamp/divide or mask paths.
 The walker follows those entries and marks their table bytes; other callers and
-their index ranges remain unverified. At `$F434`, it follows the three indices
-observed in emulator traces and separately marks indices 3-31 as conditional on
-the `$F432` predecessor and unchanged slot value. The jump remains incomplete:
+their index ranges remain unverified. Each site is reported as a partial,
+predecessor-conditioned jump, and its edges carry that condition; the count
+does not close the set of possible independent-entry targets. At `$F434`, it
+follows the three indices observed in emulator traces and separately marks
+indices 3-31 as conditional on the `$F432` predecessor and unchanged slot
+value. The jump remains incomplete:
 independent entry can use other indices. Unbounded `$44` sites without reviewed
 indices still stop.
 The `$8A` stack-buffer operation has a possible normal-return successor. Its

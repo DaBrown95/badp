@@ -33,9 +33,15 @@ CONDITIONAL_POINTER = frozenset({0x01, 0x02, 0x03, 0x05, 0x15, 0x1B, 0x20,
 UNCONDITIONAL_POINTER = frozenset({0x04})
 YIELD_RESUME = frozenset({0x07, 0x2E, 0x67, 0x6C, 0xB6})
 POSSIBLE_YIELD = frozenset({0x08, 0x11, 0x12, 0x2D, 0x33, 0x34, 0x59, 0x7C, 0x7D, 0x81, 0x96})
-# Integer counts are candidate bounds from specific immediately preceding
-# clamp/divide or mask sequences; other entries may reach those opcodes.
-# Tuples enumerate observed indices only and never imply a complete bound.
+
+
+@dataclass(frozen=True)
+class PredecessorIndexedJump:
+    """A candidate index count valid only under a stated predecessor condition."""
+    count: int
+    condition: str
+
+
 @dataclass(frozen=True)
 class ConditionalIndexedJump:
     """Observed indices plus additional possibilities under a stated condition."""
@@ -45,7 +51,12 @@ class ConditionalIndexedJump:
 
 
 PRIMARY_INDEXED_JUMPS = {
-    0x362C: 11, 0x548F: 4, 0x671C: 8,
+    0x362C: PredecessorIndexedJump(
+        11, 'same slot after $B620 clamp, increment and divide, without an intervening value write'),
+    0x548F: PredecessorIndexedJump(
+        4, 'same slot after the $D48A read and $0003 mask, without an intervening value write'),
+    0x671C: PredecessorIndexedJump(
+        8, 'same slot after the $E717 read and $0007 mask, without an intervening value write'),
     0x7434: ConditionalIndexedJump(
         observed=(0, 1, 2), conditional=tuple(range(3, 32)),
         condition='same slot after $F432 selector, without an intervening value write'),
@@ -84,7 +95,7 @@ def scan_lookup_table(banks: tuple[bytes, bytes], start: int, limit: int = 256) 
 
 def walk(bank0: bytes, bank1: bytes, lengths: bytes, seeds: list[int],
          limit: int = 10000,
-         indexed_jumps: dict[int, int | tuple[int, ...] | ConditionalIndexedJump] | None = None) -> dict:
+         indexed_jumps: dict[int, int | tuple[int, ...] | ConditionalIndexedJump | PredecessorIndexedJump] | None = None) -> dict:
     """Explore proven local successor rules, stopping on every unknown opcode."""
     if len(bank0) != BANK_SIZE or len(bank1) != BANK_SIZE:
         raise ValueError('expected two full 32 KiB banks')
@@ -97,6 +108,11 @@ def walk(bank0: bytes, bank1: bytes, lengths: bytes, seeds: list[int],
     for site, entries in indexed_jumps.items():
         _locate(site)
         if type(entries) is int and 1 <= entries <= 128:
+            continue
+        if isinstance(entries, PredecessorIndexedJump):
+            if (type(entries.count) is not int or not 1 <= entries.count <= 128
+                    or not isinstance(entries.condition, str) or not entries.condition.strip()):
+                raise ValueError('invalid predecessor indexed-jump entries')
             continue
         if isinstance(entries, ConditionalIndexedJump):
             observed, conditional = entries.observed, entries.conditional
@@ -250,16 +266,18 @@ def walk(bank0: bytes, bank1: bytes, lengths: bytes, seeds: list[int],
             edges.append(('fallthrough', following))
         elif opcode == 0x44 and length == 1 and encoded in indexed_jumps:
             # Opcode $44 indexes the following little-endian pointer array.
-            # An integer is a predecessor-specific candidate bound. A tuple
-            # lists observed indices while retaining an open set of others.
+            # A predecessor bound is conditional, not a complete bound for
+            # independent entry. A tuple lists observed indices only.
             entries = indexed_jumps[encoded]
             bounded = type(entries) is int
             conditional = isinstance(entries, ConditionalIndexedJump)
-            indices = (range(entries) if bounded else
+            predecessor = isinstance(entries, PredecessorIndexedJump)
+            indices = (range(entries) if bounded else range(entries.count) if predecessor else
                        entries.observed + entries.conditional if conditional else entries)
-            node['status'] = ('reviewed_bounded_indexed_jump' if bounded
+            node['status'] = ('reviewed_bounded_indexed_jump' if bounded else
+                              'predecessor_indexed_jump_incomplete' if predecessor
                               else 'observed_indexed_jump_incomplete')
-            if conditional:
+            if conditional or predecessor:
                 node['conditional_index_scope'] = entries.condition
             node['jump_records'] = []
             for index in indices:
@@ -271,15 +289,16 @@ def walk(bank0: bytes, bank1: bytes, lengths: bytes, seeds: list[int],
                 target = int.from_bytes(banks[entry_bank][entry_offset:entry_offset + 2], 'little')
                 record = {'index': index, 'encoded_pointer': f'0x{entry:04x}',
                           'location': _location(entry_bank, entry_offset), 'target': target}
-                if conditional:
-                    record['evidence'] = ('observed' if index in entries.observed
-                                          else 'conditional_predecessor')
+                if conditional or predecessor:
+                    record['evidence'] = ('conditional_predecessor' if predecessor or index in entries.conditional
+                                          else 'observed')
                 node['jump_records'].append(record)
                 for pos in range(entry_offset, entry_offset + 2):
                     coverage.setdefault((entry_bank, pos), set()).add(encoded)
                 edge_kind = ('bounded_index_target' if bounded else
                              'conditional_predecessor_index_target'
-                             if conditional and index in entries.conditional else 'observed_index_target')
+                             if predecessor or (conditional and index in entries.conditional)
+                             else 'observed_index_target')
                 edges.append((edge_kind, target))
         elif opcode == 0x63 and length >= 3 and data[2] != 0:
             # The record loader restores $53/$54 after its fetch and only
@@ -364,6 +383,8 @@ def main() -> int:
                               for n in result['nodes']),
                           'incomplete_observed_indexed_jumps': sum(
                               n['status'] == 'observed_indexed_jump_incomplete' for n in result['nodes']),
+                          'incomplete_predecessor_indexed_jumps': sum(
+                              n['status'] == 'predecessor_indexed_jump_incomplete' for n in result['nodes']),
                           'overlapping_physical_bytes': result['overlapping_physical_bytes'],
                           'unprocessed': len(result['unprocessed']),
                           'output': 'analysis/us-v1.5/script-flow.json'}, indent=2))

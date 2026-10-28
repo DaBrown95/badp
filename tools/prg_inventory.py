@@ -334,6 +334,8 @@ def inventory(root: Path = ROOT) -> dict:
                     'native_event_rounds': events['rounds'],
                     'direct_incomplete_observed_indexed_jumps': sum(
                         n['status'] == 'observed_indexed_jump_incomplete' for n in direct_graph['nodes']),
+                    'direct_incomplete_predecessor_indexed_jumps': sum(
+                        n['status'] == 'predecessor_indexed_jump_incomplete' for n in direct_graph['nodes']),
                     'static_sprite_resource_count': len(sprite_candidates['resources']),
                     'static_sprite_frame_count': len(sprite_candidates['frames']),
                     'static_sprite_crossings': len(sprite_candidates['crossings']),
@@ -379,6 +381,7 @@ def main() -> int:
                           'candidate_controller_event_records': result['candidate_controller_event_records'],
                           'native_event_rounds': result['native_event_rounds'],
                           'direct_incomplete_observed_indexed_jumps': result['direct_incomplete_observed_indexed_jumps'],
+                          'direct_incomplete_predecessor_indexed_jumps': result['direct_incomplete_predecessor_indexed_jumps'],
                           'static_sprite_resource_count': result['static_sprite_resource_count'],
                           'static_sprite_frame_count': result['static_sprite_frame_count'],
                           'static_sprite_crossings': result['static_sprite_crossings'],
