@@ -34,9 +34,9 @@ independent source trees or treat one version's evidence as verifying the rest.
 simultaneous reconstruction. Keep progress and completion evidence per target.
 
 The v1.5 build now assembles and links to the exact reference, with 21,474 bytes
-of source code and 22,007 bytes of structured data across the physical PRG banks.
-It still includes 22,055 local PRG bytes and 65,536 local CHR bytes. A total of
-1,656 independent source-change controls verify every listed reconstructed region.
+of source code and 22,014 bytes of structured data across the physical PRG banks.
+It still includes 22,048 local PRG bytes and 65,536 local CHR bytes. A total of
+1,658 independent source-change controls verify every listed reconstructed region.
 Passing input audits or whole-ROM equality alone is not reconstruction
 completion. The developer identifies BOGUS as the
 state-machine engine in the [Vance Kozik interview](https://www.nesworld.com/kozik.php);
@@ -345,7 +345,7 @@ in these inventories; that number is not a count of remaining code. The report
 also retains 7,633 possible map/script overlap bytes and 864 possible record/script
 overlap bytes across the combined inventories. The expanded field-setter walk
 introduces many speculative competing decodes; it does not establish their
-reachability. It also reports 8,147 source-owned bytes covered by candidate
+reachability. It also reports 8,154 source-owned bytes covered by candidate
 data uses, which can include compatible uses as well as competing ones. The
 report records its input identities and writes metadata only to
 ignored `analysis/us-v1.5/prg-inventory.json`.
@@ -1544,9 +1544,9 @@ counted as source; possible script and record overlaps are preserved rather than
 The refreshed descriptor-rooted walk has 691 candidate record accesses and no
 unowned bytes among the fields those selected modes inspect. It has no pending
 contexts, but it does not exhaust native-event contexts, dynamic entries or
-unbounded indices. In the broader inventory, 19 local bytes have only a
-candidate-record label; that absence of other labels does not establish their
-use or make them code. The metadata-only comparison is retained locally at
+unbounded indices. In the broader inventory, 12 local bytes have only a
+candidate-record label. They also fall within the separately reviewed menu
+tile streams; that overlapping interpretation remains local. The metadata-only comparison is retained locally at
 `analysis/us-v1.5/descriptor-record-ownership-review.json`.
 
 All 52 known packed messages can now be exported to ignored local storage with
@@ -1777,3 +1777,21 @@ each physical 8 KiB interval and verifies the corresponding eight ROM-byte
 changes after assembly. Pixel data remains in ignored local files and receives
 no source progress credit. Physical tile order alone does not identify PPU bank
 mapping, palettes, sprites, backgrounds or animation.
+
+Seven formerly local bytes at bank-1 `$EF43-$EF44` and `$EF79-$EF7D` are
+now expressed as record fields. A candidate `$63` command at `$B673`, with
+descriptor `$21` selected, uses negative mode and offset `$18` to read a
+compact record at `$EF42`; its first byte is shared with an already represented
+contact pointer. A candidate `$00` at `$BD20`, under the same descriptor,
+reads a zero-mode record at `$EF76`. Its last inspected field is also the
+first opcode at `$EF7E`. Source labels and assertions retain those overlaps;
+other candidate record starts in this area are not ruled out.
+
+`make verify-record-overlaps` injects these descriptor and handler inputs on
+the reference and matching build, checks all ten fetched bytes and physical
+bank mappings, and checks the mode-selected fields and resulting script
+pointer. A changed offset exercises the neighboring `$EF77` interpretation.
+The probe stops before resource reads; it supports the field interpretations
+but does not establish that these descriptor and script contexts coincide in
+normal play, nor does it verify real cartridge behavior. Its evidence remains
+under ignored `analysis/us-v1.5/record-overlap-verification.json`.

@@ -75,6 +75,8 @@ SYMBOL_CONTROLS = {
 # The marker must occur exactly once in the maintained source, even when its
 # macro expands into two banks. Controls are built from isolated source copies.
 MUTATIONS = {
+    "candidate_record_ef42_suffix": ("CONTROL_CANDIDATE_RECORD_EF42_SUFFIX", "SlotCompactRecordSuffix $00, $FF", "SlotCompactRecordSuffix $01, $FF"),
+    "candidate_record_ef76_suffix": ("CONTROL_CANDIDATE_RECORD_EF76_SUFFIX", "SlotRecordScriptHighAndFields $00, $FF, $00, $00, $00", "SlotRecordScriptHighAndFields $01, $FF, $00, $00, $00"),
     "script_opaf_state_table": ("CONTROL_SCRIPT_OPAF_STATE_TABLE", "lda StateBankSelectors,y", "lda StateBankSelectors + 1,y"),
     "script_opaf_bg_table": ("CONTROL_SCRIPT_OPAF_BG_TABLE", "lda BackgroundPalettePointers + 1,y", "lda BackgroundPalettePointers + 2,y"),
     "script_opaf_spr_table": ("CONTROL_SCRIPT_OPAF_SPR_TABLE", "lda SpritePalettePointers + 1,y", "lda SpritePalettePointers + 2,y"),

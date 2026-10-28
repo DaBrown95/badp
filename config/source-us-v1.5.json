@@ -1351,6 +1351,8 @@
     {"id": "bank1-resource-sentinel-ef2c", "bank": 1, "cpu": "0xef2d", "size": 1, "kind": "data", "control": "resource_sentinel_ef2c"},
     {"id": "bank1-resource-sentinel-ef3e", "bank": 1, "cpu": "0xef3f", "size": 1, "kind": "data", "control": "resource_sentinel_ef3e"},
     {"id": "bank1-resource-sentinel-ef74", "bank": 1, "cpu": "0xef75", "size": 1, "kind": "data", "control": "resource_sentinel_ef74"},
+    {"id": "bank1-candidate-record-ef42-suffix", "bank": 1, "cpu": "0xef43", "size": 2, "kind": "data", "control": "candidate_record_ef42_suffix"},
+    {"id": "bank1-candidate-record-ef76-suffix", "bank": 1, "cpu": "0xef79", "size": 5, "kind": "data", "control": "candidate_record_ef76_suffix"},
     {"id": "bank1-overlap-script-f156", "bank": 1, "cpu": "0xf156", "size": 1, "kind": "data", "control": "overlap_script_f156"},
     {"id": "bank1-record-eed2-field6b", "bank": 1, "cpu": "0xeed9", "size": 1, "kind": "data", "control": "record_eed2_field6b"},
     {"id": "bank1-record-ef14-field6b", "bank": 1, "cpu": "0xef1b", "size": 1, "kind": "data", "control": "record_ef14_field6b"},

@@ -49,7 +49,7 @@ are not measures of gameplay completion.
 <!-- BEGIN GENERATED PROGRESS -->
 | Version | Reconstructed PRG | Status |
 | --- | ---: | --- |
-| USA v1.5 | **66.35%** (43,481 / 65,536 bytes) | In progress |
+| USA v1.5 | **66.36%** (43,488 / 65,536 bytes) | In progress |
 | USA v1.4 | **0.00%** (0 / 65,536 bytes) | Not started |
 | USA v1.3 | **0.00%** (0 / 65,536 bytes) | Not started |
 | USA v1.2 | **0.00%** (0 / 65,536 bytes) | Not started |
@@ -178,6 +178,7 @@ and simultaneous press/release handling on the reference and build.
 | `make verify-controller` | Compare controller bit order and simultaneous transitions. |
 | `make verify-audio-bank` | Check audio selector and mapper behavior with controlled inputs. |
 | `make verify-record-boundary` | Check record-fetch address wrap with controlled inputs. |
+| `make verify-record-overlaps` | Check controlled overlapping record fields. |
 | `make verify-script-overlap` | Check a controlled ambiguous record and script path. |
 | `make verify-indexed-audio` | Check a controlled indexed audio lookup. |
 | `make state-table-inventory` | Check state-table indexing and conditional palette read addresses. |

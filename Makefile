@@ -5,7 +5,7 @@ export BADP_TARGET = $(TARGET)
 export BADP_ROM = $(ROM)
 .DEFAULT_GOAL := help
 
-.PHONY: help setup setup-mesen targets identify audit audit-all build progress verify-gameplay verify-controller verify-audio-bank verify-record-boundary verify-script-overlap verify-indexed-audio state-table-inventory indexed-jump-inventory native-control-flow native-script-calls position-records script-entries script-flow slot-record-flow contact-record-flow native-event-flow direct-record-flow packed-text ppu-streams trace-audio trace-audio-route audio-inventory audio-flow trace-sprites sprite-inventory map-data trace-map extract-chr-tiles extract-map-chunks extract-map-layouts extract-packed-text extract-sprite-frames extract-menu-tiles prg-inventory trace-runtime-extents runtime-extents test
+.PHONY: help setup setup-mesen targets identify audit audit-all build progress verify-gameplay verify-controller verify-audio-bank verify-record-boundary verify-record-overlaps verify-script-overlap verify-indexed-audio state-table-inventory indexed-jump-inventory native-control-flow native-script-calls position-records script-entries script-flow slot-record-flow contact-record-flow native-event-flow direct-record-flow packed-text ppu-streams trace-audio trace-audio-route audio-inventory audio-flow trace-sprites sprite-inventory map-data trace-map extract-chr-tiles extract-map-chunks extract-map-layouts extract-packed-text extract-sprite-frames extract-menu-tiles prg-inventory trace-runtime-extents runtime-extents test
 help:
 	@echo 'make targets   Show the primary target and sequential target order'
 	@echo 'make identify  Inspect a ROM (default: primary target; override TARGET=id or ROM=path)'
@@ -19,6 +19,7 @@ help:
 	@echo 'make verify-controller Check v1.5 controller bit order and transitions'
 	@echo 'make verify-audio-bank Check audio selector and mapper behavior in MesenCE'
 	@echo 'make verify-record-boundary Check record fetch wrapping in MesenCE'
+	@echo 'make verify-record-overlaps Check controlled overlapping record fields'
 	@echo 'make verify-script-overlap Check a controlled ambiguous record path'
 	@echo 'make verify-indexed-audio Check a controlled unbounded audio lookup'
 	@echo 'make state-table-inventory Check state-table indexing and palette read plans'
@@ -88,6 +89,9 @@ verify-audio-bank:
 
 verify-record-boundary:
 	$(PYTHON) -m tools.verify_record_boundary
+
+verify-record-overlaps:
+	$(PYTHON) -m tools.verify_record_overlaps
 
 verify-script-overlap:
 	$(PYTHON) -m tools.verify_script_overlap

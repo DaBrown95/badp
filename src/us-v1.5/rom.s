@@ -166,6 +166,13 @@ compareRangeReturn:
     .word sprite_pointer
     .byte mode_flags
 .endmacro
+; Partial fields whose first bytes are emitted by an overlapping source view.
+.macro SlotCompactRecordSuffix resource_high, mode_flags
+    .byte resource_high, mode_flags
+.endmacro
+.macro SlotRecordScriptHighAndFields script_high, mode_flags, field_0690, field_06a0, field_06b0
+    .byte script_high, mode_flags, field_0690, field_06a0, field_06b0
+.endmacro
 
 ; BOGUS command forms below name only the behaviour established by handlers.
 ; Script targets in PRG bank 1 are encoded as offsets below $8000.
@@ -412,8 +419,9 @@ BogusActionOpcode_BogusSetDispatchCounter = $2C
 .macro BogusLoadSlotRecord offset, mode
     .byte $63, offset, mode
 .endmacro
+BogusActionOpcode_BogusSetSlot0640Pair = $0B
 .macro BogusSetSlot0640Pair first, second
-    .byte $0B, first, second
+    .byte BogusActionOpcode_BogusSetSlot0640Pair, first, second
 .endmacro
 .macro BogusReadSlotValue selector
     .byte $3F, selector
@@ -23753,7 +23761,12 @@ ReviewedContactEF3F:
     .byte $FF ; CONTROL_REVIEWED_CONTACT_EF3F
     .word InteractionScriptF00F - BankStart
 .assert (* - BankStart) = $6F43, error, "bank 1 candidate contact ef3f end"
-    .incbin "bank1_ef43_ef45.bin"
+; Candidate negative-mode record starts at the high byte of the preceding
+; contact's script pointer. Its remaining two fields are emitted here.
+CandidateCompactRecordEF42 = ReviewedContactEF3F + 2
+.assert (CandidateCompactRecordEF42 - BankStart) = $6F42, error, "candidate record EF42 offset"
+.assert >(InteractionScriptF00F - BankStart) = $70, error, "EF42 record/contact byte disagreement"
+    SlotCompactRecordSuffix $00, $FF ; CONTROL_CANDIDATE_RECORD_EF42_SUFFIX
 ; Candidate negative-mode load at $F009 for descriptor $EF48. The resource
 ; pointer can also select map data; neither use is established by this path.
 CompactContextEF45:
@@ -23785,7 +23798,14 @@ ReviewedContactEF75:
     .byte $FF ; CONTROL_REVIEWED_CONTACT_EF75
     .word InteractionScriptF00F - BankStart
 .assert (* - BankStart) = $6F79, error, "bank 1 candidate contact ef75 end"
-    .incbin "bank1_ef79_ef7e.bin"
+; Candidate zero-mode record starts in the preceding contact and reads its
+; final field from the first opcode at ScriptEF7E. Other overlapping record
+; starts have also been identified; none is proven reachable in normal play.
+CandidateRecordEF76 = ReviewedContactEF75
+.assert (CandidateRecordEF76 - BankStart) = $6F76, error, "candidate record EF76 offset"
+.assert (CandidateRecordEF76 + 8) = ScriptEF7E, error, "EF76 record/script field overlap"
+.assert BogusActionOpcode_BogusSetSlot0640Pair = $0B, error, "EF76 record/script byte disagreement"
+    SlotRecordScriptHighAndFields $00, $FF, $00, $00, $00 ; CONTROL_CANDIDATE_RECORD_EF76_SUFFIX
 ; Slot sequence joining the existing $EFF3 path.
 ScriptEF7E:
     BogusSetSlot0640Pair $00, $40 ; CONTROL_BOGUS_EF7E
