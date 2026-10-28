@@ -34,10 +34,10 @@ independent source trees or treat one version's evidence as verifying the rest.
 simultaneous reconstruction. Keep progress and completion evidence per target.
 
 The v1.5 build now assembles and links to the exact reference, with 21,474 bytes
-of source code and 23,652 bytes of structured data across the physical PRG banks.
+of source code and 23,701 bytes of structured data across the physical PRG banks.
 Another 115 bytes are explicit alignment fill, excluded from reconstructed-source
-progress. It still includes 20,295 local PRG bytes and 65,536 local CHR bytes. A
-total of 2,078 independent source-change controls verify the current source regions.
+progress. It still includes 20,246 local PRG bytes and 65,536 local CHR bytes. A
+total of 2,086 independent source-change controls verify the current source regions.
 Passing input audits or whole-ROM equality alone is not reconstruction
 completion. The developer identifies BOGUS as the
 state-machine engine in the [Vance Kozik interview](https://www.nesworld.com/kozik.php);
@@ -2171,3 +2171,90 @@ the same whole block. These observations are retained in
 `analysis/us-v1.5/map-first-grid-tail-comparison.json` and do not assign a role
 to the suffix or prove it unused. The broader indexed-path, mapping and
 executable/script inventory questions and all five later builds remain open.
+
+
+## Inferred orphan scripts and descriptor cohort
+
+The remaining `$FC87-$FC9E` block has two overlapping conditional entries.
+At `$FC88`, eight complete BOGUS commands form a movement/wait/sound loop,
+branching to a terminal self-loop at `$FC9C` when `$0360,x` is zero. The jump
+at `$FC99` returns to `$FC88`. A separate entry at `$FC87` decodes a direct
+record load whose `$002D` pointer is supplied by the following set-fields
+opcode and first operand. Both views are retained; the prefix has a justified
+opcode-byte directive and the loop uses named commands and labels. The known
+`$FC61/$FC81` contact path still installs a different script pointer through its
+`$1A` record access and does not establish entry to either inferred form.
+
+The nine-byte audio stream at `$A7A9` has a unique exact occurrence in each
+release. Relocating that independently found voice pointer and the loop's
+three internal branch/jump words yields one exact complete 23-byte loop in
+v1.1 through v1.4, at `$FC86`, `$FC7E`, `$FC7E` and `$FBDC` respectively.
+Each has the same preceding `$16` prefix. The corresponding complete loop is
+not established in the unversioned release. The comparison is retained in
+`analysis/us-v1.5/fc88-loop-comparison.json`; no target-version build or
+ordinary-play entry is claimed.
+
+The 33-byte descriptor cohort starting at `$EB31` now has all its physical
+fields represented. Its two previously local compact records reference the
+known `$B909` animation and `$C537` frame, and its missing contact-form record
+contains the resource sentinel and `$E764` script pointer. Relocating the
+independently matched animation directory, frame region and branch-normalized
+`$E764` script, plus the cohort's own following-script pointer, gives one exact
+whole-cohort match in v1.2 through v1.4. The `$E764` comparison does not match
+v1.1 under this normalization, so that cohort result is not generalized there.
+These fifteen bytes use inferred record declarations without claiming that the
+contact gate or negative-mode contexts execute.
+
+The six-byte `$EC1A` sequence sets the `$0670/$0680` pair and the slot value
+before the already represented `$EC20` commands. Its complete branch-normalized
+17-byte context has one match in v1.1 through v1.4. The otherwise unreferenced
+`$B030` restore command has a full normalized surrounding-context match in all
+six releases; the `$B0B0` jump and its larger local context match v1.2 through
+v1.4. These complete command forms are now provisional source. Comparative
+metadata remains in `analysis/us-v1.5/remaining-object-cohort-comparison.json`
+and `analysis/us-v1.5/script-trailer-comparison.json`. They establish stable
+forms and relationships, not runtime entry. The connected batch adds 49
+structured-source bytes in eight controlled extents, retaining all prior labels.
+
+`make verify-orphan-loop` injects `$FC88` and a slot counter of zero or one.
+For eight individual dispatches per case it checks every script-source read,
+including the separate opcode read used for length selection, and compares
+movement fields, wait value, record flags, pending voice pointer, execution
+budget and both global/saved script pointers. It stops after the real pointer
+save returns, keeping the stack balanced between dispatches. Each case has 31
+script-source reads and zero interrupts. Waits and normal counter updates are
+skipped between commands, and direction flags are controlled, so this checks
+conditional interpreter behavior rather than frame timing, playback or entry.
+The false branch repeats the movement loop; the true branch reaches the
+terminal self-loop. The separate `$FC87` record-loader interpretation remains
+a static overlapping view.
+
+The remaining zero pairs after `$EAFF` and `$EB86` have a stronger comparative
+association now: each complete nine-byte record plus its following zero pair
+has one exact occurrence in v1.1 through v1.4 after the independently measured
+sprite-pointer relocation. This does not establish an eleven-byte record
+format or unused padding. The bounded comparison remains local in
+`analysis/us-v1.5/record-zero-tail-comparison.json`; neither pair is credited
+by this batch. The map suffix and menu prefix likewise retain their previous
+unresolved status pending a consumer/framing review.
+
+The integrated whole-ROM build passes all 2,086 source controls, and all 354
+synthetic tooling tests and six input audits pass. The new loop probe passes
+both cases on the reference and build. The expanded record probe passes 910
+cases per ROM: 264 normal/script-only views in three modes and 118 compact
+views in negative mode. Both probes, the refreshed native inventories and the
+physical audit use the same current proof and source hash. The candidate
+native-call count remains 35, with 25 declared calls and ten incidental source
+origins; the added script labels are explicit candidate roots, not reachability
+claims. All named labels from the previous source remain present.
+
+Physical accounting now contains 21,474 native-source bytes, 23,701 structured
+source bytes, 115 separate fill bytes and 20,236 additional local asset bytes.
+Source ownership is 45,175 bytes (68.93% of physical PRG). Ten local bytes remain
+unresolved: `$D75D`, `$EB08-$EB09`, `$EB8F-$EB90`, `$F354-$F356` and
+`$F623-$F624`. Their current evidence is retained in
+`analysis/us-v1.5/remaining-after-orphan-layout.json`. The temporary source
+transcription and focused-build scripts/workspaces were retired after the
+full proof; their decisions, comparative metadata and focused controls remain
+local. These representation gains do not complete the broader source inventory
+or establish builds for the five later targets.

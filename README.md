@@ -50,7 +50,7 @@ are not measures of gameplay completion.
 <!-- BEGIN GENERATED PROGRESS -->
 | Version | Reconstructed PRG | Status |
 | --- | ---: | --- |
-| USA v1.5 | **68.86%** (45,126 / 65,536 bytes) | In progress |
+| USA v1.5 | **68.93%** (45,175 / 65,536 bytes) | In progress |
 | USA v1.4 | **0.00%** (0 / 65,536 bytes) | Not started |
 | USA v1.3 | **0.00%** (0 / 65,536 bytes) | Not started |
 | USA v1.2 | **0.00%** (0 / 65,536 bytes) | Not started |
@@ -227,6 +227,7 @@ and simultaneous press/release handling on the reference and build.
 | `make extract-palettes` | Export palette colours and animation groups locally. |
 | `make extract-ppu-tiles` | Export logical inventory PPU tile payloads locally. |
 | `make verify-script-only-records` | Check controlled sentinel-record reads and preserved sprite fields. |
+| `make verify-orphan-loop` | Check the inferred loop with injected counters and skipped waits. |
 | `make verify-normal-records` | Check declared and fragmented record views in normal and negative loader modes. |
 | `make sprite-layout` | Check the contiguous sprite layout and compare frame and directory relocations. |
 | `make trace-runtime-extents` | Capture sampled Moses script and record accesses. |

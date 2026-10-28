@@ -75,6 +75,14 @@ SYMBOL_CONTROLS = {
 # The marker must occur exactly once in the maintained source, even when its
 # macro expands into two banks. Controls are built from isolated source copies.
 MUTATIONS = {
+    "inferred_b030": ("CONTROL_INFERRED_B030", "BogusRestoreSavedScriptAndSlotFlags", "BogusClearSelected3E"),
+    "inferred_b0b0": ("CONTROL_INFERRED_B0B0", "BogusJumpBank1 DirectNextScriptB09D", "BogusJumpBank1 DirectNextScriptB09D + 1"),
+    "inferred_ec1a": ("CONTROL_INFERRED_EC1A", "BogusSetSlot0670Pair $08, $00", "BogusSetSlot0670Pair $09, $00"),
+    "inferred_eb31": ("CONTROL_INFERRED_EB31", "SlotCompactRecord Bank0::SpriteAnimationResourceB909, $22", "SlotCompactRecord (Bank0::SpriteAnimationResourceB909 + 1), $22"),
+    "inferred_eb34": ("CONTROL_INFERRED_EB34", "SlotCompactRecord Bank0::SpriteFrameC537, $00", "SlotCompactRecord (Bank0::SpriteFrameC537 + 1), $00"),
+    "inferred_eb40": ("CONTROL_INFERRED_EB40", "SlotScriptOnlyRecord $FF, (RuntimeScriptE764 - BankStart), $40, $FF, $00, $00, $00", "SlotScriptOnlyRecord $FF, (RuntimeScriptE764 - BankStart + 1), $40, $FF, $00, $00, $00"),
+    "inferred_fc87": ("CONTROL_INFERRED_FC87", ".byte BogusActionOpcode_BogusLoadSlotRecordAtPointer", ".byte (BogusActionOpcode_BogusLoadSlotRecordAtPointer + 1)"),
+    "inferred_fc88": ("CONTROL_INFERRED_FC88", "BogusSetSlotFields80 $00, $B8", "BogusSetSlotFields80 $00, $B9"),
     "record_storage_d225": ("CONTROL_RECORD_STORAGE_D225", ".byte $FF", ".byte $FE"),
     "record_storage_da4f": ("CONTROL_RECORD_STORAGE_DA4F", ".byte $FF", ".byte $FE"),
     "record_storage_db1b": ("CONTROL_RECORD_STORAGE_DB1B", ".byte $FF", ".byte $FE"),

@@ -17559,7 +17559,10 @@ RuntimeScriptB02D:
 RuntimeScriptB02E:
     BogusLoadRecordAndClearSavedState $12
 .assert (* - BankStart) = $3030, error, "bank 1 runtime script $AFED end"
-    .incbin "bank1_b030_b031.bin"
+; Inferred script trailer in a pointer-normalized context preserved across all six revisions; entry unestablished.
+InferredScriptB030:
+    BogusRestoreSavedScriptAndSlotFlags ; CONTROL_INFERRED_B030
+.assert (* - BankStart) = $3031, error, "bank 1 inferred extent B030 end"
 ; Candidate successors of opening-observed scripts, from reviewed handler rules.
 ; Independent labels preserve alternate entries; reachability remains unproven.
 SuccessorScriptB031:
@@ -17687,7 +17690,10 @@ DirectNextScriptB0A9:
 DirectNextScriptB0AE:
     BogusLoadRecordAndClearSavedState $00
 .assert (* - BankStart) = $30B0, error, "bank 1 candidate successor $B085 end"
-    .incbin "bank1_b0b0_b0b3.bin"
+; Inferred jump after a record load; the full normalized local context matches v1.2-v1.4. No entry is proved.
+InferredScriptB0B0:
+    BogusJumpBank1 DirectNextScriptB09D ; CONTROL_INFERRED_B0B0
+.assert (* - BankStart) = $30B3, error, "bank 1 inferred extent B0B0 end"
 ; Possible continuation after a direct-record load; runtime mode and reachability are unverified.
 DirectNextScriptB0B3:
     BogusReadSlotValue $4C ; CONTROL_DIRECT_NEXT_SCRIPT_B0B3
@@ -24549,12 +24555,20 @@ SweepPartialEB25Fields = CompletedNormalRecordEB25 + 4
 SlotFlowEB2E:
     SlotCompactRecord $C537, $22 ; CONTROL_SLOT_FLOW_EB2E
 .assert (* - BankStart) = $6B31, error, "bank 1 slot record flow EB2E end"
-    .incbin "bank1_eb31_eb37.bin"
+; Inferred compact forms in the normalized 33-byte descriptor cohort; both resources have known layouts.
+InferredCompactEB31:
+    SlotCompactRecord Bank0::SpriteAnimationResourceB909, $22 ; CONTROL_INFERRED_EB31
+InferredCompactEB34:
+    SlotCompactRecord Bank0::SpriteFrameC537, $00 ; CONTROL_INFERRED_EB34
+.assert (* - BankStart) = $6B37, error, "bank 1 inferred extent EB31 end"
 ; Descriptor-linked slot record; resource data remains local.
 SlotRuntimeEB37:
     SlotRuntimeRecord $B909, (CandidateEB52 - BankStart), $22, $00, $20, $41, $12 ; CONTROL_SLOT_RUNTIME_EB37
 .assert (* - BankStart) = $6B40, error, "bank 1 slot record EB37 end"
-    .incbin "bank1_eb40_eb49.bin"
+; Inferred contact-form record in the normalized descriptor cohort; runtime eligibility remains unestablished.
+InferredContactEB40:
+    SlotScriptOnlyRecord $FF, (RuntimeScriptE764 - BankStart), $40, $FF, $00, $00, $00 ; CONTROL_INFERRED_EB40
+.assert (* - BankStart) = $6B49, error, "bank 1 inferred extent EB40 end"
 ; Complete nine-byte nonnegative-mode record view. Some fields were
 ; unselected in the candidate modes; aliases preserve prior field views.
 ; Other entry points and interpretations remain possible.
@@ -24704,7 +24718,11 @@ ScriptEC06:
     BogusClearSlot0790Bits $01
     BogusJumpBank1 ScriptEC33
 .assert (* - BankStart) = $6C1A, error, "bank 1 script EBEE end"
-    .incbin "bank1_ec1a_ec20.bin"
+; Inferred setup for the following represented script; its normalized complete context matches v1.1-v1.4.
+InferredScriptEC1A:
+    BogusSetSlot0670Pair $08, $00 ; CONTROL_INFERRED_EC1A
+    BogusSetSlotValue $0008
+.assert (* - BankStart) = $6C20, error, "bank 1 inferred extent EC1A end"
 ; Candidate script commands following an unverified banked entry.
 ; The conditional branch targets the existing $EC2B script.
 CandidateScriptEC20:
@@ -25966,7 +25984,24 @@ ContactScriptFC81:
     BogusBranchIfSelectedFieldEqual ContactScriptFC9F, $00 ; CONTROL_CONTACT_SCRIPT_FC81
     BogusLoadRecordAndClearSavedState $1A
 .assert (* - BankStart) = $7C87, error, "bank 1 contact script FC81 end"
-    .incbin "bank1_fc87_fc9f.bin"
+; Two inferred entries share bytes. The FC87 direct-record pointer is $002D;
+; its operands are also the FC88 set-fields opcode and first operand. The
+; surrounding known contact context does not establish a fallthrough here.
+InferredScriptFC87:
+    .byte BogusActionOpcode_BogusLoadSlotRecordAtPointer ; CONTROL_INFERRED_FC87
+InferredScriptFC88:
+    BogusSetSlotFields80 $00, $B8 ; CONTROL_INFERRED_FC88
+    BogusWait $01
+    BogusSetSlotFields80 $00, $48
+    BogusWait $01
+    BogusRestartVoice4 $27A9
+    BogusBranchIfSlot0360AtMost InferredScriptFC9C, $00
+    BogusJumpBank1 InferredScriptFC88
+InferredScriptFC9C:
+    BogusJumpBank1 InferredScriptFC9C
+.assert BogusActionOpcode_BogusSetSlotFields80 = <$002D, error, "FC87 pointer/FC88 opcode disagreement"
+.assert >$002D = $00, error, "FC87 pointer/FC88 first operand disagreement"
+.assert (* - BankStart) = $7C9F, error, "bank 1 inferred FC88 loop end"
 ContactScriptFC9F:
     BogusWait $12 ; CONTROL_CONTACT_SCRIPT_FC9F
     BogusLoadSlotRecord $00, $01
