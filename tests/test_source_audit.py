@@ -36,6 +36,14 @@ class SourceAuditTests(unittest.TestCase):
             with self.subTest(change=change), self.assertRaises(ValueError):
                 partition(spans, {}, bank_size=4, bank_count=2)
 
+    def test_fill_is_separate_from_source_credit_and_retains_script_view(self):
+        evidence = summarize({'source_fill': [(0, 3)], 'candidate_script_bytes': [(1, 2)]},
+                             bank_size=4, bank_count=1)['evidence_spans']
+        result = partition(evidence, {}, bank_size=4, bank_count=1)
+        self.assertEqual(result['representation_bytes'], {'source_fill': 3, 'unresolved_local': 1})
+        self.assertEqual(result['regions'][1]['evidence_uses'], ['candidate_script_bytes', 'source_fill'])
+        self.assertFalse(result['regions'][1]['exclusive_use_reviewed'])
+
     def test_rejects_cross_bank_or_out_of_range_assets(self):
         for span in ((3, 2), (7, 2), (-1, 1), (0, 0), (True, 1)):
             with self.subTest(span=span), self.assertRaises(ValueError):

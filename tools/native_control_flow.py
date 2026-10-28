@@ -42,12 +42,12 @@ def inventory(debug: str, source: str, prg: bytes, regions: list[dict], *,
     ownership = bytearray(2 * BANK_SIZE)
     for region in regions:
         bank, cpu, size, kind = region['bank'], int(region['cpu'], 0), region['size'], region['kind']
-        if bank not in (0, 1) or kind not in ('code', 'data') or not 0x8000 <= cpu <= 0xffff:
+        if bank not in (0, 1) or kind not in ('code', 'data', 'fill') or not 0x8000 <= cpu <= 0xffff:
             raise ValueError('invalid source region')
         start = bank * BANK_SIZE + cpu - 0x8000
         if type(size) is not int or size <= 0 or cpu - 0x8000 + size > BANK_SIZE or any(ownership[start:start + size]):
             raise ValueError('overlapping or invalid source region')
-        ownership[start:start + size] = bytes([1 if kind == 'code' else 2]) * size
+        ownership[start:start + size] = bytes([{'code': 1, 'data': 2, 'fill': 3}[kind]]) * size
 
     files, segments, spans, lines = {}, {}, {}, defaultdict(list)
     for line in debug.splitlines():
@@ -132,7 +132,7 @@ def inventory(debug: str, source: str, prg: bytes, regions: list[dict], *,
             return {'ownership': 'outside_prg', 'span_start': False}
         offset = target - 0x8000
         value = ownership[bank * BANK_SIZE + offset]
-        return {'ownership': ('local', 'code', 'data')[value],
+        return {'ownership': ('local', 'code', 'data', 'fill')[value],
                 'span_start': (bank, offset) in span_starts}
 
     rows = []

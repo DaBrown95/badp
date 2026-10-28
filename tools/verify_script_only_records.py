@@ -38,12 +38,19 @@ def symbol_bases(include: str) -> tuple[int, int]:
     return tuple(result)
 
 
-def render_script(template: str, addresses: list[int], bases: tuple[int, int]) -> str:
+def render_script(template: str, addresses: list[int], bases: tuple[int, int],
+                  modes: tuple[int, ...] | None = None) -> str:
     validate_addresses(addresses)
     if (not isinstance(bases, tuple) or len(bases) != 2 or bases[0] == bases[1]
             or any(type(p) is not int or not 0 <= p <= 0x7fa for p in bases)):
         raise ValueError('invalid slot-script RAM bases')
-    replacements = {'{{RECORD_CASES}}': '{' + ','.join(f'0x{p:04X}' for p in addresses) + '}',
+    if modes is not None and (not isinstance(modes, tuple) or not modes
+                              or modes != tuple(sorted(set(modes)))
+                              or any(type(mode) is not int or mode not in (0, 1, 2) for mode in modes)):
+        raise ValueError('invalid nonnegative record modes')
+    cases = (','.join(f'0x{p:04X}' for p in addresses) if modes is None else
+             ','.join(f'{{0x{p:04X},0x{mode:02X}}}' for p in addresses for mode in modes))
+    replacements = {'{{RECORD_CASES}}': '{' + cases + '}',
                     '{{SCRIPT_LOW_BASE}}': f'0x{bases[0]:04X}',
                     '{{SCRIPT_HIGH_BASE}}': f'0x{bases[1]:04X}'}
     if any(template.count(key) != 1 for key in replacements):

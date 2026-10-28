@@ -43,13 +43,14 @@ Percentages show verified reconstructed code and structured data as a share of
 physical PRG bytes. Verification checks the emitted bytes and source controls;
 inferred meanings can remain provisional. PRG also contains data whose format is not yet understood;
 the game's total code denominator is unknown. CHR graphics, the container
-header and copied bytes do not count as reconstructed source. These percentages
+header, alignment fill and copied bytes do not count as reconstructed source. Alignment
+fill is reported separately in the progress data. These percentages
 are not measures of gameplay completion.
 
 <!-- BEGIN GENERATED PROGRESS -->
 | Version | Reconstructed PRG | Status |
 | --- | ---: | --- |
-| USA v1.5 | **68.54%** (44,916 / 65,536 bytes) | In progress |
+| USA v1.5 | **68.74%** (45,047 / 65,536 bytes) | In progress |
 | USA v1.4 | **0.00%** (0 / 65,536 bytes) | Not started |
 | USA v1.3 | **0.00%** (0 / 65,536 bytes) | Not started |
 | USA v1.2 | **0.00%** (0 / 65,536 bytes) | Not started |
@@ -226,6 +227,7 @@ and simultaneous press/release handling on the reference and build.
 | `make extract-palettes` | Export palette colours and animation groups locally. |
 | `make extract-ppu-tiles` | Export logical inventory PPU tile payloads locally. |
 | `make verify-script-only-records` | Check controlled sentinel-record reads and preserved sprite fields. |
+| `make verify-normal-records` | Check complete record layouts in modes 0, 1 and 2, before resource reads. |
 | `make sprite-layout` | Check the contiguous sprite layout and compare frame and directory relocations. |
 | `make trace-runtime-extents` | Capture sampled Moses script and record accesses. |
 | `make runtime-extents` | Check sampled command and record bytes against the current source map. |

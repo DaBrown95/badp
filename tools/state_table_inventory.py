@@ -127,7 +127,7 @@ def inventory(bank0: bytes, regions: list[dict]) -> dict:
         start = int(region['cpu'], 0) - 0x8000
         size = region['size']
         if (type(size) is not int or size <= 0 or start < 0 or start + size > BANK_SIZE
-                or region['kind'] not in ('code', 'data')):
+                or region['kind'] not in ('code', 'data', 'fill')):
             raise ValueError('invalid source region')
         for pos in range(start, start + size):
             if owner[pos] != 'local':

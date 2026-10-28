@@ -41,7 +41,8 @@ def partition(evidence: list[dict], assets: dict[str, list[tuple[int, int]]],
                 or span['bank'] != start // bank_size
                 or span['cpu_start'] != f'0x{0x8000 + start % bank_size:04x}'
                 or not isinstance(names, list) or any(n not in CATEGORIES for n in names)
-                or len(names) != len(set(names)) or {'source_code', 'source_data'} <= set(names)):
+                or len(names) != len(set(names))
+                or len(set(names) & {'source_code', 'source_data', 'source_fill'}) > 1):
             raise ValueError('invalid or incomplete physical evidence partition')
         uses[start:start + length] = [tuple(names)] * length
         cursor += length
@@ -67,6 +68,7 @@ def partition(evidence: list[dict], assets: dict[str, list[tuple[int, int]]],
             names, asset_names = key
             ownership = ('source_code' if 'source_code' in names else
                          'source_data' if 'source_data' in names else
+                         'source_fill' if 'source_fill' in names else
                          'local_asset' if asset_names else 'unresolved_local')
             rows.append({'bank': bank, 'cpu_start': f'0x{0x8000 + start % bank_size:04x}',
                          'physical_prg_offset': start, 'size': cursor - start,

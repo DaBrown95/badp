@@ -9,16 +9,18 @@
       "version": "USA v1.5",
       "status": "In progress",
       "prg_bytes": 65536,
-      "reconstructed_bytes": 44916,
-      "percentage": "68.54%",
+      "reconstructed_bytes": 45047,
+      "percentage": "68.74%",
       "code_bytes": 21474,
-      "structured_data_bytes": 23442,
+      "structured_data_bytes": 23573,
+      "fill_bytes": 115,
       "reference_sha256": "4f39cb6e6d42582b967e72a2dbfe4e02382cf53de721d16f7f6950e6ae6b17ab",
       "evidence": {
         "code_bytes": 21474,
-        "data_bytes": 23442,
-        "source_sha256": "774b6b472b5fa7abcb5a91046c438d2a9b8ff9c6f1580687c2d2f7eadcad989a",
-        "source_map_sha256": "78417491126a0c0a672024b13ed60d514f9be1ab3ac4355110179effe04a994f",
+        "data_bytes": 23573,
+        "fill_bytes": 115,
+        "source_sha256": "ea07b924a3b39bddcaab2e4e876af0f79945ac01040f36ee50a79c2be47c2edb",
+        "source_map_sha256": "9e84fdf007076325e4b9457b42269fe25741f25d3785dc0c14d0d738867133d9",
         "toolchain_revision": "555282497c3ecf8b313d87d5973093af19c35bd5"
       }
     },
@@ -31,6 +33,7 @@
       "percentage": "0.00%",
       "code_bytes": 0,
       "structured_data_bytes": 0,
+      "fill_bytes": 0,
       "reference_sha256": "056b09204b785b1d8d1554af9c084312a7c33c6f88c75f190c42315dff44e86d",
       "evidence": null
     },
@@ -43,6 +46,7 @@
       "percentage": "0.00%",
       "code_bytes": 0,
       "structured_data_bytes": 0,
+      "fill_bytes": 0,
       "reference_sha256": "1a0ed5338e8749d9b6c79b92718a23f93dd69555a3da9d6b9ebae19da4638e2f",
       "evidence": null
     },
@@ -55,6 +59,7 @@
       "percentage": "0.00%",
       "code_bytes": 0,
       "structured_data_bytes": 0,
+      "fill_bytes": 0,
       "reference_sha256": "753c243fb9c036fdf96f2c8a9b26340b7304fb101a7a61619b9c29f39b176fdc",
       "evidence": null
     },
@@ -67,6 +72,7 @@
       "percentage": "0.00%",
       "code_bytes": 0,
       "structured_data_bytes": 0,
+      "fill_bytes": 0,
       "reference_sha256": "9df2420ad2beb98bfc44d90df4a9cc560324ce3608da4217a7f5303beec7fc54",
       "evidence": null
     },
@@ -79,6 +85,7 @@
       "percentage": "0.00%",
       "code_bytes": 0,
       "structured_data_bytes": 0,
+      "fill_bytes": 0,
       "reference_sha256": "4864e086786bd617d4f587d9e979b6df0574b140067f20b910ca3aa69ffab857",
       "evidence": null
     }

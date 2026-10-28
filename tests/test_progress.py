@@ -66,9 +66,12 @@ class PercentageTests(unittest.TestCase):
             root = Path(directory)
             with patch("tools.progress.load_project", return_value=project), \
                     patch("tools.progress.load_target", side_effect=lambda _, name: target(name)), \
-                    patch("tools.progress.verify_primary", return_value={"code_bytes": 121, "data_bytes": 44}):
+                    patch("tools.progress.verify_primary", return_value={"code_bytes": 121, "data_bytes": 44,
+                                                                        "fill_bytes": 4096}):
                 rows = progress_data(root)["targets"]
                 self.assertEqual((rows[0]["percentage"], rows[0]["status"]), ("0.25%", "In progress"))
+                self.assertEqual(rows[0]['fill_bytes'], 4096)
+                self.assertEqual(rows[0]['reconstructed_bytes'], 165)
                 self.assertEqual((rows[1]["percentage"], rows[1]["status"]), ("0.00%", "Not started"))
                 (root / "config").mkdir()
                 (root / "config/source-us-v1.4.json").write_text("{}")
@@ -114,6 +117,8 @@ class ProofFreshnessTests(unittest.TestCase):
             for cpu, size in ((0xf800, 3), (0xf805, 3), (0xf80a, 1), (0xf80b, 2)):
                 source_map["regions"].append({"id": f"synthetic-ppu-{bank}-{cpu:x}", "bank": bank,
                                               "cpu": hex(cpu), "size": size, "kind": "data", "control": "reset"})
+        source_map["regions"].append({"id": "synthetic-zero-fill", "bank": 0, "cpu": "0xe100",
+                                      "size": 3, "kind": "fill", "control": "reset"})
         source_map_bytes = json.dumps(source_map).encode()
         write("src/rom.s", source)
         write("include/nes.inc", include)
@@ -436,7 +441,8 @@ class ProofFreshnessTests(unittest.TestCase):
             "map_assets": asset_evidence, "layout_assets": layout_evidence, "text_assets": text_evidence,
             "sprite_assets": sprite_evidence, "menu_assets": menu_evidence, "palette_assets": palette_evidence, "ppu_assets": ppu_evidence, "chr_assets": chr_evidence,
             "counts": {"matching_code_bytes": code, "structured_data_bytes": data,
-                       "local_prg_bytes": 65536 - code - data, "local_chr_bytes": 65536},
+                       "source_fill_bytes": 3,
+                       "local_prg_bytes": 65536 - code - data - 3, "local_chr_bytes": 65536},
             "controls": controls, "symbol_controls": symbol_controls,
         }
         self.save_proof()
@@ -450,6 +456,7 @@ class ProofFreshnessTests(unittest.TestCase):
 
     def test_valid_synthetic_proof_and_stale_source(self):
         result = self.verify()
+        self.assertEqual(result['fill_bytes'], 3)
         self.assertGreater(result["code_bytes"], 0)
         self.write("src/rom.s", b"changed source")
         with self.assertRaisesRegex(ValueError, "stale"):
@@ -458,6 +465,12 @@ class ProofFreshnessTests(unittest.TestCase):
     def test_changed_debug_information_is_rejected(self):
         (self.proof_dir / "bible-adventures.dbg").write_bytes(b"changed debug")
         with self.assertRaisesRegex(ValueError, "debug information is stale"):
+            self.verify()
+
+    def test_fill_total_cannot_be_credited_or_hidden_as_local_bytes(self):
+        self.proof['counts']['source_fill_bytes'] = 0
+        self.save_proof()
+        with self.assertRaisesRegex(ValueError, 'source and local byte totals'):
             self.verify()
 
     def test_changed_or_missing_shared_symbol_control_is_rejected(self):

@@ -34,9 +34,10 @@ independent source trees or treat one version's evidence as verifying the rest.
 simultaneous reconstruction. Keep progress and completion evidence per target.
 
 The v1.5 build now assembles and links to the exact reference, with 21,474 bytes
-of source code and 23,442 bytes of structured data across the physical PRG banks.
-It still includes 20,620 local PRG bytes and 65,536 local CHR bytes. A total of
-2,080 independent source-change controls verify every listed reconstructed region.
+of source code and 23,573 bytes of structured data across the physical PRG banks.
+Another 115 bytes are explicit alignment fill, excluded from reconstructed-source
+progress. It still includes 20,374 local PRG bytes and 65,536 local CHR bytes. A
+total of 2,049 independent source-change controls verify the current source regions.
 Passing input audits or whole-ROM equality alone is not reconstruction
 completion. The developer identifies BOGUS as the
 state-machine engine in the [Vance Kozik interview](https://www.nesworld.com/kozik.php);
@@ -1964,3 +1965,62 @@ wrapper is 32 and 30 bytes respectively. The corresponding fixed-offset bytes
 in older releases differ, so this is not generalized across all revisions.
 `analysis/us-v1.5/bank-tail-comparison.json` retains the audited comparison;
 zero content or comparative layout alone is not an exclusion of executable use.
+
+## Normal record layouts and alignment storage
+
+A nonnegative-mode record review found 47 incomplete nine-byte views whose
+mode-selected fields were already in data source. Thirty-three had plain
+record-field declarations and compatible physical boundaries; they are now
+complete `SlotRuntimeRecord` declarations, adding 131 structured-data bytes.
+The other fourteen retain their existing script/compact-record statements or
+ambiguous terminal boundaries. Coalescing the selected fields preserved all 66
+old label addresses, independently checked against the new authenticated debug
+map. Twenty-three resource operands now name existing bank-0 sprite labels,
+and known symbolic script operands remain named. The bank qualification records
+the source layout, not proof of the runtime-selected bank or exclusive use.
+
+`make verify-normal-records` tests all 33 records in modes 0, 1 and 2 on both
+ROMs, for 99 cases per ROM. It checks all ten mapped fetches, the copy's ten
+old-buffer dummy reads, exact subsequent buffer reads, script-pointer writes,
+mode-selected fields and flag updates. It stops before sprite-resource reads
+or at the sentinel return, so it establishes neither resource rendering nor
+ordinary-play reachability. The existing 25 script-only cases also pass on the
+current proof. The new results remain in
+`analysis/us-v1.5/normal-record-verification.json`.
+
+The shared wrapper and vector boundaries now use explicit zero-fill operands,
+covering the two intervals before `$FD88` (73 and 30 bytes) and the six bytes
+before `$FFFA` in each bank. The v1.4/v1.5 helper displacement, fixed wrapper,
+reset jump, fixed vectors and absence of declared native transfer destinations
+support this alignment interpretation. Conditional BOGUS or unbounded native
+interpretations remain possible and retain the same bytes. Two separate
+changed-fill controls assemble different values in all four intervals and
+verify the mismatches. The old local fill inclusions are retired with the
+superseded build inputs.
+
+`fill` is a separate source-map kind throughout the build, progress verifier,
+physical audit, native transfer inventory and indexed/state-table inventories.
+It receives no native-code or structured-data credit. Counts must satisfy
+code + structured data + fill + local bytes = physical PRG size, and tests
+reject omitted fill counts or credit in the progress numerator. The current
+accounting is 21,474 native-source bytes, 23,573 structured-source bytes, 115
+fill bytes, 20,168 additional controlled asset bytes and 206 unresolved local
+bytes. The fresh whole-ROM build and all 2,049 current source controls pass;
+all six input audits and 338 synthetic tooling tests pass. The lower control
+count reflects coalesced record ownership, with meaningful pointer controls
+for every complete record; native controls and whole-ROM comparisons remain.
+
+The remaining unreferenced 68-byte map position has a stronger next-step
+relationship than alignment alone: physical slot 22 exactly duplicates the
+referenced slot 134 in v1.5. Both positions have identical content in v1.1
+through v1.4. Under the primary 68-byte geometry the unversioned dump instead
+has the duplicate at physical positions 22 and 135; its actual index table
+and geometry have not been independently reconstructed. These comparisons are
+retained in `analysis/us-v1.5/map-duplicate-review.json`. They support a local
+duplicate-asset representation without establishing use of slot 22 or
+excluding its candidate script interpretation. The current encoder still
+keeps that position opaque, and no credit is taken yet. Other unresolved
+regions include audio fragments, script continuations, overlapping record
+fields and small gaps next to local map/menu data. The temporary record
+transcription script was retired after the verified source and alias checks;
+its integration metadata retains the reviewed decisions and skipped cases.

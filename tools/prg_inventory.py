@@ -29,7 +29,7 @@ CATEGORIES = ('source_code', 'source_data', 'candidate_map_chunks', 'candidate_m
               'observed_audio_commands', 'candidate_sprite_bytes',
               'candidate_script_bytes', 'candidate_record_bytes', 'candidate_palette_setup_bytes',
               'candidate_audio_commands', 'candidate_ppu_stream_bytes', 'candidate_ppu_control_bytes',
-              'candidate_ppu_payload_bytes', 'candidate_sprite_static_bytes')
+              'candidate_ppu_payload_bytes', 'candidate_sprite_static_bytes', 'source_fill')
 INVENTORY_INPUTS = ('tools/prg_inventory.py', 'tools/map_data.py', 'tools/packed_text.py',
                     'tools/script_entries.py', 'tools/script_flow.py', 'tools/slot_record_flow.py',
                     'tools/direct_record_flow.py', 'tools/native_event_flow.py',

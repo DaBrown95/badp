@@ -308,9 +308,11 @@ def verify_primary(root: Path, target: dict) -> dict:
 
     code = sum(region["size"] for region in regions if region["kind"] == "code")
     data = sum(region["size"] for region in regions if region["kind"] == "data")
+    fill = sum(region["size"] for region in regions if region["kind"] == "fill")
     counts = proof["counts"]
     if (counts["matching_code_bytes"] != code or counts["structured_data_bytes"] != data
-            or counts["local_prg_bytes"] != parsed["prg"]["size"] - code - data
+            or counts.get("source_fill_bytes", 0) != fill
+            or counts["local_prg_bytes"] != parsed["prg"]["size"] - code - data - fill
             or counts["local_chr_bytes"] != parsed["chr"]["size"]):
         raise ValueError("source and local byte totals differ from the verified layout")
 
@@ -344,7 +346,7 @@ def verify_primary(root: Path, target: dict) -> dict:
                 or control["candidate_sha256"] != digest(candidate)
                 or control["changed_offsets"] != verify_symbol_control(reference, candidate, regions, name)):
             raise ValueError(f"shared-symbol control is stale or invalid: {name}")
-    return {"code_bytes": code, "data_bytes": data,
+    return {"code_bytes": code, "data_bytes": data, "fill_bytes": fill,
             "source_sha256": expected_files["source_sha256"],
             "source_map_sha256": expected_files["source_map_sha256"],
             "toolchain_revision": pin["revision"]}
@@ -373,6 +375,7 @@ def progress_data(root: Path) -> dict:
                         "prg_bytes": prg_size, "reconstructed_bytes": total,
                         "percentage": percentage(total, prg_size),
                         "code_bytes": verified["code_bytes"], "structured_data_bytes": verified["data_bytes"],
+                        "fill_bytes": verified.get("fill_bytes", 0),
                         "reference_sha256": target["reference"]["file"]["sha256"],
                         "evidence": verified if target_id == PRIMARY else None})
     return {"schema_version": 1, "metric": "verified reconstructed PRG bytes / total physical PRG bytes",

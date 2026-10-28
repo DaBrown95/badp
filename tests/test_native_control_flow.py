@@ -26,6 +26,13 @@ line\tid=4,file=0,line=5,span=4
 
 
 class NativeControlFlowTests(unittest.TestCase):
+    def test_fill_target_is_not_code_or_structured_data(self):
+        debug, source, prg, regions = fixture()
+        regions.append({'bank': 0, 'cpu': '0x8010', 'size': 3, 'kind': 'fill'})
+        result = inventory(debug, source, prg, regions, extra_targets=((0, 0x8010),))
+        self.assertEqual(result['extra_targets'][0]['ownership'], 'fill')
+        self.assertEqual(result['source_code_bytes'], 9)
+
     def test_direct_target_banks_indirect_and_returns(self):
         result = inventory(*fixture())
         self.assertEqual(result['source_code_bytes'], 9)

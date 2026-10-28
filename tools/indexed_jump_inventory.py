@@ -94,7 +94,7 @@ def inspect_entries(bank1: bytes, regions: list[dict], layouts: list[tuple[int, 
         start = int(region['cpu'], 0) - 0x8000
         if (type(region['bank']) is not int or region['bank'] not in (0, 1)
                 or type(region['size']) is not int or region['size'] <= 0 or start < 0
-                or start + region['size'] > 0x8000 or region['kind'] not in ('code', 'data')):
+                or start + region['size'] > 0x8000 or region['kind'] not in ('code', 'data', 'fill')):
             raise ValueError('invalid source region')
         for offset in range(start, start + region['size']):
             owners[(region['bank'], offset)] = region['kind']
@@ -131,13 +131,13 @@ def summarize_entries(entries: list[dict]) -> dict:
         raise ValueError('invalid predecessor-scope marker')
     outside = [row for row in entries if not row['within_predecessor_scope']]
     targets = Counter(row['candidate_target_source_kind'] for row in outside)
-    if set(targets) - {'code', 'data', 'local'}:
+    if set(targets) - {'code', 'data', 'fill', 'local'}:
         raise ValueError('invalid candidate target ownership')
     return {'outside_predecessor_entries': len(outside),
             'outside_reads_touching_local_entries': sum('local' in row['source_kinds'] for row in outside),
             'outside_reads_touching_map_chunks': sum(row['candidate_map_chunk_bytes'] > 0 for row in outside),
             'outside_reads_touching_map_layouts': sum(row['candidate_map_layout_bytes'] > 0 for row in outside),
-            'outside_candidate_target_kinds': {kind: targets[kind] for kind in ('code', 'data', 'local')}}
+            'outside_candidate_target_kinds': {kind: targets[kind] for kind in ('code', 'data', 'fill', 'local')}}
 
 
 def main() -> int:

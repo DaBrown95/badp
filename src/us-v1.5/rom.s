@@ -1309,10 +1309,17 @@ CallScriptNativeOperand:
     rts
 .endmacro
 
+; Zero storage alignment before the shared native-call wrapper. v1.4 and
+; v1.5 retain the wrapper address while preceding content changes length.
+; Conditional BOGUS decodes of the fill remain possible and byte-identical.
+.macro BankNativeCallAlignmentFill
+    .res $7D88 - (* - BankStart), $00 ; CONTROL_CALL_ALIGNMENT_FILL
+.endmacro
+
 ; Both 32 KiB PRG banks contain this tail at the same CPU addresses.
 ; NMI state addresses differ; selected-bank behavior and timing remain provisional.
 ; Bank0 labels name matching CPU addresses, not proof of the active bank.
-.macro BankTail nmiValue, nmiIndex, padding
+.macro BankTail nmiValue, nmiIndex
 SwitchBank:
     sta BankValues,y             ; CONTROL_SWITCH
     rts
@@ -1350,7 +1357,8 @@ ResetEntry:
     sta BankValues
     jmp Bank0::Boot
 
-    .incbin padding              ; Unclassified six-byte local region.
+    ; Fixed vectors start at CPU $FFFA after the reset jump.
+    .res $7FFA - (* - BankStart), $00 ; CONTROL_VECTOR_ALIGNMENT_FILL
     .word NmiHandler, ResetEntry, IrqHandler ; CONTROL_VECTORS
 .endmacro
 
@@ -15693,7 +15701,7 @@ RequireControllerModeReturn:
     rts
 .assert (* - BankStart) = $7D3F, error, "bank 0 controller mode gate end"
 
-    .incbin "bank0_fd3f_fd88.bin"
+    BankNativeCallAlignmentFill
     BankScriptNativeCall
 .assert (* - BankStart) = $7DA7, error, "bank 0 native script call end"
 ScriptRecordLengths:
@@ -15701,7 +15709,7 @@ ScriptRecordLengths:
 .assert (* - BankStart) = $7E6C, error, "bank 0 common helpers offset"
     BankHelpers
 .assert (* - BankStart) = $7FB3, error, "bank 0 tail offset"
-    BankTail DefaultBankValue, DefaultBankIndex, "bank0_fff4_fffa.bin"
+    BankTail DefaultBankValue, DefaultBankIndex
 .assert (* - BankStart) = $8000, error, "bank 0 size"
 .endscope
 
@@ -18671,16 +18679,14 @@ SlotScriptOnlyB6DC:
     SlotScriptOnlyRecord $FF, (ContactScriptB787 - BankStart), $00, $FF, $00, $00, $00 ; CONTROL_SCRIPT_ONLY_RECORD_B6DC
 ContactRecordB6DD = SlotScriptOnlyB6DC + 1
 .assert (* - BankStart) = $36E5, error, "bank 1 script-only record B6DC end"
-; Observed in Moses level two through $B718 with loader mode $02. The
-; pointer and the five later fields are consumed; the intervening bytes are
-; skipped in this mode and remain local. The pointed-to sprite stays local.
-MosesStageTwoResourceB6E5:
-    .word $B693 ; CONTROL_MOSES_STAGE2_RESOURCE_B6E5
-.assert (* - BankStart) = $36E7, error, "bank 1 stage-two resource B6E5 end"
-    .incbin "bank1_b6e7_b6e9.bin"
-MosesStageTwoFieldsB6E9:
-    .byte $00, $00, $20, $50, $12 ; CONTROL_MOSES_STAGE2_FIELDS_B6E9
-.assert (* - BankStart) = $36EE, error, "bank 1 stage-two fields B6E9 end"
+; Complete nine-byte nonnegative-mode record view. Some fields were
+; unselected in the candidate modes; aliases preserve prior field views.
+; Other entry points and interpretations remain possible.
+CompletedNormalRecordB6E5:
+    SlotRuntimeRecord Bank0::SpriteAnimationResourceB693, $FFFF, $00, $00, $20, $50, $12 ; CONTROL_COMPLETE_RECORD_B6E5
+MosesStageTwoResourceB6E5 = CompletedNormalRecordB6E5 + 0
+MosesStageTwoFieldsB6E9 = CompletedNormalRecordB6E5 + 4
+.assert (* - BankStart) = $36EE, error, "bank 1 complete normal record B6E5 end"
 ; Connected slot-action script with coordinate checks, linked-slot search and
 ; original wait/loop behaviour. The gameplay object is not yet identified.
 ScriptB6EE:
@@ -18895,15 +18901,14 @@ InteractionScriptB888:
 SlotRuntimeB88A:
     SlotRuntimeRecord $B5FD, (ScriptB89C - BankStart), $00, $00, $20, $D9, $11 ; CONTROL_SLOT_RUNTIME_B88A
 .assert (* - BankStart) = $3893, error, "bank 1 slot record B88A end"
-; Candidate descriptor $B88A, script $B8E8, mode $02.
-ModeRecordB893Resource:
-    .word $B5FD ; CONTROL_MODE_RECORD_B893_RESOURCE
-.assert (* - BankStart) = $3895, error, "bank 1 candidate mode record b893 resource end"
-    .incbin "bank1_b895_b897.bin"
-; Candidate descriptor $B88A, script $B8E8, mode $02.
-ModeRecordB893Fields:
-    .byte $00, $FF, $00, $00, $00 ; CONTROL_MODE_RECORD_B893_FIELDS
-.assert (* - BankStart) = $389C, error, "bank 1 candidate mode record b893 fields end"
+; Complete nine-byte nonnegative-mode record view. Some fields were
+; unselected in the candidate modes; aliases preserve prior field views.
+; Other entry points and interpretations remain possible.
+CompletedNormalRecordB893:
+    SlotRuntimeRecord Bank0::SpriteAnimationResourceB5FD, $FFFF, $00, $FF, $00, $00, $00 ; CONTROL_COMPLETE_RECORD_B893
+ModeRecordB893Resource = CompletedNormalRecordB893 + 0
+ModeRecordB893Fields = CompletedNormalRecordB893 + 4
+.assert (* - BankStart) = $389C, error, "bank 1 complete normal record B893 end"
 ; Slot-field updates and conditional checks lead to one of several loops or
 ; a slot release. The script's gameplay role remains provisional.
 ScriptB89C:
@@ -19093,16 +19098,14 @@ DataB9FB:
 SlotRuntimeBA11:
     SlotRuntimeRecord $C4BF, (CandidateBA23 - BankStart), $00, $00, $30, $70, $11 ; CONTROL_SLOT_RUNTIME_BA11
 .assert (* - BankStart) = $3A1A, error, "bank 1 slot record BA11 end"
-; Resource pointer read by the slot-record loader. Unread neighbouring bytes remain local.
-PartialRecordBA1AResource:
-    .word $B8AF ; CONTROL_PARTIAL_RESOURCE_BA1A
-.assert (* - BankStart) = $3A1C, error, "bank 1 partial record $BA1A end"
-    .incbin "bank1_ba1c_ba1e.bin"
-; Mode-specific flags and fields read by the slot-record loader. Unread neighbouring bytes remain local.
-PartialRecordBA1AFields:
-    .byte $40 ; CONTROL_PARTIAL_FIELDS_BA1A
-.assert (* - BankStart) = $3A1F, error, "bank 1 partial record $BA1E end"
-    .incbin "bank1_ba1f_ba23.bin"
+; Complete nine-byte nonnegative-mode record view. Some fields were
+; unselected in the candidate modes; aliases preserve prior field views.
+; Other entry points and interpretations remain possible.
+CompletedNormalRecordBA1A:
+    SlotRuntimeRecord Bank0::ObservedSpriteResourceB8AF, $FFFF, $40, $FF, $00, $00, $00 ; CONTROL_COMPLETE_RECORD_BA1A
+PartialRecordBA1AResource = CompletedNormalRecordBA1A + 0
+PartialRecordBA1AFields = CompletedNormalRecordBA1A + 4
+.assert (* - BankStart) = $3A23, error, "bank 1 complete normal record BA1A end"
 ; Candidate script path; object role and execution remain unverified.
 CandidateBA23:
     BogusSetDispatchCounter $08 ; CONTROL_BOGUS_BA23
@@ -20815,79 +20818,62 @@ SlotScriptOnlyD4CA:
     SlotScriptOnlyRecord $FF, (ContextContactScriptD67C - BankStart), $40, $FF, $00, $00, $00 ; CONTROL_SCRIPT_ONLY_RECORD_D4CA
 ContextContactRecordD4CB = SlotScriptOnlyD4CA + 1
 .assert (* - BankStart) = $54D3, error, "bank 1 script-only record D4CA end"
-    .incbin "bank1_d4d3_d4d4.bin"
-; Candidate descriptor-context access; runtime reachability remains unverified.
-; Resource high byte $FF skips visual fields and low pointer byte.
-ContextResourceSentinelD4D3:
-    .byte $FF ; CONTROL_CONTEXT_FIELDS_D4D4
-.assert (* - BankStart) = $54D5, error, "bank 1 candidate record field $D4D4 end"
-; Candidate descriptor-context access; runtime reachability remains unverified.
-; Script pointer is installed in mode $00.
-ContextScriptPointerD4D3:
-    .word $5970 ; CONTROL_CONTEXT_FIELDS_D4D5
-.assert (* - BankStart) = $54D7, error, "bank 1 candidate record field $D4D5 end"
-    .incbin "bank1_d4d7_d4dd.bin"
-; Possible position-event record: both high sentinels skip their low bytes.
-PositionSentinelD4DD:
-    .byte $FF ; CONTROL_POSITION_SENTINEL_D4DD
-    .incbin "bank1_d4de_d4df.bin"
-PositionSentinelD4DF:
-    .byte $FF ; CONTROL_POSITION_SENTINEL_D4DF
-    .incbin "bank1_d4e0_d4e6.bin"
-; Candidate descriptor-context access; runtime reachability remains unverified.
-; Resource high byte $FF skips visual fields and low pointer byte.
-ContextResourceSentinelD4E5:
-    .byte $FF ; CONTROL_CONTEXT_FIELDS_D4E6
-.assert (* - BankStart) = $54E7, error, "bank 1 candidate record field $D4E6 end"
-; Candidate descriptor-context access; runtime reachability remains unverified.
-; Script pointer is installed in mode $00.
-ContextScriptPointerD4E5:
-    .word (LongScriptD98E - BankStart) ; CONTROL_CONTEXT_FIELDS_D4E7
-.assert (* - BankStart) = $54E9, error, "bank 1 candidate record field $D4E7 end"
-    .incbin "bank1_d4e9_d4ee.bin"
+; Complete nine-byte nonnegative-mode record view. Some fields were
+; unselected in the candidate modes; aliases preserve prior field views.
+; Other entry points and interpretations remain possible.
+CompletedNormalRecordD4D3:
+    SlotRuntimeRecord $FFFF, ($5970), $40, $FF, $00, $00, $00 ; CONTROL_COMPLETE_RECORD_D4D3
+ContextResourceSentinelD4D3 = CompletedNormalRecordD4D3 + 1
+ContextScriptPointerD4D3 = CompletedNormalRecordD4D3 + 2
+.assert (* - BankStart) = $54DC, error, "bank 1 complete normal record D4D3 end"
+; Complete nine-byte nonnegative-mode record view. Some fields were
+; unselected in the candidate modes; aliases preserve prior field views.
+; Other entry points and interpretations remain possible.
+CompletedNormalRecordD4DC:
+    SlotRuntimeRecord $FFFF, $FFFF, $00, $FF, $00, $00, $00 ; CONTROL_COMPLETE_RECORD_D4DC
+PositionSentinelD4DD = CompletedNormalRecordD4DC + 1
+PositionSentinelD4DF = CompletedNormalRecordD4DC + 3
+.assert (* - BankStart) = $54E5, error, "bank 1 complete normal record D4DC end"
+; Complete nine-byte nonnegative-mode record view. Some fields were
+; unselected in the candidate modes; aliases preserve prior field views.
+; Other entry points and interpretations remain possible.
+CompletedNormalRecordD4E5:
+    SlotRuntimeRecord $FFFF, ((LongScriptD98E - BankStart)), $40, $FF, $00, $00, $00 ; CONTROL_COMPLETE_RECORD_D4E5
+ContextResourceSentinelD4E5 = CompletedNormalRecordD4E5 + 1
+ContextScriptPointerD4E5 = CompletedNormalRecordD4E5 + 2
+.assert (* - BankStart) = $54EE, error, "bank 1 complete normal record D4E5 end"
 ; Candidate descriptor $D4C1, script $D928, mode $00.
 ModeRecordD4EEFull:
     SlotRuntimeRecord $B701, $593D, $40, $01, $C4, $65, $21 ; CONTROL_MODE_RECORD_D4EE_FULL
 .assert (* - BankStart) = $54F7, error, "bank 1 candidate mode record d4ee full end"
-    .incbin "bank1_d4f7_d4f8.bin"
-; Candidate descriptor-context access; runtime reachability remains unverified.
-; Resource high byte $FF skips visual fields and low pointer byte.
-ContextResourceSentinelD4F7:
-    .byte $FF ; CONTROL_CONTEXT_FIELDS_D4F8
-.assert (* - BankStart) = $54F9, error, "bank 1 candidate record field $D4F8 end"
-    .incbin "bank1_d4f9_d4fa.bin"
-; Candidate descriptor-context access; runtime reachability remains unverified.
-; Script high sentinel; any following bytes are consumed visual fields.
-ContextRecordFieldsD4F7:
-    .byte $FF ; CONTROL_CONTEXT_FIELDS_D4FA
-.assert (* - BankStart) = $54FB, error, "bank 1 candidate record field $D4FA end"
-    .incbin "bank1_d4fb_d500.bin"
-; Candidate descriptor-context access; runtime reachability remains unverified.
-; Resource pointer is consumed when its high byte is not $FF.
-ContextResourceD500:
-    .word $B6E1 ; CONTROL_CONTEXT_FIELDS_D500
-.assert (* - BankStart) = $5502, error, "bank 1 candidate record field $D500 end"
-    .incbin "bank1_d502_d503.bin"
-; Candidate descriptor-context access; runtime reachability remains unverified.
-; Script high sentinel; any following bytes are consumed visual fields.
-ContextRecordFieldsD500:
-    .byte $FF, $00, $FF, $00, $00, $00 ; CONTROL_CONTEXT_FIELDS_D503
-.assert (* - BankStart) = $5509, error, "bank 1 candidate record field $D503 end"
+; Complete nine-byte nonnegative-mode record view. Some fields were
+; unselected in the candidate modes; aliases preserve prior field views.
+; Other entry points and interpretations remain possible.
+CompletedNormalRecordD4F7:
+    SlotRuntimeRecord $FFFF, $FFFF, $40, $FF, $00, $00, $00 ; CONTROL_COMPLETE_RECORD_D4F7
+ContextResourceSentinelD4F7 = CompletedNormalRecordD4F7 + 1
+ContextRecordFieldsD4F7 = CompletedNormalRecordD4F7 + 3
+.assert (* - BankStart) = $5500, error, "bank 1 complete normal record D4F7 end"
+; Complete nine-byte nonnegative-mode record view. Some fields were
+; unselected in the candidate modes; aliases preserve prior field views.
+; Other entry points and interpretations remain possible.
+CompletedNormalRecordD500:
+    SlotRuntimeRecord Bank0::SpriteAnimationResourceB6E1, $FFFF, $00, $FF, $00, $00, $00 ; CONTROL_COMPLETE_RECORD_D500
+ContextResourceD500 = CompletedNormalRecordD500 + 0
+ContextRecordFieldsD500 = CompletedNormalRecordD500 + 3
+.assert (* - BankStart) = $5509, error, "bank 1 complete normal record D500 end"
 ; Candidate descriptor $D4C1, command $D607, mode $00.
 SlotFlowD509:
     SlotRuntimeRecord $B6E8, $577B, $23, $FE, $61, $61, $32 ; CONTROL_SLOT_FLOW_D509
 .assert (* - BankStart) = $5512, error, "bank 1 slot record flow D509 end"
-; Candidate descriptor-context access; runtime reachability remains unverified.
-; Resource pointer is consumed when its high byte is not $FF.
-ContextResourceD512:
-    .word $B6F1 ; CONTROL_CONTEXT_FIELDS_D512
-.assert (* - BankStart) = $5514, error, "bank 1 candidate record field $D512 end"
-    .incbin "bank1_d514_d515.bin"
-; Candidate descriptor-context access; runtime reachability remains unverified.
-; Script high sentinel; any following bytes are consumed visual fields.
-ContextRecordFieldsD512:
-    .byte $FF, $40, $FF, $00, $00, $00 ; CONTROL_CONTEXT_FIELDS_D515
-.assert (* - BankStart) = $551B, error, "bank 1 candidate record field $D515 end"
+; Complete nine-byte nonnegative-mode record view. Some fields were
+; unselected in the candidate modes; aliases preserve prior field views.
+; Other entry points and interpretations remain possible.
+CompletedNormalRecordD512:
+    SlotRuntimeRecord Bank0::SpriteAnimationResourceB6F1, $FFFF, $40, $FF, $00, $00, $00 ; CONTROL_COMPLETE_RECORD_D512
+ContextResourceD512 = CompletedNormalRecordD512 + 0
+ContextRecordFieldsD512 = CompletedNormalRecordD512 + 3
+.assert (* - BankStart) = $551B, error, "bank 1 complete normal record D512 end"
 ; Candidate script entries from the reviewed slot-record context trace.
 ContextScriptD51B:
     BogusBranchIfMatchingSlotReady ContextScriptD51B, $01, $5D, $00 ; CONTROL_CONTEXT_D51B
@@ -20903,18 +20889,15 @@ SlotRuntimeD52B:
 ReviewedContactD534:
     SlotRuntimeRecord $C5B1, $5609, $40, $FF, $00, $00, $00 ; CONTROL_REVIEWED_CONTACT_D534
 .assert (* - BankStart) = $553D, error, "bank 1 candidate contact d534 end"
-    .incbin "bank1_d53d_d53e.bin"
-; Candidate descriptor-context access; runtime reachability remains unverified.
-; Resource high byte $FF skips visual fields and low pointer byte.
-ContextResourceSentinelD53D:
-    .byte $FF ; CONTROL_CONTEXT_FIELDS_D53E
-.assert (* - BankStart) = $553F, error, "bank 1 candidate record field $D53E end"
-; Candidate descriptor-context access; runtime reachability remains unverified.
-; Script pointer is installed in mode $00.
-ContextScriptPointerD53D:
-    .word $5970 ; CONTROL_CONTEXT_FIELDS_D53F
-.assert (* - BankStart) = $5541, error, "bank 1 candidate record field $D53F end"
-    .incbin "bank1_d541_d547.bin"
+; Complete nine-byte nonnegative-mode record view. Some fields were
+; unselected in the candidate modes; aliases preserve prior field views.
+; Other entry points and interpretations remain possible.
+CompletedNormalRecordD53D:
+    SlotRuntimeRecord $FFFF, ($5970), $40, $FF, $00, $00, $00 ; CONTROL_COMPLETE_RECORD_D53D
+ContextResourceSentinelD53D = CompletedNormalRecordD53D + 1
+ContextScriptPointerD53D = CompletedNormalRecordD53D + 2
+.assert (* - BankStart) = $5546, error, "bank 1 complete normal record D53D end"
+    .incbin "bank1_d546_d547.bin"
 ; Possible position-event record: both high sentinels skip their low bytes.
 PositionSentinelD547:
     .byte $FF ; CONTROL_POSITION_SENTINEL_D547
@@ -20952,30 +20935,22 @@ CandidateScriptD559 = CandidateRecordD558 + 1
 CandidateScriptD55C = CandidateRecordD558 + 4
 CandidateScriptD55F = CandidateRecordD558 + 7
     SlotRecordScriptOverlay $B927, (RetainedScriptD92A - BankStart), $40, $FE, $45, $62, $31, CandidateScriptD555Value ; CONTROL_RECORD_SCRIPT_D558
-    .incbin "bank1_d561_d562.bin"
-; Candidate descriptor-context access; runtime reachability remains unverified.
-; Resource high byte $FF skips visual fields and low pointer byte.
-ContextResourceSentinelD561:
-    .byte $FF ; CONTROL_CONTEXT_FIELDS_D562
-.assert (* - BankStart) = $5563, error, "bank 1 candidate record field $D562 end"
-    .incbin "bank1_d563_d564.bin"
-; Candidate descriptor-context access; runtime reachability remains unverified.
-; Script high sentinel; any following bytes are consumed visual fields.
-ContextRecordFieldsD561:
-    .byte $FF ; CONTROL_CONTEXT_FIELDS_D564
-.assert (* - BankStart) = $5565, error, "bank 1 candidate record field $D564 end"
-    .incbin "bank1_d565_d56a.bin"
-; Candidate descriptor-context access; runtime reachability remains unverified.
-; Resource pointer is consumed when its high byte is not $FF.
-ContextResourceD56A:
-    .word $C587 ; CONTROL_CONTEXT_FIELDS_D56A
-.assert (* - BankStart) = $556C, error, "bank 1 candidate record field $D56A end"
-    .incbin "bank1_d56c_d56d.bin"
-; Candidate descriptor-context access; runtime reachability remains unverified.
-; Script high sentinel; any following bytes are consumed visual fields.
-ContextRecordFieldsD56A:
-    .byte $FF, $40, $FE, $45, $62, $31 ; CONTROL_CONTEXT_FIELDS_D56D
-.assert (* - BankStart) = $5573, error, "bank 1 candidate record field $D56D end"
+; Complete nine-byte nonnegative-mode record view. Some fields were
+; unselected in the candidate modes; aliases preserve prior field views.
+; Other entry points and interpretations remain possible.
+CompletedNormalRecordD561:
+    SlotRuntimeRecord $FFFF, $FFFF, $40, $FF, $00, $00, $00 ; CONTROL_COMPLETE_RECORD_D561
+ContextResourceSentinelD561 = CompletedNormalRecordD561 + 1
+ContextRecordFieldsD561 = CompletedNormalRecordD561 + 3
+.assert (* - BankStart) = $556A, error, "bank 1 complete normal record D561 end"
+; Complete nine-byte nonnegative-mode record view. Some fields were
+; unselected in the candidate modes; aliases preserve prior field views.
+; Other entry points and interpretations remain possible.
+CompletedNormalRecordD56A:
+    SlotRuntimeRecord Bank0::SpriteFrameC587, $FFFF, $40, $FE, $45, $62, $31 ; CONTROL_COMPLETE_RECORD_D56A
+ContextResourceD56A = CompletedNormalRecordD56A + 0
+ContextRecordFieldsD56A = CompletedNormalRecordD56A + 3
+.assert (* - BankStart) = $5573, error, "bank 1 complete normal record D56A end"
 ; Candidate descriptor $D52B, command $D607, mode $00.
 SlotFlowD573:
     SlotRuntimeRecord $B927, $577B, $23, $FE, $45, $62, $31 ; CONTROL_SLOT_FLOW_D573
@@ -21012,19 +20987,14 @@ LongRecordD5A8:
 LongRecordD5B1:
     SlotRuntimeRecord $B94E, (LongScriptD92D - BankStart), $40, $FE, $25, $61, $11
 .assert (* - BankStart) = $55BA, error, "bank 1 long-run records $D5A8 end"
-    .incbin "bank1_d5ba_d5bb.bin"
-; Candidate descriptor-context access; runtime reachability remains unverified.
-; Resource high byte $FF skips visual fields and low pointer byte.
-ContextResourceSentinelD5BA:
-    .byte $FF ; CONTROL_CONTEXT_FIELDS_D5BB
-.assert (* - BankStart) = $55BC, error, "bank 1 candidate record field $D5BB end"
-    .incbin "bank1_d5bc_d5bd.bin"
-; Candidate descriptor-context access; runtime reachability remains unverified.
-; Script high sentinel; any following bytes are consumed visual fields.
-ContextRecordFieldsD5BA:
-    .byte $FF ; CONTROL_CONTEXT_FIELDS_D5BD
-.assert (* - BankStart) = $55BE, error, "bank 1 candidate record field $D5BD end"
-    .incbin "bank1_d5be_d5c3.bin"
+; Complete nine-byte nonnegative-mode record view. Some fields were
+; unselected in the candidate modes; aliases preserve prior field views.
+; Other entry points and interpretations remain possible.
+CompletedNormalRecordD5BA:
+    SlotRuntimeRecord $FFFF, $FFFF, $40, $FF, $00, $00, $00 ; CONTROL_COMPLETE_RECORD_D5BA
+ContextResourceSentinelD5BA = CompletedNormalRecordD5BA + 1
+ContextRecordFieldsD5BA = CompletedNormalRecordD5BA + 3
+.assert (* - BankStart) = $55C3, error, "bank 1 complete normal record D5BA end"
 ; Zero-mode record observed in longer exploratory gameplay.
 ; Fields after a $FFFF resource pointer may be skipped by the loader.
 LongRecordD5C3:
@@ -21960,16 +21930,14 @@ SlotScriptOnlyDAB5:
     SlotScriptOnlyRecord $FF, (RuntimeScriptE764 - BankStart), $40, $FF, $00, $00, $00 ; CONTROL_SCRIPT_ONLY_RECORD_DAB5
 ReviewedContactDAB5 = SlotScriptOnlyDAB5 + 1
 .assert (* - BankStart) = $5ABE, error, "bank 1 script-only record DAB5 end"
-; Candidate descriptor $DAAC, script $EE2A, mode $01.
-ModeRecordDABEResource:
-    .word $B664 ; CONTROL_MODE_RECORD_DABE_RESOURCE
-.assert (* - BankStart) = $5AC0, error, "bank 1 candidate mode record dabe resource end"
-    .incbin "bank1_dac0_dac2.bin"
-; Candidate descriptor $DAAC, script $EE2A, mode $01.
-ModeRecordDABEFields:
-    .byte $00 ; CONTROL_MODE_RECORD_DABE_FIELDS
-.assert (* - BankStart) = $5AC3, error, "bank 1 candidate mode record dabe fields end"
-    .incbin "bank1_dac3_dac7.bin"
+; Complete nine-byte nonnegative-mode record view. Some fields were
+; unselected in the candidate modes; aliases preserve prior field views.
+; Other entry points and interpretations remain possible.
+CompletedNormalRecordDABE:
+    SlotRuntimeRecord Bank0::SpriteAnimationResourceB664, $FFFF, $00, $FF, $00, $00, $00 ; CONTROL_COMPLETE_RECORD_DABE
+ModeRecordDABEResource = CompletedNormalRecordDABE + 0
+ModeRecordDABEFields = CompletedNormalRecordDABE + 4
+.assert (* - BankStart) = $5AC7, error, "bank 1 complete normal record DABE end"
 ; Candidate descriptor $DAAC, command $EDFC, mode $00.
 SlotFlowDAC7:
     SlotRuntimeRecord $B66B, $6DFE, $00, $FF, $00, $00, $00 ; CONTROL_SLOT_FLOW_DAC7
@@ -21990,16 +21958,14 @@ SlotRuntimeDAD6:
 DirectedRecordDADF:
     SlotRuntimeRecord $FFFF, (RuntimeScriptE764 - BankStart), $40, $FF, $00, $00, $00 ; CONTROL_DIRECTED_RECORD_DADF
 .assert (* - BankStart) = $5AE8, error, "bank 1 directed record $DADF end"
-; Observed mode-specific record fields; unread neighbouring bytes stay local.
-SweepPartialDAE8Resource:
-    .word $B89F ; CONTROL_SWEEP_RESOURCE_DAE8
-.assert (* - BankStart) = $5AEA, error, "bank 1 sweep record field $DAE8 end"
-    .incbin "bank1_daea_daec.bin"
-; Observed mode-specific record fields; unread neighbouring bytes stay local.
-SweepPartialDAE8Fields:
-    .byte $00 ; CONTROL_SWEEP_FIELDS_DAE8
-.assert (* - BankStart) = $5AED, error, "bank 1 sweep record field $DAEC end"
-    .incbin "bank1_daed_daf1.bin"
+; Complete nine-byte nonnegative-mode record view. Some fields were
+; unselected in the candidate modes; aliases preserve prior field views.
+; Other entry points and interpretations remain possible.
+CompletedNormalRecordDAE8:
+    SlotRuntimeRecord Bank0::ObservedSpriteResourceB89F, $68F2, $00, $FF, $00, $00, $00 ; CONTROL_COMPLETE_RECORD_DAE8
+SweepPartialDAE8Resource = CompletedNormalRecordDAE8 + 0
+SweepPartialDAE8Fields = CompletedNormalRecordDAE8 + 4
+.assert (* - BankStart) = $5AF1, error, "bank 1 complete normal record DAE8 end"
 ; Candidate descriptor $DAD6, command $E6DA, mode $00.
 SlotFlowDAF1:
     SlotRuntimeRecord $C41D, $674D, $00, $FF, $00, $00, $00 ; CONTROL_SLOT_FLOW_DAF1
@@ -22007,16 +21973,14 @@ SlotFlowDAF1:
 SlotFlowDAFA:
     SlotRuntimeRecord $C3C3, $675D, $00, $FF, $00, $00, $00
 .assert (* - BankStart) = $5B03, error, "bank 1 slot record flow DAF1 end"
-; Observed mode-specific record fields; unread neighbouring bytes stay local.
-SweepPartialDB03Resource:
-    .word $B896 ; CONTROL_SWEEP_RESOURCE_DB03
-.assert (* - BankStart) = $5B05, error, "bank 1 sweep record field $DB03 end"
-    .incbin "bank1_db05_db07.bin"
-; Observed mode-specific record fields; unread neighbouring bytes stay local.
-SweepPartialDB03Fields:
-    .byte $00 ; CONTROL_SWEEP_FIELDS_DB03
-.assert (* - BankStart) = $5B08, error, "bank 1 sweep record field $DB07 end"
-    .incbin "bank1_db08_db0c.bin"
+; Complete nine-byte nonnegative-mode record view. Some fields were
+; unselected in the candidate modes; aliases preserve prior field views.
+; Other entry points and interpretations remain possible.
+CompletedNormalRecordDB03:
+    SlotRuntimeRecord Bank0::ObservedSpriteResourceB896, $FFFF, $00, $FF, $00, $00, $00 ; CONTROL_COMPLETE_RECORD_DB03
+SweepPartialDB03Resource = CompletedNormalRecordDB03 + 0
+SweepPartialDB03Fields = CompletedNormalRecordDB03 + 4
+.assert (* - BankStart) = $5B0C, error, "bank 1 complete normal record DB03 end"
 ; Candidate descriptor $DB12, command $E6A1, mode $FF.
 SlotFlowDB0C:
     SlotCompactRecord $B88D, $23 ; CONTROL_SLOT_FLOW_DB0C
@@ -22046,16 +22010,14 @@ CandidateScriptDB1F:
 ; record-load interpretation and its descriptor context remain unverified.
 CandidateScriptDB22:
     BogusLoadRecordAndClearSavedState $00 ; CONTROL_CANDIDATE_SCRIPT_DB22
-; Resource pointer read by the slot-record loader. Unread neighbouring bytes remain local.
-PartialRecordDB24Resource:
-    .word $B87F ; CONTROL_PARTIAL_RESOURCE_DB24
-.assert (* - BankStart) = $5B26, error, "bank 1 partial record $DB24 end"
-    .incbin "bank1_db26_db28.bin"
-; Mode-specific flags and fields read by the slot-record loader. Unread neighbouring bytes remain local.
-PartialRecordDB24Fields:
-    .byte $00 ; CONTROL_PARTIAL_FIELDS_DB24
-.assert (* - BankStart) = $5B29, error, "bank 1 partial record $DB28 end"
-    .incbin "bank1_db29_db2d.bin"
+; Complete nine-byte nonnegative-mode record view. Some fields were
+; unselected in the candidate modes; aliases preserve prior field views.
+; Other entry points and interpretations remain possible.
+CompletedNormalRecordDB24:
+    SlotRuntimeRecord Bank0::SpriteAnimationResourceB87F, $68F2, $00, $FF, $00, $00, $00 ; CONTROL_COMPLETE_RECORD_DB24
+PartialRecordDB24Resource = CompletedNormalRecordDB24 + 0
+PartialRecordDB24Fields = CompletedNormalRecordDB24 + 4
+.assert (* - BankStart) = $5B2D, error, "bank 1 complete normal record DB24 end"
 ; Candidate descriptor $DB12, command $E6DA, mode $00.
 SlotFlowDB2D:
     SlotRuntimeRecord $C49B, $674D, $00, $FF, $00, $00, $00 ; CONTROL_SLOT_FLOW_DB2D
@@ -22063,16 +22025,14 @@ SlotFlowDB2D:
 SlotFlowDB36:
     SlotRuntimeRecord $C441, $675D, $00, $FF, $00, $00, $00
 .assert (* - BankStart) = $5B3F, error, "bank 1 slot record flow DB2D end"
-; Resource pointer read by the slot-record loader. Unread neighbouring bytes remain local.
-PartialRecordDB3FResource:
-    .word $B886 ; CONTROL_PARTIAL_RESOURCE_DB3F
-.assert (* - BankStart) = $5B41, error, "bank 1 partial record $DB3F end"
-    .incbin "bank1_db41_db43.bin"
-; Mode-specific flags and fields read by the slot-record loader. Unread neighbouring bytes remain local.
-PartialRecordDB3FFields:
-    .byte $00 ; CONTROL_PARTIAL_FIELDS_DB3F
-.assert (* - BankStart) = $5B44, error, "bank 1 partial record $DB43 end"
-    .incbin "bank1_db44_db48.bin"
+; Complete nine-byte nonnegative-mode record view. Some fields were
+; unselected in the candidate modes; aliases preserve prior field views.
+; Other entry points and interpretations remain possible.
+CompletedNormalRecordDB3F:
+    SlotRuntimeRecord Bank0::SpriteAnimationResourceB886, $FFFF, $00, $FF, $00, $00, $00 ; CONTROL_COMPLETE_RECORD_DB3F
+PartialRecordDB3FResource = CompletedNormalRecordDB3F + 0
+PartialRecordDB3FFields = CompletedNormalRecordDB3F + 4
+.assert (* - BankStart) = $5B48, error, "bank 1 complete normal record DB3F end"
 ; Candidate descriptor $DB4E, command $E89D, negative mode.
 CompactContextDB48:
     SlotCompactRecord $B937, $23 ; CONTROL_COMPACT_CONTEXT_DB48
@@ -22225,15 +22185,14 @@ ContactRecordDC23HighAndScriptLow:
 .assert >(RuntimeScriptE764 - BankStart) = BogusActionOpcode_BogusSelectRelativeSlotAndYield, error, "DC26 contact/script opcode disagreement"
 CandidateScriptDC26:
     BogusSelectRelativeSlotAndYield $40, $FF, $00, $00, $00 ; CONTROL_CONTACT_SCRIPT_DC26
-; Candidate descriptor $DC1A, script $DCFE, mode $02.
-ModeRecordDC2CResource:
-    .word $B6D8 ; CONTROL_MODE_RECORD_DC2C_RESOURCE
-.assert (* - BankStart) = $5C2E, error, "bank 1 candidate mode record dc2c resource end"
-    .incbin "bank1_dc2e_dc30.bin"
-; Candidate descriptor $DC1A, script $DCFE, mode $02.
-ModeRecordDC2CFields:
-    .byte $23, $00, $16, $61, $22 ; CONTROL_MODE_RECORD_DC2C_FIELDS
-.assert (* - BankStart) = $5C35, error, "bank 1 candidate mode record dc2c fields end"
+; Complete nine-byte nonnegative-mode record view. Some fields were
+; unselected in the candidate modes; aliases preserve prior field views.
+; Other entry points and interpretations remain possible.
+CompletedNormalRecordDC2C:
+    SlotRuntimeRecord Bank0::SpriteAnimationResourceB6D8, $FFFF, $23, $00, $16, $61, $22 ; CONTROL_COMPLETE_RECORD_DC2C
+ModeRecordDC2CResource = CompletedNormalRecordDC2C + 0
+ModeRecordDC2CFields = CompletedNormalRecordDC2C + 4
+.assert (* - BankStart) = $5C35, error, "bank 1 complete normal record DC2C end"
 ; Connected movement and interaction state-machine paths. The byte-level
 ; conditions are reconstructed; the associated gameplay role remains unknown.
 ScriptDC35:
@@ -22602,15 +22561,14 @@ SlotRuntimeDEF4:
 SweepRecordDEFD:
     SlotRuntimeRecord $FFFF, (RuntimeScriptE764 - BankStart), $40, $FF, $00, $00, $00 ; CONTROL_SWEEP_RECORD_DEFD
 .assert (* - BankStart) = $5F06, error, "bank 1 sweep record $DEFD end"
-; Observed mode-specific record fields; unread neighbouring bytes stay local.
-SweepPartialDF06Resource:
-    .word $C0B1 ; CONTROL_SWEEP_RESOURCE_DF06
-.assert (* - BankStart) = $5F08, error, "bank 1 sweep record field $DF06 end"
-    .incbin "bank1_df08_df0a.bin"
-; Observed mode-specific record fields; unread neighbouring bytes stay local.
-SweepPartialDF06Fields:
-    .byte $00, $00, $25, $D9, $22 ; CONTROL_SWEEP_FIELDS_DF06
-.assert (* - BankStart) = $5F0F, error, "bank 1 sweep record field $DF0A end"
+; Complete nine-byte nonnegative-mode record view. Some fields were
+; unselected in the candidate modes; aliases preserve prior field views.
+; Other entry points and interpretations remain possible.
+CompletedNormalRecordDF06:
+    SlotRuntimeRecord Bank0::ObservedSpriteFrameC0B1, $FFFF, $00, $00, $25, $D9, $22 ; CONTROL_COMPLETE_RECORD_DF06
+SweepPartialDF06Resource = CompletedNormalRecordDF06 + 0
+SweepPartialDF06Fields = CompletedNormalRecordDF06 + 4
+.assert (* - BankStart) = $5F0F, error, "bank 1 complete normal record DF06 end"
 ; Slot movement and linked-slot checks with branches into several update paths.
 ; The final $00 command can load a new record and change the script pointer.
 ScriptDF0F:
@@ -22826,15 +22784,14 @@ CandidateScriptE05B = ModeRecordE055Tail
 CandidateScriptE05C = ModeRecordE055Tail + 1
     .byte BogusOpcodeLoadRecordAndClearSavedState, BogusOpcodeLoadRecordAndClearSavedState
     .byte $00 ; CONTROL_MODE_RECORD_E055_TAIL
-; Candidate descriptor $E043, script $E262, mode $02.
-ModeRecordE05EResource:
-    .word $B9F1 ; CONTROL_MODE_RECORD_E05E_RESOURCE
-.assert (* - BankStart) = $6060, error, "bank 1 candidate mode record e05e resource end"
-    .incbin "bank1_e060_e062.bin"
-; Candidate descriptor $E043, script $E262, mode $02.
-ModeRecordE05EFields:
-    .byte $00, $FF, $00, $00, $00 ; CONTROL_MODE_RECORD_E05E_FIELDS
-.assert (* - BankStart) = $6067, error, "bank 1 candidate mode record e05e fields end"
+; Complete nine-byte nonnegative-mode record view. Some fields were
+; unselected in the candidate modes; aliases preserve prior field views.
+; Other entry points and interpretations remain possible.
+CompletedNormalRecordE05E:
+    SlotRuntimeRecord Bank0::SpriteAnimationResourceB9F1, $FFFF, $00, $FF, $00, $00, $00 ; CONTROL_COMPLETE_RECORD_E05E
+ModeRecordE05EResource = CompletedNormalRecordE05E + 0
+ModeRecordE05EFields = CompletedNormalRecordE05E + 4
+.assert (* - BankStart) = $6067, error, "bank 1 complete normal record E05E end"
 ScriptE067:
     BogusSetSlotD0Bits $02       ; CONTROL_BOGUS_E067
     BogusSetSlotValue $0007
@@ -22934,24 +22891,22 @@ SlotScriptOnlyE0C2:
     SlotScriptOnlyRecord $FF, (RuntimeScriptE764 - BankStart), $40, $FF, $00, $00, $00 ; CONTROL_SCRIPT_ONLY_RECORD_E0C2
 ReviewedContactE0C2 = SlotScriptOnlyE0C2 + 1
 .assert (* - BankStart) = $60CB, error, "bank 1 script-only record E0C2 end"
-; Candidate descriptor $E0B9, script $E232, mode $02.
-ModeRecordE0CBResource:
-    .word $B611 ; CONTROL_MODE_RECORD_E0CB_RESOURCE
-.assert (* - BankStart) = $60CD, error, "bank 1 candidate mode record e0cb resource end"
-    .incbin "bank1_e0cd_e0cf.bin"
-; Candidate descriptor $E0B9, script $E232, mode $02.
-ModeRecordE0CBFields:
-    .byte $00, $FF, $00, $00, $00 ; CONTROL_MODE_RECORD_E0CB_FIELDS
-.assert (* - BankStart) = $60D4, error, "bank 1 candidate mode record e0cb fields end"
-; Candidate descriptor $E0B9, script $E262, mode $02.
-ModeRecordE0D4Resource:
-    .word $B611 ; CONTROL_MODE_RECORD_E0D4_RESOURCE
-.assert (* - BankStart) = $60D6, error, "bank 1 candidate mode record e0d4 resource end"
-    .incbin "bank1_e0d6_e0d8.bin"
-; Candidate descriptor $E0B9, script $E262, mode $02.
-ModeRecordE0D4Fields:
-    .byte $00, $FF, $00, $00, $00 ; CONTROL_MODE_RECORD_E0D4_FIELDS
-.assert (* - BankStart) = $60DD, error, "bank 1 candidate mode record e0d4 fields end"
+; Complete nine-byte nonnegative-mode record view. Some fields were
+; unselected in the candidate modes; aliases preserve prior field views.
+; Other entry points and interpretations remain possible.
+CompletedNormalRecordE0CB:
+    SlotRuntimeRecord Bank0::SpriteAnimationResourceB611, $FFFF, $00, $FF, $00, $00, $00 ; CONTROL_COMPLETE_RECORD_E0CB
+ModeRecordE0CBResource = CompletedNormalRecordE0CB + 0
+ModeRecordE0CBFields = CompletedNormalRecordE0CB + 4
+.assert (* - BankStart) = $60D4, error, "bank 1 complete normal record E0CB end"
+; Complete nine-byte nonnegative-mode record view. Some fields were
+; unselected in the candidate modes; aliases preserve prior field views.
+; Other entry points and interpretations remain possible.
+CompletedNormalRecordE0D4:
+    SlotRuntimeRecord Bank0::SpriteAnimationResourceB611, $FFFF, $00, $FF, $00, $00, $00 ; CONTROL_COMPLETE_RECORD_E0D4
+ModeRecordE0D4Resource = CompletedNormalRecordE0D4 + 0
+ModeRecordE0D4Fields = CompletedNormalRecordE0D4 + 4
+.assert (* - BankStart) = $60DD, error, "bank 1 complete normal record E0D4 end"
 ScriptE0DD:
     BogusSetSlotD0Bits $0B       ; CONTROL_BOGUS_E0DD
     BogusSetSlotValue $0007
@@ -23002,25 +22957,22 @@ CandidateScriptE104:
 CandidateScriptE105 = CandidateScriptE104 + 1
     .byte BogusOpcodeLoadRecordAndClearSavedState ; CONTROL_CANDIDATE_SCRIPT_E104
     .byte BogusOpcodeLoadRecordAndClearSavedState
-; Candidate descriptor $E0F4, scripts $E1DC/$E207/$E232, mode $02.
-; A separate possible script command starts at $E105 and overlaps this field.
-CandidateRecordE106Resource:
-    .word $B626 ; CONTROL_RECORD_E106_RESOURCE
-.assert (* - BankStart) = $6108, error, "bank 1 candidate record E106 resource end"
-    .incbin "bank1_e108_e10a.bin"
-; Mode-$02 fields from the same candidate record; intervening bytes stay local.
-CandidateRecordE106Fields:
-    .byte $00, $FF, $00, $00, $00 ; CONTROL_RECORD_E106_FIELDS
-.assert (* - BankStart) = $610F, error, "bank 1 candidate record E106 fields end"
-; Candidate descriptor $E0F4, script $E262, mode $02.
-ModeRecordE10FResource:
-    .word $B626 ; CONTROL_MODE_RECORD_E10F_RESOURCE
-.assert (* - BankStart) = $6111, error, "bank 1 candidate mode record e10f resource end"
-    .incbin "bank1_e111_e113.bin"
-; Candidate descriptor $E0F4, script $E262, mode $02.
-ModeRecordE10FFields:
-    .byte $00, $FF, $00, $00, $00 ; CONTROL_MODE_RECORD_E10F_FIELDS
-.assert (* - BankStart) = $6118, error, "bank 1 candidate mode record e10f fields end"
+; Complete nine-byte nonnegative-mode record view. Some fields were
+; unselected in the candidate modes; aliases preserve prior field views.
+; Other entry points and interpretations remain possible.
+CompletedNormalRecordE106:
+    SlotRuntimeRecord Bank0::SpriteAnimationResourceB626, $FFFF, $00, $FF, $00, $00, $00 ; CONTROL_COMPLETE_RECORD_E106
+CandidateRecordE106Resource = CompletedNormalRecordE106 + 0
+CandidateRecordE106Fields = CompletedNormalRecordE106 + 4
+.assert (* - BankStart) = $610F, error, "bank 1 complete normal record E106 end"
+; Complete nine-byte nonnegative-mode record view. Some fields were
+; unselected in the candidate modes; aliases preserve prior field views.
+; Other entry points and interpretations remain possible.
+CompletedNormalRecordE10F:
+    SlotRuntimeRecord Bank0::SpriteAnimationResourceB626, $FFFF, $00, $FF, $00, $00, $00 ; CONTROL_COMPLETE_RECORD_E10F
+ModeRecordE10FResource = CompletedNormalRecordE10F + 0
+ModeRecordE10FFields = CompletedNormalRecordE10F + 4
+.assert (* - BankStart) = $6118, error, "bank 1 complete normal record E10F end"
 ; Connected shared slot state machine. Its higher-level object and role remain unknown.
 ScriptE118:
     BogusSetSlotD0Bits $1E ; CONTROL_BOGUS_E118
@@ -24511,15 +24463,14 @@ SlotScriptOnlyEB1C:
     SlotScriptOnlyRecord $FF, (RuntimeScriptE764 - BankStart), $40, $FF, $00, $00, $00 ; CONTROL_SCRIPT_ONLY_RECORD_EB1C
 ReviewedContactEB1C = SlotScriptOnlyEB1C + 1
 .assert (* - BankStart) = $6B25, error, "bank 1 script-only record EB1C end"
-; Observed mode-specific record fields; unread neighbouring bytes stay local.
-SweepPartialEB25Resource:
-    .word $B5F0 ; CONTROL_SWEEP_RESOURCE_EB25
-.assert (* - BankStart) = $6B27, error, "bank 1 sweep record field $EB25 end"
-    .incbin "bank1_eb27_eb29.bin"
-; Observed mode-specific record fields; unread neighbouring bytes stay local.
-SweepPartialEB25Fields:
-    .byte $00, $FF, $00, $00, $00 ; CONTROL_SWEEP_FIELDS_EB25
-.assert (* - BankStart) = $6B2E, error, "bank 1 sweep record field $EB29 end"
+; Complete nine-byte nonnegative-mode record view. Some fields were
+; unselected in the candidate modes; aliases preserve prior field views.
+; Other entry points and interpretations remain possible.
+CompletedNormalRecordEB25:
+    SlotRuntimeRecord Bank0::ObservedSpriteResourceB5F0, $FFFF, $00, $FF, $00, $00, $00 ; CONTROL_COMPLETE_RECORD_EB25
+SweepPartialEB25Resource = CompletedNormalRecordEB25 + 0
+SweepPartialEB25Fields = CompletedNormalRecordEB25 + 4
+.assert (* - BankStart) = $6B2E, error, "bank 1 complete normal record EB25 end"
 ; Candidate descriptor $EB37, command $EC74, mode $FF.
 SlotFlowEB2E:
     SlotCompactRecord $C537, $22 ; CONTROL_SLOT_FLOW_EB2E
@@ -24530,15 +24481,14 @@ SlotRuntimeEB37:
     SlotRuntimeRecord $B909, (CandidateEB52 - BankStart), $22, $00, $20, $41, $12 ; CONTROL_SLOT_RUNTIME_EB37
 .assert (* - BankStart) = $6B40, error, "bank 1 slot record EB37 end"
     .incbin "bank1_eb40_eb49.bin"
-; Candidate descriptor $EB37, script $ECE2, mode $02.
-ModeRecordEB49Resource:
-    .word $B8F7 ; CONTROL_MODE_RECORD_EB49_RESOURCE
-.assert (* - BankStart) = $6B4B, error, "bank 1 candidate mode record eb49 resource end"
-    .incbin "bank1_eb4b_eb4d.bin"
-; Candidate descriptor $EB37, script $ECE2, mode $02.
-ModeRecordEB49Fields:
-    .byte $00, $FF, $00, $00, $00 ; CONTROL_MODE_RECORD_EB49_FIELDS
-.assert (* - BankStart) = $6B52, error, "bank 1 candidate mode record eb49 fields end"
+; Complete nine-byte nonnegative-mode record view. Some fields were
+; unselected in the candidate modes; aliases preserve prior field views.
+; Other entry points and interpretations remain possible.
+CompletedNormalRecordEB49:
+    SlotRuntimeRecord Bank0::SpriteAnimationResourceB8F7, $FFFF, $00, $FF, $00, $00, $00 ; CONTROL_COMPLETE_RECORD_EB49
+ModeRecordEB49Resource = CompletedNormalRecordEB49 + 0
+ModeRecordEB49Fields = CompletedNormalRecordEB49 + 4
+.assert (* - BankStart) = $6B52, error, "bank 1 complete normal record EB49 end"
 ; Candidate script path; object role and execution remain unverified.
 CandidateEB52:
     BogusSetSlotValue $0000 ; CONTROL_BOGUS_EB52
@@ -24574,15 +24524,14 @@ SlotScriptOnlyEB7D:
     SlotScriptOnlyRecord $FF, (RuntimeScriptE764 - BankStart), $40, $FF, $00, $00, $00 ; CONTROL_SCRIPT_ONLY_RECORD_EB7D
 ReviewedContactEB7D = SlotScriptOnlyEB7D + 1
 .assert (* - BankStart) = $6B86, error, "bank 1 script-only record EB7D end"
-; Candidate descriptor $EB74, script $ECE2, mode $02.
-ModeRecordEB86Resource:
-    .word $B858 ; CONTROL_MODE_RECORD_EB86_RESOURCE
-.assert (* - BankStart) = $6B88, error, "bank 1 candidate mode record eb86 resource end"
-    .incbin "bank1_eb88_eb8a.bin"
-; Candidate descriptor $EB74, script $ECE2, mode $02.
-ModeRecordEB86Fields:
-    .byte $00, $FF, $00, $00, $00 ; CONTROL_MODE_RECORD_EB86_FIELDS
-.assert (* - BankStart) = $6B8F, error, "bank 1 candidate mode record eb86 fields end"
+; Complete nine-byte nonnegative-mode record view. Some fields were
+; unselected in the candidate modes; aliases preserve prior field views.
+; Other entry points and interpretations remain possible.
+CompletedNormalRecordEB86:
+    SlotRuntimeRecord Bank0::SpriteAnimationResourceB858, $FFFF, $00, $FF, $00, $00, $00 ; CONTROL_COMPLETE_RECORD_EB86
+ModeRecordEB86Resource = CompletedNormalRecordEB86 + 0
+ModeRecordEB86Fields = CompletedNormalRecordEB86 + 4
+.assert (* - BankStart) = $6B8F, error, "bank 1 complete normal record EB86 end"
     .incbin "bank1_eb8f_eb91.bin"
 ; Candidate descriptor $EB9A, command $EC74, mode $FF.
 SlotFlowEB91:
@@ -24650,15 +24599,14 @@ SlotScriptOnlyEBDC:
     SlotScriptOnlyRecord $FF, (RuntimeScriptE764 - BankStart), $40, $FF, $00, $00, $00 ; CONTROL_SCRIPT_ONLY_RECORD_EBDC
 ReviewedContactEBDC = SlotScriptOnlyEBDC + 1
 .assert (* - BankStart) = $6BE5, error, "bank 1 script-only record EBDC end"
-; Candidate descriptor $EBD3, script $ECE2, mode $02.
-ModeRecordEBE5Resource:
-    .word $B9CA ; CONTROL_MODE_RECORD_EBE5_RESOURCE
-.assert (* - BankStart) = $6BE7, error, "bank 1 candidate mode record ebe5 resource end"
-    .incbin "bank1_ebe7_ebe9.bin"
-; Candidate descriptor $EBD3, script $ECE2, mode $02.
-ModeRecordEBE5Fields:
-    .byte $00, $01, $25, $FF, $12 ; CONTROL_MODE_RECORD_EBE5_FIELDS
-.assert (* - BankStart) = $6BEE, error, "bank 1 candidate mode record ebe5 fields end"
+; Complete nine-byte nonnegative-mode record view. Some fields were
+; unselected in the candidate modes; aliases preserve prior field views.
+; Other entry points and interpretations remain possible.
+CompletedNormalRecordEBE5:
+    SlotRuntimeRecord Bank0::SpriteAnimationResourceB9CA, $FFFF, $00, $01, $25, $FF, $12 ; CONTROL_COMPLETE_RECORD_EBE5
+ModeRecordEBE5Resource = CompletedNormalRecordEBE5 + 0
+ModeRecordEBE5Fields = CompletedNormalRecordEBE5 + 4
+.assert (* - BankStart) = $6BEE, error, "bank 1 complete normal record EBE5 end"
 ; Related entry paths converge on the already recovered EC2B and EC33 loops.
 ScriptEBEE:
     BogusSetSlot0670Pair $40, $00 ; CONTROL_BOGUS_EBEE
@@ -24817,12 +24765,13 @@ SlotScriptOnlyED2A:
     SlotScriptOnlyRecord $FF, (RuntimeScriptE764 - BankStart), $40, $FF, $00, $00, $00 ; CONTROL_SCRIPT_ONLY_RECORD_ED2A
 ReviewedContactED2A = SlotScriptOnlyED2A + 1
 .assert (* - BankStart) = $6D33, error, "bank 1 script-only record ED2A end"
-    .incbin "bank1_ed33_ed34.bin"
-; Candidate descriptor $ED21, script $EE2A, mode $01.
-ModeRecordED33Sentinel:
-    .byte $FF ; CONTROL_MODE_RECORD_ED33_SENTINEL
-.assert (* - BankStart) = $6D35, error, "bank 1 candidate mode record ed33 sentinel end"
-    .incbin "bank1_ed35_ed3c.bin"
+; Complete nine-byte nonnegative-mode record view. Some fields were
+; unselected in the candidate modes; aliases preserve prior field views.
+; Other entry points and interpretations remain possible.
+CompletedNormalRecordED33:
+    SlotRuntimeRecord $FFFF, $FFFF, $00, $FF, $00, $00, $00 ; CONTROL_COMPLETE_RECORD_ED33
+ModeRecordED33Sentinel = CompletedNormalRecordED33 + 1
+.assert (* - BankStart) = $6D3C, error, "bank 1 complete normal record ED33 end"
 ; Candidate descriptor $ED21, command $EDFC, mode $00.
 SlotFlowED3C:
     SlotRuntimeRecord $BA13, $6E0D, $00, $FF, $00, $00, $00 ; CONTROL_SLOT_FLOW_ED3C
@@ -24852,19 +24801,15 @@ SlotScriptOnlyED5F:
     SlotScriptOnlyRecord $FF, (RuntimeScriptE764 - BankStart), $40, $FF, $00, $00, $00 ; CONTROL_SCRIPT_ONLY_RECORD_ED5F
 ReviewedContactED5F = SlotScriptOnlyED5F + 1
 .assert (* - BankStart) = $6D68, error, "bank 1 script-only record ED5F end"
-; Candidate descriptor $ED56, script $EE2A, mode $01.
-ModeRecordED68Resource:
-    .word $B683 ; CONTROL_MODE_RECORD_ED68_RESOURCE
-.assert (* - BankStart) = $6D6A, error, "bank 1 candidate mode record ed68 resource end"
-    .incbin "bank1_ed6a_ed6c.bin"
-; Candidate descriptor $ED56, script $EE2A, mode $01.
-ModeRecordED68Fields:
-    .byte $00 ; CONTROL_MODE_RECORD_ED68_FIELDS
-.assert (* - BankStart) = $6D6D, error, "bank 1 candidate mode record ed68 fields end"
-; Candidate descriptor $ED56, command $DCFE, mode $02 reads these fields.
-CandidateModeRecordED68VisualFields:
-    .byte $FF, $00, $00, $00 ; CONTROL_ED68_VISUAL_FIELDS
-.assert (* - BankStart) = $6D71, error, "bank 1 candidate record ED68 visual fields end"
+; Complete nine-byte nonnegative-mode record view. Some fields were
+; unselected in the candidate modes; aliases preserve prior field views.
+; Other entry points and interpretations remain possible.
+CompletedNormalRecordED68:
+    SlotRuntimeRecord Bank0::SpriteAnimationResourceB683, $FFFF, $00, $FF, $00, $00, $00 ; CONTROL_COMPLETE_RECORD_ED68
+ModeRecordED68Resource = CompletedNormalRecordED68 + 0
+ModeRecordED68Fields = CompletedNormalRecordED68 + 4
+CandidateModeRecordED68VisualFields = CompletedNormalRecordED68 + 5
+.assert (* - BankStart) = $6D71, error, "bank 1 complete normal record ED68 end"
 ; Shared slot state graph; address alias identifies an overlapping entry.
 ScriptEE1A = BankStart + $6E1A
 ScriptED71:
@@ -25062,14 +25007,14 @@ ContextRecordEEB5:
 SlotRuntimeEEB8:
     SlotRuntimeRecord $BAD5, $6ECA, $00, $FF, $00, $00, $00 ; CONTROL_SLOT_RUNTIME_EEB8
 .assert (* - BankStart) = $6EC1, error, "bank 1 slot record EEB8 end"
-CandidateResourceSentinelEEC0:
-    .byte $FF ; CONTROL_RESOURCE_SENTINEL_EEC0
-; Possible contact for descriptor base $EEB8; execution remains unverified.
-ReviewedContactEEC1:
-    .byte $FF ; CONTROL_REVIEWED_CONTACT_EEC1
-    .word InteractionScriptF00F - BankStart
-.assert (* - BankStart) = $6EC5, error, "bank 1 candidate contact eec1 end"
-    .incbin "bank1_eec5_eeca.bin"
+; Complete nine-byte nonnegative-mode record view. Some fields were
+; unselected in the candidate modes; aliases preserve prior field views.
+; Other entry points and interpretations remain possible.
+CompletedNormalRecordEEC1:
+    SlotRuntimeRecord $FFFF, (InteractionScriptF00F - BankStart), $00, $FF, $00, $00, $00 ; CONTROL_COMPLETE_RECORD_EEC1
+CandidateResourceSentinelEEC0 = CompletedNormalRecordEEC1 + 0
+ReviewedContactEEC1 = CompletedNormalRecordEEC1 + 1
+.assert (* - BankStart) = $6ECA, error, "bank 1 complete normal record EEC1 end"
 ; Possible continuation after a retained script pointer; reachability is unverified.
 RetainedScriptEECA:
     BogusSetSlot0640Pair $00, $44 ; CONTROL_RETAINED_SCRIPT_EECA
@@ -25083,16 +25028,14 @@ OverlayScriptEECD:
 SlotRuntimeEED0:
     SlotRuntimeRecord $C7D5, $6EE2, $00, $00, $20, $D9, $11 ; CONTROL_SLOT_RUNTIME_EED0
 .assert (* - BankStart) = $6ED9, error, "bank 1 slot record EED0 end"
-; Candidate mode-zero record at $EED2 reads this field; it is also the
-; skipped low resource byte of the adjacent contact record.
-CandidateRecordEED2Field6B:
-    .byte $FF ; CONTROL_RECORD_EED2_FIELD6B
-; Possible contact for descriptor base $EED0; execution remains unverified.
-ReviewedContactEED9:
-    .byte $FF ; CONTROL_REVIEWED_CONTACT_EED9
-    .word InteractionScriptF00F - BankStart
-.assert (* - BankStart) = $6EDD, error, "bank 1 candidate contact eed9 end"
-    .incbin "bank1_eedd_eee2.bin"
+; Complete nine-byte nonnegative-mode record view. Some fields were
+; unselected in the candidate modes; aliases preserve prior field views.
+; Other entry points and interpretations remain possible.
+CompletedNormalRecordEED9:
+    SlotRuntimeRecord $FFFF, (InteractionScriptF00F - BankStart), $00, $FF, $00, $00, $00 ; CONTROL_COMPLETE_RECORD_EED9
+CandidateRecordEED2Field6B = CompletedNormalRecordEED9 + 0
+ReviewedContactEED9 = CompletedNormalRecordEED9 + 1
+.assert (* - BankStart) = $6EE2, error, "bank 1 complete normal record EED9 end"
 ; Possible continuation after a retained script pointer; reachability is unverified.
 RetainedScriptEEE2:
     BogusSetSlot0640Pair $40, $40 ; CONTROL_RETAINED_SCRIPT_EEE2
@@ -26004,7 +25947,7 @@ BranchScriptFD65:
 BranchScriptFD68:
     BogusSetMainState $15
 .assert (* - BankStart) = $7D6A, error, "bank 1 branch script $FD65 end"
-    .incbin "bank1_fd6a_fd88.bin"
+    BankNativeCallAlignmentFill
     BankScriptNativeCall
 .assert (* - BankStart) = $7DA7, error, "bank 1 native script call end"
 ScriptRecordLengths:
@@ -26012,7 +25955,7 @@ ScriptRecordLengths:
 .assert (* - BankStart) = $7E6C, error, "bank 1 common helpers offset"
     BankHelpers
 .assert (* - BankStart) = $7FB3, error, "bank 1 tail offset"
-    BankTail SecondaryBankValue, SecondaryBankIndex, "bank1_fff4_fffa.bin"
+    BankTail SecondaryBankValue, SecondaryBankIndex
 .assert (* - BankStart) = $8000, error, "bank 1 size"
 .endscope
 
