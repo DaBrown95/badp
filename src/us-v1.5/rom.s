@@ -1449,6 +1449,11 @@ BogusActionOpcode_BogusWait = $07
 ; Each map layout begins with dimensions in eight-tile chunks. Packed text
 ; records begin with the little-endian PPU destination used by the decoder.
 ; Their grids and compressed message payloads remain local.
+; Three control bytes consumed before the local palette colour payload.
+.macro PaletteStreamHeader group_count, frame_count, tick_interval
+    .byte group_count, frame_count, tick_interval
+.endmacro
+
 .macro MapLayoutDimensions width, height
     .byte width, height
 .endmacro
@@ -6156,19 +6161,19 @@ StateBankSelectors:
 ; Encoded pointers to the locally supplied background and sprite palette
 ; streams, indexed by state. These addresses are metadata, not the assets.
 BackgroundPalettePointers:
-    .word $C83E, $C851, $C851, $C851 ; CONTROL_BACKGROUND_PALETTE_POINTERS
-    .word $C83E, $C982, $C99D, $C9B8
-    .word $C9D3, $C9EE, $CA09, $C923
-    .word $C923, $C949, $C923, $C936
-    .word $CA37, $C83E, $C851, $C851
-    .word $CA09, $C877
+    .word PaletteHeaderC83E, PaletteHeaderC851, PaletteHeaderC851, PaletteHeaderC851 ; CONTROL_BACKGROUND_PALETTE_POINTERS
+    .word PaletteHeaderC83E, PaletteHeaderC982, PaletteHeaderC99D, PaletteHeaderC9B8
+    .word PaletteHeaderC9D3, PaletteHeaderC9EE, PaletteHeaderCA09, PaletteHeaderC923
+    .word PaletteHeaderC923, PaletteHeaderC949, PaletteHeaderC923, PaletteHeaderC936
+    .word PaletteHeaderCA37, PaletteHeaderC83E, PaletteHeaderC851, PaletteHeaderC851
+    .word PaletteHeaderCA09, PaletteHeaderC877
 SpritePalettePointers:
-    .word $C83E, $C7F2, $C805, $C7F2 ; CONTROL_SPRITE_PALETTE_POINTERS
-    .word $C82B, $C96F, $C96F, $C96F
-    .word $CA24, $CA24, $CA24, $C8FD
-    .word $C8FD, $C8FD, $C8FD, $C910
-    .word $C83E, $C83E, $C83E, $C7F2
-    .word $C95C, $C877
+    .word PaletteHeaderC83E, PaletteHeaderC7F2, PaletteHeaderC805, PaletteHeaderC7F2 ; CONTROL_SPRITE_PALETTE_POINTERS
+    .word PaletteHeaderC82B, PaletteHeaderC96F, PaletteHeaderC96F, PaletteHeaderC96F
+    .word PaletteHeaderCA24, PaletteHeaderCA24, PaletteHeaderCA24, PaletteHeaderC8FD
+    .word PaletteHeaderC8FD, PaletteHeaderC8FD, PaletteHeaderC8FD, PaletteHeaderC910
+    .word PaletteHeaderC83E, PaletteHeaderC83E, PaletteHeaderC83E, PaletteHeaderC7F2
+    .word PaletteHeaderC95C, PaletteHeaderC877
 .assert (* - BankStart) = $23EC, error, "bank 0 state and palette pointer tables end"
 ; Each table has 22 two-byte starting addresses selected by $02. The target
 ; streams and valid runtime indices still require separate verification.
@@ -6968,7 +6973,88 @@ FadeWaitVBlank:
     bpl FadeWaitVBlank
     rts
 .assert (* - BankStart) = $35D3, error, "bank 0 palette fade wait end"
-    .incbin "bank0_b5d3_ca5d.bin"
+; Palette control headers selected by state tables or possible BOGUS paths.
+; Colour payloads remain local. Some bytes also have candidate script or
+; sprite uses; the labels do not establish exclusive use or reachability.
+    .incbin "bank0_b5d3_c7df.bin"
+PaletteHeaderC7DF:
+    PaletteStreamHeader $00, $00, $00 ; CONTROL_PALETTE_HEADER_C7DF
+    .incbin "bank0_c7e2_c7f2.bin"
+PaletteHeaderC7F2:
+    PaletteStreamHeader $00, $00, $00 ; CONTROL_PALETTE_HEADER_C7F2
+    .incbin "bank0_c7f5_c805.bin"
+PaletteHeaderC805:
+    PaletteStreamHeader $00, $00, $00 ; CONTROL_PALETTE_HEADER_C805
+    .incbin "bank0_c808_c818.bin"
+PaletteHeaderC818:
+    PaletteStreamHeader $00, $00, $00 ; CONTROL_PALETTE_HEADER_C818
+    .incbin "bank0_c81b_c82b.bin"
+PaletteHeaderC82B:
+    PaletteStreamHeader $00, $00, $00 ; CONTROL_PALETTE_HEADER_C82B
+    .incbin "bank0_c82e_c83e.bin"
+PaletteHeaderC83E:
+    PaletteStreamHeader $00, $00, $00 ; CONTROL_PALETTE_HEADER_C83E
+    .incbin "bank0_c841_c851.bin"
+PaletteHeaderC851:
+    PaletteStreamHeader $00, $00, $00 ; CONTROL_PALETTE_HEADER_C851
+    .incbin "bank0_c854_c864.bin"
+PaletteHeaderC864:
+    PaletteStreamHeader $00, $00, $00 ; CONTROL_PALETTE_HEADER_C864
+    .incbin "bank0_c867_c877.bin"
+PaletteHeaderC877:
+    PaletteStreamHeader $02, $0C, $0A ; CONTROL_PALETTE_HEADER_C877
+    .incbin "bank0_c87a_c8e2.bin"
+PaletteHeaderC8E2:
+    PaletteStreamHeader $01, $03, $0A ; CONTROL_PALETTE_HEADER_C8E2
+    .incbin "bank0_c8e5_c8fd.bin"
+PaletteHeaderC8FD:
+    PaletteStreamHeader $00, $00, $00 ; CONTROL_PALETTE_HEADER_C8FD
+    .incbin "bank0_c900_c910.bin"
+PaletteHeaderC910:
+    PaletteStreamHeader $00, $00, $00 ; CONTROL_PALETTE_HEADER_C910
+    .incbin "bank0_c913_c923.bin"
+PaletteHeaderC923:
+    PaletteStreamHeader $00, $00, $00 ; CONTROL_PALETTE_HEADER_C923
+    .incbin "bank0_c926_c936.bin"
+PaletteHeaderC936:
+    PaletteStreamHeader $00, $00, $00 ; CONTROL_PALETTE_HEADER_C936
+    .incbin "bank0_c939_c949.bin"
+PaletteHeaderC949:
+    PaletteStreamHeader $00, $00, $00 ; CONTROL_PALETTE_HEADER_C949
+    .incbin "bank0_c94c_c95c.bin"
+PaletteHeaderC95C:
+    PaletteStreamHeader $00, $00, $00 ; CONTROL_PALETTE_HEADER_C95C
+    .incbin "bank0_c95f_c96f.bin"
+PaletteHeaderC96F:
+    PaletteStreamHeader $00, $00, $00 ; CONTROL_PALETTE_HEADER_C96F
+    .incbin "bank0_c972_c982.bin"
+PaletteHeaderC982:
+    PaletteStreamHeader $01, $03, $0A ; CONTROL_PALETTE_HEADER_C982
+    .incbin "bank0_c985_c99d.bin"
+PaletteHeaderC99D:
+    PaletteStreamHeader $01, $03, $0A ; CONTROL_PALETTE_HEADER_C99D
+    .incbin "bank0_c9a0_c9b8.bin"
+PaletteHeaderC9B8:
+    PaletteStreamHeader $01, $03, $0A ; CONTROL_PALETTE_HEADER_C9B8
+    .incbin "bank0_c9bb_c9d3.bin"
+PaletteHeaderC9D3:
+    PaletteStreamHeader $01, $03, $0A ; CONTROL_PALETTE_HEADER_C9D3
+    .incbin "bank0_c9d6_c9ee.bin"
+PaletteHeaderC9EE:
+    PaletteStreamHeader $01, $03, $0A ; CONTROL_PALETTE_HEADER_C9EE
+    .incbin "bank0_c9f1_ca09.bin"
+PaletteHeaderCA09:
+    PaletteStreamHeader $01, $03, $0A ; CONTROL_PALETTE_HEADER_CA09
+    .incbin "bank0_ca0c_ca24.bin"
+PaletteHeaderCA24:
+    PaletteStreamHeader $00, $00, $00 ; CONTROL_PALETTE_HEADER_CA24
+    .incbin "bank0_ca27_ca37.bin"
+PaletteHeaderCA37:
+    PaletteStreamHeader $00, $00, $00 ; CONTROL_PALETTE_HEADER_CA37
+    .incbin "bank0_ca3a_ca4a.bin"
+PaletteHeaderCA4A:
+    PaletteStreamHeader $00, $00, $00 ; CONTROL_PALETTE_HEADER_CA4A
+    .incbin "bank0_ca4d_ca5d.bin"
 ; Initialize engine state and split-screen parameters using the locally
 ; supplied four-byte table. The downstream PPU and mapper behavior still
 ; require runtime verification.
@@ -15773,9 +15859,9 @@ LongScriptAF4C:
 LongScriptAF4E:
     BogusCallNativeEncoded Bank0::FadeOutPalettes - 1
 LongScriptAF51:
-    BogusSetBackgroundPalettePointer $C83E
+    BogusSetBackgroundPalettePointer Bank0::PaletteHeaderC83E
 LongScriptAF54:
-    BogusSetSpritePalettePointer $C83E
+    BogusSetSpritePalettePointer Bank0::PaletteHeaderC83E
 LongScriptAF57:
     BogusSetMainState $11
 .assert (* - BankStart) = $2F59, error, "bank 1 long-run script $AF2C end"
@@ -16466,7 +16552,7 @@ SuccessorScriptB272:
 SuccessorScriptB275:
     BogusCallNativeEncoded Bank0::FadeOutPalettes - 1
 SuccessorScriptB278:
-    BogusSetSpritePalettePointer $C83E
+    BogusSetSpritePalettePointer Bank0::PaletteHeaderC83E
 .assert (* - BankStart) = $327B, error, "bank 1 candidate successor $B1F7 end"
 ; Static candidate successors; independent entries do not prove reachability.
 PathScriptB27B:
@@ -16490,7 +16576,7 @@ ResumeScriptB292:
 ResumeScriptB297:
     BogusLoadRecordAndClearSavedState $48
 ResumeScriptB299:
-    BogusSetBackgroundPalettePointer $C7DF
+    BogusSetBackgroundPalettePointer Bank0::PaletteHeaderC7DF
 ResumeScriptB29C:
     BogusLoadRecordAndClearSavedState $48
 ResumeScriptB29E:
@@ -17838,16 +17924,16 @@ ScriptBC3D:
     BogusBranchIfMatchingSlotReady ScriptBC27, $01, $08, $00
     BogusRestartVoice4 $28BA
     BogusWait $02
-    BogusSetBackgroundPalettePointer $C864
+    BogusSetBackgroundPalettePointer Bank0::PaletteHeaderC864
     BogusWait $01
     BogusSetBackgroundPalettePointer $FFFF
     BogusWait $01
-    BogusSetBackgroundPalettePointer $C864
+    BogusSetBackgroundPalettePointer Bank0::PaletteHeaderC864
     BogusWait $02
     BogusSetBackgroundPalettePointer $FFFF
     BogusAdvanceAndBranchState1B ScriptBC27, $80
     BogusRestartVoice4 $28BA
-    BogusSetBackgroundPalettePointer $C864
+    BogusSetBackgroundPalettePointer Bank0::PaletteHeaderC864
     BogusWait $03
     BogusSetBackgroundPalettePointer $FFFF
     BogusJumpBank1 ScriptBC27
@@ -17980,7 +18066,7 @@ ScriptBD6D:
 ScriptBD75:
     BogusSetSlotFields80 $00, $00
     BogusMarkMatchingSlots $00, $01, $17, $00
-    BogusSetBackgroundPalettePointer $C8E2
+    BogusSetBackgroundPalettePointer Bank0::PaletteHeaderC8E2
     BogusInitializeOtherSlotAbsolute $26, $67, $B4, $00
     BogusSetSlotPositionFromOperands $00, $8C
     BogusSetSlotFields80 $00, $F8
@@ -18998,8 +19084,8 @@ RestoreScriptD25A:
     BogusSetSpritePalettePointer $0000
     BogusSelectStateTableValue $0F
     BogusBranchIfSlotValueNotEqual RestoreScriptD272, $0004
-    BogusSetBackgroundPalettePointer $C864
-    BogusSetSpritePalettePointer $C818
+    BogusSetBackgroundPalettePointer Bank0::PaletteHeaderC864
+    BogusSetSpritePalettePointer Bank0::PaletteHeaderC818
 RestoreScriptD272:
     BogusSetSlotValue $2E00
     BogusStoreSlotValueArray $3D
@@ -23794,9 +23880,9 @@ SweepScriptF041:
 .assert (* - BankStart) = $7045, error, "bank 1 sweep script $F02F end"
 ; Static candidate successors; independent entries do not prove reachability.
 PathScriptF045:
-    BogusSetBackgroundPalettePointer $C864 ; CONTROL_PATH_SCRIPT_F045
+    BogusSetBackgroundPalettePointer Bank0::PaletteHeaderC864 ; CONTROL_PATH_SCRIPT_F045
 PathScriptF048:
-    BogusSetSpritePalettePointer $C818
+    BogusSetSpritePalettePointer Bank0::PaletteHeaderC818
 .assert (* - BankStart) = $704B, error, "bank 1 candidate successor $F045 end"
 ; Candidate path from a literal branch target in maintained source.
 ; Independent entries are labelled; runtime reachability is not implied.
@@ -23979,9 +24065,9 @@ ExpandedScriptF11C:
 ; Candidate path from a literal branch target in maintained source.
 ; Independent entries are labelled; runtime reachability is not implied.
 BranchScriptF11F:
-    BogusSetBackgroundPalettePointer $C864 ; CONTROL_BRANCH_SCRIPT_F11F
+    BogusSetBackgroundPalettePointer Bank0::PaletteHeaderC864 ; CONTROL_BRANCH_SCRIPT_F11F
 BranchScriptF122:
-    BogusSetSpritePalettePointer $C818
+    BogusSetSpritePalettePointer Bank0::PaletteHeaderC818
 BranchScriptF125:
     BogusJumpBank1 (BankStart + $6FF3)
 BranchScriptF128:
@@ -24086,8 +24172,8 @@ ScriptF21E:
     BogusMarkMatchingSlots $20, $01, $06, $00
 ScriptF223:
     BogusSetDispatchCounter $03
-    BogusSetBackgroundPalettePointer $CA37
-    BogusSetSpritePalettePointer $CA4A
+    BogusSetBackgroundPalettePointer Bank0::PaletteHeaderCA37
+    BogusSetSpritePalettePointer Bank0::PaletteHeaderCA4A
     BogusBranchIfState07ZeroAndClear ScriptF230
     BogusSetInvertedState3B $FF
 ScriptF230:
@@ -24402,7 +24488,7 @@ CandidateValuesFCD2:
 CandidateListPointersFCE3:
     .word CandidateValuesFCA7 - BankStart, CandidateValuesFCA7 - BankStart, CandidateValuesFCB4 - BankStart, CandidateValuesFCC3 - BankStart, CandidateValuesFCD2 - BankStart ; CONTROL_CANDIDATE_LIST_POINTERS
 CandidatePalettePointersFCED:
-    .word $C7F2, $C7F2, $C805, $C7F2, $C818 ; CONTROL_CANDIDATE_PALETTE_POINTERS
+    .word Bank0::PaletteHeaderC7F2, Bank0::PaletteHeaderC7F2, Bank0::PaletteHeaderC805, Bank0::PaletteHeaderC7F2, Bank0::PaletteHeaderC818 ; CONTROL_CANDIDATE_PALETTE_POINTERS
 CandidateStateValuesFCF7:
     .byte $00, $05, $28, $07, $1E ; CONTROL_CANDIDATE_STATE_VALUES
 .assert (* - BankStart) = $7CFC, error, "bank 1 candidate indexed entries end"

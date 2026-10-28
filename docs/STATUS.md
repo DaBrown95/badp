@@ -1690,3 +1690,19 @@ three bytes at `$F354-$F356` remain opaque. These interpretations depend on the
 script context and selected bank; they do not rule out other uses or prove
 physical cartridge behaviour. All tile data remains local and receives no
 source-progress credit.
+
+Twenty-six palette stream starts selected by the state pointer tables or
+candidate BOGUS commands now have their three-byte group, frame-count and tick
+headers in structured source. These 78 bytes were formerly local; each header
+has an independent changed-source control. Pointers now refer to source labels,
+while the colour data remains local. Several headers overlap candidate script or
+sprite uses; those alternate views, active-bank assumptions and reachability
+remain unproven. No colour data is counted as source. The combined PRG
+inventory now includes named literal BOGUS palette starts as well as state
+and candidate indexed tables; `$0000` is a dynamic slot-derived pair and
+`$FFFF` selects the state table, so neither is treated as a literal ROM pointer.
+
+The separately recorded [cartridge-profile evidence](CARTRIDGE_EVIDENCE.md)
+corroborates the six input identities with component CRC-32 values and records
+a v1.5 / Version 5.0 naming discrepancy. It does not upgrade the hardware
+verification status or replace the fixed reference hashes.

@@ -5,7 +5,8 @@ from pathlib import Path
 import tempfile
 import unittest
 
-from tools.prg_inventory import _optional_trace, expansion_counts, palette_setup_spans, script_graph_spans, summarize
+from tools.prg_inventory import (_optional_trace, expansion_counts, palette_script_spans,
+                                 palette_setup_spans, script_graph_spans, summarize)
 
 
 class PrgInventoryTests(unittest.TestCase):
@@ -139,6 +140,19 @@ class PrgInventoryTests(unittest.TestCase):
             trace.symlink_to(root / 'missing')
             with self.assertRaisesRegex(ValueError, 'symlinked trace'):
                 _optional_trace(trace, script, 'reference', 'core')
+
+    def test_named_palette_script_paths_include_dynamic_exclusions_and_shared_headers(self):
+        region = {'id': 'bank0-palette-header-8004', 'bank': 0, 'cpu': '0x8004', 'size': 3, 'kind': 'data'}
+        source = ("BogusSetBackgroundPalettePointer Bank0::PaletteHeader8004\n"
+                  "BogusSetSpritePalettePointer Bank0::PaletteHeader8004 ; synthetic\n"
+                  "BogusSetSpritePalettePointer $0000\nBogusSetBackgroundPalettePointer $FFFF\n")
+        self.assertEqual(palette_script_spans(source, [region]), [(4, 3), (7, 16), (4, 3), (8, 15)])
+        for changed_source, changed_regions in ((source, []),
+                                                (source.replace('PaletteHeader8004', 'PaletteHeader8005'), [region]),
+                                                (source.replace('Bank0::PaletteHeader8004', '$8004'), [region]),
+                                                (source, [{**region, 'bank': 1}])):
+            with self.subTest(source=changed_source), self.assertRaises(ValueError):
+                palette_script_spans(changed_source, changed_regions)
 
     def test_palette_setup_respects_sprite_skip_and_bank_bounds(self):
         pointers = bytes([4, 0x80, 4, 0x80])

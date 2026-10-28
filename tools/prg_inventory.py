@@ -9,6 +9,7 @@ from collections import Counter
 import hashlib
 import json
 import os
+import re
 from pathlib import Path
 import sys
 
@@ -190,6 +191,36 @@ def palette_setup_spans(pointers: bytes, *, sprite: bool, bank_size: int = BANK_
     return spans
 
 
+def palette_script_spans(source: str, regions: list[dict]) -> list[tuple[int, int]]:
+    """Find named literal palette starts in BOGUS source, retaining mapping uncertainty.
+
+    $FFFF selects the state table and $0000 resolves a dynamic per-slot pair;
+    neither is a literal ROM pointer. Each named start must correspond to a
+    source-owned bank-0 header. This does not prove the script path executes.
+    """
+    line_pattern = re.compile(r'^\s*BogusSet(Background|Sprite)PalettePointer\s+(\S+)')
+    label_pattern = re.compile(r'^Bank0::PaletteHeader([0-9A-F]{4})$')
+    spans = []
+    for line in source.splitlines():
+        match = line_pattern.match(line.split(';', 1)[0])
+        if not match:
+            continue
+        kind, operand = match.groups()
+        if operand in ('$FFFF', '$0000'):
+            continue
+        label = label_pattern.fullmatch(operand)
+        if not label:
+            raise ValueError('palette script pointer is neither a known dynamic form nor a named header')
+        address = int(label.group(1), 16)
+        matching = [region for region in regions if region['bank'] == 0 and region['kind'] == 'data'
+                    and int(region['cpu'], 0) == address and region['size'] == 3
+                    and region['id'] == f'bank0-palette-header-{address:04x}']
+        if len(matching) != 1:
+            raise ValueError('palette script pointer does not identify a source-owned header')
+        spans.extend(palette_setup_spans(address.to_bytes(2, 'little'), sprite=(kind == 'Sprite')))
+    return spans
+
+
 def _optional_trace(path: Path, script: Path, reference: str, core: str) -> dict | None:
     if path.is_symlink():
         raise ValueError('refusing a symlinked trace')
@@ -252,6 +283,7 @@ def inventory(root: Path = ROOT) -> dict:
     flow = events['flow']
     graph = flow['merged_script_flow']
     source = (root / config['source']).read_text()
+    spans['candidate_palette_setup_bytes'] += palette_script_spans(source, regions)
     direct_seeds = direct_record_flow.source_script_seeds(source, config['regions'])
     direct_graph = walk(bank0, bank1, lengths, direct_seeds, indexed_jumps=PRIMARY_INDEXED_JUMPS,
                         limit=65536)

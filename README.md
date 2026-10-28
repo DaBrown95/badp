@@ -14,6 +14,9 @@ All six reference ROMs have been identified against a
 full-file hashes and separate PRG/CHR identities are recorded in
 [config/targets/](config/targets/).
 
+The target names follow No-Intro; a CRC-matching cartridge profile calls the
+v1.5 target [Version 5.0](https://nescartdb.com/profile/view/4773/bible-adventures).
+
 The v1.5 build matches the reference ROM byte for byte. Its source covers reset
 and startup, NMI frame and controller handling, PPU update streams and setup,
 palette streams, split-screen setup, scroll updates, bank switching, sprite
@@ -46,7 +49,7 @@ are not measures of gameplay completion.
 <!-- BEGIN GENERATED PROGRESS -->
 | Version | Reconstructed PRG | Status |
 | --- | ---: | --- |
-| USA v1.5 | **66.21%** (43,390 / 65,536 bytes) | In progress |
+| USA v1.5 | **66.33%** (43,468 / 65,536 bytes) | In progress |
 | USA v1.4 | **0.00%** (0 / 65,536 bytes) | Not started |
 | USA v1.3 | **0.00%** (0 / 65,536 bytes) | Not started |
 | USA v1.2 | **0.00%** (0 / 65,536 bytes) | Not started |
