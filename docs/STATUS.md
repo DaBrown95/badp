@@ -1,5 +1,10 @@
 # Reference identities and version strategy
 
+Current acceptance decisions and remaining work are maintained in
+[ACCEPTANCE.md](ACCEPTANCE.md) and `config/inventory-review-us-v1.5.json`.
+The chronological checkpoints below preserve earlier evidence and may describe
+blockers that the current checklist has closed.
+
 The owner requests a complete reconstruction of every variant supplied in
 `baseroms/`, completing one version before adapting the work to the others.
 There are six files: the unversioned USA release and v1.1 through v1.5.
@@ -2379,3 +2384,44 @@ inventory, candidate-call inventory, new probe and physical audit share the
 current proof. Source ownership and the five unresolved storage groups are
 unchanged. No further native-call probe expansion is required for acceptance
 unless a concrete reconstruction gap is identified.
+
+## v1.5 acceptance decision
+
+The finite checklist in `docs/ACCEPTANCE.md` and the input-bound review ledger
+replace the former permanently-false review flags. Six mechanism/format reviews
+and five storage decisions are closed. Review allows overlapping uses; the
+conditional-index and non-ROM-context counters remain visible but are not
+automatically missing routines. A missing/stale evidence item, open mechanism,
+unreviewed byte or opaque local storage prevents acceptance. Progress reporting
+recomputes these gates against the current full-build proof.
+
+The five storage groups are explicit retained data, outside the selected
+adjacent formats. At `$D75D`, reviewed descriptor contexts replace the pointer
+with `$00FF`; the next known command entry is `$D75E`. The two record tails are
+separate from the nine selected fields; their first bytes are ignored fetch
+lookahead. The three-byte menu prefix precedes every command-selected payload
+and follows an unconditional jump. The two-byte map suffix lies after the
+nominal grid and before the next header; its first byte is discarded lookup
+lookahead. Comparative boundary contexts support these extents. None is named
+padding, artwork, an extra record/grid field or a new opcode. Original intended
+use remains unknown, without exposing a missing implementation under the
+reviewed supported entries. Existing alternate views remain in the audit.
+
+The final full ROM matches with all 2,091 source controls, including independent
+changes to each retained-storage group. All 372 tooling tests and six reference
+audits pass. The physical partition contains 21,474 native-source bytes, 23,711
+structured-source bytes, 115 alignment bytes and 20,236 understood local asset
+bytes, with zero opaque PRG bytes. The derived v1.5 audit is accepted, covering
+all 65,536 physical PRG bytes. The source percentage still excludes assets and
+is not an executable denominator. Existing native/record/runtime evidence is
+reused only for its unchanged instruction, table and field-selection scope;
+bounded metadata snapshots preserve that review separately from regenerated
+command outputs. No extra runtime matrix was required to close these storage
+decisions.
+
+One version is rebuilt and accepted; five remain. v1.4 comparison identifies a
+real reset-sequence variant and a 22-byte shift through most of bank 0. Of 314
+bounded native comparison blocks, 306 have unique candidates under relocation
+normalization; eight need individual review. These are comparative candidates,
+not a v1.4 build or source credit. The continuation is shared-source adaptation
+for v1.4, followed by the remaining configured versions.

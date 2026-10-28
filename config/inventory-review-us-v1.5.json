@@ -1,0 +1,423 @@
+{
+  "schema_version": 1,
+  "target": "us-v1.5",
+  "reference_sha256": "4f39cb6e6d42582b967e72a2dbfe4e02382cf53de721d16f7f6950e6ae6b17ab",
+  "source_sha256": "c48ef02cd8f877c7671d92cbcb36c3f9a2472d72f1d5cd6589d40e39b1ce4ef9",
+  "source_map_sha256": "5b49c893b25aadc9158a9913043a88f09c525eb60e3228b0ca21c61401987753",
+  "decisions": [
+    {
+      "id": "native-entry-and-transfers",
+      "kind": "mechanism",
+      "state": "closed",
+      "location": "Both PRG banks; vectors, direct transfers, dispatch and encoded RTS calls",
+      "unknown": "Original names and arbitrary RAM-generated destinations are not established.",
+      "completion_effect": "No missing routine is identified by the supported-entry inventory.",
+      "close_when": "All supported native entries and transfer mechanisms have readable matching implementations; classify concrete target gaps.",
+      "decision": "Closed: all owned native bytes have checked instructions, all nominal handlers and vectors have instruction-start targets. Additional indices and incidental calls retain their actual physical representations; a hypothetical target is not a new routine.",
+      "evidence": [
+        {
+          "path": "analysis/us-v1.5/review-evidence/native-control-flow.json",
+          "sha256": "fd3f804f39fd24391352d174c9e320c4030cecf0d4810b72d90298fa634149f0",
+          "scope": "All native source boundaries, transfers, vectors and 256 dispatch indices."
+        },
+        {
+          "path": "analysis/us-v1.5/review-evidence/native-script-calls.json",
+          "sha256": "530d3680dc5b2a1c2cf76cdf206f6602ae14b92706d165554af442da5a3c9987",
+          "scope": "Declared versus incidental call origins and physical-bank target alternatives."
+        },
+        {
+          "path": "analysis/us-v1.5/review-evidence/native-call-verification.json",
+          "sha256": "36e72ba6ba668a0304885e9b410439aea6822a99b8aefb08387bc94dbddbb7f8",
+          "scope": "Conditional shared-wrapper destination and normal-return contract only."
+        },
+        {
+          "path": "include/nes.inc",
+          "sha256": "a022e2af0dd87eb1f32cdb778856a78ca7c2a4c644873c8d5d26150e936285fc",
+          "scope": "Reviewed RAM symbols and aliases used by the matching source."
+        },
+        {
+          "path": "config/link-us-v1.5.cfg",
+          "sha256": "0f599ba3d8f4bb3176c64ad346e7a5dd23dcf7a6f153ff1cc533df65f0d58f04",
+          "scope": "Physical bank and CPU layout used by the matching source."
+        }
+      ]
+    },
+    {
+      "id": "bank-transitions",
+      "kind": "mechanism",
+      "state": "closed",
+      "location": "Shared reset/NMI/copy/native-call tails; mapper write table",
+      "unknown": "Physical cartridge details beyond the pinned evidence remain provisional.",
+      "completion_effect": "No missing source is exposed by measured transitions.",
+      "close_when": "Represent bank-selection writes, conflicts, reset and interrupt transitions; retain unsupported hardware uncertainty.",
+      "decision": "Closed for reconstruction: both physical tails and all mapper-writing instructions are represented. Default and secondary selections, bus-conflict cases and restoration have explicit semantics. This does not infer cartridge hardware from the header.",
+      "evidence": [
+        {
+          "path": "docs/CARTRIDGE_EVIDENCE.md",
+          "sha256": "e01fc42161cca3792191eb5f03cd69b89dd532e6fbdaf6f9cf06c4b8a116234c",
+          "scope": "Reviewed cartridge and program evidence, including mapper uncertainty."
+        },
+        {
+          "path": "tools/verify_audio_bank.py",
+          "sha256": "cd9e2fbe21392a10dc186f8e037cd075e144748c8da20c34c8956a00c8e4e77f",
+          "scope": "Existing selector/mapping model and bounded runtime assertions."
+        },
+        {
+          "path": "tools/mesen_audio_bank_mapping.lua",
+          "sha256": "7e9935bc636fc3506e4cbcb348b4cd8e8d7f0fea436abc9f3ed62dd9acec7cf4",
+          "scope": "Existing measured bank and bus-conflict addresses."
+        },
+        {
+          "path": "src/us-v1.5/rom.s",
+          "sha256": "c48ef02cd8f877c7671d92cbcb36c3f9a2472d72f1d5cd6589d40e39b1ce4ef9",
+          "scope": "Readable shared transition implementations and preserved alignment storage."
+        },
+        {
+          "path": "include/nes.inc",
+          "sha256": "a022e2af0dd87eb1f32cdb778856a78ca7c2a4c644873c8d5d26150e936285fc",
+          "scope": "Reviewed RAM symbols and aliases used by the matching source."
+        },
+        {
+          "path": "config/link-us-v1.5.cfg",
+          "sha256": "0f599ba3d8f4bb3176c64ad346e7a5dd23dcf7a6f153ff1cc533df65f0d58f04",
+          "scope": "Physical bank and CPU layout used by the matching source."
+        }
+      ]
+    },
+    {
+      "id": "bogus-successors",
+      "kind": "mechanism",
+      "state": "closed",
+      "location": "197 nominal handlers; declared scripts, slot/event roots and indexed successors",
+      "unknown": "Dynamic restored pointers, indexed stack writes and independent arbitrary-state entries remain conditional.",
+      "completion_effect": "These mechanisms have reconstructed implementations; candidate-only paths do not identify an opaque executable inclusion.",
+      "close_when": "Account for each handler and supported successor mechanism, and reconstruct any concrete newly identified executable region.",
+      "decision": "Closed: native handler bodies, command forms, direct/conditional successors, retries/yields, record-installed pointers and indexed-table rules are represented. Candidate decodes into assets retain overlaps. The incomplete-index counters describe conditional bounds, not missing handlers.",
+      "evidence": [
+        {
+          "path": "tools/script_flow.py",
+          "sha256": "efb7d6e5c9ffb6fda65b929f49b51e958b35fe3e9962855b596e239f1832db35",
+          "scope": "Reviewed successor rules and explicit dynamic/conditional stops."
+        },
+        {
+          "path": "tools/native_event_flow.py",
+          "sha256": "62c3877dc5f4b4d72069f136b90752a51a75ec7e61d096c486d07706c34d2254",
+          "scope": "Native event roots and their record/script relationships."
+        },
+        {
+          "path": "tools/direct_record_flow.py",
+          "sha256": "82d87c19801e45c45986a1da79ee12d35dbb6cac474a385af282bb6e5a7dcb32",
+          "scope": "Declared script roots and direct/dynamic record relationships."
+        },
+        {
+          "path": "docs/SCRIPT_FLOW.md",
+          "sha256": "8f922c92056d4d2ced7e85a543cbb2865b2555178b19b52759141f54e5f199fc",
+          "scope": "Existing semantic review and limits of candidate flow."
+        },
+        {
+          "path": "include/nes.inc",
+          "sha256": "a022e2af0dd87eb1f32cdb778856a78ca7c2a4c644873c8d5d26150e936285fc",
+          "scope": "Reviewed RAM symbols and aliases used by the matching source."
+        },
+        {
+          "path": "config/link-us-v1.5.cfg",
+          "sha256": "0f599ba3d8f4bb3176c64ad346e7a5dd23dcf7a6f153ff1cc533df65f0d58f04",
+          "scope": "Physical bank and CPU layout used by the matching source."
+        }
+      ]
+    },
+    {
+      "id": "slot-resources",
+      "kind": "mechanism",
+      "state": "closed",
+      "location": "Descriptors, normal/script-only/compact records, position streams and sprite directories",
+      "unknown": "Object roles and ordinary reachability of every candidate resource are unproven.",
+      "completion_effect": "No missing resource format is identified by out-of-range or non-ROM arbitrary contexts.",
+      "close_when": "Represent supported record field selection and resource formats; identify a concrete unrepresented valid resource if any.",
+      "decision": "Closed: record field classes, sentinel handling, fragmented/overlapping views, animation directories and frame extents are represented. Existing controlled loader evidence is reused for its recorded views and modes; it is not generalized to gameplay reachability.",
+      "evidence": [
+        {
+          "path": "tools/record_views.py",
+          "sha256": "6a8d70478c75469016b417a2a80f74592a825e8f51b11d8d4d4fd483853d16f3",
+          "scope": "Declared and fragmented record layouts."
+        },
+        {
+          "path": "tools/verify_normal_records.py",
+          "sha256": "8edc5c1a608b82201de12573c0b6d38f1599ed0f50cbb8504356ad2a0bfe46d3",
+          "scope": "Existing loader-field checks and stopping boundaries."
+        },
+        {
+          "path": "config/sprite-frames-us-v1.5.json",
+          "sha256": "d6e65fd011bd8693eb15a8eff4d7abaa3f0afea206f1fee667aeda4a8a74ec8f",
+          "scope": "Reviewed frame extents and headers."
+        },
+        {
+          "path": "tools/sprite_layout.py",
+          "sha256": "6bb3c01958e95512cfb0e5192427dfdd6892f3f28bbc65198a6e6767a0192c8a",
+          "scope": "Animation and frame relationship inventory."
+        }
+      ]
+    },
+    {
+      "id": "audio",
+      "kind": "mechanism",
+      "state": "closed",
+      "location": "Voice state, command decoder, tables and isolated streams",
+      "unknown": "Musical intent and every possible injected voice pointer are not established.",
+      "completion_effect": "No concrete missing audio executable is identified.",
+      "close_when": "Represent the command engine and supported audio streams, keeping data/command overlaps.",
+      "decision": "Closed: voice/native code and structured command forms are reconstructed; observed and static candidates are distinguished. Unbounded lookup arithmetic is understood and does not by itself require treating every selected asset byte as missing audio source.",
+      "evidence": [
+        {
+          "path": "tools/audio_commands.py",
+          "sha256": "c3f348c5d70e9575a66a6be30e1e8f37dd3299df1120628fa5289e8ea3fa7d88",
+          "scope": "Decoded command forms and widths."
+        },
+        {
+          "path": "tools/audio_flow.py",
+          "sha256": "a50201f6c9c74f6625cd99b18284478b9107e4cc810c3a69cc74f220116d6e50",
+          "scope": "Candidate and observed roots, overlaps and bank crossings."
+        },
+        {
+          "path": "src/us-v1.5/rom.s",
+          "sha256": "c48ef02cd8f877c7671d92cbcb36c3f9a2472d72f1d5cd6589d40e39b1ce4ef9",
+          "scope": "Readable audio engine, tables and structured stream declarations."
+        }
+      ]
+    },
+    {
+      "id": "asset-formats",
+      "kind": "mechanism",
+      "state": "closed",
+      "location": "CHR and local map/text/menu/palette/PPU/sprite assets",
+      "unknown": "Artistic meaning and exclusive use are not requirements.",
+      "completion_effect": "All local asset bytes have controlled deterministic encodings; five storage groups remain separate.",
+      "close_when": "Account for each necessary local input with understood encoding and meaningful edit control, without code credit.",
+      "decision": "Closed: local asset representations and source headers are disjointly accounted while competing script/data views remain. This decision does not cover unresolved storage bytes.",
+      "evidence": [
+        {
+          "path": "tools/source_audit.py",
+          "sha256": "1de494470b957f0e873164991aaf41e805de56f6015613070a78e8e06702fc9b",
+          "scope": "Physical partition and asset-span ownership."
+        },
+        {
+          "path": "tools/map_layout_assets.py",
+          "sha256": "42d29460a6f5ed058cd890f64ffc26015373bc2a743c580ec8b89ecb79e130e3",
+          "scope": "Map grid dimensions and deterministic encoding."
+        },
+        {
+          "path": "tools/sprite_assets.py",
+          "sha256": "f284e6227f2d1d5eb64d466c348fe60900f21adf345ec748f68ff1a2c6b29a68",
+          "scope": "Local frame encoding."
+        },
+        {
+          "path": "tools/menu_assets.py",
+          "sha256": "ca6056acefdf2d9ef8b26f805fb87633cc6cfd554a9d811d5110c1a00c5db937",
+          "scope": "Known menu-copy payloads and lengths."
+        },
+        {
+          "path": "tools/chr_assets.py",
+          "sha256": "f02ed4f22d8677eec6058a32bca681528729e096e9ea5c8b9c17d5c8065e585c",
+          "scope": "Physical CHR 2bpp encoding."
+        },
+        {
+          "path": "tools/build_rom.py",
+          "sha256": "edb0f8239b4600b7a2d4146e2d16c6cfc68df714deaf23b7a201f7d00f7a09a7",
+          "scope": "Whole-ROM equality and source/asset edit controls."
+        }
+      ]
+    },
+    {
+      "id": "storage-d75d",
+      "kind": "storage",
+      "state": "closed",
+      "location": "Bank 1 $D75D-$D75D",
+      "unknown": "Original intended use remains unknown. The accepted representation assigns no padding, artwork, extra-field or instruction format.",
+      "completion_effect": "Closed: explicit retained data outside the bounded adjacent command/payload/grid; no opaque executable inclusion identified.",
+      "close_when": "Use consumers and comparative context to adopt an explicit supported storage representation, or identify and reconstruct a real alternate use.",
+      "decision": "Accept retained script-adjacent storage, not a one-byte command. The two-byte load consumes only D75B-D75C; reviewed descriptor contexts install script $00FF, and D75E is the next known entry. The same eleven-byte command/trailer/context survives v1.1-v1.4. Independent arbitrary-state entry remains conditional and does not identify a missing implementation.",
+      "evidence": [
+        {
+          "path": "src/us-v1.5/rom.s",
+          "sha256": "c48ef02cd8f877c7671d92cbcb36c3f9a2472d72f1d5cd6589d40e39b1ce4ef9",
+          "scope": "D75B record-load predecessor, D549 record and D75E command boundary."
+        },
+        {
+          "path": "analysis/us-v1.5/review-evidence/remaining-storage-context-review.json",
+          "sha256": "6f6f9218e68c2316c7a9a4940e1c8255c6bc97d9dc207a8c747098a04ea334b8",
+          "scope": "Audited comparative fixed boundary contexts: D75D unique in v1.1-v1.4; menu prefix and map suffix neighboring contexts unique in all six."
+        },
+        {
+          "path": "src/us-v1.5/rom.s",
+          "sha256": "c48ef02cd8f877c7671d92cbcb36c3f9a2472d72f1d5cd6589d40e39b1ce4ef9",
+          "scope": "Explicit retained storage definitions separate from supported consumers and adjacent formats."
+        }
+      ],
+      "bank": 1,
+      "cpu": 55133,
+      "size": 1
+    },
+    {
+      "id": "storage-eb08",
+      "kind": "storage",
+      "state": "closed",
+      "location": "Bank 1 $EB08-$EB09",
+      "unknown": "Original purpose of the two retained bytes is unknown; no extra record-field semantics are claimed.",
+      "completion_effect": "Closed: storage is explicit source data, separate from both adjacent records; no opaque executable inclusion remains here.",
+      "close_when": "Use consumers and comparative context to adopt an explicit supported storage representation, or identify and reconstruct a real alternate use.",
+      "decision": "Accept separate retained record-tail storage. Existing loader evidence establishes nine selected bytes plus first-byte lookahead; comparative v1.1-v1.4 contexts preserve both bytes between independently identified records after resource relocation. Do not label padding or extend the record to eleven bytes. Conditional script overlaps remain visible.",
+      "evidence": [
+        {
+          "path": "analysis/us-v1.5/review-evidence/record-zero-tail-comparison.json",
+          "sha256": "7686800f1cfbcb5c446efd88c420f6984c0a80448361993499cdf4542d3de817",
+          "scope": "Relocated nine-byte record plus two-byte tail in v1.1-v1.4."
+        },
+        {
+          "path": "tools/verify_normal_records.py",
+          "sha256": "8edc5c1a608b82201de12573c0b6d38f1599ed0f50cbb8504356ad2a0bfe46d3",
+          "scope": "Existing 10-byte fetch versus selected-field model."
+        },
+        {
+          "path": "src/us-v1.5/rom.s",
+          "sha256": "c48ef02cd8f877c7671d92cbcb36c3f9a2472d72f1d5cd6589d40e39b1ce4ef9",
+          "scope": "Explicit separate retained-tail definitions and unchanged adjacent record boundaries."
+        }
+      ],
+      "bank": 1,
+      "cpu": 60168,
+      "size": 2
+    },
+    {
+      "id": "storage-eb8f",
+      "kind": "storage",
+      "state": "closed",
+      "location": "Bank 1 $EB8F-$EB90",
+      "unknown": "Original purpose of the two retained bytes is unknown; no extra record-field semantics are claimed.",
+      "completion_effect": "Closed: storage is explicit source data, separate from both adjacent records; no opaque executable inclusion remains here.",
+      "close_when": "Use consumers and comparative context to adopt an explicit supported storage representation, or identify and reconstruct a real alternate use.",
+      "decision": "Accept separate retained record-tail storage. Existing loader evidence establishes nine selected bytes plus first-byte lookahead; comparative v1.1-v1.4 contexts preserve both bytes between independently identified records after resource relocation. Do not label padding or extend the record to eleven bytes. Conditional script overlaps remain visible.",
+      "evidence": [
+        {
+          "path": "analysis/us-v1.5/review-evidence/record-zero-tail-comparison.json",
+          "sha256": "7686800f1cfbcb5c446efd88c420f6984c0a80448361993499cdf4542d3de817",
+          "scope": "Comparative record/tail contexts."
+        },
+        {
+          "path": "tools/record_views.py",
+          "sha256": "6a8d70478c75469016b417a2a80f74592a825e8f51b11d8d4d4fd483853d16f3",
+          "scope": "Nine-byte normal view and distinct compact successor."
+        },
+        {
+          "path": "src/us-v1.5/rom.s",
+          "sha256": "c48ef02cd8f877c7671d92cbcb36c3f9a2472d72f1d5cd6589d40e39b1ce4ef9",
+          "scope": "Explicit separate retained-tail definitions and unchanged adjacent record boundaries."
+        }
+      ],
+      "bank": 1,
+      "cpu": 60303,
+      "size": 2
+    },
+    {
+      "id": "storage-f354",
+      "kind": "storage",
+      "state": "closed",
+      "location": "Bank 1 $F354-$F356",
+      "unknown": "Original intended use remains unknown. The accepted representation assigns no padding, artwork, extra-field or instruction format.",
+      "completion_effect": "Closed: explicit retained data outside the bounded adjacent command/payload/grid; no opaque executable inclusion identified.",
+      "close_when": "Use consumers and comparative context to adopt an explicit supported storage representation, or identify and reconstruct a real alternate use.",
+      "decision": "Accept retained menu-prefix storage, separate from tile assets. The preceding known script ends in an unconditional jump; all fourteen menu consumers start at F357 or later. All six revisions preserve the prefix with the first payload. No PPU-command or artwork interpretation is needed or claimed; unknown intended use is not a missing format required by a consumer.",
+      "evidence": [
+        {
+          "path": "tools/menu_assets.py",
+          "sha256": "ca6056acefdf2d9ef8b26f805fb87633cc6cfd554a9d811d5110c1a00c5db937",
+          "scope": "Fourteen command-selected payload starts and lengths."
+        },
+        {
+          "path": "src/us-v1.5/rom.s",
+          "sha256": "c48ef02cd8f877c7671d92cbcb36c3f9a2472d72f1d5cd6589d40e39b1ce4ef9",
+          "scope": "F349 terminal jump and F357 first payload."
+        },
+        {
+          "path": "analysis/us-v1.5/review-evidence/remaining-storage-context-review.json",
+          "sha256": "6f6f9218e68c2316c7a9a4940e1c8255c6bc97d9dc207a8c747098a04ea334b8",
+          "scope": "Audited comparative fixed boundary contexts: D75D unique in v1.1-v1.4; menu prefix and map suffix neighboring contexts unique in all six."
+        },
+        {
+          "path": "src/us-v1.5/rom.s",
+          "sha256": "c48ef02cd8f877c7671d92cbcb36c3f9a2472d72f1d5cd6589d40e39b1ce4ef9",
+          "scope": "Explicit retained storage definitions separate from supported consumers and adjacent formats."
+        }
+      ],
+      "bank": 1,
+      "cpu": 62292,
+      "size": 3
+    },
+    {
+      "id": "storage-f623",
+      "kind": "storage",
+      "state": "closed",
+      "location": "Bank 1 $F623-$F624",
+      "unknown": "Original intended use remains unknown. The accepted representation assigns no padding, artwork, extra-field or instruction format.",
+      "completion_effect": "Closed: explicit retained data outside the bounded adjacent command/payload/grid; no opaque executable inclusion identified.",
+      "close_when": "Use consumers and comparative context to adopt an explicit supported storage representation, or identify and reconstruct a real alternate use.",
+      "decision": "Accept retained map-suffix storage, separate from the nominal grid and next header. The first byte is fetched as discarded high-byte lookahead; the width clamp does not support an extra cell. All six preserve the neighboring context; v1.1-v1.4 preserve the complete primary header/grid/suffix. Original purpose is not inferred.",
+      "evidence": [
+        {
+          "path": "analysis/us-v1.5/review-evidence/map-first-grid-tail-comparison.json",
+          "sha256": "474acd0ff9a62eb53a873546c310c5c34a6f87f6ecc9731984f7553d1ef89f67",
+          "scope": "Complete preserved 472-byte context in v1.1-v1.4."
+        },
+        {
+          "path": "src/us-v1.5/rom.s",
+          "sha256": "c48ef02cd8f877c7671d92cbcb36c3f9a2472d72f1d5cd6589d40e39b1ce4ef9",
+          "scope": "Map lookup high-byte discard, row-width clamp and next header."
+        },
+        {
+          "path": "analysis/us-v1.5/review-evidence/remaining-storage-context-review.json",
+          "sha256": "6f6f9218e68c2316c7a9a4940e1c8255c6bc97d9dc207a8c747098a04ea334b8",
+          "scope": "Audited comparative fixed boundary contexts: D75D unique in v1.1-v1.4; menu prefix and map suffix neighboring contexts unique in all six."
+        },
+        {
+          "path": "src/us-v1.5/rom.s",
+          "sha256": "c48ef02cd8f877c7671d92cbcb36c3f9a2472d72f1d5cd6589d40e39b1ce4ef9",
+          "scope": "Explicit retained storage definitions separate from supported consumers and adjacent formats."
+        }
+      ],
+      "bank": 1,
+      "cpu": 63011,
+      "size": 2
+    }
+  ],
+  "reuse_note": "Existing native, loader and runtime evidence is reused only for unchanged instruction bytes, tables, field-selection rules and record views. The source diff adds explicit retained-data declarations and matching controls; final whole-ROM verification must establish their exact placement. Generated evidence snapshots are retained separately from command outputs so regenerating an equivalent inventory does not erase the reviewed scope or require another runtime matrix.",
+  "review_input_sha256": {
+    "config/mesence-toolchain.json": "b43cd410e541aa687939ba057b0584ed38e3fca1acae8d0d7a8151e4f4eb44a8",
+    "config/palettes-us-v1.5.json": "faad8efbd6ae06caf3700a0de193ca73e7f6e15739be8f7c3cda2bb34b3e929c",
+    "config/ppu-streams-us-v1.5.json": "0a79b6535bb784882e6268f8ee93e8574dd67c6ab2326ad8958f04802f981a28",
+    "config/sprite-frames-us-v1.5.json": "d6e65fd011bd8693eb15a8eff4d7abaa3f0afea206f1fee667aeda4a8a74ec8f",
+    "tools/audio_commands.py": "c3f348c5d70e9575a66a6be30e1e8f37dd3299df1120628fa5289e8ea3fa7d88",
+    "tools/audio_flow.py": "a50201f6c9c74f6625cd99b18284478b9107e4cc810c3a69cc74f220116d6e50",
+    "tools/direct_record_flow.py": "82d87c19801e45c45986a1da79ee12d35dbb6cac474a385af282bb6e5a7dcb32",
+    "tools/inventory_review.py": "dea5e51c5b6d93a173b71e338085a845083d8f38bae6a6bd42efb365006cbdbe",
+    "tools/map_assets.py": "c5cd3c584667ef4b1f0c4a5c13afa23c3127da2fa51c6faeb379c51c829530c8",
+    "tools/map_data.py": "53dfc2acd79890f4e15aa88a453571d1bdfd07690b438cbb3da2885a34e3ef53",
+    "tools/map_layout_assets.py": "42d29460a6f5ed058cd890f64ffc26015373bc2a743c580ec8b89ecb79e130e3",
+    "tools/menu_assets.py": "ca6056acefdf2d9ef8b26f805fb87633cc6cfd554a9d811d5110c1a00c5db937",
+    "tools/native_control_flow.py": "e7656e17a3f91182b6a7ee5b748beddbdd1cc00b3886f0aa962c6b4f3fb26b5c",
+    "tools/native_event_flow.py": "62c3877dc5f4b4d72069f136b90752a51a75ec7e61d096c486d07706c34d2254",
+    "tools/nes6502.py": "13cf9f639b839e06175dc3070cbd9c665baa443e6ee63d725a58b5af51441d8a",
+    "tools/packed_text.py": "f563711b9057685d81b62546068c27a35dfcb40b280c1938e43ab85b88c1667b",
+    "tools/palette_assets.py": "e0fc49093bab3f30271e1ec57cb3140ffc8e407e12a399b1c0b5ad079a9db8c3",
+    "tools/ppu_assets.py": "b856186b6c812dd3dd83a621bab06c0c62c9af58c8be8e51942b59751042519b",
+    "tools/ppu_streams.py": "78bdce90832ae1008f153b281baf4863ba3a8db02e9644c156777d08be15143b",
+    "tools/prg_inventory.py": "d40cc9dca05ea5a95806cbf03d8f7a09bac9812cf45f46f5b3d4a43340635546",
+    "tools/script_entries.py": "46617bbb7c8147c3ec974ddcaa617d0352678c6df5a2b9376fb1f31d6870605a",
+    "tools/script_flow.py": "efb7d6e5c9ffb6fda65b929f49b51e958b35fe3e9962855b596e239f1832db35",
+    "tools/setup_mesen.py": "252f8a9cb4caedaa498024d20cc12e9787b11d17f6cf1309615e2137995200d7",
+    "tools/slot_record_flow.py": "224fe323e97fdd25e57a34dc8b9be9e130ef25da8fc9d2490982bde4495e3f7e",
+    "tools/source_audit.py": "1de494470b957f0e873164991aaf41e805de56f6015613070a78e8e06702fc9b",
+    "tools/sprite_assets.py": "f284e6227f2d1d5eb64d466c348fe60900f21adf345ec748f68ff1a2c6b29a68",
+    "tools/sprite_metadata.py": "b03c10e1e3577713a9123df59a2b5c9899d6dea2f372a20c7c15d7d13b35f491",
+    "tools/text_assets.py": "72bb5c9d6572ce241509aa7f64f08fbe65e1d02e51ef0f91928d4485c249149d",
+    "tools/verify_native_opcodes.py": "804720e4445a8266b7420cb1538de3f98c18606a2d3c4b2cb76451a7df90a240"
+  }
+}

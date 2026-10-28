@@ -352,6 +352,35 @@ def verify_primary(root: Path, target: dict) -> dict:
             "toolchain_revision": pin["revision"]}
 
 
+def accepted_primary(root: Path, target: dict, verified: dict) -> bool:
+    """Accept only a current physical audit whose evidence-backed gates close.
+
+    This reads a completed audit, never turns a source percentage into an
+    acceptance decision and never substitutes an old proof for a new build.
+    """
+    audit_path = root / 'analysis/us-v1.5/source-audit.json'
+    ledger_path = root / 'config/inventory-review-us-v1.5.json'
+    if not audit_path.is_file() or not ledger_path.is_file():
+        return False
+    try:
+        from .inventory_review import apply_review
+        audit, ledger = json.loads(audit_path.read_text()), json.loads(ledger_path.read_text())
+        if (audit['reference_sha256'] != target['reference']['file']['sha256']
+                or any(audit[k] != verified[k] for k in ('source_sha256', 'source_map_sha256'))
+                or audit['build_proof_sha256'] != digest((root / 'build/us-v1.5/proof.json').read_bytes())
+                or audit['prg_bytes'] != target['reference']['prg']['size']
+                or any(audit['representation_bytes'].get(kind, 0) != verified[key] for kind, key in
+                       (('source_code', 'code_bytes'), ('source_data', 'data_bytes'), ('source_fill', 'fill_bytes')))):
+            return False
+        inputs = {**audit['inventory_input_sha256'], **audit['audit_input_sha256']}
+        if ('config/inventory-review-us-v1.5.json' not in inputs
+                or any(digest((root / name).read_bytes()) != value for name, value in inputs.items())):
+            return False
+        return apply_review(audit, ledger, root)['complete_executable_inventory']
+    except (OSError, ValueError, KeyError, TypeError):
+        return False
+
+
 def progress_data(root: Path) -> dict:
     project = load_project(root)
     if project["primary_target"] != PRIMARY:
@@ -362,7 +391,7 @@ def progress_data(root: Path) -> dict:
         prg_size = target["reference"]["prg"]["size"]
         if target_id == PRIMARY:
             verified = verify_primary(root, target)
-            status = "In progress"
+            status = "Accepted" if accepted_primary(root, target, verified) else "In progress"
         else:
             if target["reconstruction_status"] != "unstarted" or (root / "config" / f"source-{target_id}.json").exists():
                 raise ValueError(f"{target_id}: add target-specific verified progress support before reporting it")
@@ -379,7 +408,8 @@ def progress_data(root: Path) -> dict:
                         "reference_sha256": target["reference"]["file"]["sha256"],
                         "evidence": verified if target_id == PRIMARY else None})
     return {"schema_version": 1, "metric": "verified reconstructed PRG bytes / total physical PRG bytes",
-            "complete_code_inventory": False, "chr_included": False, "targets": targets}
+            "complete_code_inventory": all(row['status'] == 'Accepted' for row in targets),
+            "chr_included": False, "targets": targets}
 
 
 def render_table(data: dict) -> str:

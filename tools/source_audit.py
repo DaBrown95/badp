@@ -14,12 +14,14 @@ import sys
 from . import map_assets, map_layout_assets, menu_assets, palette_assets, ppu_assets, sprite_assets, text_assets
 from .build_rom import digest
 from .identify_rom import inspect_rom
+from .inventory_review import apply_review
 from .prg_inventory import CATEGORIES, inventory
 from .progress import verify_primary
 from .project import IDENTITY_PARTS, load_project, load_target
 from .script_entries import BANK_SIZE, ROOT, load_audited_banks
 
 INPUTS = ('tools/source_audit.py', 'tools/map_assets.py', 'tools/map_layout_assets.py',
+          'tools/inventory_review.py', 'config/inventory-review-us-v1.5.json',
           'tools/menu_assets.py', 'tools/palette_assets.py', 'tools/ppu_assets.py', 'tools/ppu_streams.py', 'config/ppu-streams-us-v1.5.json', 'config/palettes-us-v1.5.json', 'tools/sprite_assets.py', 'tools/text_assets.py',
           'config/sprite-frames-us-v1.5.json')
 
@@ -74,12 +76,13 @@ def partition(evidence: list[dict], assets: dict[str, list[tuple[int, int]]],
                          'physical_prg_offset': start, 'size': cursor - start,
                          'representation': ownership, 'local_assets': sorted(asset_names),
                          'evidence_uses': list(names),
-                         'exclusive_use_reviewed': False})
+                         'review_status': 'unreviewed', 'review_decisions': []})
     counts: Counter = Counter()
     for row in rows:
         counts[row['representation']] += row['size']
     return {'prg_bytes': size, 'representation_bytes': dict(sorted(counts.items())),
-            'regions': rows, 'complete_executable_inventory': False}
+            'regions': rows, 'complete_executable_inventory': all(
+                row['review_status'] == 'reviewed' for row in rows)}
 
 
 def asset_spans(root: Path, prg: bytes, reference: str) -> dict[str, list[tuple[int, int]]]:
@@ -168,8 +171,9 @@ def main() -> int:
             revision_identities[target_id] = actual['file']['sha256']
         result['comparative_references'] = revision_identities
         result['opaque_run_comparisons'] = compare_regions(bank0 + bank1, revisions, result['regions'])
-        # Keep scope gaps explicit; a small uncatalogued count does not close
-        # unbounded lookups, native transfers or candidate-only script paths.
+        # Preserve conditional contexts without treating every speculative
+        # decode as another missing implementation. The review ledger names
+        # concrete completion blockers separately.
         result.update(schema_version=1, target='us-v1.5', reference_sha256=reference,
                       source_sha256=combined['source_sha256'],
                       source_map_sha256=combined['source_map_sha256'],
@@ -177,7 +181,7 @@ def main() -> int:
                       inventory_input_sha256=combined['inventory_input_sha256'],
                       audit_input_sha256=hashes, optional_traces=combined['optional_traces'],
                       uncatalogued_bytes=combined['uncatalogued_bytes'],
-                      open_questions={k: combined[k] for k in (
+                      conditional_context_counts={k: combined[k] for k in (
                           'direct_incomplete_observed_indexed_jumps',
                           'direct_incomplete_predecessor_indexed_jumps',
                           'static_sprite_crossings', 'static_sprite_non_rom_resources',
@@ -185,7 +189,8 @@ def main() -> int:
                       interpretation='Representation counts are disjoint physical bytes, not executable '
                       'coverage or a completion percentage. Source ownership wins only for this '
                       'accounting; all candidate uses and asset overlaps remain in each region. '
-                      'No region is automatically reviewed as exclusively data or unused.')
+                      'Review decisions allow overlapping uses and are bound to the reviewed inputs.')
+        result = apply_review(result, json.loads((ROOT / 'config/inventory-review-us-v1.5.json').read_text()), ROOT)
         verified = verify_primary(ROOT, target)
         if (verified['source_sha256'] != combined['source_sha256']
                 or verified['source_map_sha256'] != combined['source_map_sha256']
@@ -198,7 +203,9 @@ def main() -> int:
         output.parent.mkdir(parents=True, exist_ok=True)
         output.write_text(json.dumps(result, indent=2) + '\n')
         print(json.dumps({'representation_bytes': result['representation_bytes'],
-                          'regions': len(result['regions']), 'open_questions': result['open_questions'],
+                          'inventory_review': result['inventory_review'],
+                          'regions': len(result['regions']),
+                          'conditional_context_counts': result['conditional_context_counts'],
                           'output': 'analysis/us-v1.5/source-audit.json'}, indent=2))
     except (OSError, ValueError, KeyError, TypeError) as exc:
         print(f'source audit failed: {exc}', file=sys.stderr)

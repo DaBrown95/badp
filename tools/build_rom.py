@@ -75,6 +75,11 @@ SYMBOL_CONTROLS = {
 # The marker must occur exactly once in the maintained source, even when its
 # macro expands into two banks. Controls are built from isolated source copies.
 MUTATIONS = {
+    "retained_script_storage_d75d": ("CONTROL_RETAINED_SCRIPT_STORAGE_D75D", ".byte $01", ".byte $02"),
+    "retained_menu_prefix_f354": ("CONTROL_RETAINED_MENU_PREFIX_F354", ".byte $00, $00, $20", ".byte $00, $00, $21"),
+    "retained_map_suffix_f623": ("CONTROL_RETAINED_MAP_SUFFIX_F623", ".byte $1E, $15", ".byte $1E, $14"),
+    "retained_record_tail_eb08": ("CONTROL_RETAINED_RECORD_TAIL_EB08", ".byte $00, $00", ".byte $01, $00"),
+    "retained_record_tail_eb8f": ("CONTROL_RETAINED_RECORD_TAIL_EB8F", ".byte $00, $00", ".byte $00, $01"),
     "inferred_b030": ("CONTROL_INFERRED_B030", "BogusRestoreSavedScriptAndSlotFlags", "BogusClearSelected3E"),
     "inferred_b0b0": ("CONTROL_INFERRED_B0B0", "BogusJumpBank1 DirectNextScriptB09D", "BogusJumpBank1 DirectNextScriptB09D + 1"),
     "inferred_ec1a": ("CONTROL_INFERRED_EC1A", "BogusSetSlot0670Pair $08, $00", "BogusSetSlot0670Pair $09, $00"),

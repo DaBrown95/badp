@@ -7,6 +7,11 @@
   "source": "src/us-v1.5/rom.s",
   "linker_config": "config/link-us-v1.5.cfg",
   "regions": [
+    {"id": "bank1-retained-script-storage-d75d", "bank": 1, "cpu": "0xd75d", "size": 1, "kind": "data", "control": "retained_script_storage_d75d"},
+    {"id": "bank1-retained-menu-prefix-f354", "bank": 1, "cpu": "0xf354", "size": 3, "kind": "data", "control": "retained_menu_prefix_f354"},
+    {"id": "bank1-retained-map-suffix-f623", "bank": 1, "cpu": "0xf623", "size": 2, "kind": "data", "control": "retained_map_suffix_f623"},
+    {"id": "bank1-retained-record-tail-eb08", "bank": 1, "cpu": "0xeb08", "size": 2, "kind": "data", "control": "retained_record_tail_eb08"},
+    {"id": "bank1-retained-record-tail-eb8f", "bank": 1, "cpu": "0xeb8f", "size": 2, "kind": "data", "control": "retained_record_tail_eb8f"},
     {"id": "bank1-inferred-b030", "bank": 1, "cpu": "0xb030", "size": 1, "kind": "data", "control": "inferred_b030"},
     {"id": "bank1-inferred-b0b0", "bank": 1, "cpu": "0xb0b0", "size": 3, "kind": "data", "control": "inferred_b0b0"},
     {"id": "bank1-inferred-ec1a", "bank": 1, "cpu": "0xec1a", "size": 6, "kind": "data", "control": "inferred_ec1a"},

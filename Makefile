@@ -84,6 +84,7 @@ build:
 	$(PYTHON) -m tools.build_rom
 
 progress: build
+	$(PYTHON) -m tools.source_audit
 	$(PYTHON) -m tools.progress
 
 verify-gameplay:

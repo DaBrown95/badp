@@ -21316,7 +21316,12 @@ SweepScriptD757:
 PathScriptD75B:
     BogusLoadRecordAndClearSavedState $1E ; CONTROL_PATH_SCRIPT_D75B
 .assert (* - BankStart) = $575D, error, "bank 1 candidate successor $D75B end"
-    .incbin "bank1_d75d_d75e.bin"
+; Retained byte between the pointer-replacing load and the next known entry.
+; Supported descriptor contexts install $00FF instead of falling through here.
+; v1.1-v1.4 preserve this byte and the adjacent command boundary. Original
+; purpose is unknown; do not invent a one-byte command or infer padding.
+RetainedScriptStorageD75D:
+    .byte $01 ; CONTROL_RETAINED_SCRIPT_STORAGE_D75D
 ; Command entries observed during the 16,000-frame exploratory sweep.
 SweepScriptD75E:
     BogusLoadSlotValueArray $29 ; CONTROL_SWEEP_SCRIPT_D75E
@@ -24513,7 +24518,12 @@ CandidateScriptEB00 = ModeRecordEAFFResource + 1
 ModeRecordEAFFFields:
     .byte $00, $FF, $00, $00, $00 ; CONTROL_MODE_RECORD_EAFF_FIELDS
 .assert (* - BankStart) = $6B08, error, "bank 1 candidate mode record eaff fields end"
-    .incbin "bank1_eb08_eb0a.bin"
+; Retained storage between the nine-byte view and the next compact record.
+; The loader fetches the first byte as ignored lookahead, not a tenth field.
+; The same two-byte tail survives resource relocation in v1.1-v1.4. Its
+; original purpose is unknown; this is not an eleven-byte record or padding.
+RetainedRecordTailEB08:
+    .byte $00, $00 ; CONTROL_RETAINED_RECORD_TAIL_EB08
 ; Candidate descriptor $EB13, command $EC74, mode $FF.
 SlotFlowEB0A:
     SlotCompactRecord $B608, $22 ; CONTROL_SLOT_FLOW_EB0A
@@ -24620,7 +24630,11 @@ CompletedNormalRecordEB86:
 ModeRecordEB86Resource = CompletedNormalRecordEB86 + 0
 ModeRecordEB86Fields = CompletedNormalRecordEB86 + 4
 .assert (* - BankStart) = $6B8F, error, "bank 1 complete normal record EB86 end"
-    .incbin "bank1_eb8f_eb91.bin"
+; Separate retained storage, with the same nine-byte-record/compact-record
+; boundaries as EB08. First byte is ignored fetch lookahead. Neither byte is
+; another selected field; possible script interpretations remain conditional.
+RetainedRecordTailEB8F:
+    .byte $00, $00 ; CONTROL_RETAINED_RECORD_TAIL_EB8F
 ; Candidate descriptor $EB9A, command $EC74, mode $FF.
 SlotFlowEB91:
     SlotCompactRecord $B91E, $22 ; CONTROL_SLOT_FLOW_EB91
@@ -25815,6 +25829,12 @@ CandidateF349:
 ; Local tile streams referenced by the $F176 display sequence. Their contents
 ; remain locally supplied assets; the aliases only identify the source ranges.
 MenuLocalData:
+; Retained prefix outside all fourteen command-selected tile payloads. The
+; preceding script jumps away. All six revisions preserve this prefix beside
+; the first payload; its original purpose is unknown. No artwork or PPU-command
+; format is assigned to these three bytes.
+RetainedMenuPrefixF354:
+    .byte $00, $00, $20 ; CONTROL_RETAINED_MENU_PREFIX_F354
 MenuContinueLine = MenuLocalData + $03
 MenuRestartLine = MenuLocalData + $0D
 MenuDifferentGameLine = MenuLocalData + $17
@@ -25829,7 +25849,7 @@ MenuTileRow0 = MenuLocalData + $79
 MenuTileRow1 = MenuLocalData + $82
 MenuTileRow2 = MenuLocalData + $8B
 MenuTileRow3 = MenuLocalData + $9C
-    .incbin "bank1_f354_f401.bin"
+    .incbin "bank1_f357_f401.bin"
 ; Candidate script entries from the reviewed slot-record context trace.
 ContextScriptF401:
     BogusCallNativeEncoded Bank0::FadeOutPalettes - 1 ; CONTROL_CONTEXT_F401
@@ -25918,7 +25938,13 @@ MapCandidateIndexedCaseF44D = MapHeaderF44D
 MapCandidateRecordF445Field6C = MapHeaderF44D
 MapHeaderF44D:
     MapLayoutDimensions <MapHeaderValueF44D, >MapHeaderValueF44D
-    .incbin "bank1_f44f_f625.bin"
+    .incbin "bank1_f44f_f623.bin"
+; Separate retained suffix after the nominal 52*9 grid and before the next
+; header. The final grid lookup reads the first byte as discarded high-byte
+; lookahead. The row clamp supplies no extra-cell interpretation. All six
+; revisions preserve the neighboring context; original purpose is unknown.
+RetainedMapSuffixF623:
+    .byte $1E, $15 ; CONTROL_RETAINED_MAP_SUFFIX_F623
 MapHeaderF625:
     MapLayoutDimensions $1C, $06 ; CONTROL_MAP_HEADER_F625
     .incbin "bank1_f627_f6cf.bin"

@@ -18,7 +18,7 @@ class SourceAuditTests(unittest.TestCase):
         overlap = next(row for row in result['regions'] if row['physical_prg_offset'] == 2)
         self.assertEqual(overlap['local_assets'], ['other', 'tiles'])
         self.assertEqual(overlap['evidence_uses'], ['candidate_script_bytes'])
-        self.assertFalse(overlap['exclusive_use_reviewed'])
+        self.assertEqual(overlap['review_status'], 'unreviewed')
         self.assertEqual(sum(r['size'] for r in result['regions']), 8)
         self.assertFalse(result['complete_executable_inventory'])
 
@@ -42,7 +42,7 @@ class SourceAuditTests(unittest.TestCase):
         result = partition(evidence, {}, bank_size=4, bank_count=1)
         self.assertEqual(result['representation_bytes'], {'source_fill': 3, 'unresolved_local': 1})
         self.assertEqual(result['regions'][1]['evidence_uses'], ['candidate_script_bytes', 'source_fill'])
-        self.assertFalse(result['regions'][1]['exclusive_use_reviewed'])
+        self.assertEqual(result['regions'][1]['review_status'], 'unreviewed')
 
     def test_rejects_cross_bank_or_out_of_range_assets(self):
         for span in ((3, 2), (7, 2), (-1, 1), (0, 0), (True, 1)):

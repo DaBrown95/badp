@@ -28,9 +28,16 @@ Slot descriptors, position-record streams, audio lookup tables and several
 script regions are represented as structured data. Some audio command paths
 are static candidates under bank-1 selection; their reachability is unverified.
 Some scripts and slot records have also been observed during the opening gameplay checks. Remaining
-PRG bytes and CHR graphics are local binary inclusions.
+PRG assets and CHR graphics remain locally supplied inputs with deterministic
+rebuilding.
 Changed-source controls check that each reconstructed region affects the
 assembled output.
+
+The five v1.5 storage groups now have explicit retained-data representations;
+their original purpose remains uncertain. `make source-audit` derives review status and remaining
+work from the [evidence-backed decisions](config/inventory-review-us-v1.5.json),
+preserving overlapping uses. Acceptance requires that review and a current
+matching full build; the table below reports the verified decision.
 
 We will complete v1.5 first, then adapt the shared reconstruction to the other
 versions in order. Each version needs its own matching evidence. Byte equality
@@ -41,7 +48,7 @@ rollout order.
 
 Percentages show verified reconstructed code and structured data as a share of
 physical PRG bytes. Verification checks the emitted bytes and source controls;
-inferred meanings can remain provisional. PRG also contains data whose format is not yet understood;
+inferred meanings can remain provisional. Some retained data roles remain uncertain;
 the game's total code denominator is unknown. CHR graphics, the container
 header, alignment fill and copied bytes do not count as reconstructed source. Alignment
 fill is reported separately in the progress data. These percentages
@@ -50,7 +57,7 @@ are not measures of gameplay completion.
 <!-- BEGIN GENERATED PROGRESS -->
 | Version | Reconstructed PRG | Status |
 | --- | ---: | --- |
-| USA v1.5 | **68.93%** (45,175 / 65,536 bytes) | In progress |
+| USA v1.5 | **68.95%** (45,185 / 65,536 bytes) | Accepted |
 | USA v1.4 | **0.00%** (0 / 65,536 bytes) | Not started |
 | USA v1.3 | **0.00%** (0 / 65,536 bytes) | Not started |
 | USA v1.2 | **0.00%** (0 / 65,536 bytes) | Not started |
@@ -67,7 +74,7 @@ the game's engine as the in-house BOGUS state-machine system in his
 [developer interview](https://www.nesworld.com/kozik.php). The original source
 language, assembler and toolchain have not been established.
 
-Future progress reports will distinguish reconstructed code, decoded data,
+Progress reports distinguish reconstructed code, decoded data,
 local binary inclusions and unresolved regions. A matching ROM assembled from
 copied bytes alone will not count as a completed reconstruction.
 
