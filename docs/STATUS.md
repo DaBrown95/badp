@@ -34,10 +34,10 @@ independent source trees or treat one version's evidence as verifying the rest.
 simultaneous reconstruction. Keep progress and completion evidence per target.
 
 The v1.5 build now assembles and links to the exact reference, with 21,474 bytes
-of source code and 23,573 bytes of structured data across the physical PRG banks.
+of source code and 23,595 bytes of structured data across the physical PRG banks.
 Another 115 bytes are explicit alignment fill, excluded from reconstructed-source
-progress. It still includes 20,374 local PRG bytes and 65,536 local CHR bytes. A
-total of 2,049 independent source-change controls verify the current source regions.
+progress. It still includes 20,352 local PRG bytes and 65,536 local CHR bytes. A
+total of 2,053 independent source-change controls verify the current source regions.
 Passing input audits or whole-ROM equality alone is not reconstruction
 completion. The developer identifies BOGUS as the
 state-machine engine in the [Vance Kozik interview](https://www.nesworld.com/kozik.php);
@@ -2024,3 +2024,68 @@ regions include audio fragments, script continuations, overlapping record
 fields and small gaps next to local map/menu data. The temporary record
 transcription script was retired after the verified source and alias checks;
 its integration metadata retains the reviewed decisions and skipped cases.
+
+
+## Duplicate map storage, audio fragments and native-call origins
+
+The 68-byte map slot 22 now has independently editable tile and attribute rows
+in the ignored local map input. Its metadata records the reference duplicate at
+slot 134; the encoder verifies that relation against the audited reference,
+then encodes each physical slot independently. Editing one copy never rewrites
+the other. Schema 2 replaces the old opaque-byte form; the unedited schema-1
+input was checked against its captured baseline and retained locally when the
+new input was exported. The map control changes three distinct tile positions
+in slots 0, 22 and 134 before assembly. Synthetic tests reject a changed
+reference relationship, altered duplicate metadata and incomplete controls,
+and verify that either copy can be edited alone. The physical audit counts
+slot 22 as a local asset while retaining its candidate script overlap. It
+receives no reconstructed-source credit and is not established as used by the
+map index table.
+
+Four gaps in the surrounding audio-command source now have explicit inferred
+command layouts: bank 1 `$A6F6-$A6F8`, `$A757-$A75F`, `$A8A4-$A8AC` and `$AC53`.
+They add 22 structured-data bytes. These are isolated fragments after a stop or
+pointer restore, not ordinary-play starts. Twelve bytes of context on each
+side of the nine-byte `$A757` sequence have one exact occurrence in every
+supplied revision, at independently measured offsets. The other contexts are
+preserved in v1.4; the `$AC53` context also occurs in v1.1 through v1.3.
+`analysis/us-v1.5/audio-fragment-comparison.json` retains these audited context
+comparisons, without assuming earlier semantic addresses or use.
+
+The maintained indexed-audio probe now injects these four starts after its
+nine existing lookup/alias/overlap cases. Its fifteen additional commands check
+all 75 mapped five-byte fetches, cursor advances, voice flags, delays and stop
+outcomes. Timers are forced between commands, as in the existing probe; these
+checks establish conditional interpreter behavior rather than playback timing,
+reachability or physical-cartridge behavior. The one-byte `$AC53` selection
+continues into the already represented `$AC54` sequence until its stop.
+Every new source fragment also has an independent changed-operand control.
+
+The native-call inventory now associates each candidate opcode with its
+smallest source-associated debug span. An exact three-byte declared
+`BogusCallNativeEncoded` or `BogusCallNativeBank1` form is distinguished from an
+opcode byte inside another instruction, pointer or asset. All 35 candidates
+remain: 25 are declared calls, and ten have other source origins. Those ten
+comprise four native instruction operands, two sprite-frame pointer words,
+one sprite payload and three physical map positions. Their source lines,
+span boundaries and opcode offsets are retained with the inventory. Tests
+reject interpreting a parent span, operand entry or comment as a declared
+call. Neither this classification nor a code-owned destination proves runtime
+mapping, execution or return behavior; both physical-bank alternatives remain.
+
+The remaining local-representation work is concentrated in overlapping or
+skipped record fields, otherwise unreferenced record-shaped groups, script
+trailers and the small menu/map neighbors. In particular, the three nine-byte
+groups at `$DA2E`, `$DA58` and `$DA8B` point to known sprite frames and the
+already represented `$E8F2` script, but their descriptor contexts have not yet
+been established. They remain unresolved; adjacency alone is not an entry.
+
+The fresh whole-ROM build passes all 2,053 source controls. All 344 synthetic
+tooling tests and all six input audits pass. The audio probe passes all thirteen
+cases on both ROMs against the same current proof as the refreshed source and
+native inventories. Source ownership is 45,069 bytes (68.77% of physical PRG),
+with 115 separate fill bytes and 20,236 additional local asset bytes; 116 local
+PRG bytes remain unresolved. These counts do not close the conditional indexed
+paths, dynamic mapping or overall executable/script inventory. The four old
+audio gap inputs are retired by the fresh build; their comparative findings and
+the map schema migration evidence remain local.

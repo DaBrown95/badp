@@ -172,7 +172,10 @@ class ProofFreshnessTests(unittest.TestCase):
         changed_json = map_assets.serialize(changed_asset)
         changed_payload = map_assets.encode(changed_asset, prg, digest(reference))
         changed_reference = bytearray(reference)
-        changed_reference[16 + map_assets.BANK_SIZE] ^= 1
+        map_offsets = [16 + map_assets.BANK_SIZE + i * 68 + r * 8 + c
+                       for i, r, c in map_assets.CONTROL_TILES]
+        for position in map_offsets:
+            changed_reference[position] ^= 1
         asset_candidate = bytes(changed_reference)
         asset_dir = self.proof_dir / "controls/map_asset"
         asset_dir.mkdir(parents=True)
@@ -185,7 +188,7 @@ class ProofFreshnessTests(unittest.TestCase):
                           "control": {"asset_sha256": digest(changed_json),
                                       "payload_sha256": digest(changed_payload),
                                       "candidate_sha256": digest(asset_candidate),
-                                      "changed_offsets": [16 + map_assets.BANK_SIZE]}}
+                                      "changed_offsets": map_offsets}}
         layouts, spans, layout_source, layout_hash = map_layout_assets.select(self.root, prg, digest(reference))
         layout_gaps = map_layout_assets.gap_payloads(prg, regions, spans)
         (inputs / "map-layouts.json").write_bytes(map_layout_assets.serialize(layouts))

@@ -15749,7 +15749,12 @@ AudioObservedA6F4:
     AudioStopVoice ; CONTROL_AUDIO_OBSERVED_A6F4
     AudioStopVoice
 .assert (* - BankStart) = $26F6, error, "bank 1 observed audio A6F4 end"
-    .incbin "bank1_a6f6_a6f9.bin"
+; Inferred audio fragment between established command extents. Comparative
+; context supports this view; no ordinary-play entry is established.
+AudioFragmentA6F6:
+    AudioDelay $B4 ; CONTROL_AUDIO_FRAGMENT_A6F6
+    AudioStopVoice
+.assert (* - BankStart) = $26F9, error, "bank 1 audio fragment A6F6 end"
 ; Partial audio commands observed in reference playback.
 AudioObservedA6F9:
     AudioStopVoice ; CONTROL_AUDIO_OBSERVED_A6F9
@@ -15797,7 +15802,14 @@ AudioObservedA72F:
     AudioDelay $08
     AudioStopVoice
 .assert (* - BankStart) = $2757, error, "bank 1 observed audio A6F9 end"
-    .incbin "bank1_a757_a760.bin"
+; Inferred audio fragment between established command extents. Comparative
+; context supports this view; no ordinary-play entry is established.
+AudioFragmentA757:
+    AudioSelectChannel $00 ; CONTROL_AUDIO_FRAGMENT_A757
+    AudioWriteFive $CA, $D7, $FF, $0C
+    AudioDelay $18
+    AudioStopVoice
+.assert (* - BankStart) = $2760, error, "bank 1 audio fragment A757 end"
 ; Candidate audio flow under bank-1 selection; reachability is unverified.
 AudioCandidateA760:
     AudioSelectChannel $03 ; CONTROL_AUDIO_CANDIDATE_A760
@@ -16002,7 +16014,14 @@ AudioCandidateA89B:
     AudioDelay $08
     AudioStopVoice
 .assert (* - BankStart) = $28A4, error, "bank 1 audio candidate A89B end"
-    .incbin "bank1_a8a4_a8ad.bin"
+; Inferred audio fragment between established command extents. Comparative
+; context supports this view; no ordinary-play entry is established.
+AudioFragmentA8A4:
+    AudioSelectChannel $03 ; CONTROL_AUDIO_FRAGMENT_A8A4
+    AudioWriteFive $17, $00, $00, $00
+    AudioDelay $03
+    AudioStopVoice
+.assert (* - BankStart) = $28AD, error, "bank 1 audio fragment A8A4 end"
 ; Partial audio commands observed in reference playback.
 AudioObservedA8AD:
     AudioSelectChannel $03 ; CONTROL_AUDIO_OBSERVED_A8AD
@@ -16741,7 +16760,11 @@ AudioObservedAC49:
     AudioDelay $0B
     AudioRestorePointer
 .assert (* - BankStart) = $2C53, error, "bank 1 observed audio AC49 end"
-    .incbin "bank1_ac53_ac54.bin"
+; Inferred audio fragment between established command extents. Comparative
+; context supports this view; no ordinary-play entry is established.
+AudioFragmentAC53:
+    AudioSelectChannel $01 ; CONTROL_AUDIO_FRAGMENT_AC53
+.assert (* - BankStart) = $2C54, error, "bank 1 audio fragment AC53 end"
 ; The $B3 base $26D0 with slot value $16A6 reads this encoded pointer from
 ; bank-1 $D41C, overlapping a candidate BOGUS branch operand and command.
 ; Neither the index nor this voice-4 stream is established in normal play.

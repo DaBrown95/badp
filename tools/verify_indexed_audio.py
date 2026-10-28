@@ -1,4 +1,4 @@
-"""Verify a controlled unbounded $B3 lookup and its candidate audio stream.
+"""Verify unbounded $B3 lookups and isolated candidate audio fragments.
 
 Inputs are injected; this does not establish ordinary-play reachability or
 physical cartridge behavior. The timer is forced to one between commands.
@@ -79,8 +79,40 @@ def expected_events(bank0: bytes, bank1: bytes) -> list[str]:
                     expected.append(f'AUDIO {case} {addr:04X} {addr:05X} {bank1[addr - 0x8000]:02X}')
                 expected.append(f'AFTER {case} {command * 5} {flags:02X} {timer:02X} {cursor & 255:02X} {cursor >> 8:02X}')
         expected.append(f'RESULT {case} 0')
-    expected.append('DONE 9')
+    expected.extend(fragment_events(bank1))
+    expected.append('DONE 13')
     return expected
+
+
+def fragment_events(bank1: bytes) -> list[str]:
+    """Model four isolated fragments; starts are conditional, not discovered play."""
+    if len(bank1) != 0x8000:
+        raise ValueError('expected one complete audio bank')
+    cases = (
+        (0xa6f6, (0, 2), ('delay', 'stop_voice'), (0xc0, 0)),
+        (0xa757, (0, 1, 6, 8), ('select_channel', 'write_five', 'delay', 'stop_voice'), (0x80, 0x80, 0x80, 0)),
+        (0xa8a4, (0, 1, 6, 8), ('select_channel', 'write_five', 'delay', 'stop_voice'), (0x8c, 0x8c, 0x8c, 0)),
+        (0xac53, (0, 1, 2, 3, 4), ('select_channel', 'instrument', 'select_channel', 'instrument', 'stop_voice'), (0x84, 0x84, 0x88, 0x88, 0)),
+    )
+    result = []
+    for case, (base, offsets, kinds, flags) in enumerate(cases, 9):
+        for step, (offset, kind, flag) in enumerate(zip(offsets, kinds, flags), 1):
+            start = base + offset
+            raw = bank1[start - 0x8000:start - 0x8000 + 5]
+            decoded = decode_command(raw)
+            if decoded['kind'] != kind:
+                raise ValueError('isolated audio fragment has unexpected command structure')
+            if kind == 'select_channel' and decoded['channel'] * 4 != flag & 0x1f:
+                raise ValueError('isolated audio fragment selects an unexpected channel')
+            if kind == 'instrument' and decoded['instrument'] != 1:
+                raise ValueError('isolated audio fragment selects an unexpected instrument')
+            for i, value in enumerate(raw):
+                result.append(f'AUDIO {case} {start + i:04X} {start + i:05X} {value:02X}')
+            timer = decoded['duration'] if kind == 'delay' else 1
+            cursor = start - 0x8000 + decoded['size']
+            result.append(f'AFTER {case} {step * 5} {flag:02X} {timer:02X} {cursor & 255:02X} {cursor >> 8:02X}')
+        result.append(f'RESULT {case} 0')
+    return result
 
 
 def parse_output(output: str, expected: list[str]) -> dict:
@@ -93,7 +125,7 @@ def parse_output(output: str, expected: list[str]) -> dict:
             events.append(line.strip())
     if events != expected:
         raise ValueError('indexed-audio observations differ from the controlled model')
-    return {'cases': 9, 'alias_cases': 4, 'changed_index_controls': 2, 'overlap_cases': 3, 'interrupts': 0}
+    return {'cases': 13, 'fragment_cases': 4, 'alias_cases': 4, 'changed_index_controls': 2, 'overlap_cases': 3, 'interrupts': 0}
 
 
 def main() -> int:
@@ -133,7 +165,7 @@ def main() -> int:
                   'source_sha256': proof['source_sha256'], 'build_proof_sha256': proof_hash,
                   'input_sha256': hashes, 'emulator_core_sha256': emulator['core_sha256'],
                   'system_sdl2_sha256': sdl_hash, 'observations': observations,
-                  'scope': 'injected slot values; timer forced between commands; no gameplay reachability or hardware claim'}
+                  'scope': 'injected slot values and four isolated fragment starts; timer forced between commands; no gameplay reachability or hardware claim'}
         output.write_text(json.dumps(result, indent=2) + '\n')
         print('Saved controlled evidence to analysis/us-v1.5/indexed-audio-verification.json')
     except (OSError, ValueError, KeyError, TypeError, subprocess.SubprocessError) as exc:

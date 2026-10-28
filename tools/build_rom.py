@@ -75,6 +75,10 @@ SYMBOL_CONTROLS = {
 # The marker must occur exactly once in the maintained source, even when its
 # macro expands into two banks. Controls are built from isolated source copies.
 MUTATIONS = {
+    "audio_fragment_a6f6": ("CONTROL_AUDIO_FRAGMENT_A6F6", "AudioDelay $B4", "AudioDelay $B5"),
+    "audio_fragment_a757": ("CONTROL_AUDIO_FRAGMENT_A757", "AudioSelectChannel $00", "AudioSelectChannel $01"),
+    "audio_fragment_a8a4": ("CONTROL_AUDIO_FRAGMENT_A8A4", "AudioSelectChannel $03", "AudioSelectChannel $02"),
+    "audio_fragment_ac53": ("CONTROL_AUDIO_FRAGMENT_AC53", "AudioSelectChannel $01", "AudioSelectChannel $00"),
     "complete_record_eed9": ("CONTROL_COMPLETE_RECORD_EED9", "SlotRuntimeRecord $FFFF, (InteractionScriptF00F - BankStart), $00, $FF, $00, $00, $00", "SlotRuntimeRecord $FFFF, ((InteractionScriptF00F - BankStart) + 1), $00, $FF, $00, $00, $00"),
     "complete_record_eec1": ("CONTROL_COMPLETE_RECORD_EEC1", "SlotRuntimeRecord $FFFF, (InteractionScriptF00F - BankStart), $00, $FF, $00, $00, $00", "SlotRuntimeRecord $FFFF, ((InteractionScriptF00F - BankStart) + 1), $00, $FF, $00, $00, $00"),
     "complete_record_ed68": ("CONTROL_COMPLETE_RECORD_ED68", "SlotRuntimeRecord Bank0::SpriteAnimationResourceB683, $FFFF, $00, $FF, $00, $00, $00", "SlotRuntimeRecord (Bank0::SpriteAnimationResourceB683 + 1), $FFFF, $00, $FF, $00, $00, $00"),
@@ -2414,8 +2418,8 @@ def build() -> dict:
                                     "candidate_sha256": digest(candidate),
                                     "changed_offsets": verify_symbol_control(reference, candidate, regions, name)})
             retire_control_intermediates(control_dir)
-        # A separate asset control changes one structured tile before assembly.
-        # The opaque slot remains untouched, and no output bytes are patched.
+        # A separate asset control changes distinct tiles in the ordinary,
+        # unreferenced duplicate and original slots before assembly.
         asset_control_dir = work / "controls/map_asset"
         asset_control_dir.mkdir(parents=True)
         (asset_control_dir / "rom.s").write_text(source)

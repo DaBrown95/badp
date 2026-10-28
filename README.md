@@ -50,7 +50,7 @@ are not measures of gameplay completion.
 <!-- BEGIN GENERATED PROGRESS -->
 | Version | Reconstructed PRG | Status |
 | --- | ---: | --- |
-| USA v1.5 | **68.74%** (45,047 / 65,536 bytes) | In progress |
+| USA v1.5 | **68.77%** (45,069 / 65,536 bytes) | In progress |
 | USA v1.4 | **0.00%** (0 / 65,536 bytes) | Not started |
 | USA v1.3 | **0.00%** (0 / 65,536 bytes) | Not started |
 | USA v1.2 | **0.00%** (0 / 65,536 bytes) | Not started |
@@ -123,7 +123,7 @@ mapping, palette choices or use in the game. CHR is an asset, excluded from PRG
 source progress. The optional `make extract-map-chunks` command exports the 145
 referenced map chunks as editable local tile and attribute rows under
 `extracted/`. If present, the build encodes that file; otherwise it derives the same local input from the audited ROM. The
-one unreferenced slot stays opaque. `make extract-map-layouts` similarly exports
+unreferenced duplicate of slot 134 is separately editable. `make extract-map-layouts` similarly exports
 the 14 map grids locally; their dimensions remain in tracked source. Changing a
 tile or grid cell makes the matching comparison fail. `make extract-packed-text`
 exports the 52 decoded messages locally. Character edits must preserve each
@@ -193,7 +193,7 @@ and simultaneous press/release handling on the reference and build.
 | `make verify-record-boundary` | Check record-fetch address wrap with controlled inputs. |
 | `make verify-record-overlaps` | Check controlled overlapping record fields. |
 | `make verify-script-overlap` | Check a controlled ambiguous record and script path. |
-| `make verify-indexed-audio` | Check a controlled indexed audio lookup. |
+| `make verify-indexed-audio` | Check indexed audio lookups and isolated fragments. |
 | `make verify-sprite-shapes` | Check observed frame dimension reads. |
 | `make state-table-inventory` | Check state-table indexing and conditional palette read addresses. |
 | `make indexed-jump-inventory` | Check `$F434` index behavior and candidate table reads. |

@@ -7,6 +7,10 @@
   "source": "src/us-v1.5/rom.s",
   "linker_config": "config/link-us-v1.5.cfg",
   "regions": [
+    {"id": "bank1-audio-fragment-a6f6", "bank": 1, "cpu": "0xa6f6", "size": 3, "kind": "data", "control": "audio_fragment_a6f6"},
+    {"id": "bank1-audio-fragment-a757", "bank": 1, "cpu": "0xa757", "size": 9, "kind": "data", "control": "audio_fragment_a757"},
+    {"id": "bank1-audio-fragment-a8a4", "bank": 1, "cpu": "0xa8a4", "size": 9, "kind": "data", "control": "audio_fragment_a8a4"},
+    {"id": "bank1-audio-fragment-ac53", "bank": 1, "cpu": "0xac53", "size": 1, "kind": "data", "control": "audio_fragment_ac53"},
     {"id": "bank1-complete-record-eed9", "bank": 1, "cpu": "0xeed9", "size": 9, "kind": "data", "control": "complete_record_eed9"},
     {"id": "bank1-complete-record-eec1", "bank": 1, "cpu": "0xeec1", "size": 9, "kind": "data", "control": "complete_record_eec1"},
     {"id": "bank1-complete-record-ed68", "bank": 1, "cpu": "0xed68", "size": 9, "kind": "data", "control": "complete_record_ed68"},

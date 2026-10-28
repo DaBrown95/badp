@@ -85,7 +85,9 @@ def partition(evidence: list[dict], assets: dict[str, list[tuple[int, int]]],
 def asset_spans(root: Path, prg: bytes, reference: str) -> dict[str, list[tuple[int, int]]]:
     """Only encodings already covered by the full build's asset controls."""
     result = {'map_chunks': [(BANK_SIZE + slot * map_assets.CHUNK_SIZE, map_assets.CHUNK_SIZE)
-                             for slot in sorted(map_assets.slots_for_reference(prg))]}
+                             for slot in sorted(map_assets.slots_for_reference(prg))],
+              'unreferenced_map_duplicate': [(BANK_SIZE + map_assets.duplicate_slot(prg) * map_assets.CHUNK_SIZE,
+                                               map_assets.CHUNK_SIZE)]}
     for name, module in (('map_layouts', map_layout_assets), ('packed_text', text_assets),
                          ('menu_tiles', menu_assets)):
         _, spans, _, _ = module.select(root, prg, reference)

@@ -26,7 +26,7 @@ help:
 	@echo 'make verify-record-boundary Check record fetch wrapping in MesenCE'
 	@echo 'make verify-record-overlaps Check controlled overlapping record fields'
 	@echo 'make verify-script-overlap Check a controlled ambiguous record path'
-	@echo 'make verify-indexed-audio Check a controlled unbounded audio lookup'
+	@echo 'make verify-indexed-audio Check unbounded audio lookups and isolated fragments'
 	@echo 'make verify-sprite-shapes Check observed frame dimension reads'
 	@echo 'make state-table-inventory Check state-table indexing and palette read plans'
 	@echo 'make indexed-jump-inventory Check the $$F434 index and local table candidates'

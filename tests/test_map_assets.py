@@ -19,6 +19,9 @@ def synthetic_prg():
         prg[start:start + 2] = offset.to_bytes(2, 'little')
     for index in range(map_assets.REGION_SIZE):
         prg[map_assets.BANK_SIZE + index] = (index * 13 + 5) & 255
+    a = map_assets.BANK_SIZE + map_assets.DUPLICATE_SLOT * map_assets.CHUNK_SIZE
+    b = map_assets.BANK_SIZE + map_assets.DUPLICATE_OF * map_assets.CHUNK_SIZE
+    prg[a:a + map_assets.CHUNK_SIZE] = prg[b:b + map_assets.CHUNK_SIZE]
     # Fourteen synthetic 3x3 layouts in bank 1; the 22-state table repeats
     # eight of them. They do not overlap the candidate chunk region.
     for index in range(14):
@@ -54,11 +57,12 @@ class MapAssetTests(unittest.TestCase):
         self.reference = 'a' * 64
         self.asset = map_assets.capture(self.prg, self.reference)
 
-    def test_all_slots_round_trip_and_one_is_opaque(self):
+    def test_all_slots_round_trip_and_duplicate_has_explicit_metadata(self):
         encoded = map_assets.encode(self.asset, self.prg, self.reference)
         self.assertEqual(encoded, self.prg[map_assets.BANK_SIZE:map_assets.BANK_SIZE + map_assets.REGION_SIZE])
         self.assertEqual(sum(x['kind'] == 'chunk' for x in self.asset['slots']), 145)
-        self.assertEqual(self.asset['slots'][22]['kind'], 'unclassified')
+        self.assertEqual(self.asset['slots'][22]['kind'], 'unreferenced_duplicate_chunk')
+        self.assertEqual(self.asset['slots'][22]['reference_duplicate_of'], 134)
         self.assertEqual(len(self.asset['slots'][0]['tile_rows']), 8)
         self.assertEqual(len(self.asset['slots'][0]['attribute_rows']), 2)
 
@@ -66,11 +70,11 @@ class MapAssetTests(unittest.TestCase):
         changed = map_assets.changed_asset(self.asset)
         baseline = map_assets.encode(self.asset, self.prg, self.reference)
         encoded = map_assets.encode(changed, self.prg, self.reference)
-        self.assertEqual([i for i, (a, b) in enumerate(zip(baseline, encoded)) if a != b], [0])
+        self.assertEqual([i for i, (a, b) in enumerate(zip(baseline, encoded)) if a != b], [0, 22 * 68 + 1, 134 * 68 + 2])
         self.assertNotEqual(changed['slots'][0]['tile_rows'][0][0], self.asset['slots'][0]['tile_rows'][0][0])
 
-    def test_wrong_identity_geometry_and_opaque_edits_fail(self):
-        for change in ('identity', 'order', 'shape', 'opaque'):
+    def test_wrong_identity_geometry_and_duplicate_metadata_fail(self):
+        for change in ('identity', 'order', 'shape', 'metadata', 'old_schema', 'boolean', 'kind'):
             asset = copy.deepcopy(self.asset)
             if change == 'identity':
                 asset['reference_sha256'] = 'b' * 64
@@ -78,10 +82,33 @@ class MapAssetTests(unittest.TestCase):
                 asset['slots'][0], asset['slots'][1] = asset['slots'][1], asset['slots'][0]
             elif change == 'shape':
                 asset['slots'][0]['tile_rows'][0].pop()
+            elif change == 'metadata':
+                asset['slots'][22]['reference_duplicate_of'] = 0
+            elif change == 'old_schema':
+                asset['schema_version'] = 1
+            elif change == 'boolean':
+                asset['slots'][22]['reference_duplicate_of'] = True
             else:
-                asset['slots'][22]['bytes_hex'] = '00' * map_assets.CHUNK_SIZE
+                asset['slots'][22]['kind'] = 'chunk'
             with self.subTest(change=change), self.assertRaises(ValueError):
                 map_assets.encode(asset, self.prg, self.reference)
+
+    def test_duplicate_and_original_are_independently_editable(self):
+        baseline = map_assets.encode(self.asset, self.prg, self.reference)
+        for index in (22, 134):
+            changed = copy.deepcopy(self.asset)
+            changed['slots'][index]['tile_rows'][3][4] ^= 1
+            candidate = map_assets.encode(changed, self.prg, self.reference)
+            self.assertEqual([i for i, (a, b) in enumerate(zip(baseline, candidate)) if a != b],
+                             [index * 68 + 3 * 8 + 4])
+
+    def test_duplicate_reference_relation_must_be_verified(self):
+        bad = bytearray(self.prg)
+        bad[map_assets.BANK_SIZE + 22 * 68] ^= 1
+        for operation in (lambda: map_assets.capture(bytes(bad), self.reference),
+                          lambda: map_assets.encode(self.asset, bytes(bad), self.reference)):
+            with self.assertRaisesRegex(ValueError, 'no longer duplicates'):
+                operation()
 
     def test_invalid_table_and_extra_slot_use_are_rejected(self):
         bad = bytearray(self.prg)
@@ -123,15 +150,21 @@ class MapAssetTests(unittest.TestCase):
                 self.assertEqual(map_assets.main(), 1)
                 self.assertEqual(path.read_bytes(), user_edit)
 
-    def test_control_requires_exactly_one_selected_change(self):
+    def test_control_requires_all_three_independent_selected_changes(self):
         reference = bytes(16) + self.prg + bytes(65536)
         candidate = bytearray(reference)
-        candidate[16 + map_assets.BANK_SIZE] ^= 1
-        self.assertEqual(map_assets.verify_control(reference, bytes(candidate), 16), [16 + map_assets.BANK_SIZE])
-        candidate[16 + map_assets.BANK_SIZE] ^= 2
-        with self.assertRaisesRegex(ValueError, 'exactly'):
-            map_assets.verify_control(reference, bytes(candidate), 16)
-        candidate[16 + map_assets.BANK_SIZE] ^= 2
+        positions = [16 + map_assets.BANK_SIZE + i * 68 + r * 8 + c
+                     for i, r, c in map_assets.CONTROL_TILES]
+        for position in positions:
+            candidate[position] ^= 1
+        self.assertEqual(map_assets.verify_control(reference, bytes(candidate), 16), positions)
+        # Omitting either duplicate/original edit, or coupling the edits at
+        # identical tile positions, cannot pass the retained build control.
+        for position in positions:
+            bad = candidate.copy()
+            bad[position] ^= 1
+            with self.assertRaisesRegex(ValueError, 'exactly'):
+                map_assets.verify_control(reference, bytes(bad), 16)
         candidate[0] ^= 1
         with self.assertRaisesRegex(ValueError, 'exactly'):
             map_assets.verify_control(reference, bytes(candidate), 16)
