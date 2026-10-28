@@ -829,3 +829,19 @@ v1.3, but the run remained in that adventure at frame 20,000. A separate
 243-case continuation of the best third-level Moses checkpoint lost the
 carried baby in every case by its final checkpoint. These are failed route
 experiments, not gameplay verification.
+
+A checkpoint search from the existing third-level route explored short movement
+and jump sequences while requiring the baby to remain linked. A selected path
+was replayed from power-on on the v1.5 reference and build. At frame 7,020 it
+reaches world x=281, compared with x=143 at frame 6,740, with the player and
+baby still linked. The permanent verifier now checks intermediate and final
+carried states and rightward movement, along with the existing screenshot and
+hardware-event comparisons. The carried sprite trails the player horizontally
+by four pixels at frame 6,780; the assertion allows that observed offset.
+This checkpoint does not complete the level. Search branches that continued
+farther descended toward the water, and no successful continuation was found.
+The refreshed reference-only interpreter trace through frame 7,020 sampled
+58,401 script fetches, 632 record loads and 47,266 inline lookup fetches. All
+sampled command extents, consumed record fields and inline bytes were already
+source-owned; no native instruction entry in a local gap was observed. This is
+coverage of the selected route, not proof of a complete inventory.
