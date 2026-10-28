@@ -6,8 +6,8 @@ import tempfile
 from pathlib import Path
 import unittest
 
-from tools.build_rom import (MUTATIONS, extract_gaps, mutate_source, retire_control_intermediates,
-                             source_regions, validate_mutations, verify_control)
+from tools.build_rom import (MUTATIONS, extract_gaps, mutate_include, mutate_source, retire_control_intermediates,
+                             source_regions, validate_mutations, verify_control, verify_symbol_control)
 from tools.setup import unpack_verified
 
 
@@ -73,6 +73,20 @@ class SourceOwnershipTests(unittest.TestCase):
         validate_mutations(source, ["boot"])
         with self.assertRaisesRegex(ValueError, "control wait"):
             validate_mutations(source, ["boot", "wait"])
+
+    def test_symbol_control_rejects_wrong_operands_and_ambiguous_definition(self):
+        line = "ScrollAxisOrder = $0398\n"
+        self.assertEqual(mutate_include(line, "ScrollAxisOrder"), "ScrollAxisOrder = $0399\n")
+        with self.assertRaisesRegex(ValueError, "one exact definition"):
+            mutate_include(line * 2, "ScrollAxisOrder")
+        reference = bytes([0x98, 3, 0x98, 3, 0x98, 3])
+        candidate = bytes([0x99, 3, 0x99, 3, 0x99, 3])
+        regions = [{"kind": "code", "file_offset": 0, "size": 6}]
+        self.assertEqual(verify_symbol_control(reference, candidate, regions, "ScrollAxisOrder"), [0, 2, 4])
+        with self.assertRaisesRegex(ValueError, "reviewed code operands"):
+            verify_symbol_control(reference, bytes([0x99, 3, 0x98, 3, 0x99, 3]), regions, "ScrollAxisOrder")
+        with self.assertRaisesRegex(ValueError, "reviewed code operands"):
+            verify_symbol_control(reference, candidate, [{"kind": "data", "file_offset": 0, "size": 6}], "ScrollAxisOrder")
 
     def test_retiring_control_intermediates_preserves_proof_inputs(self):
         with tempfile.TemporaryDirectory() as directory:

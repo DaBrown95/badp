@@ -7,7 +7,8 @@ from pathlib import Path
 import sys
 
 from . import map_assets
-from .build_rom import MUTATIONS, PROOF_INPUTS, digest, mutate_source, source_regions, verify_control
+from .build_rom import (MUTATIONS, PROOF_INPUTS, SYMBOL_CONTROLS, digest, mutate_include, mutate_source,
+                        source_regions, verify_control, verify_symbol_control)
 from .identify_rom import inspect_rom
 from .project import IDENTITY_PARTS, load_project, load_target
 from .setup import verified_tools
@@ -129,6 +130,21 @@ def verify_primary(root: Path, target: dict) -> dict:
                 or control["affected_regions"] != [r["id"] for r in regions if r["control"] == name]
                 or control["changed_offsets"] != verify_control(reference, candidate, regions, name)):
             raise ValueError(f"source-change control is stale or invalid: {name}")
+    symbol_controls = proof.get("symbol_controls", [])
+    if (len(symbol_controls) != len(SYMBOL_CONTROLS)
+            or {control["symbol"] for control in symbol_controls} != set(SYMBOL_CONTROLS)):
+        raise ValueError("shared-symbol controls are incomplete or duplicated")
+    for control in symbol_controls:
+        name = control["symbol"]
+        changed_include = mutate_include(include_bytes.decode("utf-8"), name).encode("utf-8")
+        folder = directory / "controls" / f"symbol_{name}"
+        candidate = (folder / "candidate.nes").read_bytes()
+        if ((folder / "rom.s").read_bytes() != source_bytes
+                or (folder / "nes.inc").read_bytes() != changed_include
+                or control["include_sha256"] != digest(changed_include)
+                or control["candidate_sha256"] != digest(candidate)
+                or control["changed_offsets"] != verify_symbol_control(reference, candidate, regions, name)):
+            raise ValueError(f"shared-symbol control is stale or invalid: {name}")
     return {"code_bytes": code, "data_bytes": data,
             "source_sha256": expected_files["source_sha256"],
             "source_map_sha256": expected_files["source_map_sha256"],

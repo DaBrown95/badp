@@ -1868,10 +1868,10 @@ ClearPalette:
     sta $0380
     sta $03FC
     sta $03FD
-    sta $03F3
-    sta $03F5
+    sta ScrollCurrentXLow
+    sta ScrollCurrentYLow
     sta $03A4
-    sta $03EB
+    sta ScrollPendingFlags
     sta $0382
     sta $0388
     sta $038D
@@ -1956,11 +1956,11 @@ SkipOamDma:
     pha
     lda $03DF
     pha
-    lda $039A
+    lda MapTileXLow
     pha
-    lda $039B
+    lda MapTileXHigh
     pha
-    lda $039C
+    lda MapTileY
     pha
     jsr SwapNmiWorkspace
     dec $04DD
@@ -2064,11 +2064,11 @@ SkipFrameRoutine:
 RestoreNmiState:
     jsr SwapNmiWorkspace
     pla
-    sta $039C
+    sta MapTileY
     pla
-    sta $039B
+    sta MapTileXHigh
     pla
-    sta $039A
+    sta MapTileXLow
     pla
     sta $03DF
     pla
@@ -2298,23 +2298,23 @@ InitializeMapDrawing:
     jsr ClampScrollTargets
     jsr SetInitialMapTilePosition
     ldx #$21
-    lda $039F
+    lda MapWidthTilesHigh
     bne InitialMapColumnLoop
-    cpx $039E
+    cpx MapWidthTilesLow
     bcc InitialMapColumnLoop
-    ldx $039E
+    ldx MapWidthTilesLow
 InitialMapColumnLoop:
     txa                          ; CONTROL_INITIAL_MAP_COLUMN_LOOP
     pha
     jsr ResolveMapChunk
     jsr QueueMapTileColumn
     jsr FlushPpuUpdates
-    lda $039A
+    lda MapTileXLow
     clc
     adc #$01
-    sta $039A
+    sta MapTileXLow
     bcc InitialMapColumnAdvanceDone
-    inc $039B
+    inc MapTileXHigh
 InitialMapColumnAdvanceDone:
     pla
     tax
@@ -2322,14 +2322,14 @@ InitialMapColumnAdvanceDone:
     bne InitialMapColumnLoop
 ; Synchronize current scroll coordinates to the clamped targets and prepare
 ; the PPU scroll mirrors before saving the map workspace.
-    lda $03EE                    ; CONTROL_INITIAL_MAP_SYNC_SCROLL
-    sta $03F3
-    lda $03EF
-    sta $03F4
-    lda $03F0
-    sta $03F5
-    lda $03F1
-    sta $03F6
+    lda ScrollTargetXLow                    ; CONTROL_INITIAL_MAP_SYNC_SCROLL
+    sta ScrollCurrentXLow
+    lda ScrollTargetXHigh
+    sta ScrollCurrentXHigh
+    lda ScrollTargetYLow
+    sta ScrollCurrentYLow
+    lda ScrollTargetYHigh
+    sta ScrollCurrentYHigh
     jsr UpdatePpuScrollMirror
 ; Save map pointer and chunk workspace for later use. Fall through to the
 ; existing PPU NMI enable routine exactly as the original does.
@@ -2377,15 +2377,15 @@ PrepareDirectPpuWrites:
     rts
 ; Convert the target pixel coordinates to tile coordinates for initial drawing.
 SetInitialMapTilePosition:
-    ldx $03EE                    ; CONTROL_SET_INITIAL_MAP_TILE_POSITION
-    ldy $03EF
+    ldx ScrollTargetXLow                    ; CONTROL_SET_INITIAL_MAP_TILE_POSITION
+    ldy ScrollTargetXHigh
     jsr ShiftXYRight3
-    sty $039B
-    stx $039A
-    ldx $03F0
-    ldy $03F1
+    sty MapTileXHigh
+    stx MapTileXLow
+    ldx ScrollTargetYLow
+    ldy ScrollTargetYHigh
     jsr ShiftXYRight3
-    stx $039C
+    stx MapTileY
     rts
 ; The two-byte map header gives width and height in eight-tile units. Compute
 ; the tile dimensions and the scroll bounds, then advance F4/F5 past it.
@@ -2400,8 +2400,8 @@ ReadMapDimensions:
     tay
     ldx #$08
     jsr MultiplyUnsigned8
-    stx $039E
-    sty $039F
+    stx MapWidthTilesLow
+    sty MapWidthTilesHigh
     txa
     sec
     sbc #$20
@@ -2492,16 +2492,16 @@ ReadBankedPointer:
 ; Compute a table index from the high portions of $039A/$039B and $039C,
 ; retaining the low three bits of $039A in $03DF for the map query.
 ResolveMapChunk:
-    lda $039A                     ; CONTROL_RESOLVE_MAP_CHUNK
+    lda MapTileXLow                     ; CONTROL_RESOLVE_MAP_CHUNK
     sta $EC
-    lda $039B
+    lda MapTileXHigh
     lsr a
     ror $EC
     lsr a
     ror $EC
     lsr a
     ror $EC
-    lda $039C
+    lda MapTileY
     lsr a
     lsr a
     lsr a
@@ -2519,7 +2519,7 @@ ResolveMapChunk:
     lda $F5
     adc $ED
     sta $ED
-    lda $039A
+    lda MapTileXLow
     and #$07
     sta $03DF
     jmp LoadMapChunkPointer
@@ -2579,8 +2579,8 @@ RequestHorizontalScroll:
 RequestScrollBits:
     ldx $03A4
     beq RequestScrollReturn
-    ora $03EB
-    sta $03EB
+    ora ScrollPendingFlags
+    sta ScrollPendingFlags
 RequestScrollReturn:
     rts
 RequestVerticalScroll:
@@ -2996,11 +2996,11 @@ PlaceSlotEvaluate:
     rol a
     rol a
     ldy $0404,x
-    lda $03F0
+    lda ScrollTargetYLow
     sta $03E0
     lda $0204,y
     bcc PlaceSlotSelectCoordinate
-    lda $03EE
+    lda ScrollTargetXLow
     sta $03E0
     lda $0207,y
 PlaceSlotSelectCoordinate:
@@ -3069,11 +3069,11 @@ SlotQueryPrepare:
     sta $03E5
     lda $03E2
     clc
-    adc $03EE
-    sta $039A
-    lda $03EF
+    adc ScrollTargetXLow
+    sta MapTileXLow
+    lda ScrollTargetXHigh
     adc #$00
-    sta $039B
+    sta MapTileXHigh
     lda $0402,x
     sta $FE
     lda $0403,x
@@ -3103,13 +3103,13 @@ SlotQueryDimensions:
     inc $03E2
     jmp SlotQuerySecondDimension
 SlotQueryAdjustFirst:
-    lda $039A
+    lda MapTileXLow
     clc
     adc #$04
-    sta $039A
-    lda $039B
+    sta MapTileXLow
+    lda MapTileXHigh
     adc #$00
-    sta $039B
+    sta MapTileXHigh
 
 ; Transform the second dimension and coordinates into eight-unit values.
 ; Keep the carry chain through the repeated shifts and rotates intact.
@@ -3128,10 +3128,10 @@ SlotQueryScaleSecond:
     clc
     adc $03E5
     clc
-    adc $03F0
+    adc ScrollTargetYLow
     sta $03E5
     lda #$00
-    adc $03F1
+    adc ScrollTargetYHigh
     lsr a
     ror $03E5
     lsr a
@@ -3139,15 +3139,15 @@ SlotQueryScaleSecond:
     lsr a
     ror $03E5
     lda $03E5
-    sta $039C
-    lsr $039B
-    ror $039A
+    sta MapTileY
+    lsr MapTileXHigh
+    ror MapTileXLow
     ror $03E1
-    lsr $039B
-    ror $039A
+    lsr MapTileXHigh
+    ror MapTileXLow
     ror $03E1
-    lsr $039B
-    ror $039A
+    lsr MapTileXHigh
+    ror MapTileXLow
     ror $03E1
     cmp $0396
     bcc SlotQuerySpan
@@ -3157,13 +3157,13 @@ SlotQueryScaleSecond:
 ; Clip the query span against the 16-bit $039E/$039F boundary. A wrapped or
 ; empty span selects the preceding position and one unit instead.
 SlotQueryPrevious:
-    lda $039E                     ; CONTROL_SLOT_QUERY_SPAN
+    lda MapWidthTilesLow                     ; CONTROL_SLOT_QUERY_SPAN
     sec
     sbc #$01
-    sta $039A
-    lda $039F
+    sta MapTileXLow
+    lda MapWidthTilesHigh
     sbc #$00
-    sta $039B
+    sta MapTileXHigh
     lda #$01
     sta $03E1
     jmp SlotQueryReserveStack
@@ -3175,12 +3175,12 @@ SlotQuerySpan:
 SlotQuerySpanSize:
     lda $03E2
     sta $03E1
-    lda $039E
+    lda MapWidthTilesLow
     sec
-    sbc $039A
+    sbc MapTileXLow
     tay
-    lda $039F
-    sbc $039B
+    lda MapWidthTilesHigh
+    sbc MapTileXHigh
     bcc SlotQueryPrevious
     bne SlotQueryReserveStack
     cpy $03E1
@@ -3220,12 +3220,12 @@ SlotQueryChunkSize:
     sta $03E0
     stx $03E1
     clc
-    adc $039A
-    sta $039A
+    adc MapTileXLow
+    sta MapTileXLow
     bcc SlotQueryChunkAddress
-    inc $039B
+    inc MapTileXHigh
 SlotQueryChunkAddress:
-    lda $039C                     ; CONTROL_SLOT_QUERY_ADDRESS
+    lda MapTileY                     ; CONTROL_SLOT_QUERY_ADDRESS
     and #$07
     asl a
     asl a
@@ -3281,31 +3281,31 @@ SlotQueryReleaseStack:
 ReadMapByteAtPosition:
     lda $03A6                     ; CONTROL_READ_MAP_BYTE
     clc
-    adc $03EE
-    sta $039A
-    lda $03EF
+    adc ScrollTargetXLow
+    sta MapTileXLow
+    lda ScrollTargetXHigh
     adc #$00
     lsr a
-    ror $039A
+    ror MapTileXLow
     lsr a
-    ror $039A
+    ror MapTileXLow
     lsr a
-    ror $039A
-    sta $039B
+    ror MapTileXLow
+    sta MapTileXHigh
     lda $03A7
     clc
-    adc $03F0
-    sta $039C
+    adc ScrollTargetYLow
+    sta MapTileY
     lda #$00
-    adc $03F1
+    adc ScrollTargetYHigh
     lsr a
-    ror $039C
+    ror MapTileY
     lsr a
-    ror $039C
+    ror MapTileY
     lsr a
-    ror $039C
+    ror MapTileY
     jsr ResolveMapChunk
-    lda $039C
+    lda MapTileY
     and #$07
     asl a
     asl a
@@ -4678,21 +4678,21 @@ PaletteStreamsReturn:
 ; If scroll work is pending, run both axis workers in alternating order.
 ; Each axis worker updates its scroll position and may enqueue a map redraw.
 UpdateScrollWork:
-    lda $03EB                    ; CONTROL_UPDATE_SCROLL_WORK
+    lda ScrollPendingFlags                    ; CONTROL_UPDATE_SCROLL_WORK
     bne ScrollWorkPending
     rts
 ScrollWorkPending:
     jsr ClampScrollTargets
-    lda $0398
+    lda ScrollAxisOrder
     bne ScrollWorkVerticalFirst
     lda #$FF
-    sta $0398
+    sta ScrollAxisOrder
     jsr UpdateHorizontalScroll
     jsr UpdateVerticalScroll
     rts
 ScrollWorkVerticalFirst:
     lda #$00
-    sta $0398
+    sta ScrollAxisOrder
     jsr UpdateVerticalScroll
     jsr UpdateHorizontalScroll
     rts
@@ -4701,28 +4701,28 @@ ScrollWorkVerticalFirst:
 ; Compare the current X scroll with its target. Snap and clear the pending
 ; bit if no tile boundary must be crossed; otherwise step at most eight pixels.
 UpdateHorizontalScroll:
-    lda $03EB ; CONTROL_HORIZONTAL_SCROLL
+    lda ScrollPendingFlags ; CONTROL_HORIZONTAL_SCROLL
     and #$01
     beq HorizontalScrollReturn
     lda #$08
-    sta $03E9
-    lda $03F3
+    sta ScrollStepPixels
+    lda ScrollCurrentXLow
     sec
-    sbc $03EE
+    sbc ScrollTargetXLow
     tay
-    lda $03F4
-    sbc $03EF
+    lda ScrollCurrentXHigh
+    sbc ScrollTargetXHigh
     bcc HorizontalScrollBelowTarget
     bne HorizontalScrollStepNegative
     tya
     beq HorizontalScrollClearPending
     cmp #$08
     bcs HorizontalScrollStepNegative
-    sta $03E9
-    lda $03EE
+    sta ScrollStepPixels
+    lda ScrollTargetXLow
     and #$07
     sta $FE
-    lda $03F3
+    lda ScrollCurrentXLow
     and #$07
     sec
     sbc $FE
@@ -4738,11 +4738,11 @@ HorizontalScrollNearBelow:
     bcc HorizontalScrollStepPositiveJump
     eor #$FF
     adc #$00
-    sta $03E9
-    lda $03F3
+    sta ScrollStepPixels
+    lda ScrollCurrentXLow
     and #$07
     sta $FE
-    lda $03EE
+    lda ScrollTargetXLow
     and #$07
     sec
     sbc $FE
@@ -4750,18 +4750,18 @@ HorizontalScrollNearBelow:
 HorizontalScrollStepPositiveJump:
     jmp HorizontalScrollStepPositive
 HorizontalScrollSnap:
-    lda $03EE ; CONTROL_HORIZONTAL_SCROLL_SNAP
-    sta $03F3
-    lda $03EF
-    sta $03F4
+    lda ScrollTargetXLow ; CONTROL_HORIZONTAL_SCROLL_SNAP
+    sta ScrollCurrentXLow
+    lda ScrollTargetXHigh
+    sta ScrollCurrentXHigh
 HorizontalScrollClearPending:
-    lda $03EB
+    lda ScrollPendingFlags
     and #$FE
-    sta $03EB
+    sta ScrollPendingFlags
 HorizontalScrollReturn:
     rts
 ; Moving toward lower X needs $50 bytes free in the PPU update queue.
-; Calculate the newly exposed column and pass it to the local map/queue code.
+; Calculate the newly exposed column and pass it to the map and queue routines.
 HorizontalScrollStepNegative:
     jsr PpuQueueRemaining ; CONTROL_HORIZONTAL_SCROLL_NEGATIVE
     cmp #$50
@@ -4772,19 +4772,19 @@ HorizontalScrollNegativeQueue:
     txa
     sec
     sbc #$01
-    sta $039A
+    sta MapTileXLow
     tya
     sbc #$00
-    sta $039B
-    lda $03F3
+    sta MapTileXHigh
+    lda ScrollCurrentXLow
     sec
-    sbc $03E9
-    sta $03F3
-    lda $03F4
+    sbc ScrollStepPixels
+    sta ScrollCurrentXLow
+    lda ScrollCurrentXHigh
     sbc #$00
-    sta $03F4
+    sta ScrollCurrentXHigh
     jsr ScrollYTileCoordinate
-    stx $039C
+    stx MapTileY
     jsr ResolveMapChunk
     jsr QueueMapTileColumn
     jmp HorizontalScrollStepReturn
@@ -4796,57 +4796,57 @@ HorizontalScrollStepPositive:
     rts
 HorizontalScrollPositiveQueue:
     jsr ScrollYTileCoordinate
-    stx $039C
+    stx MapTileY
     jsr ScrollXTileCoordinate
     txa
     clc
     adc #$21
-    sta $039A
+    sta MapTileXLow
     tya
     adc #$00
-    sta $039B
-    lda $039A
+    sta MapTileXHigh
+    lda MapTileXLow
     sec
-    sbc $039E
-    lda $039B
-    sbc $039F
+    sbc MapWidthTilesLow
+    lda MapTileXHigh
+    sbc MapWidthTilesHigh
     bcs HorizontalScrollPositiveApply
     jsr ResolveMapChunk
     jsr QueueMapTileColumn
 HorizontalScrollPositiveApply:
-    lda $03F3
+    lda ScrollCurrentXLow
     clc
-    adc $03E9
-    sta $03F3
-    lda $03F4
+    adc ScrollStepPixels
+    sta ScrollCurrentXLow
+    lda ScrollCurrentXHigh
     adc #$00
-    sta $03F4
+    sta ScrollCurrentXHigh
 HorizontalScrollStepReturn:
     rts
 ; Repeat the signed-distance and tile-boundary check for Y, using pending bit 2.
 UpdateVerticalScroll:
-    lda $03EB ; CONTROL_VERTICAL_SCROLL
+    lda ScrollPendingFlags ; CONTROL_VERTICAL_SCROLL
     and #$02
     beq VerticalScrollReturn
     lda #$08
-    sta $03E9
-    lda $03F5
+    sta ScrollStepPixels
+    lda ScrollCurrentYLow
     sec
-    sbc $03F0
+    sbc ScrollTargetYLow
     tay
-    lda $03F6
-    sbc $03F1
+    lda ScrollCurrentYHigh
+    sbc ScrollTargetYHigh
     bcc VerticalScrollBelowTarget
     bne VerticalScrollStepNegative
     tya
     beq VerticalScrollClearPending
     cmp #$08
     bcs VerticalScrollStepNegative
-    sta $03E9
-    lda $03F0
+    sta ScrollStepPixels
+    lda ScrollTargetYLow
     and #$07
     sta $FE
-    lda $03F5
+    lda ScrollCurrentYLow
     and #$07
     sec
     sbc $FE
@@ -4862,11 +4862,11 @@ VerticalScrollNearBelow:
     bcc VerticalScrollStepPositiveJump
     eor #$FF
     adc #$00
-    sta $03E9
-    lda $03F5
+    sta ScrollStepPixels
+    lda ScrollCurrentYLow
     and #$07
     sta $FE
-    lda $03F0
+    lda ScrollTargetYLow
     and #$07
     sec
     sbc $FE
@@ -4874,14 +4874,14 @@ VerticalScrollNearBelow:
 VerticalScrollStepPositiveJump:
     jmp VerticalScrollStepPositive
 VerticalScrollSnap:
-    lda $03F0 ; CONTROL_VERTICAL_SCROLL_SNAP
-    sta $03F5
-    lda $03F1
-    sta $03F6
+    lda ScrollTargetYLow ; CONTROL_VERTICAL_SCROLL_SNAP
+    sta ScrollCurrentYLow
+    lda ScrollTargetYHigh
+    sta ScrollCurrentYHigh
 VerticalScrollClearPending:
-    lda $03EB
+    lda ScrollPendingFlags
     and #$FD
-    sta $03EB
+    sta ScrollPendingFlags
 VerticalScrollReturn:
     rts
 ; A vertical redraw needs $3C free queue bytes before changing position.
@@ -4895,14 +4895,14 @@ VerticalScrollNegativeQueue:
     txa
     sec
     sbc #$01
-    sta $039C
-    lda $03F5
+    sta MapTileY
+    lda ScrollCurrentYLow
     sec
-    sbc $03E9
-    sta $03F5
-    lda $03F6
+    sbc ScrollStepPixels
+    sta ScrollCurrentYLow
+    lda ScrollCurrentYHigh
     sbc #$00
-    sta $03F6
+    sta ScrollCurrentYHigh
     jsr QueueScrollRow
     jmp VerticalScrollStepReturn
 VerticalScrollStepPositive:
@@ -4915,23 +4915,23 @@ VerticalScrollPositiveQueue:
     txa
     clc
     adc #$1E
-    sta $039C
+    sta MapTileY
     jsr QueueScrollRow
-    lda $03F5
+    lda ScrollCurrentYLow
     clc
-    adc $03E9
-    sta $03F5
-    lda $03F6
+    adc ScrollStepPixels
+    sta ScrollCurrentYLow
+    lda ScrollCurrentYHigh
     adc #$00
-    sta $03F6
+    sta ScrollCurrentYHigh
 VerticalScrollStepReturn:
     rts
 ; Resolve the current X tile coordinate and queue the exposed row through
 ; the reconstructed map row helpers.
 QueueScrollRow:
     jsr ScrollXTileCoordinate ; CONTROL_QUEUE_SCROLL_ROW
-    stx $039A
-    sty $039B
+    stx MapTileXLow
+    sty MapTileXHigh
     jsr ResolveMapChunk
     jsr QueueMapTileRow
     rts
@@ -4946,17 +4946,17 @@ UpdatePpuScrollMirror:
     lda $03FF
     and #$FE
     sta $03FF
-    lda $03F4
+    lda ScrollCurrentXHigh
     and #$01
     ora $03FF
     sta $03FF
-    lda $03F3
+    lda ScrollCurrentXLow
     sta $03FC
-    lda $03F5
+    lda ScrollCurrentYLow
     clc
     adc $03BC
     tax
-    lda $03F6
+    lda ScrollCurrentYHigh
     adc #$00
     tay
     lda #$F0
@@ -4975,17 +4975,17 @@ QueueMapTileRow:
     sta $03D2
     lda #$00
     sta $03D3
-    lda $039A
+    lda MapTileXLow
     and #$1F
     sta $03DC
     ldx #$20
     lda #$20
-    and $039A
+    and MapTileXLow
     beq MapTileRowNametable
     ldx #$24
 MapTileRowNametable:
     stx $03D7                    ; CONTROL_MAP_TILE_ROW_NAMETABLE
-    ldx $039C
+    ldx MapTileY
     ldy #$00
     lda #$1E
     jsr DivideUnsigned16By8
@@ -5006,12 +5006,12 @@ MapTileRowNametable:
     adc $03D7
     eor #$04
     sta $03D7
-    lda $039E
+    lda MapWidthTilesLow
     sec
-    sbc $039A
+    sbc MapTileXLow
     sta $03DD
-    lda $039F
-    sbc $039B
+    lda MapWidthTilesHigh
+    sbc MapTileXHigh
     beq MapTileRowWidth
     lda #$FF
     sta $03DD
@@ -5035,7 +5035,7 @@ MapTileRowFirstLength:
     sbc $03DC
     sta $03DD
     jsr MapChunkRowPointer       ; Resolve source row in the current chunk.
-    lda $039A
+    lda MapTileXLow
     and #$07
     sta $03DB
     clc
@@ -5113,17 +5113,17 @@ MapRowAttributesPrepare:
     lda $03DA
     and #$01
     beq MapRowAttributesChunkBase
-    lda $039C
+    lda MapTileY
     and #$07
     cmp #$02
     bcs MapRowAttributesAdjustY
     lda $03AA
     sta $EC
 MapRowAttributesAdjustY:
-    lda $039C
+    lda MapTileY
     sec
     sbc #$02
-    sta $039C
+    sta MapTileY
 MapRowAttributesChunkBase:
     lda $03D8 ; CONTROL_MAP_ROW_ATTRIBUTES_CHUNK_BASE
     sec
@@ -5134,7 +5134,7 @@ MapRowAttributesChunkBase:
     sta $ED
     ldx #$23
     lda #$20
-    and $039A
+    and MapTileXLow
     beq MapRowAttributeAddress
     ldx #$27
 ; Form the $23C0/$27C0 attribute address and count up to nine entries.
@@ -5146,7 +5146,7 @@ MapRowAttributeAddress:
     clc
     adc #$C0
     sta $03D6
-    lda $039A
+    lda MapTileXLow
     and #$1F
     lsr a
     lsr a
@@ -5158,7 +5158,7 @@ MapRowAttributeAddress:
     lda $03D7
     eor #$04
     sta $03D7
-    lda $039A
+    lda MapTileXLow
     and #$1F
     lsr a
     lsr a
@@ -5170,10 +5170,10 @@ MapRowAttributeAddress:
     sta $03DD
     lda $03A0
     sec
-    sbc $039A
+    sbc MapTileXLow
     bne MapRowAttributesFirst
     lda $03A1
-    sbc $039B
+    sbc MapTileXHigh
     bne MapRowAttributesFirst
     dec $03DD
 ; Copy attribute spans in two-byte chunks, crossing the chunk and nametable
@@ -5186,7 +5186,7 @@ MapRowAttributesFirst:
     jsr MapChunkAttributeRowPointer
     lda #$02
     sta $03DB
-    lda $039A
+    lda MapTileXLow
     and #$04
     beq MapRowAttributesReady
     dec $03DB
@@ -5251,14 +5251,14 @@ MapRowAttributesMerge:
     jmp MapQueueStoreEnd
 MapRowAttributesPrepareMerge:
     stx $03D4 ; CONTROL_MAP_ROW_ATTRIBUTES_PREPARE_MERGE
-    lda $039C
+    lda MapTileY
     clc
     adc #$02
-    sta $039C
+    sta MapTileY
     lda #$00
     sta $EC
     sta $ED
-    lda $039C
+    lda MapTileY
     and #$07
     cmp #$06
     bcc MapRowAttributesMergeChunk
@@ -5272,10 +5272,10 @@ MapRowAttributesMergeChunk:
     lda $03D9
     adc $ED
     sta $ED
-    lda $039C
+    lda MapTileY
     clc
     adc #$02
-    sta $039C
+    sta MapTileY
     lda $0380
     clc
     adc #$04
@@ -5298,7 +5298,7 @@ MapRowAttributesMergeSource:
     jsr MapChunkAttributeRowPointer ; CONTROL_MAP_ROW_ATTRIBUTES_MERGE_SOURCE
     lda #$02
     sta $03DB
-    lda $039A
+    lda MapTileXLow
     and #$04
     beq MapRowAttributesMergeReady
     dec $03DB
@@ -5349,7 +5349,7 @@ MapQueueStoreEnd:
     rts
 ; Convert the row within a chunk to an eight-byte tile-row offset.
 MapChunkRowPointer:
-    lda $039C                    ; CONTROL_MAP_CHUNK_ROW_POINTER
+    lda MapTileY                    ; CONTROL_MAP_CHUNK_ROW_POINTER
     and #$07
     asl a
     asl a
@@ -5357,7 +5357,7 @@ MapChunkRowPointer:
     jmp MapChunkOffsetPointer
 ; Select one of the two two-byte attribute rows within a chunk.
 MapChunkAttributeRowPointer:
-    lda $039C                    ; CONTROL_MAP_CHUNK_ATTRIBUTE_ROW_POINTER
+    lda MapTileY                    ; CONTROL_MAP_CHUNK_ATTRIBUTE_ROW_POINTER
     and #$04
     lsr a
     clc
@@ -5376,17 +5376,17 @@ QueueMapTileColumn:
     sta $03D2
     lda #$00
     sta $03D3
-    lda $039A
+    lda MapTileXLow
     and #$1F
     sta $03D6
     ldx #$20
     lda #$20
-    and $039A
+    and MapTileXLow
     beq MapColumnNametable
     ldx #$24
 MapColumnNametable:
     stx $03D7 ; CONTROL_MAP_COLUMN_NAMETABLE
-    ldx $039C
+    ldx MapTileY
     ldy #$00
     lda #$1E
     jsr DivideUnsigned16By8
@@ -5404,7 +5404,7 @@ MapColumnNametable:
     sta $03D5
     lda $0396
     sec
-    sbc $039C
+    sbc MapTileY
     cmp #$1E
     bcc MapColumnFirstLength
     lda #$1E
@@ -5423,7 +5423,7 @@ MapColumnSource:
     sbc $03DC
     sta $03DD
     jsr MapChunkColumnPointer
-    lda $039C
+    lda MapTileY
     and #$07
     sta $03DB
     asl a
@@ -5490,7 +5490,7 @@ MapColumnAttributes:
     sta $03D1
     lda $0396
     sec
-    sbc $039C
+    sbc MapTileY
     cmp #$24
     bcc MapColumnAttributesCount
     lda #$24
@@ -5506,17 +5506,17 @@ MapColumnAttributesCount:
     jsr MapChunkAttributePointer
     lda $03D1
     beq MapColumnAttributeAlignment
-    lda $039C
+    lda MapTileY
     and #$02
     bne MapColumnAttributeAlignment
-    lda $039C
+    lda MapTileY
     and #$04
     bne MapColumnAttributesGather
     jsr RetreatMapChunk
     jsr MapChunkAttributePointer
     jmp MapColumnAttributeOffset
 MapColumnAttributeAlignment:
-    lda $039C
+    lda MapTileY
     and #$04
     beq MapColumnAttributesGather
 MapColumnAttributeOffset:
@@ -5576,7 +5576,7 @@ MapColumnAttributeTrim:
     sta $03DE
 ; Emit one-byte PPU attribute entries, moving down eight bytes per entry.
 MapColumnAttributeAddress:
-    lda $039A ; CONTROL_MAP_COLUMN_ATTRIBUTE_ADDRESS
+    lda MapTileXLow ; CONTROL_MAP_COLUMN_ATTRIBUTE_ADDRESS
     and #$1F
     lsr a
     lsr a
@@ -5589,7 +5589,7 @@ MapColumnAttributeAddress:
     sta $03D2
     ldx #$23
     lda #$20
-    and $039A
+    and MapTileXLow
     beq MapColumnAttributeNametable
     ldx #$27
 MapColumnAttributeNametable:
@@ -5646,7 +5646,7 @@ MapColumnAttributeNext:
 .assert (* - BankStart) = $1D63, error, "bank 0 map column queue end"
 ; Select a tile-column offset within a map chunk, then resolve its tile pointer.
 MapChunkColumnPointer:
-    lda $039A                    ; CONTROL_MAP_CHUNK_COLUMN_POINTER
+    lda MapTileXLow                    ; CONTROL_MAP_CHUNK_COLUMN_POINTER
     and #$07
 ; A is an offset within the chunk, EC/ED selects its banked index, and X is
 ; preserved. Resolve its table entry at $A1DE and return the pointer in F6/F7.
@@ -5690,7 +5690,7 @@ MapChunkOffsetPointer:
     rts
 ; Rotate X coordinate bit 2 into carry, then select chunk offset $40 or $41.
 MapChunkAttributePointer:
-    lda $039A                    ; CONTROL_MAP_CHUNK_ATTRIBUTE_POINTER
+    lda MapTileXLow                    ; CONTROL_MAP_CHUNK_ATTRIBUTE_POINTER
     ror a
     ror a
     ror a
@@ -5729,32 +5729,32 @@ PpuQueueRemaining:
 ClampScrollTargets:
     lda $03A2                    ; CONTROL_CLAMP_SCROLL_TARGETS
     sec
-    sbc $03EE
+    sbc ScrollTargetXLow
     lda $03A3
-    sbc $03EF
+    sbc ScrollTargetXHigh
     bcs ClampScrollY
     lda $03A2
-    sta $03EE
+    sta ScrollTargetXLow
     lda $03A3
-    sta $03EF
+    sta ScrollTargetXHigh
 ClampScrollY:
     lda $03A8
     sec
-    sbc $03F0
+    sbc ScrollTargetYLow
     lda $03A9
-    sbc $03F1
+    sbc ScrollTargetYHigh
     bcs ClampScrollReturn
     lda $03A8
-    sta $03F0
+    sta ScrollTargetYLow
     lda $03A9
-    sta $03F1
+    sta ScrollTargetYHigh
     jsr ScriptOp18
 ClampScrollReturn:
     rts
 ; Divide the current X or Y scroll position by eight, returning Y:X.
 ScrollXTileCoordinate:
-    ldx $03F3                    ; CONTROL_SCROLL_X_TILE_COORDINATE
-    ldy $03F4
+    ldx ScrollCurrentXLow                    ; CONTROL_SCROLL_X_TILE_COORDINATE
+    ldy ScrollCurrentXHigh
 ShiftXYRight3:
     jsr ShiftXYRight1
     jsr ShiftXYRight1
@@ -5767,8 +5767,8 @@ ShiftXYRight1:
     tax
     rts
 ScrollYTileCoordinate:
-    ldx $03F5                    ; CONTROL_SCROLL_Y_TILE_COORDINATE
-    ldy $03F6
+    ldx ScrollCurrentYLow                    ; CONTROL_SCROLL_Y_TILE_COORDINATE
+    ldy ScrollCurrentYHigh
     jmp ShiftXYRight3
 ShiftXYLeft3:
     jsr ShiftXYLeft1             ; CONTROL_SHIFT_XY_LEFT3
@@ -6881,7 +6881,7 @@ FadeLoadPalettes:
     lda $03FF
     and #$FE
     sta $03FF
-    lda $03F4
+    lda ScrollCurrentXHigh
     and #$01
     ora $03FF
     sta $03FF
@@ -7105,28 +7105,28 @@ MainDefaultPalettes:
 ; helper three times, preserving carries in the paired bytes.
 MainSetupHorizontalBase:
     lda $0C ; CONTROL_MAIN_STATE_BASES
-    sta $03EF
+    sta ScrollTargetXHigh
     lda $0B
-    sta $03EE
+    sta ScrollTargetXLow
     lda $0A
     bne MainSetupVerticalBase
-    sta $03EE
-    sta $03EF
+    sta ScrollTargetXLow
+    sta ScrollTargetXHigh
     jsr MainScaleHorizontalBase
     jsr MainScaleHorizontalBase
     jsr MainScaleHorizontalBase
 MainSetupVerticalBase:
     lda $1C
-    sta $03F0
+    sta ScrollTargetYLow
     lda $1D
-    sta $03F1
+    sta ScrollTargetYHigh
     lda $0A
     bne MainPrepareMap
     ldx $01
     lda InitialVerticalBaseSeeds,x
-    sta $03F0
+    sta ScrollTargetYLow
     lda #$00
-    sta $03F1
+    sta ScrollTargetYHigh
     jsr MainScaleVerticalBase
     jsr MainScaleVerticalBase
     jsr MainScaleVerticalBase
@@ -7170,12 +7170,12 @@ MainPrepareMap:
 .assert (* - BankStart) = $4BD6, error, "bank 0 state preparation cbd6 boundary"
 
 MainScaleHorizontalBase:
-    asl $03EE ; CONTROL_MAIN_STATE_SCALE
-    rol $03EF
+    asl ScrollTargetXLow ; CONTROL_MAIN_STATE_SCALE
+    rol ScrollTargetXHigh
     rts
 MainScaleVerticalBase:
-    asl $03F0
-    rol $03F1
+    asl ScrollTargetYLow
+    rol ScrollTargetYHigh
     rts
 .assert (* - BankStart) = $4BE4, error, "bank 0 state preparation cbe4 boundary"
 
@@ -7256,9 +7256,9 @@ TranslateSlotReturn:
 ; and return its low/high bytes in X/Y.
 ScaleWorldCoordinate:
     clc                           ; CONTROL_SCALE_WORLD_COORDINATE
-    adc $03EE
+    adc ScrollTargetXLow
     sta $11
-    lda $03EF
+    lda ScrollTargetXHigh
     adc #$00
     jsr ScaleWorldShiftRight
     jsr ScaleWorldShiftRight
@@ -7506,12 +7506,12 @@ UpdateFrameFirstBase:
     sta $FF
 UpdateFrameFirstAdd:
     clc
-    lda $03EE
+    lda ScrollTargetXLow
     adc $FE
-    sta $03EE
-    lda $03EF
+    sta ScrollTargetXLow
+    lda ScrollTargetXHigh
     adc $FF
-    sta $03EF
+    sta ScrollTargetXHigh
     lda $0E
     sta $FE
     lda $0F
@@ -7554,24 +7554,24 @@ UpdateFrameSecondBase:
     bpl UpdateFrameSecondAdd
     lda #$FF
     sta $FF
-    lda $03F1
+    lda ScrollTargetYHigh
     bne UpdateFrameSecondAdd
-    lda $03F0
+    lda ScrollTargetYLow
     cmp $31
     bcs UpdateFrameSecondAdd
-    lda $03F0
+    lda ScrollTargetYLow
     sta $31
     lda #$00
-    sta $03F0
+    sta ScrollTargetYLow
     jmp UpdateFrameRecalculate
 UpdateFrameSecondAdd:
     clc
-    lda $03F0
+    lda ScrollTargetYLow
     adc $FE
-    sta $03F0
-    lda $03F1
+    sta ScrollTargetYLow
+    lda ScrollTargetYHigh
     adc $FF
-    sta $03F1
+    sta ScrollTargetYHigh
 UpdateFrameRecalculate:
     jsr UpdatePositionReference
 UpdateFrameBasesReturn:
@@ -7911,9 +7911,9 @@ SlotPositionEventReturn:
 CalculateSlotCoordinate:
     lda $B0,x                     ; CONTROL_CALCULATE_SLOT_COORDINATE
     clc
-    adc $03F0
+    adc ScrollTargetYLow
     sta $11
-    lda $03F1
+    lda ScrollTargetYHigh
     adc #$00
     jsr RotateSlotCoordinate
     jsr RotateSlotCoordinate
@@ -7945,11 +7945,11 @@ ConvertSlotPosition:
 ConvertSlotFirstSubtract:
     sec
     lda $11
-    sbc $03EE
+    sbc ScrollTargetXLow
     sta $11
     tax
     lda $12
-    sbc $03EF
+    sbc ScrollTargetXHigh
     sta $12
     bne ConvertSlotPositionOutOfRange
     bcs ConvertSlotSecond
@@ -7969,11 +7969,11 @@ ConvertSlotSecond:
 ConvertSlotSecondSubtract:
     sec
     lda $11
-    sbc $03F0
+    sbc ScrollTargetYLow
     sta $11
     tay
     lda $12
-    sbc $03F1
+    sbc ScrollTargetYHigh
     sta $12
     bne ConvertSlotPositionOutOfRange
     bcc ConvertSlotPositionOutOfRange
@@ -7990,21 +7990,21 @@ ShiftPositionLeft:
 ; Derive $0E/$0F and $4F from the two position bases, adding seven before
 ; three right shifts. Preserve carry propagation on the original entry paths.
 UpdatePositionReference:
-    lda $03EE                     ; CONTROL_UPDATE_POSITION_REFERENCE
+    lda ScrollTargetXLow                     ; CONTROL_UPDATE_POSITION_REFERENCE
     clc
     adc #$07
     sta $0E
-    lda $03EF
+    lda ScrollTargetXHigh
     adc #$00
     sta $0F
     jsr ShiftReferenceRight
     jsr ShiftReferenceRight
     jsr ShiftReferenceRight
-    lda $03F0
+    lda ScrollTargetYLow
     clc
     adc #$07
     sta $4F
-    lda $03F1
+    lda ScrollTargetYHigh
     adc #$00
     jsr ShiftA4FRight
     jsr ShiftA4FRight
@@ -10611,7 +10611,7 @@ ScriptOp89Relative:
     and #$1F
     jsr ShiftALeft3
     sta $11
-    lda $03EE
+    lda ScrollTargetXLow
     and #$07
     clc
     adc $11
@@ -10788,13 +10788,13 @@ ScriptOp97Pair:
 ScriptOp98:
     lda $01                      ; CONTROL_SCRIPT_OP98
     sta $27
-    lda $03EE
+    lda ScrollTargetXLow
     sta $0B
-    lda $03EF
+    lda ScrollTargetXHigh
     sta $0C
-    lda $03F0
+    lda ScrollTargetYLow
     sta $1C
-    lda $03F1
+    lda ScrollTargetYHigh
     sta $1D
     lda $3C
     sta $5B
@@ -10870,9 +10870,9 @@ ScriptOp9D:
 ScriptOp9E:
     lda $0700,x                  ; CONTROL_SCRIPT_OP9E
     clc
-    adc $03EE
+    adc ScrollTargetXLow
     sta $11
-    lda $03EF
+    lda ScrollTargetXHigh
     adc #$00
     sta $12
 ScriptCompareOffset:
@@ -10889,9 +10889,9 @@ ScriptOp9F:
 ScriptGetSecondOffset:
     lda $B0,x
     clc
-    adc $03F0
+    adc ScrollTargetYLow
     sta $11
-    lda $03F1
+    lda ScrollTargetYHigh
     adc #$00
     sta $12
     rts
@@ -11025,7 +11025,7 @@ ScriptSetSlotFFFF:
 ScriptOpA8:
     lda $70,x                   ; CONTROL_SCRIPT_OPA8
     clc
-    adc $03EE
+    adc ScrollTargetXLow
     and #$07
     jsr NegateA
     clc
@@ -11033,7 +11033,7 @@ ScriptOpA8:
     sta $70,x
     lda $80,x
     clc
-    adc $03F0
+    adc ScrollTargetYLow
     and #$07
     jsr NegateA
     clc
@@ -12095,9 +12095,9 @@ ComputeSlotScaledPosition:
     sta $04
     lda $0700,x
     clc
-    adc $03EE
+    adc ScrollTargetXLow
     sta $11
-    lda $03EF
+    lda ScrollTargetXHigh
     adc #$00
     sta $12
     jsr ShiftPositionRight
@@ -13404,9 +13404,9 @@ HorizontalMotionLeftDistance:
     lda #$08
 HorizontalMotionLeftBound:
     sta $03E1 ; CONTROL_HORIZONTAL_MOTION_LEFT_BOUND
-    lda $03EE
+    lda ScrollTargetXLow
     sta $5E
-    lda $03EF
+    lda ScrollTargetXHigh
     sta $5F
     jsr ShiftSearchCoordinateRight
     jsr ShiftSearchCoordinateRight
@@ -13416,7 +13416,7 @@ HorizontalMotionLeftBound:
     lda $0E
     cmp #$02
     bcs HorizontalMotionCheckRecord
-    lda $03EE
+    lda ScrollTargetXLow
     cmp $03E1
     bcs HorizontalMotionCheckRecord
     sta $03E1
@@ -13431,7 +13431,7 @@ HorizontalMotionCheckOtherRecord:
     cmp #$F1
     bne HorizontalMotionSetPositive
 HorizontalMotionTileLimit:
-    lda $03EE ; CONTROL_HORIZONTAL_MOTION_TILE_LIMIT
+    lda ScrollTargetXLow ; CONTROL_HORIZONTAL_MOTION_TILE_LIMIT
     and #$07
     beq HorizontalMotionReturn
     sta $03DF
@@ -13496,7 +13496,7 @@ VerticalMotionTopBound:
     sta $03E1 ; CONTROL_VERTICAL_MOTION_TOP_BOUND
     lda $4F
     bne VerticalMotionSetPositive
-    lda $03F0
+    lda ScrollTargetYLow
     and #$07
     beq VerticalMotionReturn
     sta $03DF
@@ -13599,11 +13599,11 @@ InitializeScrolledSlot:
     lda $0630,x
     ora #$02
     sta $0630,x
-    lda $03EE
+    lda ScrollTargetXLow
     clc
     adc $0580,x
     sta $07D0,x
-    lda $03EF
+    lda ScrollTargetXHigh
     adc #$00
     sta $07E0,x
     jsr SelectSlotHorizontalMotion
@@ -13631,11 +13631,11 @@ ScrolledSlotHorizontalFraction:
     jsr ShiftScrolledSlotHorizontal
     jsr ShiftScrolledSlotHorizontal
     jsr ShiftScrolledSlotHorizontal
-    lda $03F0
+    lda ScrollTargetYLow
     clc
     adc $0590,x
     sta $80,x
-    lda $03F1
+    lda ScrollTargetYHigh
     adc #$00
     sta $12
     jsr SelectSlotVerticalMotion
@@ -13795,10 +13795,10 @@ HorizontalMotionNoRight:
 HorizontalMotionMapRightLimit:
     lda $03A2 ; CONTROL_HORIZONTAL_MOTION_MAP_RIGHT_LIMIT
     sec
-    sbc $03EE
+    sbc ScrollTargetXLow
     tax
     lda $03A3
-    sbc $03EF
+    sbc ScrollTargetXHigh
     beq HorizontalMotionRightLimitReturn
     ldx #$FF
 HorizontalMotionRightLimitReturn:
@@ -13808,10 +13808,10 @@ HorizontalMotionRightLimitReturn:
 VerticalMotionMapBottomLimit:
     lda $03A8 ; CONTROL_VERTICAL_MOTION_MAP_BOTTOM_LIMIT
     sec
-    sbc $03F0
+    sbc ScrollTargetYLow
     tax
     lda $03A9
-    sbc $03F1
+    sbc ScrollTargetYHigh
     beq VerticalMotionBottomLimitReturn
     ldx #$FF
 VerticalMotionBottomLimitReturn:

@@ -344,7 +344,7 @@ in these inventories; that number is not a count of remaining code. The report
 also retains 7,633 possible map/script overlap bytes and 858 possible record/script
 overlap bytes across the combined inventories. The expanded field-setter walk
 introduces many speculative competing decodes; it does not establish their
-reachability. It also reports 8,055 source-owned bytes covered by candidate
+reachability. It also reports 8,058 source-owned bytes covered by candidate
 data uses, which can include compatible uses as well as competing ones. The
 report records its input identities and writes metadata only to
 ignored `analysis/us-v1.5/prg-inventory.json`.
@@ -1503,3 +1503,20 @@ the full ROM comparison observes exactly that physical byte changing. Editing
 the local asset or its retained evidence invalidates progress until the build
 is reverified. Neither the decoded assets nor the opaque slot are credited as
 source; possible overlapping script uses and mapper assumptions remain open.
+
+The map query and scroll implementation now uses 16 named RAM symbols in
+274 instruction operands. The names describe the observed coordinate, width,
+scroll target, current scroll and work-state uses; shared scratch use and
+higher-level roles remain provisional. Sixteen retained include-file controls
+independently change each symbol and verify the resulting physical operands
+within reconstructed code. The expected operand counts are reviewed alongside
+the source and must be updated if later reconstruction adds a use. These names
+replace numeric addresses in already-owned code and do not add PRG coverage.
+
+A direct-record script walk also finds ten unreviewed possible `$9B` native
+calls beyond the two established forms. Their entry bytes are in local regions or inside existing native
+instructions. They are candidate
+overlapping decodes, not evidence of additional reachable native calls; their
+active bank and target interpretation remain open. The candidate addresses and
+both physical-bank alternatives remain in ignored local analysis at
+`analysis/us-v1.5/native-script-call-candidates.json`.

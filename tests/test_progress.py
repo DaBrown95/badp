@@ -11,7 +11,8 @@ from unittest.mock import patch
 from test_build import synthetic_map
 from test_map_assets import synthetic_prg
 from tools import map_assets
-from tools.build_rom import MUTATIONS, PROOF_INPUTS, digest, mutate_source, source_regions
+from tools.build_rom import (MUTATIONS, PROOF_INPUTS, SYMBOL_CONTROLS, digest, mutate_include,
+                             mutate_source, source_regions)
 from tools.identify_rom import inspect_rom
 from tools.progress import BEGIN, END, main, percentage, progress_data, render_table, update_readme, verify_primary
 from tools.project import IDENTITY_PARTS
@@ -87,7 +88,8 @@ class ProofFreshnessTests(unittest.TestCase):
 
         self.write = write
         source = "".join(f"{old} ; {marker}\n" for marker, old, _ in MUTATIONS.values()).encode()
-        include = b"synthetic include\n"
+        include = ("synthetic include\n" + "".join(
+            f"{name} = ${address:04X}\n" for name, (address, _) in SYMBOL_CONTROLS.items())).encode()
         link = b"synthetic linker config\n"
         source_map = {**synthetic_map(), "target": "us-v1.5", "source": "src/rom.s",
                       "linker_config": "config/link.cfg"}
@@ -105,7 +107,22 @@ class ProofFreshnessTests(unittest.TestCase):
         for name in self.tools:
             write(f"fake-tools/{name}", name.encode())
 
-        reference = b"NES\x1a" + bytes([4, 8]) + bytes(10) + synthetic_prg() + bytes(65536)
+        preliminary_regions = source_regions(source_map, 16)
+        code_regions = [r for r in preliminary_regions if r["kind"] == "code" and r["bank"] == 0]
+        prg = bytearray(synthetic_prg())
+        symbol_offsets = {}
+        cursor = 0
+        for name, (address, count) in SYMBOL_CONTROLS.items():
+            selected = code_regions[cursor:cursor + count]
+            if len(selected) != count:
+                raise ValueError("not enough synthetic code regions")
+            offsets = [r["file_offset"] for r in selected]
+            for offset in offsets:
+                prg[offset - 16:offset - 14] = address.to_bytes(2, "little")
+            symbol_offsets[name] = offsets
+            cursor += count
+        prg = bytes(prg)
+        reference = b"NES\x1a" + bytes([4, 8]) + bytes(10) + prg + bytes(65536)
         write("baseroms/synthetic.nes", reference)
         parsed = inspect_rom(reference)
         self.target = {"input_path": "baseroms/synthetic.nes",
@@ -116,14 +133,14 @@ class ProofFreshnessTests(unittest.TestCase):
             (self.proof_dir / path).parent.mkdir(parents=True, exist_ok=True)
             (self.proof_dir / path).write_bytes(data)
         asset, asset_payload, asset_source, asset_hash = map_assets.select(
-            self.root, synthetic_prg(), digest(reference))
+            self.root, prg, digest(reference))
         inputs = self.proof_dir / "inputs"
         inputs.mkdir()
         (inputs / map_assets.GAP_NAME).write_bytes(asset_payload)
         (inputs / "map-chunks.json").write_bytes(map_assets.serialize(asset))
         changed_asset = map_assets.changed_asset(asset)
         changed_json = map_assets.serialize(changed_asset)
-        changed_payload = map_assets.encode(changed_asset, synthetic_prg(), digest(reference))
+        changed_payload = map_assets.encode(changed_asset, prg, digest(reference))
         changed_reference = bytearray(reference)
         changed_reference[16 + map_assets.BANK_SIZE] ^= 1
         asset_candidate = bytes(changed_reference)
@@ -155,6 +172,20 @@ class ProofFreshnessTests(unittest.TestCase):
             controls.append({"control": name, "changed_offsets": changed,
                              "affected_regions": [r["id"] for r in selected],
                              "source_sha256": digest(candidate_source), "candidate_sha256": digest(candidate)})
+        symbol_controls = []
+        for name, (address, _) in SYMBOL_CONTROLS.items():
+            folder = self.proof_dir / "controls" / f"symbol_{name}"
+            folder.mkdir(parents=True)
+            changed_include = mutate_include(include.decode(), name).encode()
+            candidate = bytearray(reference)
+            for offset in symbol_offsets[name]:
+                candidate[offset] = (address ^ 1) & 255
+            candidate = bytes(candidate)
+            (folder / "rom.s").write_bytes(source)
+            (folder / "nes.inc").write_bytes(changed_include)
+            (folder / "candidate.nes").write_bytes(candidate)
+            symbol_controls.append({"symbol": name, "include_sha256": digest(changed_include),
+                                    "candidate_sha256": digest(candidate), "changed_offsets": symbol_offsets[name]})
         code = sum(r["size"] for r in regions if r["kind"] == "code")
         data = sum(r["size"] for r in regions if r["kind"] == "data")
         self.proof = {
@@ -171,7 +202,7 @@ class ProofFreshnessTests(unittest.TestCase):
             "map_assets": asset_evidence,
             "counts": {"matching_code_bytes": code, "structured_data_bytes": data,
                        "local_prg_bytes": 65536 - code - data, "local_chr_bytes": 65536},
-            "controls": controls,
+            "controls": controls, "symbol_controls": symbol_controls,
         }
         self.save_proof()
 
@@ -192,6 +223,15 @@ class ProofFreshnessTests(unittest.TestCase):
     def test_changed_debug_information_is_rejected(self):
         (self.proof_dir / "bible-adventures.dbg").write_bytes(b"changed debug")
         with self.assertRaisesRegex(ValueError, "debug information is stale"):
+            self.verify()
+
+    def test_changed_or_missing_shared_symbol_control_is_rejected(self):
+        (self.proof_dir / "controls/symbol_MapTileY/nes.inc").write_bytes(b"changed")
+        with self.assertRaisesRegex(ValueError, "shared-symbol control"):
+            self.verify()
+        self.proof["symbol_controls"].pop()
+        self.save_proof()
+        with self.assertRaisesRegex(ValueError, "controls are incomplete"):
             self.verify()
 
     def test_changed_map_asset_or_control_is_rejected(self):

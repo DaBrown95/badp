@@ -23,6 +23,19 @@ PROOF_INPUTS = ("tools/build_rom.py", "tools/identify_rom.py", "tools/project.py
                 "tools/setup.py", "tools/map_assets.py", "tools/map_data.py", "tools/script_entries.py",
                 "config/cc65-toolchain.json")
 
+# Each shared RAM symbol gets an independent operand-change control. Counts
+# are physical instruction operands, not claims about runtime reachability.
+SYMBOL_CONTROLS = {
+    "ScrollAxisOrder": (0x0398, 3), "MapTileXLow": (0x039A, 41),
+    "MapTileXHigh": (0x039B, 21), "MapTileY": (0x039C, 33),
+    "MapWidthTilesLow": (0x039E, 7), "MapWidthTilesHigh": (0x039F, 6),
+    "ScrollStepPixels": (0x03E9, 10), "ScrollPendingFlags": (0x03EB, 10),
+    "ScrollTargetXLow": (0x03EE, 29), "ScrollTargetXHigh": (0x03EF, 22),
+    "ScrollTargetYLow": (0x03F0, 28), "ScrollTargetYHigh": (0x03F1, 21),
+    "ScrollCurrentXLow": (0x03F3, 12), "ScrollCurrentXHigh": (0x03F4, 10),
+    "ScrollCurrentYLow": (0x03F5, 12), "ScrollCurrentYHigh": (0x03F6, 9),
+}
+
 # Each mutation changes a meaningful instruction or structured data value.
 # The marker must occur exactly once in the maintained source, even when its
 # macro expands into two banks. Controls are built from isolated source copies.
@@ -310,14 +323,14 @@ MUTATIONS = {
     "slot_query_entry": ("CONTROL_SLOT_QUERY_ENTRY", "stx $03A6", "stx $03A7"),
     "slot_query_prepare": ("CONTROL_SLOT_QUERY_PREPARE", "lda $03A6", "lda $03A7"),
     "slot_query_coordinates": ("CONTROL_SLOT_QUERY_COORDINATES", "lda ($FE),y", "lda ($FD),y"),
-    "slot_query_span": ("CONTROL_SLOT_QUERY_SPAN", "lda $039E", "lda $039F"),
+    "slot_query_span": ("CONTROL_SLOT_QUERY_SPAN", "lda MapWidthTilesLow", "lda MapWidthTilesHigh"),
     "slot_query_stack": ("CONTROL_SLOT_QUERY_STACK", "tsx", "txa"),
-    "slot_query_address": ("CONTROL_SLOT_QUERY_ADDRESS", "lda $039C", "lda $039D"),
+    "slot_query_address": ("CONTROL_SLOT_QUERY_ADDRESS", "lda MapTileY", "lda $039D"),
     "slot_query_compare": ("CONTROL_SLOT_QUERY_COMPARE", "lda $0100,x", "lda $0101,x"),
     "read_map_byte": ("CONTROL_READ_MAP_BYTE", "lda $03A6", "lda $03A7"),
     "clear_slot_records": ("CONTROL_CLEAR_SLOT_RECORDS", "lda #$00", "lda #$01"),
     "read_banked_pointer": ("CONTROL_READ_BANKED_POINTER", "lda $03E0", "lda $03E1"),
-    "resolve_map_chunk": ("CONTROL_RESOLVE_MAP_CHUNK", "lda $039A", "lda $039B"),
+    "resolve_map_chunk": ("CONTROL_RESOLVE_MAP_CHUNK", "lda MapTileXLow", "lda MapTileXHigh"),
     "load_map_chunk_pointer": ("CONTROL_LOAD_MAP_CHUNK_POINTER", "lda $FE", "lda $FF"),
     "slot_descriptor": ("CONTROL_SLOT_DESCRIPTOR", "$716D, $00, $00, $00, $00", "$716D, $01, $00, $00, $00"),
     "initialize_slot_entry": ("CONTROL_INITIALIZE_SLOT_ENTRY", "ldx $10", "ldx $11"),
@@ -344,7 +357,7 @@ MUTATIONS = {
     "position_record_search": ("CONTROL_POSITION_RECORD_SEARCH", "ldy #$03", "ldy #$04"),
     "convert_slot_position": ("CONTROL_CONVERT_SLOT_POSITION", "jsr ScalePositionByEight", "jsr ScalePositionByEight + 1"),
     "scale_position_by_eight": ("CONTROL_SCALE_POSITION_BY_EIGHT", "jsr ShiftPositionLeft", "jsr ShiftPositionLeft + 1"),
-    "update_position_reference": ("CONTROL_UPDATE_POSITION_REFERENCE", "lda $03EE", "lda $03EF"),
+    "update_position_reference": ("CONTROL_UPDATE_POSITION_REFERENCE", "lda ScrollTargetXLow", "lda ScrollTargetXHigh"),
     "shift_a4f_right": ("CONTROL_SHIFT_A4F_RIGHT", "lsr a", "asl a"),
     "shift_reference_right": ("CONTROL_SHIFT_REFERENCE_RIGHT", "lsr $0F", "asl $0F"),
     "banks_from_state": ("CONTROL_BANKS_FROM_STATE", "ldx $01", "ldx $02"),
@@ -409,7 +422,7 @@ MUTATIONS = {
     "horizontal_motion_left_distance": ("CONTROL_HORIZONTAL_MOTION_LEFT_DISTANCE", "lda #$60", "lda #$61"),
     "horizontal_motion_left_bound": ("CONTROL_HORIZONTAL_MOTION_LEFT_BOUND", "sta $03E1", "sta $03E0"),
     "horizontal_motion_check_record": ("CONTROL_HORIZONTAL_MOTION_CHECK_RECORD", "jsr SearchPositionRecordsA", "jsr SearchPositionRecordsA + 1"),
-    "horizontal_motion_tile_limit": ("CONTROL_HORIZONTAL_MOTION_TILE_LIMIT", "lda $03EE", "lda $03EF"),
+    "horizontal_motion_tile_limit": ("CONTROL_HORIZONTAL_MOTION_TILE_LIMIT", "lda ScrollTargetXLow", "lda ScrollTargetXHigh"),
     "horizontal_motion_set_positive": ("CONTROL_HORIZONTAL_MOTION_SET_POSITIVE", "lda $03E1", "lda $03E0"),
     "shift_search_coordinate_right": ("CONTROL_SHIFT_SEARCH_COORDINATE_RIGHT", "lsr $5F", "asl $5F"),
     "horizontal_motion_right_distance": ("CONTROL_HORIZONTAL_MOTION_RIGHT_DISTANCE", "lda $0700,x", "lda $0701,x"),
@@ -537,14 +550,14 @@ MUTATIONS = {
     "audio_read_command": ("CONTROL_AUDIO_READ_COMMAND", "lda $04B4,x", "lda $04B5,x"),
     "audio_finish_note": ("CONTROL_AUDIO_FINISH_NOTE", "jsr AdvanceAudioCommandOne", "jsr AdvanceAudioCommandOne + 1"),
     "audio_high_command": ("CONTROL_AUDIO_HIGH_COMMAND", "cmp #$A0", "cmp #$A1"),
-    "horizontal_scroll": ("CONTROL_HORIZONTAL_SCROLL", "lda $03EB", "lda $03EC"),
+    "horizontal_scroll": ("CONTROL_HORIZONTAL_SCROLL", "lda ScrollPendingFlags", "lda $03EC"),
     "horizontal_scroll_below": ("CONTROL_HORIZONTAL_SCROLL_BELOW", "cmp #$FF", "cmp #$FE"),
-    "horizontal_scroll_snap": ("CONTROL_HORIZONTAL_SCROLL_SNAP", "lda $03EE", "lda $03EF"),
+    "horizontal_scroll_snap": ("CONTROL_HORIZONTAL_SCROLL_SNAP", "lda ScrollTargetXLow", "lda ScrollTargetXHigh"),
     "horizontal_scroll_negative": ("CONTROL_HORIZONTAL_SCROLL_NEGATIVE", "jsr PpuQueueRemaining", "jsr PpuQueueRemaining + 1"),
     "horizontal_scroll_positive": ("CONTROL_HORIZONTAL_SCROLL_POSITIVE", "jsr PpuQueueRemaining", "jsr PpuQueueRemaining + 1"),
-    "vertical_scroll": ("CONTROL_VERTICAL_SCROLL", "lda $03EB", "lda $03EC"),
+    "vertical_scroll": ("CONTROL_VERTICAL_SCROLL", "lda ScrollPendingFlags", "lda $03EC"),
     "vertical_scroll_below": ("CONTROL_VERTICAL_SCROLL_BELOW", "cmp #$FF", "cmp #$FE"),
-    "vertical_scroll_snap": ("CONTROL_VERTICAL_SCROLL_SNAP", "lda $03F0", "lda $03F1"),
+    "vertical_scroll_snap": ("CONTROL_VERTICAL_SCROLL_SNAP", "lda ScrollTargetYLow", "lda ScrollTargetYHigh"),
     "vertical_scroll_negative": ("CONTROL_VERTICAL_SCROLL_NEGATIVE", "jsr PpuQueueRemaining", "jsr PpuQueueRemaining + 1"),
     "vertical_scroll_positive": ("CONTROL_VERTICAL_SCROLL_POSITIVE", "jsr PpuQueueRemaining", "jsr PpuQueueRemaining + 1"),
     "queue_scroll_row": ("CONTROL_QUEUE_SCROLL_ROW", "jsr ScrollXTileCoordinate", "jsr ScrollXTileCoordinate + 1"),
@@ -570,8 +583,8 @@ MUTATIONS = {
     "map_row_attributes_merge_next": ("CONTROL_MAP_ROW_ATTRIBUTES_MERGE_NEXT", "lda $03DD", "lda $03DC"),
     "map_queue_second_nametable": ("CONTROL_MAP_QUEUE_SECOND_NAMETABLE", "sta $03DC", "sta $03DD"),
     "map_queue_store_end": ("CONTROL_MAP_QUEUE_STORE_END", "stx $0380", "stx $0381"),
-    "map_chunk_row_pointer": ("CONTROL_MAP_CHUNK_ROW_POINTER", "lda $039C", "lda $039D"),
-    "map_chunk_attribute_row_pointer": ("CONTROL_MAP_CHUNK_ATTRIBUTE_ROW_POINTER", "lda $039C", "lda $039D"),
+    "map_chunk_row_pointer": ("CONTROL_MAP_CHUNK_ROW_POINTER", "lda MapTileY", "lda $039D"),
+    "map_chunk_attribute_row_pointer": ("CONTROL_MAP_CHUNK_ATTRIBUTE_ROW_POINTER", "lda MapTileY", "lda $039D"),
     "queue_map_tile_column": ("CONTROL_QUEUE_MAP_TILE_COLUMN", "lda $EC", "lda $ED"),
     "map_column_nametable": ("CONTROL_MAP_COLUMN_NAMETABLE", "stx $03D7", "stx $03D6"),
     "map_column_first_length": ("CONTROL_MAP_COLUMN_FIRST_LENGTH", "sta $03DD", "sta $03DC"),
@@ -582,20 +595,20 @@ MUTATIONS = {
     "map_column_attributes_gather": ("CONTROL_MAP_COLUMN_ATTRIBUTES_GATHER", "ldx #$00", "ldx #$01"),
     "map_column_attribute_rotate_right": ("CONTROL_MAP_COLUMN_ATTRIBUTE_ROTATE_RIGHT", "lda $03D1", "lda $03D2"),
     "map_column_attribute_trim": ("CONTROL_MAP_COLUMN_ATTRIBUTE_TRIM", "lda $03DF", "lda $03DE"),
-    "map_column_attribute_address": ("CONTROL_MAP_COLUMN_ATTRIBUTE_ADDRESS", "lda $039A", "lda $039B"),
+    "map_column_attribute_address": ("CONTROL_MAP_COLUMN_ATTRIBUTE_ADDRESS", "lda MapTileXLow", "lda MapTileXHigh"),
     "map_column_attribute_queue": ("CONTROL_MAP_COLUMN_ATTRIBUTE_QUEUE", "lda #$00", "lda #$01"),
     "map_column_attribute_rotate_left": ("CONTROL_MAP_COLUMN_ATTRIBUTE_ROTATE_LEFT", "clc", "sec"),
-    "map_chunk_column_pointer": ("CONTROL_MAP_CHUNK_COLUMN_POINTER", "lda $039A", "lda $039B"),
+    "map_chunk_column_pointer": ("CONTROL_MAP_CHUNK_COLUMN_POINTER", "lda MapTileXLow", "lda MapTileXHigh"),
     "map_chunk_offset_pointer": ("CONTROL_MAP_CHUNK_OFFSET_POINTER", "pha", "php"),
-    "map_chunk_attribute_pointer": ("CONTROL_MAP_CHUNK_ATTRIBUTE_POINTER", "lda $039A", "lda $039B"),
+    "map_chunk_attribute_pointer": ("CONTROL_MAP_CHUNK_ATTRIBUTE_POINTER", "lda MapTileXLow", "lda MapTileXHigh"),
     "advance_map_chunk": ("CONTROL_ADVANCE_MAP_CHUNK", "lda $EC", "lda $ED"),
     "retreat_map_chunk": ("CONTROL_RETREAT_MAP_CHUNK", "lda $EC", "lda $ED"),
     "ppu_queue_remaining": ("CONTROL_PPU_QUEUE_REMAINING", "lda #$60", "lda #$61"),
     "clamp_scroll_targets": ("CONTROL_CLAMP_SCROLL_TARGETS", "lda $03A2", "lda $03A3"),
-    "scroll_x_tile_coordinate": ("CONTROL_SCROLL_X_TILE_COORDINATE", "ldx $03F3", "ldx $03F4"),
-    "scroll_y_tile_coordinate": ("CONTROL_SCROLL_Y_TILE_COORDINATE", "ldx $03F5", "ldx $03F6"),
+    "scroll_x_tile_coordinate": ("CONTROL_SCROLL_X_TILE_COORDINATE", "ldx ScrollCurrentXLow", "ldx ScrollCurrentXHigh"),
+    "scroll_y_tile_coordinate": ("CONTROL_SCROLL_Y_TILE_COORDINATE", "ldx ScrollCurrentYLow", "ldx ScrollCurrentYHigh"),
     "shift_xy_left3": ("CONTROL_SHIFT_XY_LEFT3", "jsr ShiftXYLeft1", "jsr ShiftXYLeft1 + 1"),
-    "update_scroll_work": ("CONTROL_UPDATE_SCROLL_WORK", "lda $03EB", "lda $03EC"),
+    "update_scroll_work": ("CONTROL_UPDATE_SCROLL_WORK", "lda ScrollPendingFlags", "lda $03EC"),
     "update_palette_streams": ("CONTROL_UPDATE_PALETTE_STREAMS", "lda $0387", "lda $0388"),
     "palette_sprite_setup": ("CONTROL_PALETTE_SPRITE_SETUP", "lda $0387", "lda $0388"),
     "palette_advance_background": ("CONTROL_PALETTE_ADVANCE_BACKGROUND", "lda $0382", "lda $0383"),
@@ -605,10 +618,10 @@ MUTATIONS = {
     "start_audio_voice_initialize": ("CONTROL_START_AUDIO_VOICE_INITIALIZE", "lda #$01", "lda #$02"),
     "initialize_map_drawing": ("CONTROL_INITIALIZE_MAP_DRAWING", "jsr PrepareDirectPpuWrites", "jsr PrepareDirectPpuWrites + 1"),
     "initial_map_column_loop": ("CONTROL_INITIAL_MAP_COLUMN_LOOP", "txa", "tya"),
-    "initial_map_sync_scroll": ("CONTROL_INITIAL_MAP_SYNC_SCROLL", "lda $03EE", "lda $03EF"),
+    "initial_map_sync_scroll": ("CONTROL_INITIAL_MAP_SYNC_SCROLL", "lda ScrollTargetXLow", "lda ScrollTargetXHigh"),
     "initial_map_save_workspace": ("CONTROL_INITIAL_MAP_SAVE_WORKSPACE", "lda $EC", "lda $ED"),
     "prepare_direct_ppu_writes": ("CONTROL_PREPARE_DIRECT_PPU_WRITES", "jsr RestorePpuCtrl", "jsr RestorePpuCtrl + 1"),
-    "set_initial_map_tile_position": ("CONTROL_SET_INITIAL_MAP_TILE_POSITION", "ldx $03EE", "ldx $03EF"),
+    "set_initial_map_tile_position": ("CONTROL_SET_INITIAL_MAP_TILE_POSITION", "ldx ScrollTargetXLow", "ldx ScrollTargetXHigh"),
     "read_map_dimensions": ("CONTROL_READ_MAP_DIMENSIONS", "lda $F4", "lda $F5"),
     "read_map_height": ("CONTROL_READ_MAP_HEIGHT", "lda $FF", "lda $FE"),
     "advance_map_header": ("CONTROL_ADVANCE_MAP_HEADER", "lda $F4", "lda $F5"),
@@ -1028,7 +1041,7 @@ MUTATIONS = {
     "main_state_resources": ("CONTROL_MAIN_STATE_RESOURCES", "lda $08", "lda $09"),
     "main_state_bases": ("CONTROL_MAIN_STATE_BASES", "lda $0C", "lda $0D"),
     "main_state_map": ("CONTROL_MAIN_STATE_MAP", "ldx $02", "ldx $03"),
-    "main_state_scale": ("CONTROL_MAIN_STATE_SCALE", "asl $03EE", "asl $03EF"),
+    "main_state_scale": ("CONTROL_MAIN_STATE_SCALE", "asl ScrollTargetXLow", "asl ScrollTargetXHigh"),
     "main_state_translate": ("CONTROL_MAIN_STATE_TRANSLATE", "lda $FE", "lda $FF"),
     "packed_text_decode": ("CONTROL_PACKED_TEXT_DECODE", "ldx #$00", "ldx #$01"),
     "packed_text_symbol": ("CONTROL_PACKED_TEXT_SYMBOL", "lda ($55),y", "lda ($57),y"),
@@ -1732,11 +1745,39 @@ def verify_control(reference: bytes, candidate: bytes, regions: list[dict], cont
     return sorted(changed)
 
 
+def mutate_include(include: str, name: str) -> str:
+    address, _ = SYMBOL_CONTROLS[name]
+    original = f"{name} = ${address:04X}"
+    replacement = f"{name} = ${address ^ 1:04X}"
+    lines = include.splitlines(keepends=True)
+    indexes = [i for i, line in enumerate(lines) if line.strip() == original]
+    if len(indexes) != 1:
+        raise ValueError(f"symbol control {name}: expected one exact definition")
+    lines[indexes[0]] = lines[indexes[0]].replace(original, replacement, 1)
+    return "".join(lines)
+
+
+def verify_symbol_control(reference: bytes, candidate: bytes, regions: list[dict], name: str) -> list[int]:
+    address, expected_count = SYMBOL_CONTROLS[name]
+    if len(candidate) != len(reference):
+        raise ValueError(f"symbol control {name}: output size changed")
+    changed = [i for i, (a, b) in enumerate(zip(reference, candidate)) if a != b]
+    code = {offset for region in regions if region["kind"] == "code"
+            for offset in range(region["file_offset"], region["file_offset"] + region["size"])}
+    if (len(changed) != expected_count or any(i not in code or i + 1 not in code
+            or reference[i] != (address & 255) or candidate[i] != ((address ^ 1) & 255)
+            or reference[i + 1] != (address >> 8) or candidate[i + 1] != (address >> 8)
+            for i in changed)):
+        raise ValueError(f"symbol control {name}: expected {expected_count} reviewed code operands, "
+                         f"found {len(changed)} changes or an invalid operand")
+    return changed
+
+
 def assemble(work: Path, tools: dict[str, Path], source: Path, prefix: Path,
-             input_dir: Path = Path("inputs")) -> Path:
+             input_dir: Path = Path("inputs"), include_dir: Path = Path("source")) -> Path:
     prefix.parent.mkdir(parents=True, exist_ok=True)
     subprocess.run([
-        str(tools["ca65"]), "-g", "-I", "source", "--bin-include-dir", str(input_dir),
+        str(tools["ca65"]), "-g", "-I", str(include_dir), "--bin-include-dir", str(input_dir),
         "-l", str(prefix.with_suffix(".lst")), "-o", str(prefix.with_suffix(".o")), str(source),
     ], cwd=work, check=True)
     result = prefix.with_suffix(".nes")
@@ -1819,6 +1860,22 @@ def build() -> dict:
                              "source_sha256": digest(changed_source.encode()),
                              "candidate_sha256": digest(candidate)})
             retire_control_intermediates(control_dir)
+        symbol_controls = []
+        include_text = include.decode("utf-8")
+        for name in SYMBOL_CONTROLS:
+            control_dir = work / "controls" / f"symbol_{name}"
+            control_dir.mkdir(parents=True)
+            (control_dir / "rom.s").write_text(source)
+            changed_include = mutate_include(include_text, name).encode("utf-8")
+            (control_dir / "nes.inc").write_bytes(changed_include)
+            candidate_path = assemble(work, tool_paths, Path("controls") / f"symbol_{name}" / "rom.s",
+                                      Path("controls") / f"symbol_{name}" / "candidate",
+                                      include_dir=Path("controls") / f"symbol_{name}")
+            candidate = candidate_path.read_bytes()
+            symbol_controls.append({"symbol": name, "include_sha256": digest(changed_include),
+                                    "candidate_sha256": digest(candidate),
+                                    "changed_offsets": verify_symbol_control(reference, candidate, regions, name)})
+            retire_control_intermediates(control_dir)
         # A separate asset control changes one structured tile before assembly.
         # The opaque slot remains untouched, and no output bytes are patched.
         asset_control_dir = work / "controls/map_asset"
@@ -1862,7 +1919,7 @@ def build() -> dict:
             "counts": {"matching_code_bytes": counts["code"], "structured_data_bytes": counts["data"],
                        "local_prg_bytes": sum(g["size"] for g in gaps),
                        "local_chr_bytes": len(chr_data), "container_header_bytes": 16},
-            "controls": controls,
+            "controls": controls, "symbol_controls": symbol_controls,
         }
         (work / "proof.json").write_text(json.dumps(proof, indent=2) + "\n")
         previous = temp / "previous"
