@@ -142,7 +142,7 @@ print(string.format('INLINE_SUMMARY %d %d %d %d',inline_done,inline_bad,inline_n
               'source_map_sha256': verified['source_map_sha256'], 'build_proof_sha256': proof_sha,
               'collector_sha256': collector_sha, 'runtime_input_sha256': inputs,
               'emulator_core_sha256': spec(ROOT)['core_sha256'],
-              'scope': 'reference-only Moses route through 9000 frames',
+              'scope': 'reference-only Moses route through 10800 frames',
               'inline_summary': inline_summary, 'results': results}
     output = ROOT / TRACE
     if output.is_symlink():

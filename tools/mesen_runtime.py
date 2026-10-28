@@ -19,10 +19,10 @@ from .setup_mesen import ROOT, digest_file, spec, verify_emulator
 
 FRAMES = (240, 650, 1200, 1400, 1496, 1511, 1550, 1700, 1800, 2100, 2150, 2300,
           2400, 2600, 2800, 3000, 3100, 3200, 3250, 3300, 3350, 3400, 3450, 3650, 3700, 3750,
-          3800, 3825, 3850, 3900, 4050, 4150, 4300, 4400, 4500, 4600, 4650, 4750, 4900, 5000, 5100, 5200, 5250, 5300, 5375, 5450, 5500, 5550, 5575, 5625, 5650, 5700, 5880, 5950, 6000, 6040, 6100, 6160, 6200, 6260, 6300, 6340, 6500, 6690, 6740, 6780, 6800, 6840, 6900, 7000, 7020, 7100, 7200, 7300, 7400, 7600, 7700, 7800, 7890, 7900, 7920, 8000, 8100, 8200, 8280, 8300, 8400, 8500, 8570, 8700, 8800, 8870, 9000)
+          3800, 3825, 3850, 3900, 4050, 4150, 4300, 4400, 4500, 4600, 4650, 4750, 4900, 5000, 5100, 5200, 5250, 5300, 5375, 5450, 5500, 5550, 5575, 5625, 5650, 5700, 5880, 5950, 6000, 6040, 6100, 6160, 6200, 6260, 6300, 6340, 6500, 6690, 6740, 6780, 6800, 6840, 6900, 7000, 7020, 7100, 7200, 7300, 7400, 7600, 7700, 7800, 7890, 7900, 7920, 8000, 8100, 8200, 8280, 8300, 8400, 8500, 8570, 8700, 8800, 8870, 9000, 9200, 9400, 9600, 9800, 10000, 10200, 10400, 10500, 10600, 10700, 10750, 10800)
 SLOT_FRAMES = (1400, 1496, 1511, 1550, 1700, 1800, 2100, 2150, 2300,
                2400, 2600, 2800, 3000, 3100, 3200, 3250, 3300, 3350, 3400, 3450, 3650, 3700, 3750,
-               3800, 3825, 3850, 3900, 4050, 4150, 4300, 4400, 4500, 4600, 4650, 4750, 4900, 5000, 5100, 5200, 5250, 5300, 5375, 5450, 5500, 5550, 5575, 5625, 5650, 5700, 5880, 5950, 6000, 6040, 6100, 6160, 6200, 6260, 6300, 6340, 6500, 6690, 6740, 6780, 6800, 6840, 6900, 7000, 7020, 7100, 7200, 7300, 7400, 7600, 7700, 7800, 7890, 7900, 7920, 8000, 8100, 8200)
+               3800, 3825, 3850, 3900, 4050, 4150, 4300, 4400, 4500, 4600, 4650, 4750, 4900, 5000, 5100, 5200, 5250, 5300, 5375, 5450, 5500, 5550, 5575, 5625, 5650, 5700, 5880, 5950, 6000, 6040, 6100, 6160, 6200, 6260, 6300, 6340, 6500, 6690, 6740, 6780, 6800, 6840, 6900, 7000, 7020, 7100, 7200, 7300, 7400, 7600, 7700, 7800, 7890, 7900, 7920, 8000, 8100, 8200, 10750, 10800)
 # Pinned emulator screenshot of the first-level success screen for the audited v1.5 input.
 MOSES_SUCCESS_SCREEN_SHA256 = 'c3d483860076f9e782d92de0913c671d4ed1aef84f8ce81688423cad40c19346'
 # Pinned second-level success screen for the same audited input.
@@ -184,11 +184,12 @@ def parse_output(output: str) -> tuple[dict, dict[int, bytes], dict[str, bytes]]
             level4 = values
         elif line.startswith('BADP_LEVEL4_CARRY '):
             parts = line.split()
-            if level4_carry is not None or len(parts) != 11:
+            if level4_carry is not None or len(parts) != 12:
                 raise ValueError('malformed or duplicate fourth-level carry summary')
             values = tuple(map(int, parts[1:]))
             if (any(value < 0 for value in values) or values[2] > FRAMES[-1]
-                    or any(value > 255 for value in values[3:])):
+                    or values[6] not in (0, 1) or values[7] > FRAMES[-1]
+                    or values[8] > 255 or values[9] > 65535 or values[10] > 1):
                 raise ValueError('invalid fourth-level carry summary')
             level4_carry = values
         elif line.startswith('BADP_FRAMEBUFFER '):
@@ -331,10 +332,11 @@ def parse_output(output: str) -> tuple[dict, dict[int, bytes], dict[str, bytes]]
              'level4_player_y': level4[2], 'level4_baby_descriptor': level4[3],
              'level4_baby_link': level4[4], 'level4_baby_x': level4[5], 'level4_baby_y': level4[6],
              'fourth_carry_samples': level4_carry[0], 'fourth_carry_bad': level4_carry[1],
-             'fourth_carry_first': level4_carry[2], 'fourth_player_descriptor': level4_carry[3],
-             'fourth_player_x': level4_carry[4], 'fourth_player_y': level4_carry[5],
-             'fourth_baby_descriptor': level4_carry[6], 'fourth_baby_link': level4_carry[7],
-             'fourth_baby_x': level4_carry[8], 'fourth_baby_y': level4_carry[9],
+             'fourth_carry_first': level4_carry[2], 'fourth_player_absent': level4_carry[3],
+             'fourth_reload_count': level4_carry[4], 'fourth_reload_bad': level4_carry[5],
+             'fourth_reload_open': level4_carry[6], 'fourth_transition_frame': level4_carry[7],
+             'fourth_transition_state': level4_carry[8], 'fourth_last_world_x': level4_carry[9],
+             'fourth_exit_reset_count': level4_carry[10],
              'contested_target_hits': dict(sorted(targets.items())),
              'uninitialized_read_warnings': warnings}, images,
             {'mapper': write_data, 'apu': audio_data, 'ppu': ppu_data, 'oam_dma': dma_data})
@@ -454,15 +456,21 @@ def validate_scenario(evidence: dict, expected_state: int, *, inventory: bool = 
                          evidence['level4_baby_link'], evidence['level4_baby_x'],
                          evidence['level4_baby_y']) != (1, 104, 96, 0x6a, 0xff, 176, 160)):
             raise ValueError('Moses third-level success or fourth-level entry was not observed')
-        if roof and (evidence['fourth_carry_samples'] < 600 or evidence['fourth_carry_bad']
+        if roof and (evidence['fourth_carry_samples'] < 2000 or evidence['fourth_carry_bad']
                      or evidence['fourth_carry_first'] < 8200
-                     or evidence['fourth_carry_samples'] != 9001 - evidence['fourth_carry_first']
-                     or evidence['fourth_player_descriptor'] != 1
-                     or evidence['fourth_baby_descriptor'] != 0x6a or evidence['fourth_baby_link'] != 4
-                     or evidence['fourth_baby_y'] >= evidence['fourth_player_y']
-                     or frames['9000']['state'] != 8
-                     or frames['9000']['scroll_x'] + evidence['fourth_player_x'] < 800):
-            raise ValueError('Moses fourth-level pickup and carry was not observed')
+                     or evidence['fourth_carry_samples'] != evidence['fourth_transition_frame'] - evidence['fourth_carry_first']
+                     or evidence['fourth_player_absent'] != 7 or evidence['fourth_reload_count'] < 7
+                     or evidence['fourth_reload_bad'] or evidence['fourth_reload_open']
+                     or evidence['fourth_exit_reset_count'] != 1
+                     or evidence['fourth_transition_state'] != 16 or evidence['fourth_last_world_x'] < 2100
+                     or frames['10500']['state'] != 16
+                     or frames['10500']['screenshot_sha256'] != MOSES_LEVEL_TWO_SUCCESS_SHA256
+                     or any(frames[str(frame)]['state'] != 9 for frame in (10750, 10800))
+                     or any((slots[str(frame)]['player_descriptor'], slots[str(frame)]['object_descriptor'],
+                             slots[str(frame)]['object_link'], slots[str(frame)]['player_x'],
+                             slots[str(frame)]['object_x'], slots[str(frame)]['object_y']) != (1, 0x6a, 0xff, 64, 96, 160)
+                            for frame in (10750, 10800))):
+            raise ValueError('Moses fourth-level success or fifth-level entry was not observed')
     if (evidence['mapper_value_mismatches'] or evidence['unmapped_mapper_writes']
             or evidence['physical_prg_banks_seen'] != [0, 1]):
         raise ValueError('mapper write evidence did not meet the observed-bank checks')

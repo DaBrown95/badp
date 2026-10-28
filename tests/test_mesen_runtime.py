@@ -44,11 +44,11 @@ def synthetic_output(state=1, *, inventory=False):
             player_y = 72 if frame == 6740 else 120 if frame == 6340 else 144
             third_y = 60 if frame == 6740 else 80
             lines.append(f'BADP_SLOT {frame} 1 106 {link} 96 {y} {x} {player_y} 106 {third_link} {x} {third_y}')
-    lines.append('BADP_SUMMARY 2 0 0 1 1 9000 1 1')
+    lines.append('BADP_SUMMARY 2 0 0 1 1 10800 1 1')
     lines.append('BADP_PPU_SUMMARY 1')
     lines.append('BADP_EXIT_SUMMARY 146 0 7945 7946 16')
     lines.append('BADP_LEVEL4 1 104 96 106 255 176 160')
-    lines.append('BADP_LEVEL4_CARRY 726 0 8275 1 152 139 106 4 152 125')
+    lines.append('BADP_LEVEL4_CARRY 2178 0 8268 7 30 0 0 10446 16 2160 1')
     lines.append('BADP_PROBE 4 2')
     lines.append(f'BADP_STAGE2_RECORD {int(state == 5)}')
     lines.append(f'BADP_POSITION_EVENT {int(state == 11)} 0')
@@ -106,8 +106,8 @@ class MesenRuntimeTests(unittest.TestCase):
 
     def test_missing_duplicate_or_inconsistent_evidence_fails(self):
         text = synthetic_output()
-        for invalid in (text.replace('BADP_SUMMARY 2 0 0 1 1 9000 1 1', ''),
-                        text + 'BADP_SUMMARY 2 0 0 1 1 9000 1 1\n',
+        for invalid in (text.replace('BADP_SUMMARY 2 0 0 1 1 10800 1 1', ''),
+                        text + 'BADP_SUMMARY 2 0 0 1 1 10800 1 1\n',
                         text.replace('BADP_TARGET script 3D21 0\n', ''),
                         text.replace('BADP_INVENTORY 0 0 0\n', ''),
                         text.replace('BADP_STAGE2_RECORD 0\n', ''),
@@ -128,15 +128,15 @@ class MesenRuntimeTests(unittest.TestCase):
                         text.replace('BADP_SLOT 1400 1 106 255 96 160 96 144 106 255 96 80\n', ''),
                         text + 'BADP_SLOT 1400 1 106 255 96 160 96 144 106 255 96 80\n',
                         text.replace('BADP_SLOT 1400 1 106 255', 'BADP_SLOT 1400 1 106 256'),
-                        text.replace('BADP_SUMMARY 2 0 0 1 1 9000 1 1', 'BADP_SUMMARY 2 1 0 1 1 9000 1 1'),
+                        text.replace('BADP_SUMMARY 2 0 0 1 1 10800 1 1', 'BADP_SUMMARY 2 1 0 1 1 10800 1 1'),
                         text.replace('BADP_PPU_SUMMARY 1', 'BADP_PPU_SUMMARY 2'),
                         text.replace('BADP_FRAMEBUFFER 240 256 240 000000 f00000\n', ''),
                         text + 'BADP_FRAMEBUFFER 240 256 240 000000 f00000\n',
                         text.replace('BADP_EXIT_SUMMARY 146 0 7945 7946 16\n', ''),
                         text.replace('BADP_LEVEL4 1 104 96 106 255 176 160\n', ''),
                         text + 'BADP_LEVEL4 1 104 96 106 255 176 160\n',
-                        text.replace('BADP_LEVEL4_CARRY 726 0 8275 1 152 139 106 4 152 125\n', ''),
-                        text + 'BADP_LEVEL4_CARRY 726 0 8275 1 152 139 106 4 152 125\n',
+                        text.replace('BADP_LEVEL4_CARRY 2178 0 8268 7 30 0 0 10446 16 2160 1\n', ''),
+                        text + 'BADP_LEVEL4_CARRY 2178 0 8268 7 30 0 0 10446 16 2160 1\n',
                         text + 'BADP_EXIT_SUMMARY 146 0 7945 7946 16\n',
                         text.replace('BADP_PPU 1 123 42 100 2000 80 1', 'BADP_PPU 1 123 42 341 2000 80 1'),
                         text.replace('BADP_PPU 1 123 42 100 2000 80 1', 'BADP_PPU 1 123 42 100 2004 80 1'),
@@ -315,8 +315,12 @@ class MesenRuntimeTests(unittest.TestCase):
         evidence['frames']['8000']['screenshot_sha256'] = MOSES_LEVEL_TWO_SUCCESS_SHA256
         evidence['frames']['8100']['state'] = 8
         evidence['frames']['8200']['state'] = 8
-        evidence['frames']['9000']['state'] = 8
-        evidence['frames']['9000']['scroll_x'] = 702
+        evidence['frames']['10500']['state'] = 16
+        evidence['frames']['10500']['screenshot_sha256'] = MOSES_LEVEL_TWO_SUCCESS_SHA256
+        for frame in ('10750', '10800'):
+            evidence['frames'][frame]['state'] = 9
+            evidence['slots'][frame].update(player_descriptor=1, object_descriptor=0x6a,
+                                             object_link=255, player_x=64, object_x=96, object_y=160)
         validate_scenario(evidence, 5, roof=True)
         evidence['slots']['7100']['third_link'] = 255
         with self.assertRaisesRegex(ValueError, 'pickup, carry and recovery'):
@@ -346,20 +350,16 @@ class MesenRuntimeTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, 'third-level success'):
             validate_scenario(evidence, 5, roof=True)
         evidence['level4_baby_link'] = 255
-        evidence['fourth_carry_bad'] = 1
-        with self.assertRaisesRegex(ValueError, 'fourth-level pickup'):
-            validate_scenario(evidence, 5, roof=True)
-        evidence['fourth_carry_bad'] = 0
-        evidence['fourth_carry_first'] += 1
-        with self.assertRaisesRegex(ValueError, 'fourth-level pickup'):
-            validate_scenario(evidence, 5, roof=True)
-        evidence['fourth_carry_first'] -= 1
-        evidence['fourth_baby_link'] = 255
-        with self.assertRaisesRegex(ValueError, 'fourth-level pickup'):
-            validate_scenario(evidence, 5, roof=True)
-        evidence['fourth_baby_link'] = 4
-        evidence['frames']['9000']['scroll_x'] = 0
-        with self.assertRaisesRegex(ValueError, 'fourth-level pickup'):
+        for field, value in (('fourth_carry_bad', 1), ('fourth_carry_first', 8269),
+                             ('fourth_reload_bad', 1), ('fourth_reload_open', 1), ('fourth_exit_reset_count', 0),
+                             ('fourth_transition_state', 17), ('fourth_last_world_x', 2000)):
+            original = evidence[field]
+            evidence[field] = value
+            with self.subTest(field=field), self.assertRaisesRegex(ValueError, 'fourth-level success'):
+                validate_scenario(evidence, 5, roof=True)
+            evidence[field] = original
+        evidence['slots']['10800']['object_link'] = 4
+        with self.assertRaisesRegex(ValueError, 'fourth-level success'):
             validate_scenario(evidence, 5, roof=True)
 
     def test_difference_summary_handles_missing_fields_and_limits(self):

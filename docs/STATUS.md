@@ -1010,3 +1010,13 @@ world x=1,802 at frame 10,100; a later sample at frame 10,200 showed the link
 lost. These are discrete samples from exploratory routes, not continuous-link
 verification or a completed level. The maintained scenario still checks the
 previous frame-9,000 checkpoint.
+
+A fourth-level route was replayed from power-on on both ROMs. The baby stayed
+linked in all 2,178 end-of-frame samples from frame 8,268 through 10,445;
+the success state began at frame 10,446. Seven samples found the player slot
+temporarily marked `$FF`; a focused write trace paired each with the existing
+`SlotRecordAllocate` clear and restore path. The maintained check verifies
+those writes and the separate main-state reset, requires the success screen,
+and presses A to reach the fifth-level spawn. The fourth-level path, its
+transient observations and the new spawn are emulator evidence, not proof of
+all game paths or cartridge behavior.
