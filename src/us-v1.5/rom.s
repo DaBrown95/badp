@@ -173,6 +173,14 @@ compareRangeReturn:
 .macro BogusSelectRelativeSlotAndYield first, second, selector, match, mode
     .byte $67, first, second, selector, match, mode
 .endmacro
+; Fields fetched by opcode $89: state selector, vertical coordinate and base,
+; followed by two little-endian horizontal coordinate values. Their gameplay
+; roles and valid index range remain provisional.
+.macro IndexedStateRecord state, vertical, vertical_base, horizontal_base, horizontal
+    .byte state, vertical, vertical_base
+    .word horizontal_base, horizontal
+.endmacro
+
 ; Opcode $89 reads a seven-byte state record at base plus seven times an index.
 .macro BogusLoadIndexedStateRecord base
     .byte $89
@@ -15033,7 +15041,15 @@ SuccessorScriptB32A:
 SuccessorScriptB32C:
     BogusLoadRecordAndClearSavedState $3F
 .assert (* - BankStart) = $332E, error, "bank 1 candidate successor $B324 end"
-    .incbin "bank1_b32e_b34a.bin"
+; Candidate records selected by the opcode $89 operand at $B27B when the
+; alternate mapping selects this bank. The next known script begins at $B34A;
+; that boundary does not prove the runtime index is limited to these entries.
+IndexedStateRecordsB32E:
+    IndexedStateRecord $FF, $32, $1E, $0180, $0193 ; CONTROL_INDEXED_STATE_RECORDS_B32E
+    IndexedStateRecord $FF, $31, $1E, $0011, $001C
+    IndexedStateRecord $FF, $21, $15, $0180, $018B
+    IndexedStateRecord $FF, $21, $15, $0011, $0024
+.assert (* - BankStart) = $334A, error, "bank 1 indexed state records end"
 ; Candidate successors of opening-observed scripts, from reviewed handler rules.
 ; Independent labels preserve alternate entries; reachability remains unproven.
 SuccessorScriptB34A:

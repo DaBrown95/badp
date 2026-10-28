@@ -1284,6 +1284,7 @@ MUTATIONS = {
     'path_script_af63': ('CONTROL_PATH_SCRIPT_AF63', 'BogusSelectRelativeSlotAndYield $00, $07, $23, $14, $00', 'BogusSelectRelativeSlotAndYield $00, $07, $23, $14, $01'),
     'path_script_afde': ('CONTROL_PATH_SCRIPT_AFDE', 'BogusApplyAndClearSelected3E', 'BogusFindLinkedSlot'),
     'path_script_b27b': ('CONTROL_PATH_SCRIPT_B27B', 'BogusLoadIndexedStateRecord $332E', 'BogusLoadIndexedStateRecord $332F'),
+    'indexed_state_records_b32e': ('CONTROL_INDEXED_STATE_RECORDS_B32E', 'IndexedStateRecord $FF, $32, $1E, $0180, $0193', 'IndexedStateRecord $FF, $32, $1E, $0180, $0192'),
     'path_script_bb4c': ('CONTROL_PATH_SCRIPT_BB4C', 'BogusSetSlotFields80 $00, $FF', 'BogusSetSlotFields80 $00, $FE'),
     'path_script_d75b': ('CONTROL_PATH_SCRIPT_D75B', 'BogusLoadRecordAndClearSavedState $1E', 'BogusLoadRecordAndClearSavedState $1F'),
     'path_script_d76d': ('CONTROL_PATH_SCRIPT_D76D', 'BogusYieldAndSlotAction $01', 'BogusYieldAndSlotAction $00'),

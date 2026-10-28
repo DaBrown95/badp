@@ -339,12 +339,12 @@ either table have not been established.
 map, descriptor-context, native-event and direct-target scripts and records, palette setup,
 candidate audio and PPU-stream uses, round-tripped packed text, and optional
 validated audio and sprite traces. It counts physical bytes once while
-retaining overlapping uses. With the current local traces, 1,022 PRG bytes have no use
+retaining overlapping uses. With the current local traces, 994 PRG bytes have no use
 in these inventories; that number is not a count of remaining code. The report
 also retains 4,561 possible map/script overlap bytes and 516 possible record/script
 overlap bytes across the combined inventories. The expanded field-setter walk
 introduces many speculative competing decodes; it does not establish their
-reachability. It also reports 4,383 source-owned bytes covered by candidate
+reachability. It also reports 4,386 source-owned bytes covered by candidate
 data uses, which can include compatible uses as well as competing ones. The
 report records its input identities and writes metadata only to
 ignored `analysis/us-v1.5/prg-inventory.json`.
@@ -936,3 +936,29 @@ A fourth-level pickup search found an input that linked the baby to the player
 by frame 8,280. Reference and build power-on replays matched at the sampled
 frames, but the route reached state 17 by frame 8,600 after the player fell.
 This is a failed continuation, not a fourth-level gameplay completion.
+
+The candidate opcode-$89 script at bank 1 `$B27B` points to encoded address
+`$332E`. When its alternate mapping selects bank 1, the interpreter reads
+seven-byte indexed entries beginning at CPU `$B32E`. The four entries before
+the next known script at `$B34A` are now structured as a state selector, two
+vertical bytes and two little-endian horizontal values. Their exact gameplay
+roles, bank selection at this call site and valid index range remain unverified;
+the adjacent script does not prove a four-entry runtime bound. The previous
+physical-use inventory showed no competing category for these 28 bytes. The
+updated source matches the reference, and a coordinate mutation fails the
+whole-ROM comparison.
+
+A reference-only trace through the fourth-level pickup attempt sampled 75,057
+script fetches and 866 record loads. Its separately paired bank check found no
+mapping disagreements at any of those sampled fetches, all of which mapped to
+physical PRG bank 1. All sampled command extents and consumed record fields
+were already source-owned, and no native instruction starts in local gaps were
+observed. Inline lookup payloads were not traced in this probe. It is not a
+complete execution inventory.
+A wider fourth-level checkpoint search found a different pickup and jump
+sequence. Separate power-on reference and build replays agreed at the sampled
+frames: the baby was linked by frame 8,280, and at frame 8,500 the player was
+at world x=305 with the baby still linked. These are discrete samples, not a
+continuous carry check. With neutral input after the selected sequence, a later
+sample at frame 8,600 showed the player falling; this route is not a completed
+fourth level. The local search and replay evidence remain under `analysis/`.
