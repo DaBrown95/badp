@@ -27,10 +27,11 @@ script remains associated with a descriptor base is not proven for every
 caller or slot lifecycle. Conditional paths, indexed-jump bounds and the bank
 mapping remain provisional. The tool reports incomplete context traversals,
 script traversal limits and overlapping decodes; it does not mark source as
-owned. On the pinned v1.5 input it finds 176 contexts, 679 references and 210
-distinct candidate addresses, with no unprocessed contexts or per-context
-script overlaps. The union of those script entries contains 2,518 candidate
-commands and 13 physical bytes with conflicting decodes across contexts. They
+owned. On the pinned v1.5 input it finds 176 contexts, 691 references and 213
+distinct candidate addresses, with no unprocessed contexts. One context,
+base `$6D56` and entry `$5D00`, has 11 bytes with competing script decodes.
+The union of those script entries contains 2,521 candidate commands and 13
+physical bytes with conflicting decodes across contexts. They
 fall within the existing `$BD1B` and `$DC35` script regions. The competing
 entries depend on possible record accesses at `$DA40` and `$ED71`, respectively;
 their assumed descriptor associations and interpretations remain unverified.
@@ -85,11 +86,19 @@ does not establish that the paths are unreachable.
 
 The tool also compares candidate command and table bytes against the fields a
 record access would actually read, excluding unused bytes in the ten-byte fetch.
-This finds 29 physical bytes with possible record/script conflicts: nine at
-the existing `$ED71` script and 20 in six other candidate paths. The five
+This finds 35 physical bytes with possible record/script conflicts: nine at
+the existing `$ED71` script, 20 in six other candidate paths, and six at the
+existing `$ED45` script. The last six appear when the possible `$DD0A` audio
+restart continues at `$DD0B`; candidate descriptor `$56/$57` contexts can then
+reach negative-mode record addresses `$ED4A` and `$ED4D`. Those associations
+are unverified, and the `$DD0A` entry itself overlaps another command. The five
 additional bytes at `$D57C-$D580` depend on a possible descriptor `$5D`
 association at command `$D828`; that association and access are unverified. Their slot
 contexts and interpretations require review.
+The reference-only routes through the third-level entry and the earlier long,
+interaction and directed runs observed neither `$ED4A` nor `$ED4D` as record
+addresses. The maintained reference/build replay likewise did not observe
+`$DD0A`; these negative observations do not exclude other paths.
 
 The maintained source includes 95 additionally reviewed records: 51 full
 zero-mode entries and 44 compact negative-mode entries. Each has a candidate
@@ -102,8 +111,9 @@ reviewed mode and sentinel checks. They have no observed runtime access yet;
 their descriptor associations are provisional.
 
 Twenty additional script regions from the merged trace are represented as
-named commands. Their physical bytes do not overlap the reported conflicting
-decodes, possible record reads or previously owned records. Independent entry
+named commands. They were non-overlapping under the earlier trace; the expanded
+`$18` successor now exposes the possible `$ED4A-$ED4F` record use described
+above. This does not establish which interpretation executes. Independent entry
 labels are retained after commands that change the script pointer or main
 state; the static graph does not prove that execution falls through between
 those entries.

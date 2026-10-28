@@ -6,6 +6,7 @@ import unittest
 import zlib
 
 from tools.mesen_runtime import (FRAMES, SLOT_FRAMES, PNG_SIGNATURE, MOSES_SUCCESS_SCREEN_SHA256,
+                                 MOSES_LEVEL_TWO_SUCCESS_SHA256,
                                  RECORD_TARGETS, SCRIPT_TARGETS,
                                  evidence_difference_paths, parse_output, retain_runtime_failure, validate_scenario)
 
@@ -17,11 +18,15 @@ def synthetic_output(state=1, *, inventory=False):
         scene = 0 if frame == 240 else 16 if frame == 650 else state
         if state == 5 and frame in (3400, 3450, 3650):
             scene = 16
-        elif state == 5 and frame in (3700, 3750, 3800, 3825, 3850, 3900, 4050, 4150, 4300, 4400, 4500, 4600, 4650, 4750, 4900, 5000, 5100, 5200):
+        elif state == 5 and frame in (3700, 3750, 3800, 3825, 3850, 3900, 4050, 4150, 4300, 4400, 4500, 4600, 4650, 4750, 4900, 5000, 5100, 5200, 5250, 5300, 5375, 5450, 5500, 5550):
             scene = 6
+        if state == 5 and frame in (5575, 5625, 5650):
+            scene = 16
+        elif state == 5 and frame == 5700:
+            scene = 7
         if inventory and frame in (1800, 2100, 2300):
             scene = 16
-        scroll = (1602 if frame >= 5200 else 1470 if frame >= 5100 else 1338 if frame >= 5000 else 1202 if frame >= 4900 else 1002 if frame >= 4750 else 874 if frame >= 4650 else 860 if frame >= 4600 else 728 if frame >= 4500 else 596 if frame >= 4400 else 460 if frame >= 4300 else 260 if frame >= 4150 else 128 if frame >= 4050 else 0 if frame >= 3700 else 1984 if frame >= 3250 else 1925 if frame == 3200 else 1808 if frame == 3100
+        scroll = (0 if frame >= 5575 else 1984 if frame >= 5550 else 1963 if frame >= 5500 else 1899 if frame >= 5450 else 1799 if frame >= 5375 else 1703 if frame >= 5300 else 1635 if frame >= 5250 else 1567 if frame >= 5200 else 1470 if frame >= 5100 else 1338 if frame >= 5000 else 1202 if frame >= 4900 else 1002 if frame >= 4750 else 874 if frame >= 4650 else 860 if frame >= 4600 else 728 if frame >= 4500 else 596 if frame >= 4400 else 460 if frame >= 4300 else 260 if frame >= 4150 else 128 if frame >= 4050 else 0 if frame >= 3700 else 1984 if frame >= 3250 else 1925 if frame == 3200 else 1808 if frame == 3100
                   else 1692 if frame == 3000 else 1636 if frame == 2800 else 1390 if frame == 2600 else 1126 if frame == 2400
                   else 990 if frame == 2300 else 790 if frame == 2150 else 726 if frame == 2100
                   else 190 if frame >= 1700 else 0) if state == 5 else (3 if frame >= 1800 else 0)
@@ -30,9 +35,9 @@ def synthetic_output(state=1, *, inventory=False):
         if frame in SLOT_FRAMES:
             link = 255 if frame in (1400, 3250) else 1
             y = 160 if frame == 1400 else 130
-            third_link = 1 if frame >= 3900 else 255
+            third_link = 1 if 3900 <= frame <= 5550 else 255
             lines.append(f'BADP_SLOT {frame} 1 106 {link} 96 {y} 96 144 106 {third_link} 96 80')
-    lines.append('BADP_SUMMARY 2 0 0 1 1 5200 1 1')
+    lines.append('BADP_SUMMARY 2 0 0 1 1 5700 1 1')
     lines.append('BADP_PROBE 4 2')
     lines.append(f'BADP_STAGE2_RECORD {int(state == 5)}')
     lines.append('BADP_INVENTORY 1 6 0' if inventory else 'BADP_INVENTORY 0 0 0')
@@ -44,6 +49,7 @@ def synthetic_output(state=1, *, inventory=False):
 def synthetic_moses_evidence():
     evidence, _, _ = parse_output(synthetic_output(state=5))
     evidence['frames']['3450']['screenshot_sha256'] = MOSES_SUCCESS_SCREEN_SHA256
+    evidence['frames']['5625']['screenshot_sha256'] = MOSES_LEVEL_TWO_SUCCESS_SHA256
     return evidence
 
 
@@ -62,8 +68,8 @@ class MesenRuntimeTests(unittest.TestCase):
 
     def test_missing_duplicate_or_inconsistent_evidence_fails(self):
         text = synthetic_output()
-        for invalid in (text.replace('BADP_SUMMARY 2 0 0 1 1 5200 1 1', ''),
-                        text + 'BADP_SUMMARY 2 0 0 1 1 5200 1 1\n',
+        for invalid in (text.replace('BADP_SUMMARY 2 0 0 1 1 5700 1 1', ''),
+                        text + 'BADP_SUMMARY 2 0 0 1 1 5700 1 1\n',
                         text.replace('BADP_TARGET script 3D21 0\n', ''),
                         text.replace('BADP_INVENTORY 0 0 0\n', ''),
                         text.replace('BADP_STAGE2_RECORD 0\n', ''),
@@ -71,11 +77,11 @@ class MesenRuntimeTests(unittest.TestCase):
                         text.replace('BADP_STAGE2_RECORD 0', 'BADP_STAGE2_RECORD -1'),
                         text + 'BADP_INVENTORY 0 0 0\n',
                         text.replace('BADP_INVENTORY 0 0 0', 'BADP_INVENTORY -1 0 0'),
-                        text + 'BADP_WRITE 5200 FFB7 0C 32767 12\n',
+                        text + 'BADP_WRITE 5700 FFB7 0C 32767 12\n',
                         text.replace('BADP_SLOT 1400 1 106 255 96 160 96 144 106 255 96 80\n', ''),
                         text + 'BADP_SLOT 1400 1 106 255 96 160 96 144 106 255 96 80\n',
                         text.replace('BADP_SLOT 1400 1 106 255', 'BADP_SLOT 1400 1 106 256'),
-                        text.replace('BADP_SUMMARY 2 0 0 1 1 5200 1 1', 'BADP_SUMMARY 2 1 0 1 1 5200 1 1'),
+                        text.replace('BADP_SUMMARY 2 0 0 1 1 5700 1 1', 'BADP_SUMMARY 2 1 0 1 1 5700 1 1'),
                         text.replace('BADP_APU 1 4000 30', 'BADP_APU 1 4014 30'),
                         text.replace('BADP_WRITE 0 FFB7 0C 32767 12', 'BADP_WRITE 0 FFB7 XX 32767 12')):
             with self.subTest(invalid=invalid[:50]), self.assertRaises(ValueError):
@@ -102,7 +108,7 @@ class MesenRuntimeTests(unittest.TestCase):
                 broken['slots'][frame][field] = value
                 with self.assertRaisesRegex(ValueError, 'pickup, carry and recovery'):
                     validate_scenario(broken, 5)
-        for frame, value in (('2150', 726), ('3200', 1889), ('4050', 127), ('4300', 449), ('4600', 849), ('4900', 1189), ('5200', 1589)):
+        for frame, value in (('2150', 726), ('3200', 1889), ('4050', 127), ('4300', 449), ('4600', 849), ('4900', 1189), ('5200', 1549), ('5550', 1983)):
             broken = synthetic_moses_evidence()
             broken['frames'][frame]['scroll_x'] = value
             with self.subTest(frame=frame), self.assertRaisesRegex(ValueError, 'pickup, carry and recovery'):
@@ -118,6 +124,12 @@ class MesenRuntimeTests(unittest.TestCase):
         evidence['frames']['3700']['state'] = 16
         with self.assertRaisesRegex(ValueError, 'pickup, carry and recovery'):
             validate_scenario(evidence, 5)
+        for frame, field, value in (('5625', 'screenshot_sha256', 'wrong-screen'),
+                                    ('5700', 'state', 6)):
+            broken = synthetic_moses_evidence()
+            broken['frames'][frame][field] = value
+            with self.subTest(frame=frame, field=field), self.assertRaisesRegex(ValueError, 'pickup, carry and recovery'):
+                validate_scenario(broken, 5)
         for frame, field, value in (('3750', 'third_link', 1), ('3900', 'third_link', 255),
                                     ('3900', 'third_descriptor', 0), ('3900', 'third_x', 0),
                                     ('3900', 'third_y', 144), ('4300', 'third_link', 255),
@@ -128,7 +140,10 @@ class MesenRuntimeTests(unittest.TestCase):
                                     ('4900', 'third_descriptor', 0), ('4900', 'third_x', 0),
                                     ('4900', 'third_y', 144), ('5200', 'third_link', 255),
                                     ('5200', 'third_descriptor', 0), ('5200', 'third_x', 0),
-                                    ('5200', 'third_y', 144)):
+                                    ('5200', 'third_y', 144), ('5550', 'third_link', 255),
+                                    ('5550', 'third_descriptor', 0), ('5550', 'third_x', 0),
+                                    ('5550', 'third_y', 144), ('5700', 'third_link', 1),
+                                    ('5700', 'third_descriptor', 0)):
             broken = synthetic_moses_evidence()
             broken['slots'][frame][field] = value
             with self.subTest(frame=frame, field=field), self.assertRaisesRegex(ValueError, 'pickup, carry and recovery'):

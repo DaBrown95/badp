@@ -107,6 +107,18 @@ class SlotRecordFlowTests(unittest.TestCase):
         self.assertEqual(result['merged_script_flow']['overlapping_physical_bytes'], 2)
         self.assertFalse(result['merged_script_flow']['unprocessed'])
 
+    def test_audio_restart_exposes_competing_record_and_script_use(self):
+        b0, b1, lengths = fixture()
+        lengths[0x18], lengths[0x63], lengths[0x9d] = 1, 3, 2
+        b1[0x20:0x25] = bytes([0x18, 0x63, 3, 0xff, 0x16])
+        b1[0x102:0x105] = bytes([0x9d, 0x81, 0x16])
+        result = trace(bytes(b0), bytes(b1), bytes(lengths), [(0x105, 0x20), (0x200, 0x102)])
+        record = next(r for r in result['references'] if r['command'] == '0x0021')
+        self.assertEqual(record['encoded_pointer'], '0x0102')
+        self.assertEqual(record['mode'], 0xff)
+        self.assertEqual(result['record_script_overlaps']['physical_bytes'], 3)
+        self.assertEqual(result['record_script_overlaps']['references'][0]['record'], '0x0102')
+
     def test_record_script_overlap_ignores_fetched_but_unused_bytes(self):
         b0, b1, _ = fixture()
         b1[0x100:0x10a] = bytes([0x34, 0x81, 0x40, 0x55, 0x66, 1, 2, 3, 4, 5])

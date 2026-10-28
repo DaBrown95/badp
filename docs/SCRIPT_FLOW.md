@@ -16,6 +16,9 @@ target. Commands that yield produce a possible later resume, while some helpers
 may either yield or return normally. Opcode `$67` yields after updating a slot.
 Opcode `$89` has a possible resume through its relative-position path; its
 other path can change the main state, so its scheduling is not assumed.
+Opcode `$18` stops and restarts voice 4 and can return to the next command;
+`$9D` is an empty handler and also falls through. These edges retain any
+competing decodes and do not establish that a candidate entry executes.
 These edges do not establish that a branch
 is taken, a slot survives, or execution resumes. A nonzero-mode `$63` record
 load preserves the script pointer; zero mode remains dynamic. The `$1E` slot

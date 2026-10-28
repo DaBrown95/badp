@@ -119,9 +119,8 @@ make verify-gameplay
 
 The check runs the reference and matching build under the same inputs, comparing
 screenshots, state, mapper writes, NMI, OAM DMA and audio-register writes. The
-Moses sequence carries and recovers the baby, completes the first level and
-picks him up again in the second, then crosses six water gaps. A
-separate Noah sequence opens and closes the inventory and checks its table reads.
+Moses sequence carries and recovers the baby, completes the first two levels
+and enters the third. A separate Noah sequence opens and closes the inventory and checks its table reads.
 It keeps its evidence in the ignored `reports/us-v1.5/runtime/` directory. These
 short opening scenarios do not establish full gameplay completion or physical
 cartridge behaviour.

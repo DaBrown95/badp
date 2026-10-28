@@ -126,16 +126,27 @@ class ScriptFlowTests(unittest.TestCase):
     def test_dynamic_handlers_stop_and_possible_yield_remains_uncertain(self):
         b0, b1, lengths = fixture()
         b1[0x10:0x12] = bytes([0x2d, 0x16])
-        for offset, opcode in ((0x20, 0x00), (0x30, 0x16), (0x40, 0x18)):
+        for offset, opcode in ((0x20, 0x00), (0x30, 0x16)):
             b1[offset] = opcode
         nodes = by_pointer(walk(bytes(b0), bytes(b1), bytes(lengths),
-                                [0x10, 0x20, 0x30, 0x40]))
+                                [0x10, 0x20, 0x30]))
         self.assertEqual(nodes['0x0010']['status'], 'reviewed_possible_yield')
         self.assertEqual(nodes['0x0010']['successors'], [
             {'kind': 'next_or_possible_resume', 'encoded_pointer': '0x0011'}])
-        for pointer in ('0x0020', '0x0030', '0x0040'):
+        for pointer in ('0x0020', '0x0030'):
             self.assertEqual(nodes[pointer]['status'], 'unreviewed_or_dynamic_handler')
             self.assertEqual(nodes[pointer]['successors'], [])
+
+    def test_audio_restart_and_empty_handler_fall_through(self):
+        b0, b1, lengths = fixture()
+        lengths[0x18], lengths[0x9d] = 1, 2
+        b1[0x10:0x14] = bytes([0x18, 0x9d, 0x32, 0x16])
+        nodes = by_pointer(walk(bytes(b0), bytes(b1), bytes(lengths), [0x10]))
+        self.assertEqual(nodes['0x0010']['successors'], [
+            {'kind': 'next', 'encoded_pointer': '0x0011'}])
+        self.assertEqual(nodes['0x0011']['successors'], [
+            {'kind': 'next', 'encoded_pointer': '0x0013'}])
+        self.assertEqual(nodes['0x0013']['status'], 'unreviewed_or_dynamic_handler')
 
     def test_slot_comparisons_branch_and_bounds_update_falls_through(self):
         b0, b1, lengths = fixture()

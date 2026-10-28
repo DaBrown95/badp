@@ -18,12 +18,14 @@ from .setup_mesen import ROOT, digest_file, spec, verify_emulator
 
 FRAMES = (240, 650, 1200, 1400, 1496, 1511, 1550, 1700, 1800, 2100, 2150, 2300,
           2400, 2600, 2800, 3000, 3100, 3200, 3250, 3300, 3350, 3400, 3450, 3650, 3700, 3750,
-          3800, 3825, 3850, 3900, 4050, 4150, 4300, 4400, 4500, 4600, 4650, 4750, 4900, 5000, 5100, 5200)
+          3800, 3825, 3850, 3900, 4050, 4150, 4300, 4400, 4500, 4600, 4650, 4750, 4900, 5000, 5100, 5200, 5250, 5300, 5375, 5450, 5500, 5550, 5575, 5625, 5650, 5700)
 SLOT_FRAMES = (1400, 1496, 1511, 1550, 1700, 1800, 2100, 2150, 2300,
                2400, 2600, 2800, 3000, 3100, 3200, 3250, 3300, 3350, 3400, 3450, 3650, 3700, 3750,
-               3800, 3825, 3850, 3900, 4050, 4150, 4300, 4400, 4500, 4600, 4650, 4750, 4900, 5000, 5100, 5200)
+               3800, 3825, 3850, 3900, 4050, 4150, 4300, 4400, 4500, 4600, 4650, 4750, 4900, 5000, 5100, 5200, 5250, 5300, 5375, 5450, 5500, 5550, 5575, 5625, 5650, 5700)
 # Pinned emulator screenshot of the first-level success screen for the audited v1.5 input.
 MOSES_SUCCESS_SCREEN_SHA256 = 'c3d483860076f9e782d92de0913c671d4ed1aef84f8ce81688423cad40c19346'
+# Pinned second-level success screen for the same audited input.
+MOSES_LEVEL_TWO_SUCCESS_SHA256 = '74a782b79533afa78724df4550879634814f4c4e15cdeb4291380df2c7b225ca'
 SCENARIOS = (('noah', 1), ('moses', 5), ('david', 11), ('inventory', 1))
 SCRIPT_TARGETS = (0x3D21, 0x3D22, 0x5CFE, 0x5D00, 0x5D01, 0x5D04, 0x5D06, 0x5D08, 0x5D0A)
 RECORD_TARGETS = (0x5A40, 0x6D71, 0x6E65, 0x6E7F, 0x6ECD, 0x6EE5, 0x6EFD)
@@ -212,7 +214,7 @@ def validate_scenario(evidence: dict, expected_state: int, *, inventory: bool = 
                 or frames['3350']['scroll_x'] < frames['3200']['scroll_x']
                 or any(frames[str(frame)]['state'] != 16 for frame in (3400, 3450, 3650))
                 or frames['3450']['screenshot_sha256'] != MOSES_SUCCESS_SCREEN_SHA256
-                or any(frames[str(frame)]['state'] != 6 for frame in (3700, 3750, 3800, 3825, 3850, 3900, 4050, 4150, 4300, 4400, 4500, 4600, 4650, 4750, 4900, 5000, 5100, 5200))
+                or any(frames[str(frame)]['state'] != 6 for frame in (3700, 3750, 3800, 3825, 3850, 3900, 4050, 4150, 4300, 4400, 4500, 4600, 4650, 4750, 4900, 5000, 5100, 5200, 5250, 5300, 5375, 5450, 5500, 5550))
                 or frames['3750']['screenshot_sha256'] == frames['3450']['screenshot_sha256']
                 or slots['3750']['third_descriptor'] != 0x6a or slots['3750']['third_link'] != 0xff
                 or slots['3900']['third_descriptor'] != 0x6a or slots['3900']['third_link'] != 1
@@ -230,10 +232,19 @@ def validate_scenario(evidence: dict, expected_state: int, *, inventory: bool = 
                 or slots['4900']['third_descriptor'] != 0x6a or slots['4900']['third_link'] != 1
                 or slots['4900']['third_x'] != slots['4900']['player_x']
                 or slots['4900']['third_y'] >= slots['4900']['player_y']
-                or frames['5200']['scroll_x'] < 1590
+                or frames['5200']['scroll_x'] < 1550
                 or slots['5200']['third_descriptor'] != 0x6a or slots['5200']['third_link'] != 1
                 or slots['5200']['third_x'] != slots['5200']['player_x']
-                or slots['5200']['third_y'] >= slots['5200']['player_y']):
+                or slots['5200']['third_y'] >= slots['5200']['player_y']
+                or frames['5550']['scroll_x'] < 1984
+                or slots['5550']['third_descriptor'] != 0x6a or slots['5550']['third_link'] != 1
+                or slots['5550']['third_x'] != slots['5550']['player_x']
+                or slots['5550']['third_y'] >= slots['5550']['player_y']
+                or any(frames[str(frame)]['state'] != 16 for frame in (5575, 5625, 5650))
+                or frames['5625']['screenshot_sha256'] != MOSES_LEVEL_TWO_SUCCESS_SHA256
+                or frames['5700']['state'] != 7 or slots['5700']['third_descriptor'] != 0x6a
+                or slots['5700']['third_link'] != 0xff
+                or frames['5700']['screenshot_sha256'] == frames['5625']['screenshot_sha256']):
             raise ValueError('Moses pickup, carry and recovery observations did not match')
     if (evidence['mapper_value_mismatches'] or evidence['unmapped_mapper_writes']
             or evidence['physical_prg_banks_seen'] != [0, 1]):

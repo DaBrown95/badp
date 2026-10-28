@@ -44,7 +44,7 @@ the original source language and toolchain remain unestablished.
 
 ## v1.5 opening-gameplay evidence
 
-`make verify-gameplay` runs 5,200 NTSC frames each for Noah, Moses and David,
+`make verify-gameplay` runs 5,700 NTSC frames each for Noah, Moses and David,
 plus a separate Noah inventory scenario,
 in pinned MesenCE 2.2.1, with zeroed power-on RAM and fixed mapper/alignment
 settings. It compares the audited reference and verified build under the same
@@ -52,10 +52,9 @@ menu and movement inputs. All three reached their opening areas and showed a
 change in scroll and screenshot after rightward input. The Moses sequence also
 presses B to lift the baby, jumps past the first approaching enemy and crosses
 the first water gap. It recovers him after a later collision, backtracks over the
-position trigger, reaches the first-level success screen and picks him up again
-in level two before crossing six water gaps.
-Sampled slot fields show the link, its loss and recovery; a pinned screenshot
-hash checks the success screen. The forty-two sampled
+position trigger, completes the first two levels and enters level three.
+Sampled slot fields show the link, its loss, recovery and carried finish; pinned
+screenshot hashes check both success screens. The fifty-two sampled
 frames, slot fields, state and cycle counts, mapper-write streams, NMI counts, OAM DMA and
 APU-register write streams agreed between the reference and build. Both PRG
 banks appeared in the emulator's mapper-write mapping; every observed write
@@ -274,11 +273,13 @@ The merged contextual script trace exposes 13 physical bytes with conflicting
 decodes across different possible entries in the existing `$BD1B` and `$DC35`
 script regions. The competing entries depend on unverified descriptor
 associations at `$DA40` and `$ED71`; those conflicts remain unresolved.
-Another 29 physical bytes overlap possible record reads and candidate script
-decodes, including nine in the existing `$ED71` script; these associations
-also remain unverified. Twenty non-overlapping script regions are now
-represented as named commands; their context and gameplay roles remain
-provisional. Temporary transcriptions were retired after integration.
+Another 35 physical bytes overlap possible record reads and candidate script
+decodes, including nine in the existing `$ED71` script and six at `$ED4A-$ED4F`
+in the existing `$ED45` script. The latter became visible after following a
+possible `$18` audio-restart return; its descriptor association and all these
+competing uses remain unverified. Twenty script regions were represented as
+named commands after an earlier non-overlap review; the later candidate use
+requires further investigation. Temporary transcriptions were retired after integration.
 
 The map lookup uses 146 two-byte offsets, each a multiple of 68, into locally
 supplied map-chunk data. The offset table and state-indexed vertical-base seeds
@@ -287,9 +288,9 @@ either table have not been established.
 `make prg-inventory` combines the current verified source map with candidate
 map, script, record, palette-setup, candidate audio and PPU-stream uses, round-tripped packed text, and
 optional validated audio and sprite traces. It counts physical bytes once while
-retaining overlapping uses. With the current local traces, 5,277 PRG bytes have no use
+retaining overlapping uses. With the current local traces, 5,270 PRG bytes have no use
 in these inventories; that number is not a count of remaining code. The report
-also retains 65 possible map/script overlap bytes and 29 possible record/script
+also retains 65 possible map/script overlap bytes and 35 possible record/script
 overlap bytes. It records its input identities and writes metadata only to
 ignored `analysis/us-v1.5/prg-inventory.json`.
 `make audio-flow` follows literal voice starts in reconstructed commands and the
