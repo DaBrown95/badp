@@ -14,6 +14,13 @@ class PpuStreamTests(unittest.TestCase):
         self.assertEqual((result['relative_addresses'], result['absolute_addresses']), (1, 1))
         self.assertEqual(result['location']['physical_prg_offset'], BANK_SIZE + 0x100)
         self.assertFalse(result['lookahead_crossing_possible'])
+        self.assertEqual(result['segments'], [
+            {'kind': 'payload', 'offset': 0, 'size': 1},
+            {'kind': 'relative_address', 'offset': 1, 'size': 3},
+            {'kind': 'payload', 'offset': 4, 'size': 1},
+            {'kind': 'absolute_address', 'offset': 5, 'size': 3},
+            {'kind': 'terminator', 'offset': 8, 'size': 1},
+        ])
 
     def test_truncation_limit_and_possible_lookahead_crossing(self):
         bank0, bank1 = bytearray(BANK_SIZE), bytearray(BANK_SIZE)
@@ -33,6 +40,16 @@ class PpuStreamTests(unittest.TestCase):
         self.assertEqual(len(result['streams']), 2)
         self.assertEqual(result['physical_bytes'], 3)
         self.assertEqual(result['overlapping_stream_bytes'], 2)
+
+    def test_control_and_payload_interpretations_can_overlap(self):
+        bank0, bank1 = bytes(BANK_SIZE), bytearray(BANK_SIZE)
+        bank1[0x100:0x104] = bytes([0xfe, 0x41, 0x42, 0])
+        result = inventory(bank0, bytes(bank1), [0x100, 0x101])
+        self.assertEqual(result['physical_bytes'], 4)
+        self.assertEqual(result['control_bytes'], 4)
+        self.assertEqual(result['payload_bytes'], 2)
+        self.assertEqual(result['control_payload_overlap_bytes'], 2)
+        self.assertEqual(result['overlapping_stream_bytes'], 3)
 
     def test_candidate_seeds_require_complete_literal_remap(self):
         bank1 = bytearray(BANK_SIZE)

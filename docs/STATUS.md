@@ -34,9 +34,9 @@ independent source trees or treat one version's evidence as verifying the rest.
 simultaneous reconstruction. Keep progress and completion evidence per target.
 
 The v1.5 build now assembles and links to the exact reference, with 21,474 bytes
-of source code and 21,577 bytes of structured data across the physical PRG banks.
-It still includes 22,485 local PRG bytes and 65,536 local CHR bytes. A total of
-1,514 independent source-change controls verify every listed reconstructed region.
+of source code and 21,770 bytes of structured data across the physical PRG banks.
+It still includes 22,292 local PRG bytes and 65,536 local CHR bytes. A total of
+1,548 independent source-change controls verify every listed reconstructed region.
 Passing input audits or whole-ROM equality alone is not reconstruction
 completion. The developer identifies BOGUS as the
 state-machine engine in the [Vance Kozik interview](https://www.nesworld.com/kozik.php);
@@ -344,7 +344,7 @@ in these inventories; that number is not a count of remaining code. The report
 also retains 7,633 possible map/script overlap bytes and 858 possible record/script
 overlap bytes across the combined inventories. The expanded field-setter walk
 introduces many speculative competing decodes; it does not establish their
-reachability. It also reports 7,730 source-owned bytes covered by candidate
+reachability. It also reports 7,923 source-owned bytes covered by candidate
 data uses, which can include compatible uses as well as competing ones. The
 report records its input identities and writes metadata only to
 ignored `analysis/us-v1.5/prg-inventory.json`.
@@ -1431,3 +1431,14 @@ zero and its largest referenced offset, leaving slot 22 at bank-1
 49 bytes in the candidate script graph; both labels are retained, and the span
 remains local. Alignment alone does not establish that it is map data, padding,
 or executable script, and independent or out-of-range indexing remains open.
+
+The 19 candidate inventory PPU streams now have their 32 absolute-address
+commands, 26 relative-address commands and 19 terminators in structured source.
+These 193 physical control bytes are emitted independently of the 236 local
+tile/text payload bytes. The refreshed PRG inventory confirms all 193 control
+bytes are source-owned and none of these payload bytes are. Candidate BOGUS
+entries that overlap the controls remain labelled, and shared opcode bytes are
+checked where their positions are known. The PPU stream inventory distinguishes control and payload extents
+without exporting their contents; it retains overlaps if different stream
+entries interpret the same byte differently. The logical stream layout does not
+establish queue timing, runtime reachability or physical cartridge mapping.

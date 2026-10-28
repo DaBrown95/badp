@@ -18,6 +18,7 @@ class OverlayAssemblyTests(unittest.TestCase):
         source = (ROOT / 'src/us-v1.5/rom.s').read_text()
         names = ('BogusJumpBank1', 'BogusSetSlotMode', 'BogusSetSlotD0Bits', 'BogusSetDispatchCounter',
                  'BogusSelectRelativeSlotAndYield', 'AudioNote', 'AudioLoop', 'AudioWriteFive',
+                 'PpuStreamAbsolute', 'PpuStreamRelative',
                  'AudioWriteRegister', 'AudioRestorePointer', 'AudioSelectChannel', 'AudioInstrument',
                  'BogusOrSlotValue', 'BogusSetSlot07F0', 'BogusBranchIfSlotD0Bits',
                  'BogusBranchIfSlot07C0Equal', 'BogusBranchPrefix',
@@ -36,6 +37,11 @@ class OverlayAssemblyTests(unittest.TestCase):
                  'AudioScriptTargetTriple', 'AudioScriptQuad', 'AudioScriptFourWords')
         cls.macros = '\n'.join(re.findall(r'^BogusActionOpcode_\w+ = \$[0-9A-F]{2}$', source, re.MULTILINE)) + '\n'
         cls.macros += '\n'.join(re.findall(r'^AudioOpcode\w+ = \$[0-9A-F]{2}$', source, re.MULTILINE)) + '\n'
+        for name in ('PpuStreamTerminator', 'PpuRelativeCode'):
+            constant = re.search(r'^(' + name + r' = (?:\$[0-9A-F]{2}|BogusOpcode\w+))\s*;', source, re.MULTILINE)
+            if not constant:
+                raise AssertionError(f'missing {name}')
+            cls.macros += constant.group(1) + '\n'
         cls.macros += '\n'.join(re.findall(r'^BogusOpcodeLoadRecordAndClearSavedState = \$[0-9A-F]{2}$', source, re.MULTILINE)) + '\n'
         for name in names:
             match = re.search(r'^\.macro ' + name + r'\b[^\n]*\n.*?^\.endmacro\n',
@@ -224,6 +230,31 @@ AudioWriteRegister $02, $67
         result, error, branch = self.assemble('BogusBranchIfSlot07C0Equal BankStart + $3456, $78')
         self.assertEqual(result, 0, error)
         self.assertEqual(prefix, branch[:3])
+
+    def test_ppu_stream_controls_encode_and_decode_synthetic_payload(self):
+        from tools.ppu_streams import decode_stream
+        from tools.script_entries import BANK_SIZE
+
+        statement = """
+PpuStreamAbsolute $2356
+.byte $41, $52
+PpuStreamRelative $0123
+.byte $63
+.byte PpuStreamTerminator
+"""
+        result, error, encoded = self.assemble(statement)
+        self.assertEqual(result, 0, error)
+        self.assertEqual(encoded, bytes.fromhex('ff 56 23 41 52 fe 23 01 63 00'))
+        bank = bytearray(BANK_SIZE)
+        bank[0x10:0x10 + len(encoded)] = encoded
+        decoded = decode_stream(bytes(BANK_SIZE), bytes(bank), 0x0010)
+        self.assertEqual((decoded['size'], decoded['characters'],
+                          decoded['absolute_addresses'], decoded['relative_addresses']), (10, 3, 1, 1))
+        # Replacing the terminator by a tile causes the parser to consume the
+        # next zero as the terminator instead of accepting the original extent.
+        bank[0x10 + len(encoded) - 1] = 1
+        changed = decode_stream(bytes(BANK_SIZE), bytes(bank), 0x0010)
+        self.assertEqual((changed['size'], changed['characters']), (11, 4))
 
     def test_multi_byte_audio_script_forms(self):
         # Synthetic commands exercise every operand layout, including target

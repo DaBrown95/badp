@@ -1341,6 +1341,13 @@ BogusActionOpcode_BogusSetSlot0730 = $32
 BogusActionOpcode_BogusSetSlotFields80 = $2D
 BogusActionOpcode_BogusSelectStateTableValue = $AF
 BogusActionOpcode_BogusBranchIfSlotB0AtMost = $52
+BogusActionOpcode_BogusSubtractSlotPriorityFromField0520 = $21
+BogusActionOpcode_BogusBranchIfSelectedFieldEqual = $24
+BogusActionOpcode_BogusLoadSlotValueArray = $46
+BogusActionOpcode_BogusLoadSlotRecord = $63
+BogusActionOpcode_BogusSetInvertedState3B = $64
+BogusActionOpcode_BogusSetSlot0630Bit04UnlessFF = $A4
+BogusOpcodeAddSelectedField39 = $39
 BogusActionOpcode_BogusOrSlotValue = $C0
 BogusActionOpcode_BogusJumpBank1 = $04
 BogusActionOpcode_BogusAdvanceAndBranchState1B = $05
@@ -1415,6 +1422,26 @@ BogusActionOpcode_BogusWait = $07
 .macro AudioNoteView duration, note, expected
     .assert (duration >= 0) .and (duration <= 4) .and (note >= 0) .and (note <= $1F), error, "invalid audio note"
     .assert (duration * $20 + note) = expected, error, "audio/script byte disagreement"
+.endmacro
+
+; PPU stream control opcodes are reconstructed; tile and text payloads stay local.
+; Shared values also carry candidate BOGUS opcodes at overlapping entries.
+PpuStreamTerminator = BogusOpcodeLoadRecordAndClearSavedState ; CONTROL_PPU_STREAM_TERMINATOR
+PpuRelativeCode = $FE ; CONTROL_PPU_STREAM_RELATIVE
+PpuTemplateStep = $0007
+PpuTemplateNextLine = $0039
+PpuRelativeD073 = $0046
+.assert <PpuTemplateStep = BogusActionOpcode_BogusWait, error, "PPU step/script wait disagreement"
+.assert >PpuTemplateStep = BogusOpcodeLoadRecordAndClearSavedState, error, "PPU step/script load disagreement"
+.assert <PpuTemplateNextLine = BogusOpcodeAddSelectedField39, error, "PPU line/script opcode disagreement"
+.assert <PpuRelativeD073 = BogusActionOpcode_BogusLoadSlotValueArray, error, "D074 PPU/script opcode disagreement"
+.macro PpuStreamAbsolute destination
+    .byte $FF
+    .word destination
+.endmacro
+.macro PpuStreamRelative displacement
+    .byte PpuRelativeCode
+    .word displacement
 .endmacro
 
 ; Each view is asserted byte by byte; neither candidate path is assumed to run.
@@ -18235,12 +18262,306 @@ DataD05F:
     ; Encoded bank-1 pointers into the locally supplied inventory lists.
     .word $5111, $518D, $51D8, $5143 ; CONTROL_INVENTORY_LIST_POINTERS
 .assert (* - BankStart) = $5067, error, "bank 1 inventory list pointer entries end"
-    .incbin "bank1_d067_d09d.bin"
+; PPU controls are source; intervening payload bytes remain local.
+; Candidate script entries and operands can overlap these control bytes.
+PpuCommandD067:
+    PpuStreamAbsolute $208A ; CONTROL_PPU_ABS_D067
+    .incbin "bank1_d06a_d073.bin"
+; Possible BOGUS command(s) at $D074 consume bytes here.
+PpuCandidateEntryD074 = PpuCommandD073 + 1
+PpuCommandD073:
+    PpuStreamRelative PpuRelativeD073
+    .incbin "bank1_d076_d082.bin"
+; Possible BOGUS command(s) at $D081 consume bytes here.
+PpuCandidateEntryD081 = PpuCommandD082 - 1
+PpuCommandD082:
+    .byte PpuStreamTerminator
+; Possible BOGUS command(s) at $D081, $D085 consume bytes here.
+PpuCandidateEntryD085 = PpuCommandD083 + 2
+PpuAddressD083 = $208C ; CONTROL_PPU_ABS_D083
+.assert >PpuAddressD083 = BogusActionOpcode_BogusBranchIfSlot0620Bit10, error, "D083 PPU/script opcode disagreement"
+PpuCommandD083:
+    PpuStreamAbsolute PpuAddressD083
+    .incbin "bank1_d086_d08a.bin"
+PpuCommandD08A:
+    PpuStreamRelative $0045
+    .incbin "bank1_d08d_d098.bin"
+PpuCommandD098:
+    .byte PpuStreamTerminator
+PpuCommandD099:
+    PpuStreamAbsolute $2132 ; CONTROL_PPU_ABS_D099
+PpuCommandD09C:
+    .byte PpuStreamTerminator
 DataD09D:
     ; Encoded pointers to four local inventory display templates.
     .word $50A5, $50AE, $50B7, $50C0 ; CONTROL_INVENTORY_TEMPLATE_POINTERS
 .assert (* - BankStart) = $50A5, error, "bank 1 inventory template pointer entries end"
-    .incbin "bank1_d0a5_d21c.bin"
+; PPU controls are source; intervening payload bytes remain local.
+; Candidate script entries and operands can overlap these control bytes.
+    .incbin "bank1_d0a5_d0a6.bin"
+PpuCommandD0A6:
+    PpuStreamRelative PpuTemplateStep
+    .incbin "bank1_d0a9_d0aa.bin"
+PpuCommandD0AA:
+    PpuStreamRelative PpuTemplateNextLine
+PpuCommandD0AD:
+    .byte PpuStreamTerminator
+    .incbin "bank1_d0ae_d0af.bin"
+PpuCommandD0AF:
+    PpuStreamRelative PpuTemplateStep
+    .incbin "bank1_d0b2_d0b3.bin"
+PpuCommandD0B3:
+    PpuStreamRelative PpuTemplateNextLine
+PpuCommandD0B6:
+    .byte PpuStreamTerminator
+    .incbin "bank1_d0b7_d0b8.bin"
+PpuCommandD0B8:
+    PpuStreamRelative PpuTemplateStep
+    .incbin "bank1_d0bb_d0bc.bin"
+; Possible BOGUS command(s) at $D0BD consume bytes here.
+PpuCandidateEntryD0BD = PpuCommandD0BC + 1
+PpuCommandD0BC:
+    PpuStreamRelative PpuTemplateNextLine
+; Possible BOGUS command(s) at $D0BD consume bytes here.
+PpuCommandD0BF:
+    .byte PpuStreamTerminator
+    .incbin "bank1_d0c0_d0c1.bin"
+; Possible BOGUS command(s) at $D0BD, $D0C3 consume bytes here.
+PpuCandidateEntryD0C3 = PpuCommandD0C1 + 2
+PpuCommandD0C1:
+    PpuStreamRelative PpuTemplateStep
+    .incbin "bank1_d0c4_d0c5.bin"
+PpuCommandD0C5:
+    PpuStreamRelative PpuTemplateNextLine
+PpuCommandD0C8:
+    .byte PpuStreamTerminator
+    .incbin "bank1_d0c9_d0ca.bin"
+PpuCommandD0CA:
+    PpuStreamRelative PpuTemplateStep
+    .incbin "bank1_d0cd_d0ce.bin"
+PpuCommandD0CE:
+    PpuStreamRelative PpuTemplateNextLine
+PpuCommandD0D1:
+    .byte PpuStreamTerminator
+    .incbin "bank1_d0d2_d0d3.bin"
+PpuCommandD0D3:
+    PpuStreamRelative PpuTemplateStep
+    .incbin "bank1_d0d6_d0d7.bin"
+PpuCommandD0D7:
+    PpuStreamRelative PpuTemplateNextLine
+PpuCommandD0DA:
+    .byte PpuStreamTerminator
+    .incbin "bank1_d0db_d0dc.bin"
+PpuCommandD0DC:
+    PpuStreamRelative PpuTemplateStep
+    .incbin "bank1_d0df_d0e0.bin"
+PpuCommandD0E0:
+    PpuStreamRelative PpuTemplateNextLine
+PpuCommandD0E3:
+    .byte PpuStreamTerminator
+    .incbin "bank1_d0e4_d0e5.bin"
+PpuCommandD0E5:
+    PpuStreamRelative PpuTemplateStep
+    .incbin "bank1_d0e8_d0e9.bin"
+PpuCommandD0E9:
+    PpuStreamRelative PpuTemplateNextLine
+PpuCommandD0EC:
+    .byte PpuStreamTerminator
+    .incbin "bank1_d0ed_d0ee.bin"
+PpuCommandD0EE:
+    PpuStreamRelative PpuTemplateStep
+    .incbin "bank1_d0f1_d0f2.bin"
+PpuCommandD0F2:
+    PpuStreamRelative PpuTemplateNextLine
+PpuCommandD0F5:
+    .byte PpuStreamTerminator
+    .incbin "bank1_d0f6_d0f7.bin"
+PpuCommandD0F7:
+    PpuStreamRelative PpuTemplateStep
+    .incbin "bank1_d0fa_d0fb.bin"
+PpuCommandD0FB:
+    PpuStreamRelative PpuTemplateNextLine
+PpuCommandD0FE:
+    .byte PpuStreamTerminator
+    .incbin "bank1_d0ff_d100.bin"
+; Possible BOGUS command(s) at $D101 consume bytes here.
+PpuCandidateEntryD101 = PpuCommandD100 + 1
+PpuCommandD100:
+    PpuStreamRelative PpuTemplateStep
+    .incbin "bank1_d103_d104.bin"
+; Possible BOGUS command(s) at $D103, $D105 consume bytes here.
+PpuCandidateEntryD103 = PpuCommandD104 - 1
+PpuCandidateEntryD105 = PpuCommandD104 + 1
+PpuCommandD104:
+    PpuStreamRelative PpuTemplateNextLine
+; Possible BOGUS command(s) at $D103, $D105 consume bytes here.
+PpuCommandD107:
+    .byte PpuStreamTerminator
+    .incbin "bank1_d108_d109.bin"
+; Possible BOGUS command(s) at $D105, $D108, $D10B consume bytes here.
+PpuCandidateEntryD108 = PpuCommandD109 - 1
+PpuCandidateEntryD10B = PpuCommandD109 + 2
+PpuCommandD109:
+    PpuStreamRelative PpuTemplateStep
+    .incbin "bank1_d10c_d10d.bin"
+; Possible BOGUS command(s) at $D10C consume bytes here.
+PpuCandidateEntryD10C = PpuCommandD10D - 1
+PpuCommandD10D:
+    PpuStreamRelative PpuTemplateNextLine
+; Possible BOGUS command(s) at $D110 consume bytes here.
+PpuCandidateEntryD110 = PpuCommandD110
+PpuCommandD110:
+    .byte PpuStreamTerminator
+; Possible BOGUS command(s) at $D110, $D112 consume bytes here.
+PpuCandidateEntryD112 = PpuCommandD111 + 1
+PpuAddressD111 = $2123 ; CONTROL_PPU_ABS_D111
+.assert <PpuAddressD111 = BogusActionOpcode_BogusBranchIfSlot0760Equal, error, "D111 PPU/script opcode disagreement"
+PpuCommandD111:
+    PpuStreamAbsolute PpuAddressD111
+    .incbin "bank1_d114_d118.bin"
+; Possible BOGUS command(s) at $D116, $D119 consume bytes here.
+PpuCandidateEntryD116 = PpuCommandD118 - 2
+PpuCandidateEntryD119 = PpuCommandD118 + 1
+PpuAddressD118 = $2163 ; CONTROL_PPU_ABS_D118
+.assert <PpuAddressD118 = BogusActionOpcode_BogusLoadSlotRecord, error, "D118 PPU/script opcode disagreement"
+PpuCommandD118:
+    PpuStreamAbsolute PpuAddressD118
+    .incbin "bank1_d11b_d121.bin"
+; Possible BOGUS command(s) at $D11E, $D123 consume bytes here.
+PpuCandidateEntryD11E = PpuCommandD121 - 3
+PpuCandidateEntryD123 = PpuCommandD121 + 2
+PpuAddressD121 = $21A3 ; CONTROL_PPU_ABS_D121
+.assert >PpuAddressD121 = BogusActionOpcode_BogusSubtractSlotPriorityFromField0520, error, "D121 PPU/script opcode disagreement"
+PpuCommandD121:
+    PpuStreamAbsolute PpuAddressD121
+    .incbin "bank1_d124_d12b.bin"
+PpuCommandD12B:
+    PpuStreamAbsolute $21E3 ; CONTROL_PPU_ABS_D12B
+    .incbin "bank1_d12e_d134.bin"
+PpuCommandD134:
+    PpuStreamAbsolute $2223 ; CONTROL_PPU_ABS_D134
+    .incbin "bank1_d137_d13b.bin"
+PpuCommandD13B:
+    PpuStreamAbsolute $2263 ; CONTROL_PPU_ABS_D13B
+    .incbin "bank1_d13e_d142.bin"
+; Possible BOGUS command(s) at $D13F consume bytes here.
+PpuCandidateEntryD13F = PpuCommandD142 - 3
+PpuCommandD142:
+    .byte PpuStreamTerminator
+PpuCommandD143:
+    PpuStreamAbsolute $2124 ; CONTROL_PPU_ABS_D143
+    .incbin "bank1_d146_d14c.bin"
+PpuCommandD14C:
+    PpuStreamAbsolute $2164 ; CONTROL_PPU_ABS_D14C
+    .incbin "bank1_d14f_d157.bin"
+; Possible BOGUS command(s) at $D154, $D158 consume bytes here.
+PpuCandidateEntryD154 = PpuCommandD157 - 3
+PpuCandidateEntryD158 = PpuCommandD157 + 1
+PpuAddressD157 = $21A4 ; CONTROL_PPU_ABS_D157
+.assert <PpuAddressD157 = BogusActionOpcode_BogusSetSlot0630Bit04UnlessFF, error, "D157 PPU/script opcode disagreement"
+PpuCommandD157:
+    PpuStreamAbsolute PpuAddressD157
+    .incbin "bank1_d15a_d15f.bin"
+; Possible BOGUS command(s) at $D15E consume bytes here.
+PpuCandidateEntryD15E = PpuCommandD15F - 1
+PpuCommandD15F:
+    PpuStreamAbsolute $21E4 ; CONTROL_PPU_ABS_D15F
+    .incbin "bank1_d162_d16a.bin"
+; Possible BOGUS command(s) at $D167, $D16B consume bytes here.
+PpuCandidateEntryD167 = PpuCommandD16A - 3
+PpuCandidateEntryD16B = PpuCommandD16A + 1
+PpuAddressD16A = $2224 ; CONTROL_PPU_ABS_D16A
+.assert <PpuAddressD16A = BogusActionOpcode_BogusBranchIfSelectedFieldEqual, error, "D16A PPU/script opcode disagreement"
+PpuCommandD16A:
+    PpuStreamAbsolute PpuAddressD16A
+    .incbin "bank1_d16d_d173.bin"
+; Possible BOGUS command(s) at $D16F, $D174 consume bytes here.
+PpuCandidateEntryD16F = PpuCommandD173 - 4
+PpuCandidateEntryD174 = PpuCommandD173 + 1
+PpuAddressD173 = $2264 ; CONTROL_PPU_ABS_D173
+.assert <PpuAddressD173 = BogusActionOpcode_BogusSetInvertedState3B, error, "D173 PPU/script opcode disagreement"
+PpuCommandD173:
+    PpuStreamAbsolute PpuAddressD173
+    .incbin "bank1_d176_d17d.bin"
+; Possible BOGUS command(s) at $D17B, $D17F consume bytes here.
+PpuCandidateEntryD17B = PpuCommandD17D - 2
+PpuCandidateEntryD17F = PpuCommandD17D + 2
+PpuAddressD17D = $22A4 ; CONTROL_PPU_ABS_D17D
+.assert >PpuAddressD17D = BogusActionOpcode_BogusBranchIfSlot0520AtMost, error, "D17D PPU/script opcode disagreement"
+PpuCommandD17D:
+    PpuStreamAbsolute PpuAddressD17D
+    .incbin "bank1_d180_d184.bin"
+; Possible BOGUS command(s) at $D183 consume bytes here.
+PpuCandidateEntryD183 = PpuCommandD184 - 1
+PpuCommandD184:
+    PpuStreamAbsolute $22E4 ; CONTROL_PPU_ABS_D184
+    .incbin "bank1_d187_d18c.bin"
+; Possible BOGUS command(s) at $D18A consume bytes here.
+PpuCandidateEntryD18A = PpuCommandD18C - 2
+PpuCommandD18C:
+    .byte PpuStreamTerminator
+; Possible BOGUS command(s) at $D18A, $D18E consume bytes here.
+PpuCandidateEntryD18E = PpuCommandD18D + 1
+PpuAddressD18D = $2124 ; CONTROL_PPU_ABS_D18D
+.assert <PpuAddressD18D = BogusActionOpcode_BogusBranchIfSelectedFieldEqual, error, "D18D PPU/script opcode disagreement"
+PpuCommandD18D:
+    PpuStreamAbsolute PpuAddressD18D
+    .incbin "bank1_d190_d197.bin"
+; Possible BOGUS command(s) at $D196 consume bytes here.
+PpuCandidateEntryD196 = PpuCommandD197 - 1
+PpuCommandD197:
+    PpuStreamAbsolute $2164 ; CONTROL_PPU_ABS_D197
+    .incbin "bank1_d19a_d1a0.bin"
+PpuCommandD1A0:
+    PpuStreamAbsolute $21A4 ; CONTROL_PPU_ABS_D1A0
+    .incbin "bank1_d1a3_d1aa.bin"
+PpuCommandD1AA:
+    PpuStreamAbsolute $21E4 ; CONTROL_PPU_ABS_D1AA
+    .incbin "bank1_d1ad_d1b6.bin"
+; Possible BOGUS command(s) at $D1B4, $D1B7 consume bytes here.
+PpuCandidateEntryD1B4 = PpuCommandD1B6 - 2
+PpuCandidateEntryD1B7 = PpuCommandD1B6 + 1
+PpuAddressD1B6 = $2224 ; CONTROL_PPU_ABS_D1B6
+.assert <PpuAddressD1B6 = BogusActionOpcode_BogusBranchIfSelectedFieldEqual, error, "D1B6 PPU/script opcode disagreement"
+PpuCommandD1B6:
+    PpuStreamAbsolute PpuAddressD1B6
+    .incbin "bank1_d1b9_d1c4.bin"
+; Possible BOGUS command(s) at $D1C3 consume bytes here.
+PpuCandidateEntryD1C3 = PpuCommandD1C4 - 1
+PpuCommandD1C4:
+    PpuStreamAbsolute $2264 ; CONTROL_PPU_ABS_D1C4
+    .incbin "bank1_d1c7_d1cd.bin"
+PpuCommandD1CD:
+    PpuStreamAbsolute $22A4 ; CONTROL_PPU_ABS_D1CD
+    .incbin "bank1_d1d0_d1d7.bin"
+PpuCommandD1D7:
+    .byte PpuStreamTerminator
+PpuCommandD1D8:
+    PpuStreamAbsolute $2124 ; CONTROL_PPU_ABS_D1D8
+    .incbin "bank1_d1db_d1e2.bin"
+PpuCommandD1E2:
+    PpuStreamAbsolute $2164 ; CONTROL_PPU_ABS_D1E2
+    .incbin "bank1_d1e5_d1ed.bin"
+PpuCommandD1ED:
+    PpuStreamAbsolute $21A4 ; CONTROL_PPU_ABS_D1ED
+    .incbin "bank1_d1f0_d1f5.bin"
+PpuCommandD1F5:
+    PpuStreamAbsolute $21E4 ; CONTROL_PPU_ABS_D1F5
+    .incbin "bank1_d1f8_d1fe.bin"
+PpuCommandD1FE:
+    PpuStreamAbsolute $2224 ; CONTROL_PPU_ABS_D1FE
+    .incbin "bank1_d201_d204.bin"
+PpuCommandD204:
+    PpuStreamAbsolute $2264 ; CONTROL_PPU_ABS_D204
+    .incbin "bank1_d207_d20c.bin"
+PpuCommandD20C:
+    PpuStreamAbsolute $22A4 ; CONTROL_PPU_ABS_D20C
+    .incbin "bank1_d20f_d214.bin"
+PpuCommandD214:
+    PpuStreamAbsolute $22E4 ; CONTROL_PPU_ABS_D214
+    .incbin "bank1_d217_d21b.bin"
+PpuCommandD21B:
+    .byte PpuStreamTerminator
 ; Descriptor-linked slot record; resource data remains local.
 SlotRuntimeD21C:
     SlotRuntimeRecord $BF27, $522E, $40, $FF, $00, $00, $00 ; CONTROL_SLOT_RUNTIME_D21C

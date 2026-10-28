@@ -76,24 +76,38 @@ def decode_stream(bank0: bytes, bank1: bytes, pointer: int, *, limit: int = 4096
     data = (bank0, bank1)[bank]
     cursor = start
     characters = absolute = relative = 0
+    segments: list[dict] = []
+
+    def segment(kind: str, size: int) -> None:
+        offset = cursor - start
+        # Coalesce payload extents without exporting their tile values.
+        if kind == 'payload' and segments and segments[-1]['kind'] == kind:
+            segments[-1]['size'] += size
+        else:
+            segments.append({'kind': kind, 'offset': offset, 'size': size})
+
     while cursor < BANK_SIZE and cursor - start < limit:
         opcode = data[cursor]
         if opcode == 0:
+            segment('terminator', 1)
             cursor += 1
             return {'encoded_pointer': f'0x{pointer:04x}', 'location': _location(bank, start),
                     'size': cursor - start, 'characters': characters, 'absolute_addresses': absolute,
-                    'relative_addresses': relative,
+                    'relative_addresses': relative, 'segments': segments,
                     'lookahead_crossing_possible': cursor - 1 + 32 > BANK_SIZE}
         if opcode >= 0xfe:
             if cursor + 3 > BANK_SIZE or cursor + 3 - start > limit:
                 raise ValueError('truncated PPU address command')
             if opcode == 0xfe:
                 relative += 1
+                segment('relative_address', 3)
             else:
                 absolute += 1
+                segment('absolute_address', 3)
             cursor += 3
         else:
             characters += 1
+            segment('payload', 1)
             cursor += 1
     raise ValueError('unterminated or bank-crossing PPU stream')
 
@@ -101,11 +115,19 @@ def decode_stream(bank0: bytes, bank1: bytes, pointer: int, *, limit: int = 4096
 def inventory(bank0: bytes, bank1: bytes, seeds: list[int], *, limit: int = 4096) -> dict:
     streams = [decode_stream(bank0, bank1, pointer, limit=limit) for pointer in sorted(set(seeds))]
     coverage: dict[int, set[int]] = {}
+    control: set[int] = set()
+    payload: set[int] = set()
     for stream in streams:
         start = stream['location']['physical_prg_offset']
         for pos in range(start, start + stream['size']):
             coverage.setdefault(pos, set()).add(start)
+        for segment in stream['segments']:
+            begin = start + segment['offset']
+            positions = range(begin, begin + segment['size'])
+            (payload if segment['kind'] == 'payload' else control).update(positions)
     return {'streams': streams, 'physical_bytes': len(coverage),
+            'control_bytes': len(control), 'payload_bytes': len(payload),
+            'control_payload_overlap_bytes': len(control & payload),
             'overlapping_stream_bytes': sum(len(starts) > 1 for starts in coverage.values()),
             'lookahead_crossing_streams': sum(s['lookahead_crossing_possible'] for s in streams)}
 
@@ -142,6 +164,9 @@ def main() -> int:
         output.write_text(json.dumps(result, indent=2) + '\n')
         print(json.dumps({'target': result['target'], 'streams': len(result['streams']),
                           'physical_bytes': result['physical_bytes'],
+                          'control_bytes': result['control_bytes'],
+                          'payload_bytes': result['payload_bytes'],
+                          'control_payload_overlap_bytes': result['control_payload_overlap_bytes'],
                           'overlapping_stream_bytes': result['overlapping_stream_bytes'],
                           'lookahead_crossing_streams': result['lookahead_crossing_streams'],
                           'output': 'analysis/us-v1.5/ppu-streams.json'}, indent=2))

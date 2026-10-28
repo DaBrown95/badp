@@ -26,7 +26,8 @@ CATEGORIES = ('source_code', 'source_data', 'candidate_map_chunks', 'candidate_m
               'candidate_unreferenced_map_slots',
               'packed_text_records', 'observed_audio_commands', 'candidate_sprite_bytes',
               'candidate_script_bytes', 'candidate_record_bytes', 'candidate_palette_setup_bytes',
-              'candidate_audio_commands', 'candidate_ppu_stream_bytes', 'candidate_sprite_static_bytes')
+              'candidate_audio_commands', 'candidate_ppu_stream_bytes', 'candidate_ppu_control_bytes',
+              'candidate_ppu_payload_bytes', 'candidate_sprite_static_bytes')
 INVENTORY_INPUTS = ('tools/prg_inventory.py', 'tools/map_data.py', 'tools/packed_text.py',
                     'tools/script_entries.py', 'tools/script_flow.py', 'tools/slot_record_flow.py',
                     'tools/direct_record_flow.py', 'tools/native_event_flow.py',
@@ -82,6 +83,8 @@ def summarize(spans: dict[str, list[tuple[int, int]]], *, bank_size: int = BANK_
     record_mask = 1 << CATEGORIES.index('candidate_record_bytes')
     observed_audio_mask = 1 << CATEGORIES.index('observed_audio_commands')
     candidate_audio_mask = 1 << CATEGORIES.index('candidate_audio_commands')
+    ppu_control_mask = 1 << CATEGORIES.index('candidate_ppu_control_bytes')
+    ppu_payload_mask = 1 << CATEGORIES.index('candidate_ppu_payload_bytes')
     observed_sprite_mask = 1 << CATEGORIES.index('candidate_sprite_bytes')
     static_sprite_mask = 1 << CATEGORIES.index('candidate_sprite_static_bytes')
     return {'prg_bytes': size, 'category_bytes': counts, 'use_combinations': groups,
@@ -96,6 +99,10 @@ def summarize(spans: dict[str, list[tuple[int, int]]], *, bank_size: int = BANK_
                 bool(mask & unreferenced_map_mask) and bool(mask & script_mask) for mask in masks),
             'record_and_candidate_script_bytes': sum(bool(mask & record_mask) and bool(mask & script_mask)
                                                      for mask in masks),
+            'source_and_candidate_ppu_control_bytes': sum(
+                bool(mask & source_mask) and bool(mask & ppu_control_mask) for mask in masks),
+            'source_and_candidate_ppu_payload_bytes': sum(
+                bool(mask & source_mask) and bool(mask & ppu_payload_mask) for mask in masks),
             'observed_and_candidate_audio_bytes': sum(bool(mask & observed_audio_mask)
                                                       and bool(mask & candidate_audio_mask) for mask in masks),
             'observed_and_static_sprite_bytes': sum(bool(mask & observed_sprite_mask)
@@ -275,6 +282,12 @@ def inventory(root: Path = ROOT) -> dict:
     ppu_graph = ppu_streams.inventory(bank0, bank1, ppu_streams.literal_seeds(source, bank1))
     spans['candidate_ppu_stream_bytes'] = [(stream['location']['physical_prg_offset'], stream['size'])
                                            for stream in ppu_graph['streams']]
+    for stream in ppu_graph['streams']:
+        start = stream['location']['physical_prg_offset']
+        for segment in stream['segments']:
+            category = ('candidate_ppu_payload_bytes' if segment['kind'] == 'payload'
+                        else 'candidate_ppu_control_bytes')
+            spans[category].append((start + segment['offset'], segment['size']))
 
     analysis_root = root / 'analysis'
     analysis = analysis_root / 'us-v1.5'
@@ -378,6 +391,8 @@ def main() -> int:
                           'map_and_candidate_script_bytes': result['map_and_candidate_script_bytes'],
                           'unreferenced_map_slot_and_candidate_script_bytes': result['unreferenced_map_slot_and_candidate_script_bytes'],
                           'record_and_candidate_script_bytes': result['record_and_candidate_script_bytes'],
+                          'source_and_candidate_ppu_control_bytes': result['source_and_candidate_ppu_control_bytes'],
+                          'source_and_candidate_ppu_payload_bytes': result['source_and_candidate_ppu_payload_bytes'],
                           'observed_and_candidate_audio_bytes': result['observed_and_candidate_audio_bytes'],
                           'observed_and_static_sprite_bytes': result['observed_and_static_sprite_bytes'],
                           'direct_script_overlap_bytes': result['direct_script_overlap_bytes'],
