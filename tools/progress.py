@@ -6,7 +6,7 @@ import json
 from pathlib import Path
 import sys
 
-from . import map_assets, map_layout_assets, text_assets
+from . import map_assets, map_layout_assets, sprite_assets, text_assets
 from .build_rom import (MUTATIONS, PROOF_INPUTS, SYMBOL_CONTROLS, digest, mutate_include, mutate_source,
                         source_regions, verify_control, verify_symbol_control)
 from .identify_rom import inspect_rom
@@ -164,6 +164,35 @@ def verify_primary(root: Path, target: dict) -> dict:
             or text_control.get("changed_offsets") != text_assets.verify_control(reference, text_candidate, prg_offset,
                                                                                      text_spans, changed_text_spans)):
         raise ValueError("packed-text source-change control is stale or invalid")
+    sprites, sprite_spans, sprite_source, sprite_input_hash = sprite_assets.select(root, prg, digest(reference))
+    sprite_gaps = map_layout_assets.gap_payloads(prg, regions, sprite_spans)
+    if map_assets.GAP_NAME in sprite_gaps or set(sprite_gaps) & (set(layout_gaps) | set(text_gaps)):
+        raise ValueError("sprite frames and other assets share an input gap")
+    sprite_evidence = proof.get("sprite_assets", {})
+    if (sprite_evidence.get("source") != sprite_source or sprite_evidence.get("input_sha256") != sprite_input_hash
+            or sprite_evidence.get("gap_sha256") != {name: digest(payload) for name, payload in sprite_gaps.items()}
+            or (directory / "inputs/sprite-frames.json").read_bytes() != sprite_assets.serialize(sprites)
+            or any((directory / "inputs" / name).read_bytes() != payload for name, payload in sprite_gaps.items())):
+        raise ValueError("sprite asset build evidence is stale")
+    changed_sprites = sprite_assets.changed_asset(sprites)
+    changed_sprite_json = sprite_assets.serialize(changed_sprites)
+    changed_sprite_spans = sprite_assets.encode(root, changed_sprites, prg, digest(reference))
+    changed_sprite_gaps = map_layout_assets.gap_payloads(prg, regions, changed_sprite_spans)
+    sprite_changed_names = [name for name in sprite_gaps if changed_sprite_gaps[name] != sprite_gaps[name]]
+    if not sprite_changed_names or set(sprite_changed_names) != set(sprite_gaps):
+        raise ValueError("sprite control does not affect every input gap")
+    sprite_dir = directory / "controls/sprite_asset"
+    sprite_candidate = (sprite_dir / "candidate.nes").read_bytes()
+    sprite_control = sprite_evidence.get("control", {})
+    if ((sprite_dir / "rom.s").read_bytes() != source_bytes
+            or (sprite_dir / "sprite-frames.json").read_bytes() != changed_sprite_json
+            or any((sprite_dir / "gaps" / name).read_bytes() != changed_sprite_gaps[name] for name in sprite_changed_names)
+            or sprite_control.get("asset_sha256") != digest(changed_sprite_json)
+            or sprite_control.get("gap_sha256") != {name: digest(changed_sprite_gaps[name]) for name in sprite_changed_names}
+            or sprite_control.get("candidate_sha256") != digest(sprite_candidate)
+            or sprite_control.get("changed_offsets") != sprite_assets.verify_control(reference, sprite_candidate,
+                                                                                         prg_offset, sprites)):
+        raise ValueError("sprite source-change control is stale or invalid")
     code = sum(region["size"] for region in regions if region["kind"] == "code")
     data = sum(region["size"] for region in regions if region["kind"] == "data")
     counts = proof["counts"]

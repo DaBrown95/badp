@@ -1641,3 +1641,22 @@ helper at `$FE6C-$FEA8` in both PRG banks. The 78-byte v1.5 descriptor fragment 
 bank 0 `$A086` occurs once in v1.4 bank 0 at `$A070`. These are byte comparisons
 only; they do not establish v1.4 callers, mapping or a matching build. The
 comparison script and metadata remain under `analysis/us-v1.5/`.
+
+The 132 observed bank-0 sprite frames now have a local editable representation
+of their headers and row-ordered tile/attribute pairs. The address manifest
+records observed frame starts; it does not assert that the list is complete or
+that each asset has no other use. `make extract-sprite-frames` exports the
+reference data under ignored `extracted/`, and `make build` consumes the local
+file when present. Dimensions, header flags, ordering and bank boundaries must
+remain consistent with the reference, while tile and attribute bytes are
+editable. A retained build control changes one tile index in each frame and
+verifies exactly 132 changed ROM bytes. These are locally supplied graphics
+metadata, not additional source ownership; CHR graphics remain separate.
+
+The 132 complete observed frame byte sequences each occur exactly once in the
+audited v1.4, v1.3, v1.2 and v1.1 PRG images. Their physical offsets differ
+from v1.5 by -22, +615, +618 and +540 bytes respectively, consistently within
+each version. None of those complete sequences occurs in the unversioned PRG.
+These byte searches do not establish target-version pointers, bank selection,
+reachability or builds. The metadata-only comparison is retained locally at
+`analysis/us-v1.5/sprite-version-comparison.json`.

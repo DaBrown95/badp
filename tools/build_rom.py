@@ -11,7 +11,7 @@ import subprocess
 import sys
 import tempfile
 
-from . import map_assets, map_layout_assets, text_assets
+from . import map_assets, map_layout_assets, sprite_assets, text_assets
 from .identify_rom import inspect_rom
 from .project import IDENTITY_PARTS, load_target
 from .setup import verified_tools
@@ -20,9 +20,9 @@ from .setup import verified_tools
 ROOT = Path(__file__).resolve().parents[1]
 TARGET = "us-v1.5"
 PROOF_INPUTS = ("tools/build_rom.py", "tools/identify_rom.py", "tools/project.py",
-                "tools/setup.py", "tools/map_assets.py", "tools/map_layout_assets.py", "tools/text_assets.py",
+                "tools/setup.py", "tools/map_assets.py", "tools/map_layout_assets.py", "tools/sprite_assets.py", "tools/sprite_metadata.py", "tools/text_assets.py",
                 "tools/map_data.py", "tools/packed_text.py", "tools/script_entries.py",
-                "config/cc65-toolchain.json")
+                "config/cc65-toolchain.json", "config/sprite-frames-us-v1.5.json")
 
 # Each shared RAM symbol gets an independent operand-change control. Counts
 # are physical instruction operands, not claims about runtime reachability.
@@ -1873,6 +1873,17 @@ def build() -> dict:
                 raise ValueError("packed-text gap does not match the local source complement")
             path.write_bytes(payload)
         (work / "inputs/packed-text.json").write_bytes(text_assets.serialize(text))
+        sprites, sprite_spans, sprite_source, sprite_input_hash = sprite_assets.select(
+            ROOT, prg, parsed["file"]["sha256"])
+        sprite_gaps = map_layout_assets.gap_payloads(prg, regions, sprite_spans)
+        if (map_assets.GAP_NAME in sprite_gaps or set(sprite_gaps) & (set(layout_gaps) | set(text_gaps))):
+            raise ValueError("sprite frames and other assets share an input gap")
+        for name, payload in sprite_gaps.items():
+            path = work / "inputs" / name
+            if not path.is_file() or path.stat().st_size != len(payload):
+                raise ValueError("sprite gap does not match the local source complement")
+            path.write_bytes(payload)
+        (work / "inputs/sprite-frames.json").write_bytes(sprite_assets.serialize(sprites))
         output_path = assemble(work, tool_paths, Path("source/rom.s"), Path("bible-adventures"))
         output = output_path.read_bytes()
         if output != reference:
@@ -1993,6 +2004,33 @@ def build() -> dict:
                          "control": {"asset_sha256": digest(changed_text_json),
                                      "gap_sha256": {name: digest(changed_text_gaps[name]) for name in text_changed_names},
                                      "candidate_sha256": digest(text_candidate), "changed_offsets": text_changed}}
+        sprite_control_dir = work / "controls/sprite_asset"
+        sprite_control_dir.mkdir(parents=True)
+        (sprite_control_dir / "rom.s").write_text(source)
+        changed_sprites = sprite_assets.changed_asset(sprites)
+        changed_sprite_json = sprite_assets.serialize(changed_sprites)
+        changed_sprite_spans = sprite_assets.encode(ROOT, changed_sprites, prg, parsed["file"]["sha256"])
+        changed_sprite_gaps = map_layout_assets.gap_payloads(prg, regions, changed_sprite_spans)
+        sprite_changed_names = [name for name in sprite_gaps if changed_sprite_gaps[name] != sprite_gaps[name]]
+        if not sprite_changed_names or set(sprite_changed_names) != set(sprite_gaps):
+            raise ValueError("sprite control must affect every sprite input gap")
+        (sprite_control_dir / "sprite-frames.json").write_bytes(changed_sprite_json)
+        (sprite_control_dir / "gaps").mkdir()
+        shutil.copytree(work / "inputs", sprite_control_dir / "inputs")
+        for name in sprite_changed_names:
+            (sprite_control_dir / "gaps" / name).write_bytes(changed_sprite_gaps[name])
+            (sprite_control_dir / "inputs" / name).write_bytes(changed_sprite_gaps[name])
+        sprite_control_rom = assemble(work, tool_paths, Path("controls/sprite_asset/rom.s"),
+                                      Path("controls/sprite_asset/candidate"), Path("controls/sprite_asset/inputs"))
+        sprite_candidate = sprite_control_rom.read_bytes()
+        sprite_changed = sprite_assets.verify_control(reference, sprite_candidate, parsed["prg"]["offset"], sprites)
+        retire_control_intermediates(sprite_control_dir)
+        shutil.rmtree(sprite_control_dir / "inputs")
+        sprite_evidence = {"source": sprite_source, "input_sha256": sprite_input_hash,
+                           "gap_sha256": {name: digest(payload) for name, payload in sprite_gaps.items()},
+                           "control": {"asset_sha256": digest(changed_sprite_json),
+                                       "gap_sha256": {name: digest(changed_sprite_gaps[name]) for name in sprite_changed_names},
+                                       "candidate_sha256": digest(sprite_candidate), "changed_offsets": sprite_changed}}
         counts = {kind: sum(r["size"] for r in regions if r["kind"] == kind)
                   for kind in ("code", "data")}
         pin = json.loads((ROOT / "config/cc65-toolchain.json").read_text())
@@ -2009,7 +2047,7 @@ def build() -> dict:
             "tool_sha256": {name: digest(path.read_bytes()) for name, path in tool_paths.items()},
             "verification_input_sha256": {name: digest((ROOT / name).read_bytes()) for name in PROOF_INPUTS},
             "source_regions": regions, "local_prg_gaps": gaps, "map_assets": asset_evidence,
-            "layout_assets": layout_evidence, "text_assets": text_evidence,
+            "layout_assets": layout_evidence, "text_assets": text_evidence, "sprite_assets": sprite_evidence,
             "counts": {"matching_code_bytes": counts["code"], "structured_data_bytes": counts["data"],
                        "local_prg_bytes": sum(g["size"] for g in gaps),
                        "local_chr_bytes": len(chr_data), "container_header_bytes": 16},

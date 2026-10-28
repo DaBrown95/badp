@@ -123,6 +123,11 @@ record's character count and the original one- or two-symbol encoding widths.
 The four bytes also represented by candidate audio commands must stay consistent
 with their source definitions; other edits fail the matching comparison. The
 locally supplied asset data does not count as reconstructed PRG source.
+`make extract-sprite-frames` exports 132 observed v1.5 sprite frames as local
+rows of tile indices and attribute bytes. The build reads those rows when the
+file exists; frame headers and dimensions stay fixed. These PRG records refer
+to CHR graphics, which remain a separate local input. Other sprite frames and
+possible overlapping uses are still being investigated.
 
 On macOS with Apple silicon and Homebrew's SDL2 installed, an optional emulator
 check exercises the opening of each adventure:
@@ -182,6 +187,7 @@ and simultaneous press/release handling on the reference and build.
 | `make audio-flow` | Trace candidate audio-command paths from literal voice starts. |
 | `make trace-sprites` | Capture sprite resource and frame entries during extended v1.5 inputs. |
 | `make sprite-inventory` | Validate and decode the local sprite trace; payloads remain local. |
+| `make extract-sprite-frames` | Export observed sprite tile and attribute rows locally. |
 | `make map-data` | Decode candidate map layouts and chunks to local analysis. |
 | `make extract-map-chunks` | Export editable map chunks to ignored local storage. |
 | `make extract-map-layouts` | Export editable map grids to ignored local storage. |
