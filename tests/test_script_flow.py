@@ -358,6 +358,26 @@ class ScriptFlowTests(unittest.TestCase):
             {'kind': 'possible_retry', 'encoded_pointer': '0x0010'}])
         self.assertNotIn('0x0015', nodes)
 
+    def test_indexed_state_read_keeps_retry_and_next_but_not_a_guessed_table(self):
+        b0, b1, lengths = fixture()
+        lengths[0x7f] = 7
+        b1[0x10:0x18] = bytes([0x7f, 0x20, 0x00, 1, 2, 3, 4, 0x16])
+        nodes = by_pointer(walk(bytes(b0), bytes(b1), bytes(lengths), [0x10]))
+        node = nodes['0x0010']
+        self.assertEqual(node['status'], 'reviewed_partial_indexed_read')
+        self.assertTrue(node['unresolved_indexed_read'])
+        self.assertEqual(node['indexed_read']['encoded_base'], '0x0020')
+        self.assertEqual((node['indexed_read']['distinct_byte_offsets'], node['indexed_read']['stride'],
+                          node['indexed_read']['fetch_bytes']), (128, 2, 2))
+        self.assertEqual(node['successors'], [
+            {'kind': 'possible_retry', 'encoded_pointer': '0x0010'},
+            {'kind': 'possible_next', 'encoded_pointer': '0x0017'}])
+        self.assertNotIn('0x0020', nodes)
+        lengths[0x7f] = 6
+        node = by_pointer(walk(bytes(b0), bytes(b1), bytes(lengths), [0x10]))['0x0010']
+        self.assertEqual(node['status'], 'unreviewed_or_dynamic_handler')
+        self.assertEqual(node['successors'], [])
+
     def test_main_state_change_stops_before_following_data(self):
         b0, b1, lengths = fixture()
         lengths[0x0f] = 2

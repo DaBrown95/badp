@@ -341,7 +341,7 @@ candidate audio and PPU-stream uses, round-tripped packed text, and optional
 validated audio and sprite traces. It counts physical bytes once while
 retaining overlapping uses. With the current local traces, 776 PRG bytes have no use
 in these inventories; that number is not a count of remaining code. The report
-also retains 7,513 possible map/script overlap bytes and 858 possible record/script
+also retains 7,633 possible map/script overlap bytes and 858 possible record/script
 overlap bytes across the combined inventories. The expanded field-setter walk
 introduces many speculative competing decodes; it does not establish their
 reachability. It also reports 7,529 source-owned bytes covered by candidate
@@ -1314,3 +1314,10 @@ and asserts that the following opcode supplies that operand. Under the candidate
 `$EF3E` and `$EF74` inspect resource-high sentinel bytes that are also skipped
 low bytes of neighboring contact records. Those bytes are now represented;
 neither the paths nor the competing record interpretations are proved to run.
+
+The `$7F` handler's busy path retries from the saved pointer; its other path
+fetches a pair using an eight-bit doubled slot value, then can normally return
+after setting shared state. The graph now records both possible successors and
+the 128 distinct even offsets while leaving the indexed data and bank mapping
+unresolved. This adds candidate paths, largely over map data, without adding
+source ownership or proving that the paths execute.

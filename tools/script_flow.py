@@ -224,6 +224,19 @@ def walk(bank0: bytes, bank1: bytes, lengths: bytes, seeds: list[int],
             node['status'] = 'reviewed_partial_dynamic_target'
             node['unresolved_target_high_byte'] = 'stale_63'
             edges.append(('possible_fallthrough', following))
+        elif opcode == 0x7F and length == 7:
+            # A busy state reloads the saved command pointer and yields. The
+            # other path fetches an indexed pair, restores the pointer and
+            # normally returns after state setup. The data read and its bank
+            # bounds are not resolved by this successor rule.
+            node['status'] = 'reviewed_partial_indexed_read'
+            node['unresolved_indexed_read'] = True
+            node['indexed_read'] = {
+                'encoded_base': f'0x{int.from_bytes(data[1:3], "little"):04x}',
+                'distinct_byte_offsets': 128, 'stride': 2, 'fetch_bytes': 2,
+                'condition': 'normal path with $E7 equal to zero; physical mapping unresolved',
+            }
+            edges.extend((('possible_retry', encoded), ('possible_next', following)))
         elif opcode == 0x58 and length == 4:
             # $58's selector precedes its little-endian branch target.
             node['status'] = 'reviewed_selector_conditional'
@@ -346,7 +359,8 @@ def main() -> int:
         output.write_text(json.dumps(result, indent=2) + '\n')
         print(json.dumps({'target': 'us-v1.5', 'candidate_nodes': len(result['nodes']),
                           'unreviewed_or_dynamic': sum(
-                              n['status'] in ('unreviewed_or_dynamic_handler', 'reviewed_partial_dynamic_target')
+                              n['status'] in ('unreviewed_or_dynamic_handler', 'reviewed_partial_dynamic_target',
+                                              'reviewed_partial_indexed_read')
                               for n in result['nodes']),
                           'incomplete_observed_indexed_jumps': sum(
                               n['status'] == 'observed_indexed_jump_incomplete' for n in result['nodes']),

@@ -40,7 +40,7 @@ A separate `make direct-record-flow` walk seeds every named bank-1 script
 entry and checks direct `$16` targets against the resulting script graph.
 The latest scan starts from 1,840 named candidate script entries and finds 30
 possible direct-load commands with 28 distinct direct targets. Its widened
-walk contains 10,006 bytes with overlapping script decodes and 76 possible
+walk contains 10,007 bytes with overlapping script decodes and 76 possible
 record/script overlap bytes. The added entries are candidate contexts, so
 these counts do not establish execution or mutually incompatible behavior. The
 possible record at `$B077` overlaps two candidate script bytes; both views are

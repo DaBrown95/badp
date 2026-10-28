@@ -56,7 +56,9 @@ target; the selector and comparison byte are not part of that address. `$73`,
 `$59` and `$7C` can return or yield. `$74` restores the last saved command
 pointer and yields, so it can retry without falling through. `$57` may fall
 through, but its possible branch target uses a stale high operand and remains
-unresolved. The `$B8`
+unresolved. `$7F` may retry when `$E7` is nonzero or continue after a normal
+indexed read and state setup. Its 8-bit doubled index has 128 possible even
+byte offsets; the selected data and physical mapping remain unresolved. The `$B8`
 linked-slot scan can loop indefinitely, so this edge assumes a return. The
 `$77` voice check can branch to its encoded target or continue.
 Opcode `$17` can continue if its saved-pointer high byte is `$FF`; otherwise
