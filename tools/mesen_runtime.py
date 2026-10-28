@@ -18,10 +18,10 @@ from .setup_mesen import ROOT, digest_file, spec, verify_emulator
 
 FRAMES = (240, 650, 1200, 1400, 1496, 1511, 1550, 1700, 1800, 2100, 2150, 2300,
           2400, 2600, 2800, 3000, 3100, 3200, 3250, 3300, 3350, 3400, 3450, 3650, 3700, 3750,
-          3800, 3825, 3850, 3900, 4050, 4150, 4300, 4400, 4500, 4600, 4650, 4750, 4900)
+          3800, 3825, 3850, 3900, 4050, 4150, 4300, 4400, 4500, 4600, 4650, 4750, 4900, 5000, 5100, 5200)
 SLOT_FRAMES = (1400, 1496, 1511, 1550, 1700, 1800, 2100, 2150, 2300,
                2400, 2600, 2800, 3000, 3100, 3200, 3250, 3300, 3350, 3400, 3450, 3650, 3700, 3750,
-               3800, 3825, 3850, 3900, 4050, 4150, 4300, 4400, 4500, 4600, 4650, 4750, 4900)
+               3800, 3825, 3850, 3900, 4050, 4150, 4300, 4400, 4500, 4600, 4650, 4750, 4900, 5000, 5100, 5200)
 # Pinned emulator screenshot of the first-level success screen for the audited v1.5 input.
 MOSES_SUCCESS_SCREEN_SHA256 = 'c3d483860076f9e782d92de0913c671d4ed1aef84f8ce81688423cad40c19346'
 SCENARIOS = (('noah', 1), ('moses', 5), ('david', 11), ('inventory', 1))
@@ -212,7 +212,7 @@ def validate_scenario(evidence: dict, expected_state: int, *, inventory: bool = 
                 or frames['3350']['scroll_x'] < frames['3200']['scroll_x']
                 or any(frames[str(frame)]['state'] != 16 for frame in (3400, 3450, 3650))
                 or frames['3450']['screenshot_sha256'] != MOSES_SUCCESS_SCREEN_SHA256
-                or any(frames[str(frame)]['state'] != 6 for frame in (3700, 3750, 3800, 3825, 3850, 3900, 4050, 4150, 4300, 4400, 4500, 4600, 4650, 4750, 4900))
+                or any(frames[str(frame)]['state'] != 6 for frame in (3700, 3750, 3800, 3825, 3850, 3900, 4050, 4150, 4300, 4400, 4500, 4600, 4650, 4750, 4900, 5000, 5100, 5200))
                 or frames['3750']['screenshot_sha256'] == frames['3450']['screenshot_sha256']
                 or slots['3750']['third_descriptor'] != 0x6a or slots['3750']['third_link'] != 0xff
                 or slots['3900']['third_descriptor'] != 0x6a or slots['3900']['third_link'] != 1
@@ -229,7 +229,11 @@ def validate_scenario(evidence: dict, expected_state: int, *, inventory: bool = 
                 or frames['4900']['scroll_x'] < 1190
                 or slots['4900']['third_descriptor'] != 0x6a or slots['4900']['third_link'] != 1
                 or slots['4900']['third_x'] != slots['4900']['player_x']
-                or slots['4900']['third_y'] >= slots['4900']['player_y']):
+                or slots['4900']['third_y'] >= slots['4900']['player_y']
+                or frames['5200']['scroll_x'] < 1590
+                or slots['5200']['third_descriptor'] != 0x6a or slots['5200']['third_link'] != 1
+                or slots['5200']['third_x'] != slots['5200']['player_x']
+                or slots['5200']['third_y'] >= slots['5200']['player_y']):
             raise ValueError('Moses pickup, carry and recovery observations did not match')
     if (evidence['mapper_value_mismatches'] or evidence['unmapped_mapper_writes']
             or evidence['physical_prg_banks_seen'] != [0, 1]):
@@ -249,6 +253,64 @@ def run_case(exe: Path, lua: Path, rom: Path, root: Path) -> tuple[dict, dict[in
     if len(result.stdout) > 30_000_000:
         raise ValueError('MesenCE output exceeded the expected bound')
     return parse_output(result.stdout)
+
+
+def evidence_difference_paths(left: object, right: object, *, limit: int = 32) -> list[str]:
+    """Summarize differing parsed values without discarding the full evidence."""
+    if type(limit) is not int or limit <= 0:
+        raise ValueError('invalid difference limit')
+    differences: list[str] = []
+
+    def visit(a: object, b: object, path: str) -> None:
+        if len(differences) >= limit:
+            return
+        if isinstance(a, dict) and isinstance(b, dict):
+            for key in sorted(a.keys() | b.keys()):
+                child = f'{path}/{key}'
+                if key not in a or key not in b:
+                    differences.append(child)
+                else:
+                    visit(a[key], b[key], child)
+                if len(differences) >= limit:
+                    return
+        elif a != b:
+            differences.append(path or '/')
+
+    visit(left, right, '')
+    return differences
+
+
+def retain_runtime_failure(output: Path, scenario: str, reason: str, metadata: dict,
+                           reference: dict, candidate: dict, reference_images: dict[int, bytes],
+                           candidate_images: dict[int, bytes], reference_events: dict[str, bytes],
+                           candidate_events: dict[str, bytes]) -> Path:
+    """Keep one bounded local comparison when a parsed runtime check fails."""
+    if scenario not in {name for name, _ in SCENARIOS}:
+        raise ValueError('invalid runtime failure scenario')
+    root = output / 'failures'
+    if root.is_symlink():
+        raise ValueError('refusing symlinked runtime failure directory')
+    root.mkdir(parents=True, exist_ok=True)
+    destination = Path(tempfile.mkdtemp(prefix=f'{scenario}-', dir=root))
+    report = {'scenario': scenario, 'reason': reason, 'metadata': metadata,
+              'different_evidence_paths': evidence_difference_paths(reference, candidate),
+              'different_event_streams': sorted(k for k in reference_events.keys() | candidate_events.keys()
+                                                if reference_events.get(k) != candidate_events.get(k)),
+              'different_screenshots': sorted(k for k in reference_images.keys() | candidate_images.keys()
+                                               if reference_images.get(k) != candidate_images.get(k)),
+              'reference': reference, 'build': candidate}
+    (destination / 'comparison.json').write_text(json.dumps(report, indent=2) + '\n')
+    for label, images, events in (('reference', reference_images, reference_events),
+                                   ('build', candidate_images, candidate_events)):
+        for frame, png in images.items():
+            if frame not in FRAMES or not png.startswith(PNG_SIGNATURE):
+                raise ValueError('invalid runtime failure screenshot')
+            (destination / f'{label}-{frame}.png').write_bytes(png)
+        for kind, data in events.items():
+            if kind not in ('mapper', 'apu', 'oam_dma'):
+                raise ValueError('invalid runtime failure event stream')
+            (destination / f'{label}-{kind}.txt.zlib').write_bytes(zlib.compress(data, 9))
+    return destination
 
 
 def run(root: Path = ROOT) -> dict:
@@ -272,17 +334,31 @@ def run(root: Path = ROOT) -> dict:
         for index, (name, expected_state) in enumerate(SCENARIOS):
             script = work / f'{name}.lua'
             script.write_text(f'local SCENARIO = {index}\n' + template)
-            ref, _, ref_events = run_case(exe, script, reference, root)
+            ref, ref_images, ref_events = run_case(exe, script, reference, root)
             # A first run extracts embedded dependencies into the portable folder.
             verify_emulator(root, require_core=True)
             candidate, images, candidate_events = run_case(exe, script, built, root)
             verify_emulator(root, require_core=True)
             if digest_file(SDL2) != sdl_digest:
                 raise ValueError('SDL2 changed during runtime verification')
-            validate_scenario(ref, expected_state, inventory=name == 'inventory')
-            validate_scenario(candidate, expected_state, inventory=name == 'inventory')
-            if ref != candidate or ref_events != candidate_events:
-                raise ValueError(f'{name}: reference and build runtime evidence differ')
+            try:
+                validate_scenario(ref, expected_state, inventory=name == 'inventory')
+                validate_scenario(candidate, expected_state, inventory=name == 'inventory')
+                if ref != candidate or ref_events != candidate_events:
+                    raise ValueError('reference and build runtime evidence differ')
+            except ValueError as exc:
+                failure = retain_runtime_failure(
+                    output, name, str(exc),
+                    {'reference_sha256': target['reference']['file']['sha256'],
+                     'source_sha256': verified['source_sha256'],
+                     'source_map_sha256': verified['source_map_sha256'],
+                     'build_proof_sha256': digest_file(root / 'build/us-v1.5/proof.json'),
+                     'runtime_input_sha256': runtime_inputs, 'emulator_flags': list(GAMEPLAY_FLAGS),
+                     'emulator_release': pin['release'], 'emulator_executable_sha256': pin['executable_sha256'],
+                     'emulator_core_sha256': pin['core_sha256'], 'emulator_database_sha256': pin['database_sha256'],
+                     'system_sdl2_sha256': sdl_digest, 'macos_version': platform.mac_ver()[0]},
+                    ref, candidate, ref_images, images, ref_events, candidate_events)
+                raise ValueError(f'{name}: {exc}; comparison retained at {failure.relative_to(root)}') from exc
             for frame, image in images.items():
                 (work / f'{name}-{frame}.png').write_bytes(image)
             for kind, data in ref_events.items():

@@ -44,7 +44,7 @@ the original source language and toolchain remain unestablished.
 
 ## v1.5 opening-gameplay evidence
 
-`make verify-gameplay` runs 4,900 NTSC frames each for Noah, Moses and David,
+`make verify-gameplay` runs 5,200 NTSC frames each for Noah, Moses and David,
 plus a separate Noah inventory scenario,
 in pinned MesenCE 2.2.1, with zeroed power-on RAM and fixed mapper/alignment
 settings. It compares the audited reference and verified build under the same
@@ -53,9 +53,9 @@ change in scroll and screenshot after rightward input. The Moses sequence also
 presses B to lift the baby, jumps past the first approaching enemy and crosses
 the first water gap. It recovers him after a later collision, backtracks over the
 position trigger, reaches the first-level success screen and picks him up again
-in level two before crossing five water gaps.
+in level two before crossing six water gaps.
 Sampled slot fields show the link, its loss and recovery; a pinned screenshot
-hash checks the success screen. The thirty-nine sampled
+hash checks the success screen. The forty-two sampled
 frames, slot fields, state and cycle counts, mapper-write streams, NMI counts, OAM DMA and
 APU-register write streams agreed between the reference and build. Both PRG
 banks appeared in the emulator's mapper-write mapping; every observed write
@@ -92,6 +92,8 @@ runtime evidence without identifying a field. A subsequent focused comparison
 matched; the cause of the initial discrepancy remains unestablished. The failure
 log and focused comparison are kept locally in `reports/us-v1.5/runtime-failures/`
 and `analysis/us-v1.5/compare-stage2-4900-diagnostics.json`, respectively.
+Later parsed scenario failures retain both sides, screenshots and event streams
+in `reports/us-v1.5/runtime/failures/`; the comparison remains strict.
 Local jump-timing explorations beyond frame 2,800 lost the baby before the
 frame-3,000 samples; the attempts and screenshots remain under
 `analysis/us-v1.5/moses-second-*`. They are exploratory reference runs, not
