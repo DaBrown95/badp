@@ -39,8 +39,9 @@ The overlaps do not establish which path actually executes.
 A separate `make direct-record-flow` walk seeds every named bank-1 script
 entry and checks direct `$16` targets against the resulting script graph.
 It finds 18 candidate commands with 16 distinct direct targets. The possible
-record at `$B077` overlaps two candidate script bytes; neither interpretation
-is accepted there. The graph follows three observed `$F434` indexed targets,
+record at `$B077` overlaps two candidate script bytes; both views are now
+represented in the same source extent with an assembler consistency check.
+The graph follows three observed `$F434` indexed targets,
 while reporting that site's remaining possible indices as unresolved.
 In the directed 16,000-frame runs, the `$B05D` branch saw slot values `$0001`,
 `$0005` and `$000B` for Noah, Moses and David, respectively, so its `$000F`
@@ -141,7 +142,8 @@ The maintained source includes 95 additionally reviewed records: 51 full
 zero-mode entries and 44 compact negative-mode entries. Each has a candidate
 descriptor and command recorded alongside it. The selections were checked
 against all candidate script paths and existing physical ownership; ambiguous
-forms, conflicting ranges and resource payloads remain local. These findings
+forms and conflicting ranges were left local at that checkpoint. Resource
+payloads remain local. These findings
 and byte matches do not establish gameplay reachability or hardware behavior.
 Seventeen later candidate locations represent only the fields consumed by the
 reviewed mode and sentinel checks. They have no observed runtime access yet;
@@ -165,3 +167,10 @@ above. This does not establish which interpretation executes. Independent entry
 labels are retained after commands that change the script pointer or main
 state; the static graph does not prove that execution falls through between
 those entries.
+
+Seven candidate script/record overlaps are represented as shared source
+extents at `$B077`, `$D57C`, `$EE65`, `$EE7F`, `$EECD`, `$EEE5` and `$EEFD`.
+The source asserts that each pair of interpretations has identical byte values,
+but does not resolve descriptor associations, access modes or reachability.
+The `$D57C` record's later fields overlap the previously represented compact
+record at `$D581`; the overlay itself claims only the preceding five bytes.

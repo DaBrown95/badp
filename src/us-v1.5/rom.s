@@ -1308,6 +1308,27 @@ ResetEntry:
     .word NmiHandler, ResetEntry, IrqHandler ; CONTROL_VECTORS
 .endmacro
 
+; A script command can occupy the same physical bytes as a possible record.
+; These forms assert both interpretations without implying either path executes.
+.macro BogusJumpCompactOverlay target, resource, flags
+    .assert resource = ($04 + (<(target - BankStart) * $100)), lderror, "jump/compact resource disagreement"
+    .assert flags = >(target - BankStart), lderror, "jump/compact flags disagreement"
+    BogusJumpBank1 target
+.endmacro
+
+.macro BogusModeResourceOverlay mode, resource
+    .assert resource = ($0A + (mode * $100)), error, "mode/resource disagreement"
+    BogusSetSlotMode mode
+.endmacro
+
+.macro BogusSetJumpRecordOverlay mask, target, resource, script, flags
+    .assert resource = ($5D + (mask * $100)), error, "setter/record resource disagreement"
+    .assert script = ($04 + (<(target - BankStart) * $100)), lderror, "jump/record script disagreement"
+    .assert flags = >(target - BankStart), lderror, "jump/record flags disagreement"
+    BogusSetSlotD0Bits mask
+    BogusJumpBank1 target
+.endmacro
+
 .segment "HEADER"
 ; Exact NES 2.0 container header for the pinned reference. This is metadata.
 .byte $4E, $45, $53, $1A, $04, $08, $B1, $08
@@ -15244,7 +15265,12 @@ InteractionScriptB074:
 InteractionScriptB076:
     BogusRestoreSavedScriptAndSlotFlags
 .assert (* - BankStart) = $3077, error, "bank 1 interaction script $B074 end"
-    .incbin "bank1_b077_b080.bin"
+; Possible opcode $0A and candidate direct-record resource share these bytes.
+; The script entry, record mode and reachability remain unverified.
+OverlayScriptB077:
+    BogusModeResourceOverlay $B7, $B70A ; CONTROL_OVERLAY_B077
+.assert (* - BankStart) = $3079, error, "bank 1 candidate overlay b077 end"
+    .incbin "bank1_b079_b080.bin"
 ; Candidate path from a literal branch target in maintained source.
 ; Independent entries are labelled; runtime reachability is not implied.
 BranchScriptB080:
@@ -17979,9 +18005,13 @@ ContextRecordFieldsD56A:
 SlotFlowD573:
     SlotRuntimeRecord $B927, $577B, $23, $FE, $45, $62, $31 ; CONTROL_SLOT_FLOW_D573
 .assert (* - BankStart) = $557C, error, "bank 1 slot record flow D573 end"
-    .incbin "bank1_d57c_d581.bin"
+; Possible two-command script and zero-mode record share these five bytes.
+; Later record fields overlap RuntimeCompactD581; neither context is proven.
+OverlayScriptD57C:
+    BogusSetJumpRecordOverlay $52, ScriptD5F8, $525D, $F804, $55 ; CONTROL_OVERLAY_D57C
+.assert (* - BankStart) = $5581, error, "bank 1 candidate overlay d57c end"
 ; Observed as a compact record in mode $FF on an alternate fourth-level exit.
-; The preceding bytes retain competing interpretations and remain local.
+; The preceding bytes retain explicitly represented competing interpretations.
 RuntimeCompactD581:
     SlotCompactRecord $B965, $40 ; CONTROL_RUNTIME_COMPACT_D581
 .assert (* - BankStart) = $5584, error, "bank 1 observed compact record D581 end"
@@ -21750,7 +21780,11 @@ RuntimeScriptEE5F:
 ExtendedScriptEE62:
     BogusBranchIfSlot0620Bit10 (BankStart + $6FF3) ; CONTROL_EXTENDED_SCRIPT_EE62
 .assert (* - BankStart) = $6E65, error, "bank 1 extended script $EE62 end"
-    .incbin "bank1_ee65_ee68.bin"
+; Candidate jump and negative-mode compact record share these bytes.
+; Neither descriptor association nor execution is established.
+OverlayScriptEE65:
+    BogusJumpCompactOverlay CandidateF0D1, $D104, $70 ; CONTROL_OVERLAY_EE65
+.assert (* - BankStart) = $6E68, error, "bank 1 candidate overlay ee65 end"
 ; Descriptor-linked slot record; resource data remains local.
 SlotRuntimeEE68:
     SlotRuntimeRecord $B6B7, $6E7A, $00, $00, $20, $D9, $11 ; CONTROL_SLOT_RUNTIME_EE68
@@ -21768,7 +21802,11 @@ RetainedScriptEE7A:
 RetainedScriptEE7D:
     BogusSetSlotD0Bits $04
 .assert (* - BankStart) = $6E7F, error, "bank 1 candidate successor $EE7A end"
-    .incbin "bank1_ee7f_ee82.bin"
+; Candidate jump and negative-mode compact record share these bytes.
+; Neither descriptor association nor execution is established.
+OverlayScriptEE7F:
+    BogusJumpCompactOverlay ScriptEFF3, $F304, $6F ; CONTROL_OVERLAY_EE7F
+.assert (* - BankStart) = $6E82, error, "bank 1 candidate overlay ee7f end"
 ; Descriptor-linked slot record; resource data remains local.
 SlotRuntimeEE82:
     SlotRuntimeRecord $BE9D, (ScriptEFDD - BankStart), $00, $00, $20, $D9, $11 ; CONTROL_SLOT_RUNTIME_EE82
@@ -21829,7 +21867,11 @@ ReviewedContactEEC1:
 RetainedScriptEECA:
     BogusSetSlot0640Pair $00, $44 ; CONTROL_RETAINED_SCRIPT_EECA
 .assert (* - BankStart) = $6ECD, error, "bank 1 candidate successor $EECA end"
-    .incbin "bank1_eecd_eed0.bin"
+; Candidate jump and negative-mode compact record share these bytes.
+; Neither descriptor association nor execution is established.
+OverlayScriptEECD:
+    BogusJumpCompactOverlay ScriptEFF3, $F304, $6F ; CONTROL_OVERLAY_EECD
+.assert (* - BankStart) = $6ED0, error, "bank 1 candidate overlay eecd end"
 ; Descriptor-linked slot record; resource data remains local.
 SlotRuntimeEED0:
     SlotRuntimeRecord $C7D5, $6EE2, $00, $00, $20, $D9, $11 ; CONTROL_SLOT_RUNTIME_EED0
@@ -21845,7 +21887,11 @@ ReviewedContactEED9:
 RetainedScriptEEE2:
     BogusSetSlot0640Pair $40, $40 ; CONTROL_RETAINED_SCRIPT_EEE2
 .assert (* - BankStart) = $6EE5, error, "bank 1 candidate successor $EEE2 end"
-    .incbin "bank1_eee5_eee8.bin"
+; Candidate jump and negative-mode compact record share these bytes.
+; Neither descriptor association nor execution is established.
+OverlayScriptEEE5:
+    BogusJumpCompactOverlay ScriptEFF3, $F304, $6F ; CONTROL_OVERLAY_EEE5
+.assert (* - BankStart) = $6EE8, error, "bank 1 candidate overlay eee5 end"
 ; Descriptor-linked slot record; resource data remains local.
 SlotRuntimeEEE8:
     SlotRuntimeRecord $B74E, $6EFA, $00, $00, $20, $D9, $11 ; CONTROL_SLOT_RUNTIME_EEE8
@@ -21861,7 +21907,11 @@ ReviewedContactEEF1:
 RetainedScriptEEFA:
     BogusSetSlot0640Pair $00, $42 ; CONTROL_RETAINED_SCRIPT_EEFA
 .assert (* - BankStart) = $6EFD, error, "bank 1 candidate successor $EEFA end"
-    .incbin "bank1_eefd_ef00.bin"
+; Candidate jump and negative-mode compact record share these bytes.
+; Neither descriptor association nor execution is established.
+OverlayScriptEEFD:
+    BogusJumpCompactOverlay ScriptEFF3, $F304, $6F ; CONTROL_OVERLAY_EEFD
+.assert (* - BankStart) = $6F00, error, "bank 1 candidate overlay eefd end"
 ; Descriptor-linked slot record; resource data remains local.
 SlotRuntimeEF00:
     SlotRuntimeRecord $C393, (ScriptEFE9 - BankStart), $00, $FF, $00, $00, $00 ; CONTROL_SLOT_RUNTIME_EF00

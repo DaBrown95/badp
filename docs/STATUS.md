@@ -591,8 +591,8 @@ resumption, especially after `$89` changes state, is not guaranteed.
 Reviewed return and conditional-branch rules for additional slot and voice
 handlers exposed 100 more candidate commands in 12 nonconflicting regions.
 The `$B8` chain scan can fail to terminate, so its next command is only a
-possible successor. A new potential record/script conflict at `$D57C-$D580`
-remains local; the descriptor association causing it is unverified.
+possible successor. A potential record/script conflict at `$D57C-$D580` was left local at that
+checkpoint; its descriptor association is unverified.
 Seventeen additional nonconflicting candidate record locations expose 69
 consumed bytes. Where sentinels cause the loader to skip fields, those bytes
 remain local. Their descriptor associations and runtime reachability are still
@@ -1025,8 +1025,9 @@ An alternate fourth-level exit and fifth-level opening observed the slot loader
 consume a three-byte compact record at bank 1 `$D581` in mode `$FF`. A mapper
 probe paired 98,466 script fetches and 1,192 record loads with physical bank 1
 without a mapping disagreement. The record is now structured source; the five
-preceding bytes at `$D57C`–`$D580` retain competing interpretations and remain
-local. The observation does not establish the meaning of the resource pointer.
+preceding bytes at `$D57C`–`$D580` retain competing interpretations, now
+represented together as described below. The observation does not establish
+the meaning of the resource pointer.
 
 At the fifth-level spawn, a further route picks up the baby at frame 10,786
 and keeps its slot linked through frame 11,150, reaching world x=364. Both ROMs
@@ -1147,7 +1148,10 @@ slot identity and whether these candidate paths execute remain separate from
 the byte-match proof. Competing record/script interpretations remain open.
 
 Five possible three-byte script jumps at `$EE65`, `$EE7F`, `$EECD`, `$EEE5`
-and `$EEFD` also coincide with possible negative-mode compact records. Their
-script and record interpretations cannot yet be separated by the available
-static evidence, so those bytes remain local. The same applies to the possible
-script/record interpretations at `$D57C` and `$B077`.
+and `$EEFD` coincide with possible negative-mode compact records. They are now
+expressed as shared script/record overlays. The possible script/record views at
+`$D57C-$D580` and `$B077-$B078` are expressed the same way. Each form asserts
+that its two interpretations encode the same bytes; these checks do not prove
+that either candidate context executes. Fields outside the asserted extents
+retain their existing source or local status. Synthetic assembler checks reject
+inconsistent views, and each extent has its own changed-source control.
