@@ -16,9 +16,9 @@ class OverlayAssemblyTests(unittest.TestCase):
         except FileNotFoundError as exc:
             raise unittest.SkipTest(f'pinned assembler unavailable: {exc}') from exc
         source = (ROOT / 'src/us-v1.5/rom.s').read_text()
-        names = ('BogusJumpBank1', 'BogusSetSlotMode', 'BogusSetSlotD0Bits',
+        names = ('BogusJumpBank1', 'BogusSetSlotMode', 'BogusSetSlotD0Bits', 'AudioNote',
                  'BogusJumpCompactOverlay', 'BogusModeResourceOverlay',
-                 'BogusSetJumpRecordOverlay')
+                 'BogusSetJumpRecordOverlay', 'AudioNoteBogusOverlay')
         cls.macros = ''
         for name in names:
             match = re.search(r'^\.macro ' + name + r'\b[^\n]*\n.*?^\.endmacro\n',
@@ -47,12 +47,14 @@ class OverlayAssemblyTests(unittest.TestCase):
 BogusJumpCompactOverlay $9356, $5604, $13
 BogusModeResourceOverlay $12, $120A
 BogusSetJumpRecordOverlay $34, $9456, $345D, $5604, $14
+AudioNoteBogusOverlay $01, $05, $25
 ''')
         self.assertEqual(result, 0, error)
-        self.assertEqual(output, bytes.fromhex('04 56 13 0a 12 5d 34 04 56 14'))
+        self.assertEqual(output, bytes.fromhex('04 56 13 0a 12 5d 34 04 56 14 25'))
 
     def test_mismatched_views_fail_assembly_or_link(self):
         cases = (
+            ('AudioNoteBogusOverlay $01, $05, $24', 'audio/script opcode'),
             ('BogusJumpCompactOverlay $9356, $5704, $13', 'jump/compact resource'),
             ('BogusJumpCompactOverlay $9356, $5604, $14', 'jump/compact flags'),
             ('BogusModeResourceOverlay $12, $130A', 'mode/resource'),

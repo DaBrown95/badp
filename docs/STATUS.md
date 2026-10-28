@@ -1155,3 +1155,19 @@ that its two interpretations encode the same bytes; these checks do not prove
 that either candidate context executes. Fields outside the asserted extents
 retain their existing source or local status. Synthetic assembler checks reject
 inconsistent views, and each extent has its own changed-source control.
+
+Twenty-four more bytes in eight extents have two aligned candidate decodes:
+individual audio notes and reviewed one-byte BOGUS commands. Their source uses
+symbolic script opcodes and asserts that each matches its note encoding. The
+selection excluded other catalogued data uses and competing script boundaries.
+The audio view is conditional on bank 1, while script descriptor associations
+and execution of both views remain unverified. Synthetic assembler tests reject
+a disagreement, and every extent has a changed-source control.
+
+The `$33`/`$34` handler review adds possible successor paths to the BOGUS
+inventory. The expanded walk includes candidate script entries within existing
+candidate audio extents at `$A9BA` and `$AA78`, and alternative entries in the
+existing script extent near `$B638`. It also reaches locally supplied data.
+These additional paths do not prove either view is used and do not change the
+byte-match evidence; their descriptor contexts and overlapping command
+boundaries remain unresolved.

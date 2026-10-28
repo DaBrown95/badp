@@ -97,3 +97,16 @@ separate walk found 2,016 nodes without internal overlapping decodes. A further
 source after checks against existing ownership and candidate records. The
 three entries at `$F435` were each selected by the indexed-jump handler in
 MesenCE. Their presence does not bound the handler's index.
+
+Twenty-four candidate bytes also decode as single audio notes under bank-1
+selection. Each of these bytes is represented once in eight shared extents,
+with an assembler assertion equating the note and reviewed BOGUS opcode views.
+The selection excludes other catalogued uses and competing script boundaries;
+it does not establish which path executes or that the bank-1 audio mapping is
+selected in every context.
+
+Opcodes `$33` and `$34` call the selected-field helpers with negative-mode
+slot updates, then either yield or return; the selector can also abort the
+handler. The static walk retains the following command as a possible next or
+resumed entry in each case. This is a possible control-flow edge, not proof of
+slot selection, resumption or execution.

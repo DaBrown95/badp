@@ -1308,6 +1308,20 @@ ResetEntry:
     .word NmiHandler, ResetEntry, IrqHandler ; CONTROL_VECTORS
 .endmacro
 
+; Single-byte BOGUS commands can also be read as audio notes. The symbolic
+; opcodes name the script handlers; assertions keep the two views aligned.
+BogusOpcodeApplyAndClearSelected3E = $11
+BogusOpcodeApplyAndClearSelected40 = $12
+BogusOpcodeClearSelected3E = $13
+BogusOpcodeClearSelected40 = $14
+BogusOpcodeRestoreSavedScript = $17
+BogusOpcodeRestartVoice4 = $18
+BogusOpcodeMarkSlotAndYield = $2E
+.macro AudioNoteBogusOverlay duration, note, script_opcode
+    .assert (duration * $20 + note) = script_opcode, error, "audio/script opcode disagreement"
+    AudioNote duration, note
+.endmacro
+
 ; A script command can occupy the same physical bytes as a possible record.
 ; These forms assert both interpretations without implying either path executes.
 .macro BogusJumpCompactOverlay target, resource, flags
@@ -14142,7 +14156,32 @@ AudioCandidateA935:
     AudioNote $02, $0C
     AudioNote $02, $13
 .assert (* - BankStart) = $2948, error, "bank 1 audio candidate A935 end"
-    .incbin "bank1_a948_a96a.bin"
+    .incbin "bank1_a948_a94a.bin"
+; Possible audio notes and BOGUS commands share these bytes.
+; Bank selection, script context and execution are not established.
+AudioScriptA94A:
+    AudioNoteBogusOverlay $01, $0E, BogusOpcodeMarkSlotAndYield ; CONTROL_AUDIO_SCRIPT_A94A
+.assert (* - BankStart) = $294B, error, "bank 1 audio/script overlay a94a end"
+    .incbin "bank1_a94b_a94d.bin"
+; Possible audio notes and BOGUS commands share these bytes.
+; Bank selection, script context and execution are not established.
+AudioScriptA94D:
+    AudioNoteBogusOverlay $01, $0E, BogusOpcodeMarkSlotAndYield ; CONTROL_AUDIO_SCRIPT_A94D
+.assert (* - BankStart) = $294E, error, "bank 1 audio/script overlay a94d end"
+    .incbin "bank1_a94e_a950.bin"
+; Possible audio notes and BOGUS commands share these bytes.
+; Bank selection, script context and execution are not established.
+AudioScriptA950:
+    AudioNoteBogusOverlay $01, $0E, BogusOpcodeMarkSlotAndYield ; CONTROL_AUDIO_SCRIPT_A950
+.assert (* - BankStart) = $2951, error, "bank 1 audio/script overlay a950 end"
+    .incbin "bank1_a951_a966.bin"
+; Possible audio notes and BOGUS commands share these bytes.
+; Bank selection, script context and execution are not established.
+AudioScriptA966:
+    AudioNoteBogusOverlay $00, $13, BogusOpcodeClearSelected3E ; CONTROL_AUDIO_SCRIPT_A966
+    AudioNoteBogusOverlay $00, $11, BogusOpcodeApplyAndClearSelected3E
+.assert (* - BankStart) = $2968, error, "bank 1 audio/script overlay a966 end"
+    .incbin "bank1_a968_a96a.bin"
 ; Candidate audio flow under bank-1 selection; reachability is unverified.
 AudioCandidateA96A:
     AudioNote $00, $0C ; CONTROL_AUDIO_CANDIDATE_A96A
@@ -14205,7 +14244,29 @@ AudioCandidateA96A:
     AudioNote $00, $16
     AudioNote $00, $13
 .assert (* - BankStart) = $29A5, error, "bank 1 audio candidate A96A end"
-    .incbin "bank1_a9a5_a9ba.bin"
+; Possible audio notes and BOGUS commands share these bytes.
+; Bank selection, script context and execution are not established.
+AudioScriptA9A5:
+    AudioNoteBogusOverlay $00, $12, BogusOpcodeApplyAndClearSelected40 ; CONTROL_AUDIO_SCRIPT_A9A5
+    AudioNoteBogusOverlay $00, $13, BogusOpcodeClearSelected3E
+    AudioNoteBogusOverlay $00, $18, BogusOpcodeRestartVoice4
+    AudioNoteBogusOverlay $00, $13, BogusOpcodeClearSelected3E
+    AudioNoteBogusOverlay $00, $12, BogusOpcodeApplyAndClearSelected40
+    AudioNoteBogusOverlay $00, $13, BogusOpcodeClearSelected3E
+.assert (* - BankStart) = $29AB, error, "bank 1 audio/script overlay a9a5 end"
+    .incbin "bank1_a9ab_a9ad.bin"
+; Possible audio notes and BOGUS commands share these bytes.
+; Bank selection, script context and execution are not established.
+AudioScriptA9AD:
+    AudioNoteBogusOverlay $00, $12, BogusOpcodeApplyAndClearSelected40 ; CONTROL_AUDIO_SCRIPT_A9AD
+    AudioNoteBogusOverlay $00, $13, BogusOpcodeClearSelected3E
+    AudioNoteBogusOverlay $00, $18, BogusOpcodeRestartVoice4
+    AudioNoteBogusOverlay $00, $13, BogusOpcodeClearSelected3E
+    AudioNoteBogusOverlay $00, $12, BogusOpcodeApplyAndClearSelected40
+    AudioNoteBogusOverlay $00, $13, BogusOpcodeClearSelected3E
+    AudioNoteBogusOverlay $01, $0E, BogusOpcodeMarkSlotAndYield
+.assert (* - BankStart) = $29B4, error, "bank 1 audio/script overlay a9ad end"
+    .incbin "bank1_a9b4_a9ba.bin"
 ; Candidate audio flow under bank-1 selection; reachability is unverified.
 AudioCandidateA9BA:
     AudioNote $01, $16 ; CONTROL_AUDIO_CANDIDATE_A9BA
@@ -14233,7 +14294,22 @@ AudioCandidateA9BA:
     AudioNote $00, $17
     AudioNote $00, $15
 .assert (* - BankStart) = $29D2, error, "bank 1 audio candidate A9BA end"
-    .incbin "bank1_a9d2_a9dd.bin"
+; Possible audio notes and BOGUS commands share these bytes.
+; Bank selection, script context and execution are not established.
+AudioScriptA9D2:
+    AudioNoteBogusOverlay $00, $17, BogusOpcodeRestoreSavedScript ; CONTROL_AUDIO_SCRIPT_A9D2
+.assert (* - BankStart) = $29D3, error, "bank 1 audio/script overlay a9d2 end"
+    .incbin "bank1_a9d3_a9d6.bin"
+; Possible audio notes and BOGUS commands share these bytes.
+; Bank selection, script context and execution are not established.
+AudioScriptA9D6:
+    AudioNoteBogusOverlay $00, $11, BogusOpcodeApplyAndClearSelected3E ; CONTROL_AUDIO_SCRIPT_A9D6
+    AudioNoteBogusOverlay $00, $13, BogusOpcodeClearSelected3E
+    AudioNoteBogusOverlay $00, $14, BogusOpcodeClearSelected40
+    AudioNoteBogusOverlay $00, $13, BogusOpcodeClearSelected3E
+    AudioNoteBogusOverlay $00, $11, BogusOpcodeApplyAndClearSelected3E
+.assert (* - BankStart) = $29DB, error, "bank 1 audio/script overlay a9d6 end"
+    .incbin "bank1_a9db_a9dd.bin"
 ; Candidate audio flow under bank-1 selection; reachability is unverified.
 AudioCandidateA9DD:
     AudioNote $00, $0F ; CONTROL_AUDIO_CANDIDATE_A9DD

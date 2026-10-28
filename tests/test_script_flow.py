@@ -137,6 +137,16 @@ class ScriptFlowTests(unittest.TestCase):
             self.assertEqual(nodes[pointer]['status'], 'unreviewed_or_dynamic_handler')
             self.assertEqual(nodes[pointer]['successors'], [])
 
+    def test_selected_field_negative_updates_can_resume(self):
+        b0, b1, lengths = fixture()
+        b1[0x10:0x13] = bytes([0x33, 0x34, 0x16])
+        nodes = by_pointer(walk(bytes(b0), bytes(b1), bytes(lengths), [0x10]))
+        for current, following in ((0x10, 0x11), (0x11, 0x12)):
+            self.assertEqual(nodes[f'0x{current:04x}']['status'], 'reviewed_possible_yield')
+            self.assertEqual(nodes[f'0x{current:04x}']['successors'], [
+                {'kind': 'next_or_possible_resume', 'encoded_pointer': f'0x{following:04x}'}])
+        self.assertEqual(nodes['0x0012']['status'], 'unreviewed_or_dynamic_handler')
+
     def test_audio_restart_and_empty_handler_fall_through(self):
         b0, b1, lengths = fixture()
         lengths[0x18], lengths[0x9d] = 1, 2
