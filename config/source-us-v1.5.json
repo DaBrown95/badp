@@ -808,6 +808,7 @@
     {"id": "bank1-candidate-audio-a6c8", "bank": 1, "cpu": "0xa6c8", "size": 8, "kind": "data", "control": "audio_candidate_a6c8"},
     {"id": "bank1-candidate-audio-a760", "bank": 1, "cpu": "0xa760", "size": 26, "kind": "data", "control": "audio_candidate_a760"},
     {"id": "bank1-candidate-audio-a78c", "bank": 1, "cpu": "0xa78c", "size": 1, "kind": "data", "control": "audio_candidate_a78c"},
+    {"id": "bank1-candidate-audio-a78d-prefix", "bank": 1, "cpu": "0xa78d", "size": 3, "kind": "data", "control": "audio_candidate_a78d"},
     {"id": "bank1-candidate-audio-a792", "bank": 1, "cpu": "0xa792", "size": 29, "kind": "data", "control": "audio_candidate_a792"},
     {"id": "bank1-candidate-audio-a807", "bank": 1, "cpu": "0xa807", "size": 13, "kind": "data", "control": "audio_candidate_a807"},
     {"id": "bank1-candidate-audio-a844", "bank": 1, "cpu": "0xa844", "size": 9, "kind": "data", "control": "audio_candidate_a844"},

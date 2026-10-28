@@ -34,9 +34,9 @@ independent source trees or treat one version's evidence as verifying the rest.
 simultaneous reconstruction. Keep progress and completion evidence per target.
 
 The v1.5 build now assembles and links to the exact reference, with 21,474 bytes
-of source code and 21,902 bytes of structured data across the physical PRG banks.
-It still includes 22,160 local PRG bytes and 65,536 local CHR bytes. A total of
-1,614 independent source-change controls verify every listed reconstructed region.
+of source code and 21,905 bytes of structured data across the physical PRG banks.
+It still includes 22,157 local PRG bytes and 65,536 local CHR bytes. A total of
+1,615 independent source-change controls verify every listed reconstructed region.
 Passing input audits or whole-ROM equality alone is not reconstruction
 completion. The developer identifies BOGUS as the
 state-machine engine in the [Vance Kozik interview](https://www.nesworld.com/kozik.php);
@@ -1397,8 +1397,8 @@ The audio at `$A823-$A82B`, `$AA64-$AA67`, `$AB0B-$AB0F` and
 `$AC40-$AC48` was present in the retained emulator audio observations; those
 observations do not establish the candidate BOGUS execution, physical board
 mapping or unobserved audio paths. The other audio and script views are static
-candidates. The first three bytes of the audio command at `$A78D` remain local;
-only its two operands also decoded as a possible record load are represented.
+candidates. The first three bytes of the audio command at `$A78D` were initially left local;
+they are now represented as described below.
 
 The 73 bytes at bank-0 `$FD3F-$FD87`, between the controller mode gate and
 the shared native-call wrapper, are all zero in the pinned v1.5 reference.
@@ -1420,9 +1420,9 @@ Further overlapping audio and script commands are represented at `$A9B9`,
 channel and instrument forms now check the shared branch fields. The existing
 audio observations cover `$AAA3-$AAAE`; they do not establish the candidate
 script paths. The current static audio graph covers 1,677 unique PRG bytes,
-of which 1,670 are source-owned. Its seven remaining local bytes are the first
-three bytes of the `$A78D` write and the possible audio sequence at
-`$CA3F-$CA42`. This is not an inventory of every possible audio stream.
+of which 1,673 are source-owned. The four remaining local bytes are the possible
+audio sequence at `$CA3F-$CA42`, which overlaps packed-text payload. This is not
+an inventory of every possible audio stream.
 
 The chunk-offset table contains aligned offsets for 145 distinct slots between
 zero and its largest referenced offset, leaving slot 22 at bank-1
@@ -1461,8 +1461,33 @@ also overlap candidate BOGUS commands or inline lookup cases, which are
 labelled separately. Static table coverage and matching bytes do not establish
 message reachability or the runtime bounds of the selecting index.
 
-A source-comment review found older notes that still call the map row helpers,
-`$49` audio helpers, pending PPU consumer and `$70/$71` arithmetic helper
-unconverted, although their current bodies are present in source. Those comments
-need correction in a subsequent source batch; their presence does not imply
-that the helpers' higher-level semantics or runtime coverage are fully reviewed.
+The candidate audio write at `$A78D` is now represented by its three-byte
+prefix and the two operands shared with the candidate BOGUS record load at
+`$A790`. The shared opcode is asserted in source and both regions have their
+own changed-source controls. The two decodes are static candidates; their
+execution, active bank and higher-level purpose remain unverified. The four
+candidate audio bytes at `$CA3F-$CA42` still overlap local packed-text payload.
+
+The six previously numeric native calls now use source labels. Twenty-one
+candidate BOGUS calls also name `FadeOutPalettes` instead of its encoded
+`$B51B` operand; the label identifies the bank-0 address under the candidate
+mapping, while reachability and active bank remain separate questions. `make
+native-control-flow` checks source-associated debug spans against the retained
+matching build and inventories direct branches, calls and jumps by physical bank.
+It covers all 21,474 source-owned native bytes and finds 2,237 direct transfers.
+Two shared-tail transfers in physical bank 1 have same-bank targets in local bytes;
+their bank-0 address alternatives are source-owned. Bank switches precede these
+transfers, but this static scan does not establish the active bank or physical board
+mapping. No other inventoried same-bank direct target is outside source-owned code, and all
+such code targets have a debug span boundary. Span boundaries do not prove
+runtime reachability or instruction boundaries. The 197 nominal BOGUS dispatch
+entries now refer to named handlers rather than numeric addresses. Their 183
+unique bank-0 target addresses are all source-owned debug span starts; the
+scanner also records the alternative bank-1 classifications. The length tables
+match in both banks, but runtime index bounds and active mapping remain
+unestablished. Other returns, interrupt vectors and computed or dynamically
+constructed transfers require separate review.
+
+Source comments now name the reconstructed map row, audio, deferred PPU and
+division helpers. Their higher-level semantics and runtime coverage remain
+provisional; matching bytes alone do not validate those interpretations.

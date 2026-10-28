@@ -110,7 +110,7 @@ class ProofFreshnessTests(unittest.TestCase):
                        "reference": {key: parsed[key] for key in IDENTITY_PARTS}}
         regions = source_regions(source_map, parsed["prg"]["offset"])
         for path, data in (("source/rom.s", source), ("source/nes.inc", include), ("source/link.cfg", link),
-                           ("bible-adventures.nes", reference)):
+                           ("bible-adventures.nes", reference), ("bible-adventures.dbg", b"synthetic debug")):
             (self.proof_dir / path).parent.mkdir(parents=True, exist_ok=True)
             (self.proof_dir / path).write_bytes(data)
         controls = []
@@ -133,6 +133,7 @@ class ProofFreshnessTests(unittest.TestCase):
         data = sum(r["size"] for r in regions if r["kind"] == "data")
         self.proof = {
             "target": "us-v1.5", "match": True, "source_sha256": digest(source),
+            "debug_sha256": digest(b"synthetic debug"),
             "include_sha256": digest(include), "linker_config_sha256": digest(link),
             "source_map_sha256": digest(source_map_bytes),
             "target_manifest_sha256": digest(b"synthetic target manifest"),
@@ -159,6 +160,11 @@ class ProofFreshnessTests(unittest.TestCase):
         self.assertGreater(result["code_bytes"], 0)
         self.write("src/rom.s", b"changed source")
         with self.assertRaisesRegex(ValueError, "stale"):
+            self.verify()
+
+    def test_changed_debug_information_is_rejected(self):
+        (self.proof_dir / "bible-adventures.dbg").write_bytes(b"changed debug")
+        with self.assertRaisesRegex(ValueError, "debug information is stale"):
             self.verify()
 
     def test_modified_control_or_missing_control_is_rejected(self):

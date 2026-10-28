@@ -1,0 +1,232 @@
+"""Inventory direct native control transfers from the verified assembler debug map.
+
+This is a static source inventory, not a reachability or mapper proof. The
+retained debug file is authenticated by the matching-build proof. Output
+contains addresses and ownership classifications, never ROM payloads.
+"""
+from __future__ import annotations
+
+from collections import Counter, defaultdict
+import json
+from pathlib import Path
+import re
+import sys
+
+from .build_rom import digest, source_regions
+from .progress import verify_primary
+from .project import load_target
+from .script_entries import BANK_SIZE, ROOT
+
+BRANCHES = {'bpl': 0x10, 'bmi': 0x30, 'bvc': 0x50, 'bvs': 0x70,
+            'bcc': 0x90, 'bcs': 0xb0, 'bne': 0xd0, 'beq': 0xf0}
+OPCODES = {**BRANCHES, 'jsr': 0x20, 'jmp': 0x4c, 'rts': 0x60, 'rti': 0x40}
+INSTRUCTION = re.compile(r'^\s*(jsr|jmp|rts|rti|b(?:pl|mi|vc|vs|cc|cs|ne|eq))\b', re.I)
+
+
+def _fields(line: str) -> dict[str, str]:
+    values = {}
+    for field in line.split(','):
+        key, sep, value = field.partition('=')
+        if not sep or key in values:
+            raise ValueError('malformed or duplicate debug field')
+        values[key] = value.strip('"')
+    return values
+
+
+def inventory(debug: str, source: str, prg: bytes, regions: list[dict], *,
+              include_script_dispatch: bool = False) -> dict:
+    """Inspect source-associated spans, preserving physical-bank alternatives."""
+    if len(prg) != 2 * BANK_SIZE:
+        raise ValueError('expected two 32 KiB PRG banks')
+    ownership = bytearray(2 * BANK_SIZE)
+    for region in regions:
+        bank, cpu, size, kind = region['bank'], int(region['cpu'], 0), region['size'], region['kind']
+        if bank not in (0, 1) or kind not in ('code', 'data') or not 0x8000 <= cpu <= 0xffff:
+            raise ValueError('invalid source region')
+        start = bank * BANK_SIZE + cpu - 0x8000
+        if type(size) is not int or size <= 0 or cpu - 0x8000 + size > BANK_SIZE or any(ownership[start:start + size]):
+            raise ValueError('overlapping or invalid source region')
+        ownership[start:start + size] = bytes([1 if kind == 'code' else 2]) * size
+
+    files, segments, spans, lines = {}, {}, {}, defaultdict(list)
+    for line in debug.splitlines():
+        tag, sep, rest = line.partition('\t')
+        if not sep or tag not in ('file', 'seg', 'span', 'line'):
+            continue
+        fields = _fields(rest)
+        if tag == 'file':
+            ident = int(fields['id'])
+            if ident in files:
+                raise ValueError('duplicate debug file id')
+            files[ident] = fields['name']
+        elif tag == 'seg':
+            ident = int(fields['id'])
+            if ident in segments:
+                raise ValueError('duplicate debug segment id')
+            segments[ident] = fields
+        elif tag == 'span':
+            ident = int(fields['id'])
+            if ident in spans:
+                raise ValueError('duplicate debug span id')
+            spans[ident] = (int(fields['seg']), int(fields['start'], 0), int(fields['size'], 0))
+        elif 'span' in fields:
+            file_id, number = int(fields['file']), int(fields['line'])
+            for ident in fields['span'].split('+'):
+                lines[int(ident)].append((file_id, number))
+    source_ids = [key for key, name in files.items() if name == 'source/rom.s']
+    if len(source_ids) != 1:
+        raise ValueError('missing or ambiguous debug source')
+    segment_banks = {}
+    for bank in (0, 1):
+        matches = [(ident, item) for ident, item in segments.items() if item.get('name') == f'PRG{bank}']
+        if len(matches) != 1:
+            raise ValueError('missing or ambiguous debug PRG segment')
+        ident, item = matches[0]
+        if (int(item['start'], 0) != 0x8000 or int(item['size'], 0) != BANK_SIZE
+                or int(item['ooffs'], 0) != 16 + bank * BANK_SIZE):
+            raise ValueError('unexpected debug PRG geometry')
+        segment_banks[ident] = bank
+
+    source_lines = source.splitlines()
+    covered = bytearray(len(prg))
+    span_starts = set()
+    transfers = {}
+    for ident, (segment, offset, size) in spans.items():
+        if segment not in segment_banks:
+            continue
+        bank = segment_banks[segment]
+        if size <= 0 or offset < 0 or offset + size > BANK_SIZE:
+            raise ValueError('invalid debug PRG span')
+        start = bank * BANK_SIZE + offset
+        # Macro and segment parent spans may include both source and local
+        # bytes. Only fully code-owned spans can describe a source instruction.
+        if any(value != 1 for value in ownership[start:start + size]):
+            continue
+        covered[start:start + size] = bytes([1]) * size
+        span_starts.add((bank, offset))
+        for file_id, number in lines.get(ident, []):
+            if file_id != source_ids[0]:
+                continue
+            if not 1 <= number <= len(source_lines):
+                raise ValueError('debug source line outside source')
+            match = INSTRUCTION.match(source_lines[number - 1])
+            if not match:
+                continue
+            op = match.group(1).lower()
+            expected_size = 2 if op in BRANCHES else (1 if op in ('rts', 'rti') else 3)
+            raw = prg[start:start + size]
+            if (size != expected_size or (raw[0] != OPCODES[op]
+                    and not (op == 'jmp' and raw[0] == 0x6c))):
+                raise ValueError('debug instruction does not match its source or opcode')
+            key = (bank, offset)
+            entry = (op, number, raw)
+            if key in transfers and transfers[key] != entry:
+                raise ValueError('conflicting source instructions at one physical address')
+            transfers[key] = entry
+    if any(value == 1 and not covered[i] for i, value in enumerate(ownership)):
+        raise ValueError('debug spans do not cover source-owned code')
+
+    def classify(bank: int, target: int) -> dict:
+        if not 0x8000 <= target <= 0xffff:
+            return {'ownership': 'outside_prg', 'span_start': False}
+        offset = target - 0x8000
+        value = ownership[bank * BANK_SIZE + offset]
+        return {'ownership': ('local', 'code', 'data')[value],
+                'span_start': (bank, offset) in span_starts}
+
+    rows = []
+    for (bank, offset), (op, line_number, raw) in sorted(transfers.items()):
+        row = {'bank': bank, 'cpu': f'0x{0x8000 + offset:04x}', 'source_line': line_number, 'operation': op}
+        if op in ('rts', 'rti'):
+            row['target_kind'] = 'stack_or_interrupt'
+        elif op == 'jmp' and raw[0] == 0x6c:
+            row.update({'target_kind': 'indirect', 'pointer': f'0x{int.from_bytes(raw[1:], "little"):04x}'})
+        else:
+            target = ((0x8000 + offset + 2 + int.from_bytes(raw[1:2], 'little', signed=True)) & 0xffff
+                      if op in BRANCHES else int.from_bytes(raw[1:], 'little'))
+            row.update({'target_kind': 'relative' if op in BRANCHES else 'absolute',
+                        'target_cpu': f'0x{target:04x}', 'same_physical_bank': classify(bank, target)})
+            if op not in BRANCHES:
+                row['other_physical_bank'] = classify(1 - bank, target)
+        rows.append(row)
+    direct = [row for row in rows if row['target_kind'] in ('relative', 'absolute')]
+    gaps = [row for row in direct if row['same_physical_bank']['ownership'] != 'code']
+    interior = [row for row in direct if row['same_physical_bank']['ownership'] == 'code'
+                and not row['same_physical_bank']['span_start']]
+    result = {'source_code_bytes': sum(value == 1 for value in ownership),
+              'covered_code_bytes': sum(covered), 'operation_counts': dict(sorted(Counter(r['operation'] for r in rows).items())),
+              'direct_transfer_count': len(direct), 'same_bank_non_code_targets': gaps,
+              'same_bank_non_span_start_targets': interior, 'transfers': rows,
+              'interpretation': 'Static source-associated spans; absolute targets have two physical bank alternatives. '
+                                'A span boundary is not proof of an instruction boundary or runtime execution. '
+                                'Returns and indirect or dynamically constructed transfers remain unresolved.'}
+    if include_script_dispatch:
+        # DispatchScriptCommand indexes two bank-0 tables and pushes an
+        # address one byte before the handler; RTS then increments it. The
+        # 197 nominal entries do not establish the runtime index bound.
+        count, low, high, lengths = 197, 0x5585, 0x564a, 0x7da7
+        if prg[lengths:lengths + count] != prg[BANK_SIZE + lengths:BANK_SIZE + lengths + count]:
+            raise ValueError('script length tables differ between physical banks')
+        dispatch = []
+        for index in range(count):
+            encoded = prg[low + index] | (prg[high + index] << 8)
+            target = (encoded + 1) & 0xffff
+            dispatch.append({'opcode': index, 'record_length': prg[lengths + index],
+                             'target_cpu': f'0x{target:04x}', 'bank0': classify(0, target),
+                             'bank1': classify(1, target)})
+        result['script_dispatch'] = {'nominal_entries': count,
+                                     'unique_targets': len({item['target_cpu'] for item in dispatch}),
+                                     'bank0_non_code_targets': [item for item in dispatch if item['bank0']['ownership'] != 'code'],
+                                     'bank0_non_span_start_targets': [item for item in dispatch if item['bank0']['ownership'] == 'code' and not item['bank0']['span_start']],
+                                     'entries': dispatch}
+    return result
+
+
+def main() -> int:
+    try:
+        target = load_target(ROOT, 'us-v1.5')
+        verified = verify_primary(ROOT, target)
+        proof_path = ROOT / 'build/us-v1.5/proof.json'
+        proof_hash = digest(proof_path.read_bytes())
+        debug_path = ROOT / 'build/us-v1.5/bible-adventures.dbg'
+        debug = debug_path.read_bytes()
+        config = json.loads((ROOT / 'config/source-us-v1.5.json').read_text())
+        source_bytes = (ROOT / config['source']).read_bytes()
+        source = source_bytes.decode('utf-8')
+        reference = (ROOT / target['input_path']).read_bytes()
+        if (digest(source_bytes) != verified['source_sha256']
+                or digest(reference) != target['reference']['file']['sha256']):
+            raise ValueError('source or reference changed during inventory')
+        offset = target['reference']['prg']['offset']
+        result = inventory(debug.decode(), source, reference[offset:offset + 2 * BANK_SIZE],
+                           source_regions(config, offset), include_script_dispatch=True)
+        result.update({'target': 'us-v1.5', 'reference_sha256': target['reference']['file']['sha256'],
+                       'source_sha256': verified['source_sha256'], 'build_proof_sha256': proof_hash,
+                       'debug_sha256': digest(debug), 'tool_sha256': digest(Path(__file__).read_bytes())})
+        if (digest(proof_path.read_bytes()) != proof_hash or digest(debug_path.read_bytes()) != result['debug_sha256']
+                or digest((ROOT / config['source']).read_bytes()) != verified['source_sha256']
+                or digest((ROOT / target['input_path']).read_bytes()) != target['reference']['file']['sha256']):
+            raise ValueError('build evidence changed during inventory')
+        analysis = ROOT / 'analysis'
+        output = analysis / 'us-v1.5/native-control-flow.json'
+        if analysis.is_symlink() or output.parent.is_symlink() or output.is_symlink():
+            raise ValueError('refusing a symlinked analysis output')
+        output.parent.mkdir(parents=True, exist_ok=True)
+        if not output.resolve().is_relative_to(analysis.resolve()):
+            raise ValueError('analysis output escapes its local directory')
+        output.write_text(json.dumps(result, indent=2) + '\n')
+        print(json.dumps({key: result[key] for key in ('source_code_bytes', 'covered_code_bytes',
+              'operation_counts', 'direct_transfer_count', 'same_bank_non_code_targets',
+              'same_bank_non_span_start_targets')}, indent=2))
+        dispatch = result['script_dispatch']
+        print(json.dumps({key: dispatch[key] for key in ('nominal_entries', 'unique_targets',
+              'bank0_non_code_targets', 'bank0_non_span_start_targets')}, indent=2))
+        print('Saved static inventory to analysis/us-v1.5/native-control-flow.json')
+    except (OSError, ValueError, KeyError, TypeError, UnicodeError) as exc:
+        print(f'native control-flow inventory failed: {exc}', file=sys.stderr)
+        return 1
+    return 0
+
+
+if __name__ == '__main__':
+    raise SystemExit(main())

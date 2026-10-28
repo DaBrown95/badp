@@ -34,6 +34,8 @@ def verify_primary(root: Path, target: dict) -> dict:
     """Refuse stale, incomplete or uncontrolled evidence instead of crediting it."""
     directory = root / "build" / PRIMARY
     proof = json.loads((directory / "proof.json").read_text())
+    if proof.get("debug_sha256") != digest((directory / "bible-adventures.dbg").read_bytes()):
+        raise ValueError("build proof debug information is stale")
     source_map_bytes = (root / "config/source-us-v1.5.json").read_bytes()
     source_map = json.loads(source_map_bytes)
     if source_map["target"] != PRIMARY or proof["target"] != PRIMARY or proof["match"] is not True:

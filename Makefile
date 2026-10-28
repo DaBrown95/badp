@@ -5,7 +5,7 @@ export BADP_TARGET = $(TARGET)
 export BADP_ROM = $(ROM)
 .DEFAULT_GOAL := help
 
-.PHONY: help setup setup-mesen targets identify audit audit-all build progress verify-gameplay verify-controller verify-audio-bank indexed-jump-inventory position-records script-entries script-flow slot-record-flow contact-record-flow native-event-flow direct-record-flow packed-text ppu-streams trace-audio trace-audio-route audio-inventory audio-flow trace-sprites sprite-inventory map-data trace-map prg-inventory trace-runtime-extents runtime-extents test
+.PHONY: help setup setup-mesen targets identify audit audit-all build progress verify-gameplay verify-controller verify-audio-bank indexed-jump-inventory native-control-flow position-records script-entries script-flow slot-record-flow contact-record-flow native-event-flow direct-record-flow packed-text ppu-streams trace-audio trace-audio-route audio-inventory audio-flow trace-sprites sprite-inventory map-data trace-map prg-inventory trace-runtime-extents runtime-extents test
 help:
 	@echo 'make targets   Show the primary target and sequential target order'
 	@echo 'make identify  Inspect a ROM (default: primary target; override TARGET=id or ROM=path)'
@@ -19,6 +19,7 @@ help:
 	@echo 'make verify-controller Check v1.5 controller bit order and transitions'
 	@echo 'make verify-audio-bank Check audio selector and mapper behavior in MesenCE'
 	@echo 'make indexed-jump-inventory Check the $$F434 index and local table candidates'
+	@echo 'make native-control-flow  Inventory reconstructed native transfers locally'
 	@echo 'make position-records  Decode v1.5 position records to local analysis'
 	@echo 'make script-entries  Inventory v1.5 script entry candidates locally'
 	@echo 'make script-flow     Trace reviewed v1.5 script control flow locally'
@@ -76,6 +77,9 @@ verify-audio-bank:
 
 indexed-jump-inventory:
 	$(PYTHON) -m tools.indexed_jump_inventory
+
+native-control-flow:
+	$(PYTHON) -m tools.native_control_flow
 
 position-records:
 	$(PYTHON) -m tools.position_records

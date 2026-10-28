@@ -191,8 +191,13 @@ BogusActionOpcode_BogusSelectRelativeSlotAndYield = $67
 .endmacro
 ; Audio $F9 copies four source values; the fifth register uses a stale stack
 ; byte in the original interpreter. The matching stream contains four values.
+AudioOpcodeWriteFive = $F9
 .macro AudioWriteFive first, second, third, fourth
-    .byte $F9, first, second, third, fourth
+    .byte AudioOpcodeWriteFive, first, second, third, fourth
+.endmacro
+; Split only when the final operands are also emitted by another structured view.
+.macro AudioWriteFivePrefix first, second
+    .byte AudioOpcodeWriteFive, first, second
 .endmacro
 .macro AudioWriteRegister register, value
     .byte ($EC | register), value
@@ -846,8 +851,8 @@ BogusOpcodeLoadRecordAndClearSavedState = $00
 ; A command byte indexes three parallel tables: record length, and the low and
 ; high bytes of an RTS dispatch address. Handler addresses below are actual
 ; entry points; the stored pointer is entry minus one because RTS increments it.
-; The command names and meanings remain to be recovered. There are 197 entries
-; before the following native code; runtime bounds have not been established.
+; Handler names describe reconstructed bodies and remain provisional. There are
+; 197 entries before the following native code; runtime bounds are unestablished.
 .macro ScriptOp length, handler, part
     .if part = 0
         .byte length
@@ -861,203 +866,203 @@ BogusOpcodeLoadRecordAndClearSavedState = $00
 .endmacro
 
 .macro ScriptTable part
-    ScriptOp 2, $D70F, part ; CONTROL_SCRIPT_LENGTHS
-    ScriptOp 5, $D72C, part ; CONTROL_SCRIPT_LOW
-    ScriptOp 4, $D79B, part ; CONTROL_SCRIPT_HIGH
-    ScriptOp 4, $D7B0, part ; opcode $03
-    ScriptOp 3, $D7C7, part ; opcode $04
-    ScriptOp 4, $D7D0, part ; opcode $05
-    ScriptOp 3, $D7DC, part ; opcode $06
-    ScriptOp 2, $D7FB, part ; opcode $07
-    ScriptOp 3, $D825, part ; opcode $08
-    ScriptOp 2, $D82B, part ; opcode $09
-    ScriptOp 2, $D836, part ; opcode $0A
-    ScriptOp 3, $D8CF, part ; opcode $0B
-    ScriptOp 3, $D8DA, part ; opcode $0C
-    ScriptOp 2, $D8F5, part ; opcode $0D
-    ScriptOp 2, $D8FA, part ; opcode $0E
-    ScriptOp 2, $D90D, part ; opcode $0F
-    ScriptOp 2, $D919, part ; opcode $10
-    ScriptOp 1, $D94B, part ; opcode $11
-    ScriptOp 1, $D960, part ; opcode $12
-    ScriptOp 1, $D972, part ; opcode $13
-    ScriptOp 1, $D97B, part ; opcode $14
-    ScriptOp 4, $D984, part ; opcode $15
-    ScriptOp 3, $D991, part ; opcode $16
-    ScriptOp 1, $D9BB, part ; opcode $17
-    ScriptOp 1, $FD29, part ; opcode $18
-    ScriptOp 1, $D9DA, part ; opcode $19
-    ScriptOp 2, $DA0A, part ; opcode $1A
-    ScriptOp 4, $DA11, part ; opcode $1B
-    ScriptOp 3, $DA1B, part ; opcode $1C
-    ScriptOp 3, $DA33, part ; opcode $1D
-    ScriptOp 2, $DA51, part ; opcode $1E
-    ScriptOp 5, $DA85, part ; opcode $1F
-    ScriptOp 3, $DAD9, part ; opcode $20
-    ScriptOp 1, $DAE3, part ; opcode $21
-    ScriptOp 4, $DAFE, part ; opcode $22
-    ScriptOp 4, $DB06, part ; opcode $23
-    ScriptOp 4, $DB0E, part ; opcode $24
-    ScriptOp 5, $DB27, part ; opcode $25
-    ScriptOp 1, $DB53, part ; opcode $26
-    ScriptOp 3, $DB5C, part ; opcode $27
-    ScriptOp 4, $DB6C, part ; opcode $28
-    ScriptOp 2, $DB76, part ; opcode $29
-    ScriptOp 4, $DB7D, part ; opcode $2A
-    ScriptOp 4, $DB85, part ; opcode $2B
-    ScriptOp 2, $DB8D, part ; opcode $2C
-    ScriptOp 3, $DB92, part ; opcode $2D
-    ScriptOp 1, $DB98, part ; opcode $2E
-    ScriptOp 2, $DBA0, part ; opcode $2F
-    ScriptOp 2, $DBA9, part ; opcode $30
-    ScriptOp 9, $DBB4, part ; opcode $31
-    ScriptOp 2, $DBEB, part ; opcode $32
-    ScriptOp 1, $DBF1, part ; opcode $33
-    ScriptOp 1, $DC08, part ; opcode $34
-    ScriptOp 6, $DC1C, part ; opcode $35
-    ScriptOp 5, $DC7E, part ; opcode $36
-    ScriptOp 4, $DCD4, part ; opcode $37
-    ScriptOp 4, $DCD4, part ; opcode $38
-    ScriptOp 6, $DCD4, part ; opcode $39
-    ScriptOp 3, $DCD4, part ; opcode $3A
-    ScriptOp 3, $DCF4, part ; opcode $3B
-    ScriptOp 5, $DD00, part ; opcode $3C
-    ScriptOp 3, $DD18, part ; opcode $3D
-    ScriptOp 3, $DD25, part ; opcode $3E
-    ScriptOp 2, $DD2E, part ; opcode $3F
-    ScriptOp 3, $DE83, part ; opcode $40
-    ScriptOp 5, $DE90, part ; opcode $41
-    ScriptOp 3, $DE9E, part ; opcode $42
-    ScriptOp 2, $DEAC, part ; opcode $43
-    ScriptOp 1, $DEB3, part ; opcode $44
-    ScriptOp 4, $DED1, part ; opcode $45
-    ScriptOp 2, $DED9, part ; opcode $46
-    ScriptOp 2, $DEF3, part ; opcode $47
-    ScriptOp 2, $DF16, part ; opcode $48
-    ScriptOp 3, $DF38, part ; opcode $49
-    ScriptOp 2, $DF55, part ; opcode $4A
-    ScriptOp 4, $DF5C, part ; opcode $4B
-    ScriptOp 2, $DF66, part ; opcode $4C
-    ScriptOp 3, $DF6D, part ; opcode $4D
-    ScriptOp 3, $DF8E, part ; opcode $4E
-    ScriptOp 2, $DF9F, part ; opcode $4F
-    ScriptOp 3, $DF43, part ; opcode $50
-    ScriptOp 4, $DFA5, part ; opcode $51
-    ScriptOp 4, $DFAF, part ; opcode $52
-    ScriptOp 5, $DFB6, part ; opcode $53
-    ScriptOp 3, $DFC3, part ; opcode $54
-    ScriptOp 2, $DFE5, part ; opcode $55
-    ScriptOp 2, $DFEC, part ; opcode $56
-    ScriptOp 3, $DFF5, part ; opcode $57
-    ScriptOp 4, $DFF5, part ; opcode $58
-    ScriptOp 3, $E01A, part ; opcode $59
-    ScriptOp 2, $E026, part ; opcode $5A
-    ScriptOp 3, $E049, part ; opcode $5B
-    ScriptOp 2, $E056, part ; opcode $5C
-    ScriptOp 2, $E056, part ; opcode $5D
-    ScriptOp 2, $E05E, part ; opcode $5E
-    ScriptOp 4, $E068, part ; opcode $5F
-    ScriptOp 4, $E071, part ; opcode $60
-    ScriptOp 5, $E07A, part ; opcode $61
-    ScriptOp 4, $E0AE, part ; opcode $62
-    ScriptOp 3, $E0D6, part ; opcode $63
-    ScriptOp 2, $E0DD, part ; opcode $64
-    ScriptOp 3, $E0E4, part ; opcode $65
-    ScriptOp 4, $E0FB, part ; opcode $66
-    ScriptOp 6, $E10D, part ; opcode $67
-    ScriptOp 1, $E160, part ; opcode $68
-    ScriptOp 5, $E170, part ; opcode $69
-    ScriptOp 2, $E1A3, part ; opcode $6A
-    ScriptOp 3, $E1B4, part ; opcode $6B
-    ScriptOp 3, $E1BE, part ; opcode $6C
-    ScriptOp 5, $E1D9, part ; opcode $6D
-    ScriptOp 7, $E1D9, part ; opcode $6E
-    ScriptOp 6, $E202, part ; opcode $6F
-    ScriptOp 10, $E221, part ; opcode $70
-    ScriptOp 2, $E221, part ; opcode $71
-    ScriptOp 2, $E267, part ; opcode $72
-    ScriptOp 2, $E284, part ; opcode $73
-    ScriptOp 5, $E290, part ; opcode $74
-    ScriptOp 4, $E293, part ; opcode $75
-    ScriptOp 2, $E293, part ; opcode $76
-    ScriptOp 7, $E29A, part ; opcode $77
-    ScriptOp 3, $E2C5, part ; opcode $78
-    ScriptOp 1, $E30F, part ; opcode $79
-    ScriptOp 2, $E327, part ; opcode $7A
-    ScriptOp 5, $E341, part ; opcode $7B
-    ScriptOp 2, $E34E, part ; opcode $7C
-    ScriptOp 3, $E34E, part ; opcode $7D
-    ScriptOp 1, $E369, part ; opcode $7E
-    ScriptOp 7, $E375, part ; opcode $7F
-    ScriptOp 3, $E3A2, part ; opcode $80
-    ScriptOp 3, $E3B6, part ; opcode $81
-    ScriptOp 5, $E3E8, part ; opcode $82
-    ScriptOp 3, $E3F7, part ; opcode $83
-    ScriptOp 2, $E410, part ; opcode $84
-    ScriptOp 2, $E419, part ; opcode $85
-    ScriptOp 2, $E42B, part ; opcode $86
-    ScriptOp 2, $E442, part ; opcode $87
-    ScriptOp 2, $E44B, part ; opcode $88
-    ScriptOp 3, $E452, part ; opcode $89
-    ScriptOp 2, $E581, part ; opcode $8A
-    ScriptOp 3, $E5A4, part ; opcode $8B
-    ScriptOp 1, $E5B1, part ; opcode $8C
-    ScriptOp 2, $E5E0, part ; opcode $8D
-    ScriptOp 2, $E5E0, part ; opcode $8E
-    ScriptOp 1, $E5E0, part ; opcode $8F
-    ScriptOp 3, $E5EB, part ; opcode $90
-    ScriptOp 3, $E5F3, part ; opcode $91
-    ScriptOp 4, $E606, part ; opcode $92
-    ScriptOp 4, $E613, part ; opcode $93
-    ScriptOp 4, $E61D, part ; opcode $94
-    ScriptOp 1, $E62C, part ; opcode $95
-    ScriptOp 3, $E656, part ; opcode $96
-    ScriptOp 2, $E673, part ; opcode $97
-    ScriptOp 2, $E696, part ; opcode $98
-    ScriptOp 1, $E6E6, part ; opcode $99
-    ScriptOp 3, $E706, part ; opcode $9A
-    ScriptOp 3, $E71B, part ; opcode $9B
-    ScriptOp 2, $E71E, part ; opcode $9C
-    ScriptOp 2, $E726, part ; opcode $9D
-    ScriptOp 5, $E727, part ; opcode $9E
-    ScriptOp 5, $E745, part ; opcode $9F
-    ScriptOp 5, $E75B, part ; opcode $A0
-    ScriptOp 2, $E780, part ; opcode $A1
-    ScriptOp 1, $E789, part ; opcode $A2
-    ScriptOp 5, $D72C, part ; opcode $A3
-    ScriptOp 2, $E799, part ; opcode $A4
-    ScriptOp 1, $E7AA, part ; opcode $A5
-    ScriptOp 3, $E7C4, part ; opcode $A6
-    ScriptOp 1, $E7D3, part ; opcode $A7
-    ScriptOp 1, $E83C, part ; opcode $A8
-    ScriptOp 3, $E85D, part ; opcode $A9
-    ScriptOp 2, $E882, part ; opcode $AA
-    ScriptOp 3, $E88F, part ; opcode $AB
-    ScriptOp 1, $E8B6, part ; opcode $AC
-    ScriptOp 1, $E8BE, part ; opcode $AD
-    ScriptOp 4, $E8C6, part ; opcode $AE
-    ScriptOp 2, $E8E3, part ; opcode $AF
-    ScriptOp 1, $E5B6, part ; opcode $B0
-    ScriptOp 1, $E918, part ; opcode $B1
-    ScriptOp 2, $E956, part ; opcode $B2
-    ScriptOp 3, $E967, part ; opcode $B3
-    ScriptOp 3, $E998, part ; opcode $B4
-    ScriptOp 1, $E998, part ; opcode $B5
-    ScriptOp 6, $E9A0, part ; opcode $B6
-    ScriptOp 1, $E9C7, part ; opcode $B7
-    ScriptOp 1, $E9EB, part ; opcode $B8
-    ScriptOp 3, $EA1C, part ; opcode $B9
-    ScriptOp 3, $EA31, part ; opcode $BA
-    ScriptOp 3, $EA42, part ; opcode $BB
-    ScriptOp 3, $EA4D, part ; opcode $BC
-    ScriptOp 2, $EA86, part ; opcode $BD
-    ScriptOp 1, $EA96, part ; opcode $BE
-    ScriptOp 3, $E88F, part ; opcode $BF
-    ScriptOp 3, $EA9F, part ; opcode $C0
-    ScriptOp 2, $EAAC, part ; opcode $C1
-    ScriptOp 3, $EAC8, part ; opcode $C2
-    ScriptOp 1, $EAD3, part ; opcode $C3
-    ScriptOp 2, $EAD7, part ; opcode $C4
+    ScriptOp 2, Bank0::ScriptOp00, part ; CONTROL_SCRIPT_LENGTHS
+    ScriptOp 5, Bank0::ScriptOp01OrA3, part ; CONTROL_SCRIPT_LOW
+    ScriptOp 4, Bank0::ScriptOp02, part ; CONTROL_SCRIPT_HIGH
+    ScriptOp 4, Bank0::ScriptOp03, part ; opcode $03
+    ScriptOp 3, Bank0::ScriptSetPointerFromOperands, part ; opcode $04
+    ScriptOp 4, Bank0::ScriptOp05, part ; opcode $05
+    ScriptOp 3, Bank0::ScriptOp06, part ; opcode $06
+    ScriptOp 2, Bank0::ScriptOp07, part ; opcode $07
+    ScriptOp 3, Bank0::ScriptOp08, part ; opcode $08
+    ScriptOp 2, Bank0::ScriptOp09, part ; opcode $09
+    ScriptOp 2, Bank0::ScriptOp0A, part ; opcode $0A
+    ScriptOp 3, Bank0::ScriptOp0B, part ; opcode $0B
+    ScriptOp 3, Bank0::ScriptOp0C, part ; opcode $0C
+    ScriptOp 2, Bank0::ScriptOp0D, part ; opcode $0D
+    ScriptOp 2, Bank0::ScriptOp0E, part ; opcode $0E
+    ScriptOp 2, Bank0::ScriptOp0F, part ; opcode $0F
+    ScriptOp 2, Bank0::ScriptOp10, part ; opcode $10
+    ScriptOp 1, Bank0::ScriptOp11, part ; opcode $11
+    ScriptOp 1, Bank0::ScriptOp12, part ; opcode $12
+    ScriptOp 1, Bank0::ScriptOp13, part ; opcode $13
+    ScriptOp 1, Bank0::ScriptOp14, part ; opcode $14
+    ScriptOp 4, Bank0::ScriptOp15, part ; opcode $15
+    ScriptOp 3, Bank0::ScriptOp16, part ; opcode $16
+    ScriptOp 1, Bank0::ScriptOp17, part ; opcode $17
+    ScriptOp 1, Bank0::ScriptOp18, part ; opcode $18
+    ScriptOp 1, Bank0::ScriptOp19, part ; opcode $19
+    ScriptOp 2, Bank0::ScriptOp1A, part ; opcode $1A
+    ScriptOp 4, Bank0::ScriptOp1B, part ; opcode $1B
+    ScriptOp 3, Bank0::ScriptOp1C, part ; opcode $1C
+    ScriptOp 3, Bank0::ScriptOp1D, part ; opcode $1D
+    ScriptOp 2, Bank0::ScriptOp1E, part ; opcode $1E
+    ScriptOp 5, Bank0::ScriptOp1F, part ; opcode $1F
+    ScriptOp 3, Bank0::ScriptOp20, part ; opcode $20
+    ScriptOp 1, Bank0::ScriptOp21, part ; opcode $21
+    ScriptOp 4, Bank0::ScriptOp22, part ; opcode $22
+    ScriptOp 4, Bank0::ScriptOp23, part ; opcode $23
+    ScriptOp 4, Bank0::ScriptOp24, part ; opcode $24
+    ScriptOp 5, Bank0::ScriptOp25, part ; opcode $25
+    ScriptOp 1, Bank0::ScriptOp26, part ; opcode $26
+    ScriptOp 3, Bank0::ScriptOp27, part ; opcode $27
+    ScriptOp 4, Bank0::ScriptOp28, part ; opcode $28
+    ScriptOp 2, Bank0::ScriptOp29, part ; opcode $29
+    ScriptOp 4, Bank0::ScriptOp2A, part ; opcode $2A
+    ScriptOp 4, Bank0::ScriptOp2B, part ; opcode $2B
+    ScriptOp 2, Bank0::ScriptOp2C, part ; opcode $2C
+    ScriptOp 3, Bank0::ScriptOp2D, part ; opcode $2D
+    ScriptOp 1, Bank0::ScriptOp2E, part ; opcode $2E
+    ScriptOp 2, Bank0::ScriptOp2F, part ; opcode $2F
+    ScriptOp 2, Bank0::ScriptOp30, part ; opcode $30
+    ScriptOp 9, Bank0::ScriptOp31, part ; opcode $31
+    ScriptOp 2, Bank0::ScriptOp32, part ; opcode $32
+    ScriptOp 1, Bank0::ScriptOp33, part ; opcode $33
+    ScriptOp 1, Bank0::ScriptOp34, part ; opcode $34
+    ScriptOp 6, Bank0::ScriptOp35, part ; opcode $35
+    ScriptOp 5, Bank0::ScriptOp36, part ; opcode $36
+    ScriptOp 4, Bank0::ScriptOp37To3A, part ; opcode $37
+    ScriptOp 4, Bank0::ScriptOp37To3A, part ; opcode $38
+    ScriptOp 6, Bank0::ScriptOp37To3A, part ; opcode $39
+    ScriptOp 3, Bank0::ScriptOp37To3A, part ; opcode $3A
+    ScriptOp 3, Bank0::ScriptOp3B, part ; opcode $3B
+    ScriptOp 5, Bank0::ScriptOp3C, part ; opcode $3C
+    ScriptOp 3, Bank0::ScriptOp3D, part ; opcode $3D
+    ScriptOp 3, Bank0::ScriptOp3E, part ; opcode $3E
+    ScriptOp 2, Bank0::ScriptOp3F, part ; opcode $3F
+    ScriptOp 3, Bank0::ScriptOp40, part ; opcode $40
+    ScriptOp 5, Bank0::ScriptOp41, part ; opcode $41
+    ScriptOp 3, Bank0::ScriptOp42, part ; opcode $42
+    ScriptOp 2, Bank0::ScriptOp43, part ; opcode $43
+    ScriptOp 1, Bank0::ScriptOp44, part ; opcode $44
+    ScriptOp 4, Bank0::ScriptOp45, part ; opcode $45
+    ScriptOp 2, Bank0::ScriptOp46, part ; opcode $46
+    ScriptOp 2, Bank0::ScriptOp47, part ; opcode $47
+    ScriptOp 2, Bank0::ScriptOp48, part ; opcode $48
+    ScriptOp 3, Bank0::ScriptOp49, part ; opcode $49
+    ScriptOp 2, Bank0::ScriptOp4A, part ; opcode $4A
+    ScriptOp 4, Bank0::ScriptOp4B, part ; opcode $4B
+    ScriptOp 2, Bank0::ScriptOp4C, part ; opcode $4C
+    ScriptOp 3, Bank0::ScriptOp4D, part ; opcode $4D
+    ScriptOp 3, Bank0::ScriptOp4E, part ; opcode $4E
+    ScriptOp 2, Bank0::ScriptOp4F, part ; opcode $4F
+    ScriptOp 3, Bank0::ScriptOp50, part ; opcode $50
+    ScriptOp 4, Bank0::ScriptOp51, part ; opcode $51
+    ScriptOp 4, Bank0::ScriptOp52, part ; opcode $52
+    ScriptOp 5, Bank0::ScriptOp53, part ; opcode $53
+    ScriptOp 3, Bank0::ScriptOp54, part ; opcode $54
+    ScriptOp 2, Bank0::ScriptOp55, part ; opcode $55
+    ScriptOp 2, Bank0::ScriptOp56, part ; opcode $56
+    ScriptOp 3, Bank0::ScriptOp57To58, part ; opcode $57
+    ScriptOp 4, Bank0::ScriptOp57To58, part ; opcode $58
+    ScriptOp 3, Bank0::ScriptOp59, part ; opcode $59
+    ScriptOp 2, Bank0::ScriptOp5A, part ; opcode $5A
+    ScriptOp 3, Bank0::ScriptOp5B, part ; opcode $5B
+    ScriptOp 2, Bank0::ScriptOp5CTo5D, part ; opcode $5C
+    ScriptOp 2, Bank0::ScriptOp5CTo5D, part ; opcode $5D
+    ScriptOp 2, Bank0::ScriptOp5E, part ; opcode $5E
+    ScriptOp 4, Bank0::ScriptOp5F, part ; opcode $5F
+    ScriptOp 4, Bank0::ScriptOp60, part ; opcode $60
+    ScriptOp 5, Bank0::ScriptOp61, part ; opcode $61
+    ScriptOp 4, Bank0::ScriptOp62, part ; opcode $62
+    ScriptOp 3, Bank0::ScriptOp63, part ; opcode $63
+    ScriptOp 2, Bank0::ScriptOp64, part ; opcode $64
+    ScriptOp 3, Bank0::ScriptOp65, part ; opcode $65
+    ScriptOp 4, Bank0::ScriptOp66, part ; opcode $66
+    ScriptOp 6, Bank0::ScriptOp67, part ; opcode $67
+    ScriptOp 1, Bank0::ScriptOp68, part ; opcode $68
+    ScriptOp 5, Bank0::ScriptOp69, part ; opcode $69
+    ScriptOp 2, Bank0::ScriptOp6A, part ; opcode $6A
+    ScriptOp 3, Bank0::ScriptOp6B, part ; opcode $6B
+    ScriptOp 3, Bank0::ScriptOp6C, part ; opcode $6C
+    ScriptOp 5, Bank0::ScriptOp6DTo6E, part ; opcode $6D
+    ScriptOp 7, Bank0::ScriptOp6DTo6E, part ; opcode $6E
+    ScriptOp 6, Bank0::ScriptOp6F, part ; opcode $6F
+    ScriptOp 10, Bank0::ScriptOp70To71, part ; opcode $70
+    ScriptOp 2, Bank0::ScriptOp70To71, part ; opcode $71
+    ScriptOp 2, Bank0::ScriptOp72, part ; opcode $72
+    ScriptOp 2, Bank0::ScriptOp73, part ; opcode $73
+    ScriptOp 5, Bank0::ScriptOp74, part ; opcode $74
+    ScriptOp 4, Bank0::ScriptOp75To76, part ; opcode $75
+    ScriptOp 2, Bank0::ScriptOp75To76, part ; opcode $76
+    ScriptOp 7, Bank0::ScriptOp77, part ; opcode $77
+    ScriptOp 3, Bank0::ScriptOp78, part ; opcode $78
+    ScriptOp 1, Bank0::ScriptOp79, part ; opcode $79
+    ScriptOp 2, Bank0::ScriptOp7A, part ; opcode $7A
+    ScriptOp 5, Bank0::ScriptOp7B, part ; opcode $7B
+    ScriptOp 2, Bank0::ScriptOp7CTo7D, part ; opcode $7C
+    ScriptOp 3, Bank0::ScriptOp7CTo7D, part ; opcode $7D
+    ScriptOp 1, Bank0::ScriptOp7E, part ; opcode $7E
+    ScriptOp 7, Bank0::ScriptOp7F, part ; opcode $7F
+    ScriptOp 3, Bank0::ScriptOp80, part ; opcode $80
+    ScriptOp 3, Bank0::ScriptOp81, part ; opcode $81
+    ScriptOp 5, Bank0::ScriptOp82, part ; opcode $82
+    ScriptOp 3, Bank0::ScriptOp83, part ; opcode $83
+    ScriptOp 2, Bank0::ScriptOp84, part ; opcode $84
+    ScriptOp 2, Bank0::ScriptOp85, part ; opcode $85
+    ScriptOp 2, Bank0::ScriptOp86, part ; opcode $86
+    ScriptOp 2, Bank0::ScriptOp87, part ; opcode $87
+    ScriptOp 2, Bank0::ScriptOp88, part ; opcode $88
+    ScriptOp 3, Bank0::ScriptOp89, part ; opcode $89
+    ScriptOp 2, Bank0::ScriptOp8A, part ; opcode $8A
+    ScriptOp 3, Bank0::ScriptOp8B, part ; opcode $8B
+    ScriptOp 1, Bank0::ScriptOp8C, part ; opcode $8C
+    ScriptOp 2, Bank0::ScriptOp8DTo8F, part ; opcode $8D
+    ScriptOp 2, Bank0::ScriptOp8DTo8F, part ; opcode $8E
+    ScriptOp 1, Bank0::ScriptOp8DTo8F, part ; opcode $8F
+    ScriptOp 3, Bank0::ScriptOp90, part ; opcode $90
+    ScriptOp 3, Bank0::ScriptOp91, part ; opcode $91
+    ScriptOp 4, Bank0::ScriptOp92, part ; opcode $92
+    ScriptOp 4, Bank0::ScriptOp93, part ; opcode $93
+    ScriptOp 4, Bank0::ScriptOp94, part ; opcode $94
+    ScriptOp 1, Bank0::ScriptOp95, part ; opcode $95
+    ScriptOp 3, Bank0::ScriptOp96, part ; opcode $96
+    ScriptOp 2, Bank0::ScriptOp97, part ; opcode $97
+    ScriptOp 2, Bank0::ScriptOp98, part ; opcode $98
+    ScriptOp 1, Bank0::ScriptOp99, part ; opcode $99
+    ScriptOp 3, Bank0::ScriptOp9A, part ; opcode $9A
+    ScriptOp 3, Bank0::ScriptOp9B, part ; opcode $9B
+    ScriptOp 2, Bank0::ScriptOp9C, part ; opcode $9C
+    ScriptOp 2, Bank0::ScriptOp9D, part ; opcode $9D
+    ScriptOp 5, Bank0::ScriptOp9E, part ; opcode $9E
+    ScriptOp 5, Bank0::ScriptOp9F, part ; opcode $9F
+    ScriptOp 5, Bank0::ScriptOpA0, part ; opcode $A0
+    ScriptOp 2, Bank0::ScriptOpA1, part ; opcode $A1
+    ScriptOp 1, Bank0::ScriptOpA2, part ; opcode $A2
+    ScriptOp 5, Bank0::ScriptOp01OrA3, part ; opcode $A3
+    ScriptOp 2, Bank0::ScriptOpA4, part ; opcode $A4
+    ScriptOp 1, Bank0::ScriptOpA5, part ; opcode $A5
+    ScriptOp 3, Bank0::ScriptOpA6, part ; opcode $A6
+    ScriptOp 1, Bank0::ScriptOpA7, part ; opcode $A7
+    ScriptOp 1, Bank0::ScriptOpA8, part ; opcode $A8
+    ScriptOp 3, Bank0::ScriptOpA9, part ; opcode $A9
+    ScriptOp 2, Bank0::ScriptOpAA, part ; opcode $AA
+    ScriptOp 3, Bank0::ScriptOpABOrBF, part ; opcode $AB
+    ScriptOp 1, Bank0::ScriptOpAC, part ; opcode $AC
+    ScriptOp 1, Bank0::ScriptOpAD, part ; opcode $AD
+    ScriptOp 4, Bank0::ScriptOpAE, part ; opcode $AE
+    ScriptOp 2, Bank0::ScriptOpAF, part ; opcode $AF
+    ScriptOp 1, Bank0::ScriptOpB0, part ; opcode $B0
+    ScriptOp 1, Bank0::ScriptOpB1, part ; opcode $B1
+    ScriptOp 2, Bank0::ScriptOpB2, part ; opcode $B2
+    ScriptOp 3, Bank0::ScriptOpB3, part ; opcode $B3
+    ScriptOp 3, Bank0::ScriptOpB4ToB5, part ; opcode $B4
+    ScriptOp 1, Bank0::ScriptOpB4ToB5, part ; opcode $B5
+    ScriptOp 6, Bank0::ScriptOpB6, part ; opcode $B6
+    ScriptOp 1, Bank0::ScriptOpB7, part ; opcode $B7
+    ScriptOp 1, Bank0::ScriptOpB8, part ; opcode $B8
+    ScriptOp 3, Bank0::ScriptOpB9, part ; opcode $B9
+    ScriptOp 3, Bank0::ScriptOpBA, part ; opcode $BA
+    ScriptOp 3, Bank0::ScriptOpBB, part ; opcode $BB
+    ScriptOp 3, Bank0::ScriptOpBC, part ; opcode $BC
+    ScriptOp 2, Bank0::ScriptOpBD, part ; opcode $BD
+    ScriptOp 1, Bank0::ScriptOpBE, part ; opcode $BE
+    ScriptOp 3, Bank0::ScriptOpABOrBF, part ; opcode $BF
+    ScriptOp 3, Bank0::ScriptOpC0, part ; opcode $C0
+    ScriptOp 2, Bank0::ScriptOpC1, part ; opcode $C1
+    ScriptOp 3, Bank0::ScriptOpC2, part ; opcode $C2
+    ScriptOp 1, Bank0::ScriptOpC3, part ; opcode $C3
+    ScriptOp 2, Bank0::ScriptOpC4, part ; opcode $C4
 .endmacro
 
 ; This section is byte-identical in both PRG banks. It switches between mapper
@@ -1277,7 +1282,8 @@ CallScriptNativeOperand:
 .endmacro
 
 ; Both 32 KiB PRG banks contain this tail at the same CPU addresses.
-; NMI state addresses differ; its called routines and timing remain to be traced.
+; NMI state addresses differ; selected-bank behavior and timing remain provisional.
+; Bank0 labels name matching CPU addresses, not proof of the active bank.
 .macro BankTail nmiValue, nmiIndex, padding
 SwitchBank:
     sta BankValues,y             ; CONTROL_SWITCH
@@ -1299,7 +1305,7 @@ NmiHandler:
     lda nmiIndex
     sta NmiSavedIndex
     jsr RestoreDefaultBank
-    jsr $8211
+    jsr Bank0::NmiFrameWork
     lda NmiSavedValue
     ldy NmiSavedIndex            ; CONTROL_NMI
     jsr SwitchBank
@@ -1314,7 +1320,7 @@ ResetEntry:
     txs
     lda #$0C
     sta BankValues
-    jmp $8000
+    jmp Bank0::Boot
 
     .incbin padding              ; Unclassified six-byte local region.
     .word NmiHandler, ResetEntry, IrqHandler ; CONTROL_VECTORS
@@ -1903,7 +1909,7 @@ MainLoop:
 .assert (* - BankStart) = $0211, error, "bank 0 startup size"
 
 ; Called by the common NMI tail after restoring its default bank selection.
-; The saved working state and external engine calls remain deliberately unnamed.
+; Higher-level effects of the saved state and engine calls remain provisional.
 NmiFrameWork:
     lda #$06
     sta PPUMASK
@@ -1936,7 +1942,7 @@ SkipOamDma:
     pha
     lda $03E5
     pha
-    jsr $97C8
+    jsr UpdatePpuScrollMirror
     jsr ApplyNmiPpuState
     lda $FE
     pha
@@ -4921,7 +4927,7 @@ VerticalScrollPositiveQueue:
 VerticalScrollStepReturn:
     rts
 ; Resolve the current X tile coordinate and queue the exposed row through
-; the still-local map routines.
+; the reconstructed map row helpers.
 QueueScrollRow:
     jsr ScrollXTileCoordinate ; CONTROL_QUEUE_SCROLL_ROW
     stx $039A
@@ -7233,7 +7239,7 @@ InitializePositionFinish:
 TranslateSlotPosition:
     cpx #$FF                      ; CONTROL_TRANSLATE_SLOT_POSITION
     beq TranslateSlotReturn
-    jsr $F981
+    jsr SlotDrawCheckPresent
     beq TranslateSlotReturn
     lda $0580,x
     sec
@@ -7381,7 +7387,7 @@ FillPpuRangeLoop:
     rts
 
 ; The frame routine gates on $28/$14, calls shared subsystems and iterates the
-; 16 slots through UpdateCurrentSlot. Several callees remain unconverted.
+; 16 slots through UpdateCurrentSlot; higher-level roles remain provisional.
 UpdateGameFrame:
     lda $28                       ; CONTROL_UPDATE_GAME_FRAME
     bne UpdateGameFrameReturn
@@ -8074,7 +8080,7 @@ UpdateCurrentSlot:
 SlotUpdateEarlyReturn:
     rts
 SlotUpdateCheckFrame:
-    jsr $F987
+    jsr SlotDrawCheckDisabled
     bne SlotUpdateEarlyReturn
     lda $0630,x
     and #$40
@@ -8354,8 +8360,8 @@ ScriptLoopContinue:
 .assert (* - BankStart) = $554E, error, "bank 0 script loop entry"
 
 ; Fetch the next variable-length command, advance the script pointer by the
-; fetched length and dispatch its opcode. Some surrounding routines and
-; handler dependencies remain unconverted, so their semantics are provisional.
+; fetched length and dispatch its opcode. Some dispatch targets and the
+; higher-level roles of handlers remain provisional.
 FetchAndDispatchCommand:
     ldx #$00                    ; CONTROL_SCRIPT_STEP
     jsr FetchVariableRecord
@@ -8369,7 +8375,7 @@ FetchAndDispatchCommand:
 ScriptPointerAdvanced:
     jsr DispatchScriptCommand
     ldx $10
-    jsr $DACE
+    jsr ScriptSaveSlotPointer
     lda $48
     bpl ScriptCountNonnegative
     dec $48
@@ -9661,7 +9667,7 @@ ScriptOp48AddPair:
     sta $80,x
     rts
 
-; Opcode $49 uses the same two unconverted routines as the four-pair loop.
+; Opcode $49 uses the same stop/start audio helpers as the four-voice loop.
 ; Opcode $50 enters this sequence at the second load of $62.
 ScriptOp49:
     lda $62
@@ -10076,7 +10082,7 @@ ScriptOp6CYield:
     jmp ScriptYield
 
 ; Opcodes $6D/$6E and $6F wait when $E7 is nonzero. Otherwise they set a
-; command value and parameters for an unconverted consumer of this state.
+; command value and parameters for the deferred PPU update handler.
 ScriptOp6DTo6E:
     lda $E7                      ; CONTROL_SCRIPT_OP6D
     beq ScriptOp6DSetup
@@ -10118,7 +10124,7 @@ ScriptOp6F:
 .assert (* - BankStart) = $6221, error, "bank 0 script handlers through opcode $6F"
 
 ; Opcodes $70/$71 use the selected byte or pair with $9E63, placing its
-; results in the slot and selected array. The arithmetic routine is unconverted.
+; results in the slot and selected array using the reconstructed division helper.
 ScriptOp70To71:
     jsr ScriptSelectValueArray   ; CONTROL_SCRIPT_OP70
     beq ScriptOp70Pair
@@ -14260,11 +14266,14 @@ AudioObservedA77A:
 AudioCandidateA78C:
     AudioSelectChannel $00 ; CONTROL_AUDIO_CANDIDATE_A78C
 .assert (* - BankStart) = $278D, error, "bank 1 audio candidate A78C end"
-    .incbin "bank1_a78d_a790.bin"
-; A candidate record-load command shares the final two operands of an audio
-; register-write command. Its context and execution remain unverified.
+; Candidate audio write shares its final operands with the following record
+; load. Both interpretations and the path into this command are provisional.
+AudioCandidateA78D:
+    AudioWriteFivePrefix $AE, $8E ; CONTROL_AUDIO_CANDIDATE_A78D
+.assert (* - BankStart) = $2790, error, "bank 1 candidate audio A78D prefix end"
 CandidateScriptA790:
     BogusLoadRecordAndClearSavedState $99 ; CONTROL_AUDIO_SCRIPT_A790
+.assert BogusOpcodeLoadRecordAndClearSavedState = $00, error, "shared audio A78D third operand"
 ; Candidate audio flow under bank-1 selection; reachability is unverified.
 AudioCandidateA792:
     AudioDelay $18 ; CONTROL_AUDIO_CANDIDATE_A792
@@ -15747,7 +15756,7 @@ LongScriptAF4A:
 LongScriptAF4C:
     BogusStoreSlotValueArray $3A
 LongScriptAF4E:
-    BogusCallNativeEncoded $B51B
+    BogusCallNativeEncoded Bank0::FadeOutPalettes - 1
 LongScriptAF51:
     BogusSetBackgroundPalettePointer $C83E
 LongScriptAF54:
@@ -16254,7 +16263,7 @@ DirectedScriptB188:
 DirectedScriptB189:
     BogusLoadSlotLowFromByteArray $3E
 DirectedScriptB18B:
-    BogusCallNativeEncoded $B51B
+    BogusCallNativeEncoded Bank0::FadeOutPalettes - 1
 DirectedScriptB18E:
     BogusSaveStateAndPlaceSlots $10
 DirectedScriptB190:
@@ -16335,7 +16344,7 @@ SuccessorScriptB1EB:
 SuccessorScriptB1EE:
     BogusStoreSlotValueArray $3D
 SuccessorScriptB1F0:
-    BogusCallNativeEncoded $B51B
+    BogusCallNativeEncoded Bank0::FadeOutPalettes - 1
 SuccessorScriptB1F3:
     BogusSaveStateAndPlaceSlots $10
 .assert (* - BankStart) = $31F5, error, "bank 1 candidate successor $B1BB end"
@@ -16366,7 +16375,7 @@ SuccessorScriptB20E:
 SuccessorScriptB211:
     BogusStoreSlotValueArray $23
 SuccessorScriptB213:
-    BogusCallNativeEncoded $B51B
+    BogusCallNativeEncoded Bank0::FadeOutPalettes - 1
 SuccessorScriptB216:
     BogusSetMainState $10
 SuccessorScriptB218:
@@ -16380,7 +16389,7 @@ SuccessorScriptB223:
 SuccessorScriptB225:
     BogusStoreSlotValueArray $23
 SuccessorScriptB227:
-    BogusCallNativeEncoded $B51B
+    BogusCallNativeEncoded Bank0::FadeOutPalettes - 1
 SuccessorScriptB22A:
     BogusSetMainState $10
 SuccessorScriptB22C:
@@ -16406,7 +16415,7 @@ SuccessorScriptB248:
 SuccessorScriptB24B:
     BogusStoreSlotValueArray $23
 SuccessorScriptB24D:
-    BogusCallNativeEncoded $B51B
+    BogusCallNativeEncoded Bank0::FadeOutPalettes - 1
 SuccessorScriptB250:
     BogusSetMainState $10
 SuccessorScriptB252:
@@ -16420,7 +16429,7 @@ SuccessorScriptB260:
 SuccessorScriptB263:
     BogusStoreSlotValueArray $23
 SuccessorScriptB265:
-    BogusCallNativeEncoded $B51B
+    BogusCallNativeEncoded Bank0::FadeOutPalettes - 1
 SuccessorScriptB268:
     BogusSetMainState $10
 SuccessorScriptB26A:
@@ -16432,7 +16441,7 @@ SuccessorScriptB26F:
 SuccessorScriptB272:
     BogusClampSlotValueAtMost $00C8
 SuccessorScriptB275:
-    BogusCallNativeEncoded $B51B
+    BogusCallNativeEncoded Bank0::FadeOutPalettes - 1
 SuccessorScriptB278:
     BogusSetSpritePalettePointer $C83E
 .assert (* - BankStart) = $327B, error, "bank 1 candidate successor $B1F7 end"
@@ -16666,7 +16675,7 @@ ExpandedScriptB389:
 ExpandedScriptB38C:
     BogusWait $02
 ExpandedScriptB38E:
-    BogusCallNativeEncoded $B51B
+    BogusCallNativeEncoded Bank0::FadeOutPalettes - 1
 ExpandedScriptB391:
     BogusLoadSlotRecordAtPointer $2D3C
 .assert (* - BankStart) = $3394, error, "bank 1 candidate successor $B35C end"
@@ -16687,12 +16696,12 @@ RestoreScriptB399:
 RestoreScriptB3A7:
     BogusSetSlotValue $0003
     BogusStoreSlotValueArray $3D
-    BogusCallNativeEncoded $B51B
+    BogusCallNativeEncoded Bank0::FadeOutPalettes - 1
     BogusSaveStateAndPlaceSlots $10
 RestoreScriptB3B1:
     BogusReadSlotValue $0F
     BogusStoreSlotValueArray $3D
-    BogusCallNativeEncoded $B51B
+    BogusCallNativeEncoded Bank0::FadeOutPalettes - 1
     BogusSetMainState $13
 RestoreScriptB3BA:
     BogusSetBackgroundPalettePointer $FFFF
@@ -16735,7 +16744,7 @@ SlotFlowB3E2:
 SlotRuntimeB3E5:
     SlotRuntimeRecord $BEA3, (ScriptB3EE - BankStart), $00, $FF, $00, $00, $00 ; CONTROL_SLOT_RUNTIME_B3E5
 .assert (* - BankStart) = $33EE, error, "bank 1 slot record B3E5 end"
-; Map and slot selection script; unconverted branch targets remain address aliases.
+; Map and slot selection script; interpretation remains provisional.
 ScriptB3EE:
     BogusSetSlotC0 $00 ; CONTROL_BOGUS_B3EE
     BogusSetSlotPositionFromOperands $10, $5F
@@ -17839,7 +17848,7 @@ CandidateBC8B:
     BogusBranchIfSlot0700AtMost CandidateBC8B, $F0
     BogusRestartVoice4 $0000
     BogusSetVoicePointers $0000, $0000, $0000, $0000
-    BogusCallNativeEncoded $B51B
+    BogusCallNativeEncoded Bank0::FadeOutPalettes - 1
     BogusSetMainState $FF
 .assert (* - BankStart) = $3CA8, error, "bank 1 candidate script BC75 end"
 ; Candidate descriptor $BCAE, command $BD03, negative mode.
@@ -18937,7 +18946,7 @@ ContactScriptD242:
     BogusStoreSlotValueArray $3D
     BogusSetSlotValue $FFFF
     BogusStoreSlotValueArray $23
-    BogusCallNativeEncoded $B51B
+    BogusCallNativeEncoded Bank0::FadeOutPalettes - 1
     BogusSetMainState $10
 .assert (* - BankStart) = $5253, error, "bank 1 contact script D237 end"
 ; Possible continuation after a direct-record load; runtime mode and reachability are unverified.
@@ -19137,7 +19146,7 @@ SweepScriptD42E:
 SweepScriptD430:
     BogusStoreSlotValueArray $3D
 SweepScriptD432:
-    BogusCallNativeEncoded $B51B
+    BogusCallNativeEncoded Bank0::FadeOutPalettes - 1
 SweepScriptD435:
     BogusSaveStateAndPlaceSlots $10
 SweepScriptD437:
@@ -21809,7 +21818,7 @@ SlotFlowE46A:
 SlotFlowE473:
     SlotRuntimeRecord $B78C, $6640, $00, $FF, $00, $00, $00
 .assert (* - BankStart) = $647C, error, "bank 1 slot record flow E458 end"
-; Slot and movement state graph; unconverted destinations remain address aliases.
+; Slot and movement state graph; address aliases identify overlapping entries.
 ScriptE562 = BankStart + $6562
 ScriptE590 = BankStart + $6590
 ScriptE63E = BankStart + $663E
@@ -23267,7 +23276,7 @@ ModeRecordED68Fields:
 CandidateModeRecordED68VisualFields:
     .byte $FF, $00, $00, $00 ; CONTROL_ED68_VISUAL_FIELDS
 .assert (* - BankStart) = $6D71, error, "bank 1 candidate record ED68 visual fields end"
-; Shared slot state graph with one unconverted branch destination.
+; Shared slot state graph; address alias identifies an overlapping entry.
 ScriptEE1A = BankStart + $6E1A
 ScriptED71:
     BogusSetSlotValue $0009 ; CONTROL_BOGUS_ED71
@@ -24099,11 +24108,11 @@ CandidateF2DB:
     BogusLookupEnd
 CandidateF2EE:
     BogusLoadSlotValueArray $3A
-    BogusCallNativeEncoded $B51B
+    BogusCallNativeEncoded Bank0::FadeOutPalettes - 1
     BogusSetState03BC $03
     BogusSetMainState $00
 CandidateF2F7:
-    BogusCallNativeEncoded $B51B
+    BogusCallNativeEncoded Bank0::FadeOutPalettes - 1
     BogusSetState03BC $03
     BogusLoadSlotValueArray $3A
     BogusBranchIfSlotValueAtLeast CandidateF305, $0005
@@ -24114,7 +24123,7 @@ CandidateF305:
 CandidateF30C:
     BogusSetMainState $0B
 CandidateF30E:
-    BogusCallNativeEncoded $B51B
+    BogusCallNativeEncoded Bank0::FadeOutPalettes - 1
     BogusSetMainState $FF
     BogusSetDispatchCounter $8F
     BogusClearSlotBitset $FF
@@ -24145,7 +24154,7 @@ CandidateF349:
     .incbin "bank1_f354_f401.bin"
 ; Candidate script entries from the reviewed slot-record context trace.
 ContextScriptF401:
-    BogusCallNativeEncoded $B51B ; CONTROL_CONTEXT_F401
+    BogusCallNativeEncoded Bank0::FadeOutPalettes - 1 ; CONTROL_CONTEXT_F401
     BogusSetState03BC $03
     BogusStoreSlotValueArray $23
     BogusSetMainState $10
@@ -24342,7 +24351,7 @@ CandidateFD3C:
     BogusStoreSlotValueArray $FF
     BogusLoadSlotValueIndexedBank1 CandidateStateValuesFCF7
     BogusStoreSlotValueArray $3D
-    BogusCallNativeEncoded $B51B
+    BogusCallNativeEncoded Bank0::FadeOutPalettes - 1
     BogusSaveStateAndPlaceSlots $10
 .assert (* - BankStart) = $7D56, error, "bank 1 candidate script FD05 end"
 ; Possible resumed slot continuation after state restoration.
@@ -24350,13 +24359,13 @@ RestoreScriptFD56:
     BogusLoadSlotValueArray $FF ; CONTROL_RESTORE_SCRIPT_FD56
     BogusAddSlotValue $0001
     BogusBranchIfSlotValueEqual BranchScriptFD65, $05, $00
-    BogusCallNativeEncoded $B51B
+    BogusCallNativeEncoded Bank0::FadeOutPalettes - 1
     BogusSetMainState $00
 .assert (* - BankStart) = $7D65, error, "bank 1 restore candidate FD56 end"
 ; Candidate path from a literal branch target in maintained source.
 ; Independent entries are labelled; runtime reachability is not implied.
 BranchScriptFD65:
-    BogusCallNativeEncoded $B51B ; CONTROL_BRANCH_SCRIPT_FD65
+    BogusCallNativeEncoded Bank0::FadeOutPalettes - 1 ; CONTROL_BRANCH_SCRIPT_FD65
 BranchScriptFD68:
     BogusSetMainState $15
 .assert (* - BankStart) = $7D6A, error, "bank 1 branch script $FD65 end"

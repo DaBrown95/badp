@@ -46,7 +46,7 @@ are not measures of gameplay completion.
 <!-- BEGIN GENERATED PROGRESS -->
 | Version | Reconstructed PRG | Status |
 | --- | ---: | --- |
-| USA v1.5 | **66.19%** (43,376 / 65,536 bytes) | In progress |
+| USA v1.5 | **66.19%** (43,379 / 65,536 bytes) | In progress |
 | USA v1.4 | **0.00%** (0 / 65,536 bytes) | Not started |
 | USA v1.3 | **0.00%** (0 / 65,536 bytes) | Not started |
 | USA v1.2 | **0.00%** (0 / 65,536 bytes) | Not started |
@@ -152,6 +152,7 @@ and simultaneous press/release handling on the reference and build.
 | `make verify-controller` | Compare controller bit order and simultaneous transitions. |
 | `make verify-audio-bank` | Check audio selector and mapper behavior with controlled inputs. |
 | `make indexed-jump-inventory` | Check `$F434` index behavior and candidate table reads. |
+| `make native-control-flow` | Inventory reconstructed native transfers and bank alternatives. |
 | `make progress` | Rebuild and update the per-version tracker. |
 | `make position-records` | Decode v1.5 position records to ignored local analysis. |
 | `make script-entries` | Inventory candidate v1.5 script entry points locally. |
