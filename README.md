@@ -127,7 +127,10 @@ locally supplied asset data does not count as reconstructed PRG source.
 rows of tile indices and attribute bytes. The build reads those rows when the
 file exists; frame headers and dimensions stay fixed. These PRG records refer
 to CHR graphics, which remain a separate local input. Other sprite frames and
-possible overlapping uses are still being investigated.
+possible overlapping uses are still being investigated. `make extract-menu-tiles`
+exports the fourteen menu display streams locally; their tile bytes are editable,
+while command positions and stream lengths stay fixed. These bytes can also
+have other candidate uses and do not count as source progress.
 
 On macOS with Apple silicon and Homebrew's SDL2 installed, an optional emulator
 check exercises the opening of each adventure:
@@ -188,6 +191,7 @@ and simultaneous press/release handling on the reference and build.
 | `make trace-sprites` | Capture sprite resource and frame entries during extended v1.5 inputs. |
 | `make sprite-inventory` | Validate and decode the local sprite trace; payloads remain local. |
 | `make extract-sprite-frames` | Export observed sprite tile and attribute rows locally. |
+| `make extract-menu-tiles` | Export menu display tile streams locally. |
 | `make map-data` | Decode candidate map layouts and chunks to local analysis. |
 | `make extract-map-chunks` | Export editable map chunks to ignored local storage. |
 | `make extract-map-layouts` | Export editable map grids to ignored local storage. |

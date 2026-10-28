@@ -11,7 +11,7 @@ import subprocess
 import sys
 import tempfile
 
-from . import map_assets, map_layout_assets, sprite_assets, text_assets
+from . import map_assets, map_layout_assets, menu_assets, sprite_assets, text_assets
 from .identify_rom import inspect_rom
 from .project import IDENTITY_PARTS, load_target
 from .setup import verified_tools
@@ -20,7 +20,7 @@ from .setup import verified_tools
 ROOT = Path(__file__).resolve().parents[1]
 TARGET = "us-v1.5"
 PROOF_INPUTS = ("tools/build_rom.py", "tools/identify_rom.py", "tools/project.py",
-                "tools/setup.py", "tools/map_assets.py", "tools/map_layout_assets.py", "tools/sprite_assets.py", "tools/sprite_metadata.py", "tools/text_assets.py",
+                "tools/setup.py", "tools/map_assets.py", "tools/map_layout_assets.py", "tools/menu_assets.py", "tools/sprite_assets.py", "tools/sprite_metadata.py", "tools/text_assets.py",
                 "tools/map_data.py", "tools/packed_text.py", "tools/script_entries.py",
                 "config/cc65-toolchain.json", "config/sprite-frames-us-v1.5.json")
 
@@ -75,6 +75,8 @@ SYMBOL_CONTROLS = {
 # The marker must occur exactly once in the maintained source, even when its
 # macro expands into two banks. Controls are built from isolated source copies.
 MUTATIONS = {
+    "menu_queue_first": ("CONTROL_MENU_QUEUE_FIRST", "MenuTileRow0 - BankStart", "MenuTileRow0 - BankStart + 1"),
+    "menu_queue_second": ("CONTROL_MENU_QUEUE_SECOND", "MenuTileRow1 - BankStart", "MenuTileRow1 - BankStart + 1"),
     "boot": ("CONTROL_BOOT", "sei", "cli"),
     "reset_dispatch": ("CONTROL_STATE_DISPATCH", "cmp #$FF", "cmp #$FE"),
     "nmi_frame": ("CONTROL_FRAME_WORK", "ldx #$08", "ldx #$07"),
@@ -1911,6 +1913,17 @@ def build() -> dict:
                 raise ValueError("sprite gap does not match the local source complement")
             path.write_bytes(payload)
         (work / "inputs/sprite-frames.json").write_bytes(sprite_assets.serialize(sprites))
+        menu, menu_spans, menu_source, menu_input_hash = menu_assets.select(ROOT, prg, parsed["file"]["sha256"])
+        menu_gaps = map_layout_assets.gap_payloads(prg, regions, menu_spans)
+        if (map_assets.GAP_NAME in menu_gaps
+                or set(menu_gaps) & (set(layout_gaps) | set(text_gaps) | set(sprite_gaps))):
+            raise ValueError("menu and other assets share an input gap")
+        for name, payload in menu_gaps.items():
+            path = work / "inputs" / name
+            if not path.is_file() or path.stat().st_size != len(payload):
+                raise ValueError("menu gap does not match the local source complement")
+            path.write_bytes(payload)
+        (work / "inputs/menu-tiles.json").write_bytes(menu_assets.serialize(menu))
         output_path = assemble(work, tool_paths, Path("source/rom.s"), Path("bible-adventures"))
         output = output_path.read_bytes()
         if output != reference:
@@ -2058,6 +2071,33 @@ def build() -> dict:
                            "control": {"asset_sha256": digest(changed_sprite_json),
                                        "gap_sha256": {name: digest(changed_sprite_gaps[name]) for name in sprite_changed_names},
                                        "candidate_sha256": digest(sprite_candidate), "changed_offsets": sprite_changed}}
+        menu_control_dir = work / "controls/menu_asset"
+        menu_control_dir.mkdir(parents=True)
+        (menu_control_dir / "rom.s").write_text(source)
+        changed_menu = menu_assets.changed_asset(menu)
+        changed_menu_json = menu_assets.serialize(changed_menu)
+        changed_menu_spans = menu_assets.encode(changed_menu, prg, parsed["file"]["sha256"])
+        changed_menu_gaps = map_layout_assets.gap_payloads(prg, regions, changed_menu_spans)
+        menu_changed_names = [name for name in menu_gaps if changed_menu_gaps[name] != menu_gaps[name]]
+        if not menu_changed_names or set(menu_changed_names) != set(menu_gaps):
+            raise ValueError("menu control must affect every menu input gap")
+        (menu_control_dir / "menu-tiles.json").write_bytes(changed_menu_json)
+        (menu_control_dir / "gaps").mkdir()
+        shutil.copytree(work / "inputs", menu_control_dir / "inputs")
+        for name in menu_changed_names:
+            (menu_control_dir / "gaps" / name).write_bytes(changed_menu_gaps[name])
+            (menu_control_dir / "inputs" / name).write_bytes(changed_menu_gaps[name])
+        menu_control_rom = assemble(work, tool_paths, Path("controls/menu_asset/rom.s"),
+                                    Path("controls/menu_asset/candidate"), Path("controls/menu_asset/inputs"))
+        menu_candidate = menu_control_rom.read_bytes()
+        menu_changed = menu_assets.verify_control(reference, menu_candidate, parsed["prg"]["offset"], menu)
+        retire_control_intermediates(menu_control_dir)
+        shutil.rmtree(menu_control_dir / "inputs")
+        menu_evidence = {"source": menu_source, "input_sha256": menu_input_hash,
+                         "gap_sha256": {name: digest(payload) for name, payload in menu_gaps.items()},
+                         "control": {"asset_sha256": digest(changed_menu_json),
+                                     "gap_sha256": {name: digest(changed_menu_gaps[name]) for name in menu_changed_names},
+                                     "candidate_sha256": digest(menu_candidate), "changed_offsets": menu_changed}}
         counts = {kind: sum(r["size"] for r in regions if r["kind"] == kind)
                   for kind in ("code", "data")}
         pin = json.loads((ROOT / "config/cc65-toolchain.json").read_text())
@@ -2075,6 +2115,7 @@ def build() -> dict:
             "verification_input_sha256": {name: digest((ROOT / name).read_bytes()) for name in PROOF_INPUTS},
             "source_regions": regions, "local_prg_gaps": gaps, "map_assets": asset_evidence,
             "layout_assets": layout_evidence, "text_assets": text_evidence, "sprite_assets": sprite_evidence,
+            "menu_assets": menu_evidence,
             "counts": {"matching_code_bytes": counts["code"], "structured_data_bytes": counts["data"],
                        "local_prg_bytes": sum(g["size"] for g in gaps),
                        "local_chr_bytes": len(chr_data), "container_header_bytes": 16},

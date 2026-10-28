@@ -24052,26 +24052,26 @@ ScriptF176:
     BogusSetSlotC0 $00
     BogusSetState03BC $00
     BogusSetVoicePointers $0000, $0000, $0000, $0000
-    BogusQueueState6E $73CD, $0B, $0C, $00, $09
-    BogusQueueState6E $73D6, $0C, $0C, $00, $09
-    BogusQueueState6E $73DF, $0D, $0C, $00, $11
-    BogusQueueState6E $73F0, $0E, $0C, $00, $11
-    BogusQueueState6E $73A2, $19, $0B, $00, $12
-    BogusQueueState6E $73B4, $1A, $0D, $00, $11
-    BogusQueueState6E $73C5, $1B, $0D, $00, $08
+    BogusQueueState6E (MenuTileRow0 - BankStart), $0B, $0C, $00, $09 ; CONTROL_MENU_QUEUE_FIRST
+    BogusQueueState6E (MenuTileRow1 - BankStart), $0C, $0C, $00, $09 ; CONTROL_MENU_QUEUE_SECOND
+    BogusQueueState6E (MenuTileRow2 - BankStart), $0D, $0C, $00, $11
+    BogusQueueState6E (MenuTileRow3 - BankStart), $0E, $0C, $00, $11
+    BogusQueueState6E (MenuCopyrightLine - BankStart), $19, $0B, $00, $12
+    BogusQueueState6E (MenuBrandLine - BankStart), $1A, $0D, $00, $11
+    BogusQueueState6E (MenuBrandTail - BankStart), $1B, $0D, $00, $08
     BogusInitializeOtherSlotAbsolute $06, $22, $A6, $00
     BogusReadSlotValue $00
     BogusBranchIfSlotValueNotEqual ScriptF1E8, $0000
-    BogusQueueState6E $737C, $10, $11, $00, $01
-    BogusQueueState6E $737D, $11, $0D, $00, $0A
-    BogusQueueState6E $7387, $13, $0D, $00, $0A
-    BogusQueueState6E $7391, $15, $0D, $00, $11
+    BogusQueueState6E (MenuGameMarker - BankStart), $10, $11, $00, $01
+    BogusQueueState6E (MenuNoahLine - BankStart), $11, $0D, $00, $0A
+    BogusQueueState6E (MenuMosesLine - BankStart), $13, $0D, $00, $0A
+    BogusQueueState6E (MenuDavidLine - BankStart), $15, $0D, $00, $11
     BogusMarkMatchingSlots $10, $01, $06, $00
     BogusJumpBank1 ScriptF223
 ScriptF1E8:
-    BogusQueueState6E $7361, $11, $0D, $00, $0A
-    BogusQueueState6E $7357, $13, $0D, $00, $0A
-    BogusQueueState6E $736B, $15, $0D, $00, $11
+    BogusQueueState6E (MenuRestartLine - BankStart), $11, $0D, $00, $0A
+    BogusQueueState6E (MenuContinueLine - BankStart), $13, $0D, $00, $0A
+    BogusQueueState6E (MenuDifferentGameLine - BankStart), $15, $0D, $00, $11
     BogusSetSlotValue $000C
     BogusStoreSlotValueArray $26
     BogusLoadSlotValueArray $3A
@@ -24204,6 +24204,23 @@ CandidateF349:
     BogusSetSlotValue $000B
     BogusJumpBank1 (BankStart + $7401)
 .assert (* - BankStart) = $7354, error, "bank 1 candidate script F2DB end"
+; Local tile streams referenced by the $F176 display sequence. Their contents
+; remain locally supplied assets; the aliases only identify the source ranges.
+MenuLocalData:
+MenuContinueLine = MenuLocalData + $03
+MenuRestartLine = MenuLocalData + $0D
+MenuDifferentGameLine = MenuLocalData + $17
+MenuGameMarker = MenuLocalData + $28
+MenuNoahLine = MenuLocalData + $29
+MenuMosesLine = MenuLocalData + $33
+MenuDavidLine = MenuLocalData + $3D
+MenuCopyrightLine = MenuLocalData + $4E
+MenuBrandLine = MenuLocalData + $60
+MenuBrandTail = MenuLocalData + $71
+MenuTileRow0 = MenuLocalData + $79
+MenuTileRow1 = MenuLocalData + $82
+MenuTileRow2 = MenuLocalData + $8B
+MenuTileRow3 = MenuLocalData + $9C
     .incbin "bank1_f354_f401.bin"
 ; Candidate script entries from the reviewed slot-record context trace.
 ContextScriptF401:

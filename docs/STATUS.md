@@ -1676,3 +1676,17 @@ provisional per-slot names. Their access patterns include slot initialization,
 record loading, interpreter save/restore and wait handling; the names do not
 establish every higher-level use. Four additional symbol-change controls cover
 42 physical instruction operands.
+
+Fourteen `$6E` display commands in the `$F176` script reference contiguous
+menu tile streams at bank-1 CPU `$F357-$F400`. The commands supply the encoded
+source pointer, destination parameters and count; the reconstructed pending
+PPU handler copies the specified banked bytes before constructing its queue.
+These are all fourteen `$6E` commands in the current descriptor-rooted static
+script graph, which does not cover every possible entry. The source now names
+the individual stream locations, with independent controls
+for two command pointers. `make extract-menu-tiles` exports 170 bytes as local
+editable streams, and the build checks one changed byte per stream. The first
+three bytes at `$F354-$F356` remain opaque. These interpretations depend on the
+script context and selected bank; they do not rule out other uses or prove
+physical cartridge behaviour. All tile data remains local and receives no
+source-progress credit.

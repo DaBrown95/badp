@@ -6,7 +6,7 @@ import json
 from pathlib import Path
 import sys
 
-from . import map_assets, map_layout_assets, sprite_assets, text_assets
+from . import map_assets, map_layout_assets, menu_assets, sprite_assets, text_assets
 from .build_rom import (MUTATIONS, PROOF_INPUTS, SYMBOL_CONTROLS, digest, mutate_include, mutate_source,
                         source_regions, verify_control, verify_symbol_control)
 from .identify_rom import inspect_rom
@@ -193,6 +193,35 @@ def verify_primary(root: Path, target: dict) -> dict:
             or sprite_control.get("changed_offsets") != sprite_assets.verify_control(reference, sprite_candidate,
                                                                                          prg_offset, sprites)):
         raise ValueError("sprite source-change control is stale or invalid")
+    menu, menu_spans, menu_source, menu_input_hash = menu_assets.select(root, prg, digest(reference))
+    menu_gaps = map_layout_assets.gap_payloads(prg, regions, menu_spans)
+    if map_assets.GAP_NAME in menu_gaps or set(menu_gaps) & (set(layout_gaps) | set(text_gaps) | set(sprite_gaps)):
+        raise ValueError("menu and other assets share an input gap")
+    menu_evidence = proof.get("menu_assets", {})
+    if (menu_evidence.get("source") != menu_source or menu_evidence.get("input_sha256") != menu_input_hash
+            or menu_evidence.get("gap_sha256") != {name: digest(payload) for name, payload in menu_gaps.items()}
+            or (directory / "inputs/menu-tiles.json").read_bytes() != menu_assets.serialize(menu)
+            or any((directory / "inputs" / name).read_bytes() != payload for name, payload in menu_gaps.items())):
+        raise ValueError("menu asset build evidence is stale")
+    changed_menu = menu_assets.changed_asset(menu)
+    changed_menu_json = menu_assets.serialize(changed_menu)
+    changed_menu_spans = menu_assets.encode(changed_menu, prg, digest(reference))
+    changed_menu_gaps = map_layout_assets.gap_payloads(prg, regions, changed_menu_spans)
+    menu_changed_names = [name for name in menu_gaps if changed_menu_gaps[name] != menu_gaps[name]]
+    if not menu_changed_names or set(menu_changed_names) != set(menu_gaps):
+        raise ValueError("menu control does not affect every input gap")
+    menu_dir = directory / "controls/menu_asset"
+    menu_candidate = (menu_dir / "candidate.nes").read_bytes()
+    menu_control = menu_evidence.get("control", {})
+    if ((menu_dir / "rom.s").read_bytes() != source_bytes
+            or (menu_dir / "menu-tiles.json").read_bytes() != changed_menu_json
+            or any((menu_dir / "gaps" / name).read_bytes() != changed_menu_gaps[name] for name in menu_changed_names)
+            or menu_control.get("asset_sha256") != digest(changed_menu_json)
+            or menu_control.get("gap_sha256") != {name: digest(changed_menu_gaps[name]) for name in menu_changed_names}
+            or menu_control.get("candidate_sha256") != digest(menu_candidate)
+            or menu_control.get("changed_offsets") != menu_assets.verify_control(reference, menu_candidate,
+                                                                                     prg_offset, menu)):
+        raise ValueError("menu source-change control is stale or invalid")
     code = sum(region["size"] for region in regions if region["kind"] == "code")
     data = sum(region["size"] for region in regions if region["kind"] == "data")
     counts = proof["counts"]

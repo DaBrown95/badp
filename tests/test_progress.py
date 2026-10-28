@@ -10,7 +10,8 @@ from unittest.mock import patch
 
 from test_build import synthetic_map
 from test_map_assets import synthetic_prg
-from tools import map_assets, map_layout_assets, packed_text, sprite_assets, text_assets
+from test_menu_assets import synthetic_menu_prg
+from tools import map_assets, map_layout_assets, menu_assets, packed_text, sprite_assets, text_assets
 from tools.build_rom import (MUTATIONS, PROOF_INPUTS, SYMBOL_CONTROLS, digest, mutate_include,
                              mutate_source, source_regions)
 from tools.identify_rom import inspect_rom
@@ -101,6 +102,9 @@ class ProofFreshnessTests(unittest.TestCase):
             cpu = int.from_bytes(synthetic_bank[pos:pos + 2], "little")
             source_map["regions"].append({"id": f"synthetic-text-header-{index}", "bank": 1,
                                           "cpu": hex(cpu), "size": 2, "kind": "data", "control": "reset"})
+        # Separate synthetic menu input from packed-text gaps without copying game data.
+        source_map["regions"].append({"id": "synthetic-menu-separator", "bank": 1, "cpu": "0xf300",
+                                      "size": 2, "kind": "data", "control": "reset"})
         source_map_bytes = json.dumps(source_map).encode()
         write("src/rom.s", source)
         write("include/nes.inc", include)
@@ -119,7 +123,7 @@ class ProofFreshnessTests(unittest.TestCase):
 
         preliminary_regions = source_regions(source_map, 16)
         code_regions = [r for r in preliminary_regions if r["kind"] == "code" and r["bank"] == 0]
-        prg = bytearray(synthetic_prg())
+        prg = bytearray(synthetic_menu_prg(synthetic_prg()))
         prg[0x7000:0x7004] = bytes([0x05, 0x11, 0x42, 0x37])
         prg[0x7010:0x7014] = bytes([0x06, 0x11, 0x43, 0x38])
         symbol_offsets = {}
@@ -263,6 +267,37 @@ class ProofFreshnessTests(unittest.TestCase):
                            "control": {"asset_sha256": digest(changed_sprite_json),
                                        "gap_sha256": {name: digest(changed_sprite_gaps[name]) for name in sprite_names},
                                        "candidate_sha256": digest(sprite_candidate), "changed_offsets": sprite_offsets}}
+        menu, menu_spans, menu_source, menu_hash = menu_assets.select(self.root, prg, digest(reference))
+        menu_gaps = map_layout_assets.gap_payloads(prg, regions, menu_spans)
+        if set(menu_gaps) & (set(layout_gaps) | set(text_gaps) | set(sprite_gaps)):
+            raise ValueError("synthetic menu and other assets unexpectedly overlap")
+        (inputs / "menu-tiles.json").write_bytes(menu_assets.serialize(menu))
+        for name, payload in menu_gaps.items():
+            (inputs / name).write_bytes(payload)
+        changed_menu = menu_assets.changed_asset(menu)
+        changed_menu_json = menu_assets.serialize(changed_menu)
+        changed_menu_spans = menu_assets.encode(changed_menu, prg, digest(reference))
+        changed_menu_gaps = map_layout_assets.gap_payloads(prg, regions, changed_menu_spans)
+        menu_names = [name for name in menu_gaps if menu_gaps[name] != changed_menu_gaps[name]]
+        candidate_data = bytearray(reference)
+        for bank, offset, payload in changed_menu_spans:
+            start = 16 + bank * map_assets.BANK_SIZE + offset
+            candidate_data[start:start + len(payload)] = payload
+        menu_candidate = bytes(candidate_data)
+        menu_offsets = menu_assets.verify_control(reference, menu_candidate, 16, menu)
+        menu_dir = self.proof_dir / "controls/menu_asset"
+        menu_dir.mkdir(parents=True)
+        (menu_dir / "rom.s").write_bytes(source)
+        (menu_dir / "menu-tiles.json").write_bytes(changed_menu_json)
+        (menu_dir / "gaps").mkdir()
+        for name in menu_names:
+            (menu_dir / "gaps" / name).write_bytes(changed_menu_gaps[name])
+        (menu_dir / "candidate.nes").write_bytes(menu_candidate)
+        menu_evidence = {"source": menu_source, "input_sha256": menu_hash,
+                         "gap_sha256": {name: digest(payload) for name, payload in menu_gaps.items()},
+                         "control": {"asset_sha256": digest(changed_menu_json),
+                                     "gap_sha256": {name: digest(changed_menu_gaps[name]) for name in menu_names},
+                                     "candidate_sha256": digest(menu_candidate), "changed_offsets": menu_offsets}}
         controls = []
         for name in MUTATIONS:
             selected = [r for r in regions if r["control"] == name]
@@ -306,7 +341,8 @@ class ProofFreshnessTests(unittest.TestCase):
             "toolchain_revision": "synthetic", "tool_sha256": {n: digest(p.read_bytes()) for n, p in self.tools.items()},
             "output_sha256": digest(reference), "reference_sha256": digest(reference),
             "component_matches": {p: True for p in IDENTITY_PARTS}, "source_regions": regions,
-            "map_assets": asset_evidence, "layout_assets": layout_evidence, "text_assets": text_evidence, "sprite_assets": sprite_evidence,
+            "map_assets": asset_evidence, "layout_assets": layout_evidence, "text_assets": text_evidence,
+            "sprite_assets": sprite_evidence, "menu_assets": menu_evidence,
             "counts": {"matching_code_bytes": code, "structured_data_bytes": data,
                        "local_prg_bytes": 65536 - code - data, "local_chr_bytes": 65536},
             "controls": controls, "symbol_controls": symbol_controls,
@@ -339,6 +375,30 @@ class ProofFreshnessTests(unittest.TestCase):
         self.proof["symbol_controls"].pop()
         self.save_proof()
         with self.assertRaisesRegex(ValueError, "controls are incomplete"):
+            self.verify()
+
+    def test_changed_menu_asset_or_control_is_rejected(self):
+        asset_path = self.root / menu_assets.ASSET_PATH
+        asset_path.parent.mkdir(parents=True)
+        raw = (self.proof_dir / "inputs/menu-tiles.json").read_bytes()
+        asset = json.loads(raw)
+        asset_path.write_bytes(raw)
+        with self.assertRaisesRegex(ValueError, "menu asset build evidence is stale"):
+            self.verify()
+        self.proof["menu_assets"]["source"] = "local"
+        self.proof["menu_assets"]["input_sha256"] = digest(raw)
+        self.save_proof()
+        self.verify()
+        asset_path.write_bytes(menu_assets.serialize(menu_assets.changed_asset(asset)))
+        with self.assertRaisesRegex(ValueError, "menu asset build evidence is stale"):
+            self.verify()
+        asset_path.unlink()
+        self.proof["menu_assets"]["source"] = "reference"
+        self.proof["menu_assets"]["input_sha256"] = digest(raw)
+        self.save_proof()
+        name = next(iter(self.proof["menu_assets"]["control"]["gap_sha256"]))
+        (self.proof_dir / "controls/menu_asset/gaps" / name).write_bytes(b"changed")
+        with self.assertRaisesRegex(ValueError, "menu source-change control"):
             self.verify()
 
     def test_changed_sprite_asset_or_control_is_rejected(self):

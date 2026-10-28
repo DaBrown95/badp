@@ -5,7 +5,7 @@ export BADP_TARGET = $(TARGET)
 export BADP_ROM = $(ROM)
 .DEFAULT_GOAL := help
 
-.PHONY: help setup setup-mesen targets identify audit audit-all build progress verify-gameplay verify-controller verify-audio-bank verify-record-boundary verify-script-overlap indexed-jump-inventory native-control-flow native-script-calls position-records script-entries script-flow slot-record-flow contact-record-flow native-event-flow direct-record-flow packed-text ppu-streams trace-audio trace-audio-route audio-inventory audio-flow trace-sprites sprite-inventory map-data trace-map extract-map-chunks extract-map-layouts extract-packed-text extract-sprite-frames prg-inventory trace-runtime-extents runtime-extents test
+.PHONY: help setup setup-mesen targets identify audit audit-all build progress verify-gameplay verify-controller verify-audio-bank verify-record-boundary verify-script-overlap indexed-jump-inventory native-control-flow native-script-calls position-records script-entries script-flow slot-record-flow contact-record-flow native-event-flow direct-record-flow packed-text ppu-streams trace-audio trace-audio-route audio-inventory audio-flow trace-sprites sprite-inventory map-data trace-map extract-map-chunks extract-map-layouts extract-packed-text extract-sprite-frames extract-menu-tiles prg-inventory trace-runtime-extents runtime-extents test
 help:
 	@echo 'make targets   Show the primary target and sequential target order'
 	@echo 'make identify  Inspect a ROM (default: primary target; override TARGET=id or ROM=path)'
@@ -43,6 +43,7 @@ help:
 	@echo 'make extract-map-layouts Export editable v1.5 map grids locally'
 	@echo 'make extract-packed-text Export editable v1.5 messages locally'
 	@echo 'make extract-sprite-frames Export observed sprite frames locally'
+	@echo 'make extract-menu-tiles Export menu display streams locally'
 	@echo 'make trace-map       Check mapped map fetches in MesenCE'
 	@echo 'make prg-inventory   Combine source and local PRG-use evidence'
 	@echo 'make trace-runtime-extents  Capture sampled Moses interpreter and record accesses'
@@ -156,6 +157,9 @@ extract-packed-text:
 
 extract-sprite-frames:
 	$(PYTHON) -m tools.sprite_assets
+
+extract-menu-tiles:
+	$(PYTHON) -m tools.menu_assets
 
 trace-map:
 	$(PYTHON) -m tools.trace_map
