@@ -6,7 +6,7 @@ import json
 from pathlib import Path
 import sys
 
-from . import chr_assets, map_assets, map_layout_assets, menu_assets, sprite_assets, text_assets
+from . import chr_assets, map_assets, map_layout_assets, menu_assets, palette_assets, ppu_assets, sprite_assets, text_assets
 from .build_rom import (MUTATIONS, PROOF_INPUTS, SYMBOL_CONTROLS, digest, mutate_include, mutate_source,
                         source_regions, verify_control, verify_symbol_control)
 from .identify_rom import inspect_rom
@@ -224,6 +224,64 @@ def verify_primary(root: Path, target: dict) -> dict:
             or menu_control.get("changed_offsets") != menu_assets.verify_control(reference, menu_candidate,
                                                                                      prg_offset, menu)):
         raise ValueError("menu source-change control is stale or invalid")
+    palette, palette_spans, palette_source, palette_input_hash = palette_assets.select(root, prg, digest(reference))
+    palette_gaps = map_layout_assets.gap_payloads(prg, regions, palette_spans)
+    if map_assets.GAP_NAME in palette_gaps or set(palette_gaps) & (set(layout_gaps) | set(text_gaps) | set(sprite_gaps) | set(menu_gaps)):
+        raise ValueError("palette and other assets share an input gap")
+    palette_evidence = proof.get("palette_assets", {})
+    if (palette_evidence.get("source") != palette_source or palette_evidence.get("input_sha256") != palette_input_hash
+            or palette_evidence.get("gap_sha256") != {name: digest(payload) for name, payload in palette_gaps.items()}
+            or (directory / "inputs/palettes.json").read_bytes() != palette_assets.serialize(palette)
+            or any((directory / "inputs" / name).read_bytes() != payload for name, payload in palette_gaps.items())):
+        raise ValueError("palette asset build evidence is stale")
+    changed_palette = palette_assets.changed_asset(palette)
+    changed_palette_json = palette_assets.serialize(changed_palette)
+    changed_palette_spans = palette_assets.encode(root, changed_palette, prg, digest(reference))
+    changed_palette_gaps = map_layout_assets.gap_payloads(prg, regions, changed_palette_spans)
+    palette_changed_names = [name for name in palette_gaps if changed_palette_gaps[name] != palette_gaps[name]]
+    if not palette_changed_names or set(palette_changed_names) != set(palette_gaps):
+        raise ValueError("palette control does not affect every input gap")
+    palette_dir = directory / "controls/palette_asset"
+    palette_candidate = (palette_dir / "candidate.nes").read_bytes()
+    palette_control = palette_evidence.get("control", {})
+    if ((palette_dir / "rom.s").read_bytes() != source_bytes
+            or (palette_dir / "palettes.json").read_bytes() != changed_palette_json
+            or any((palette_dir / "gaps" / name).read_bytes() != changed_palette_gaps[name] for name in palette_changed_names)
+            or palette_control.get("asset_sha256") != digest(changed_palette_json)
+            or palette_control.get("gap_sha256") != {name: digest(changed_palette_gaps[name]) for name in palette_changed_names}
+            or palette_control.get("candidate_sha256") != digest(palette_candidate)
+            or palette_control.get("changed_offsets") != palette_assets.verify_control(reference, palette_candidate,
+                                                                                     prg_offset, palette)):
+        raise ValueError("palette source-change control is stale or invalid")
+    ppu, ppu_spans, ppu_source, ppu_input_hash = ppu_assets.select(root, prg, digest(reference))
+    ppu_gaps = map_layout_assets.gap_payloads(prg, regions, ppu_spans)
+    if map_assets.GAP_NAME in ppu_gaps or set(ppu_gaps) & (set(layout_gaps) | set(text_gaps) | set(sprite_gaps) | set(menu_gaps) | set(palette_gaps)):
+        raise ValueError("ppu and other assets share an input gap")
+    ppu_evidence = proof.get("ppu_assets", {})
+    if (ppu_evidence.get("source") != ppu_source or ppu_evidence.get("input_sha256") != ppu_input_hash
+            or ppu_evidence.get("gap_sha256") != {name: digest(payload) for name, payload in ppu_gaps.items()}
+            or (directory / "inputs/ppu-tiles.json").read_bytes() != ppu_assets.serialize(ppu)
+            or any((directory / "inputs" / name).read_bytes() != payload for name, payload in ppu_gaps.items())):
+        raise ValueError("ppu asset build evidence is stale")
+    changed_ppu = ppu_assets.changed_asset(ppu)
+    changed_ppu_json = ppu_assets.serialize(changed_ppu)
+    changed_ppu_spans = ppu_assets.encode(root, changed_ppu, prg, digest(reference))
+    changed_ppu_gaps = map_layout_assets.gap_payloads(prg, regions, changed_ppu_spans)
+    ppu_changed_names = [name for name in ppu_gaps if changed_ppu_gaps[name] != ppu_gaps[name]]
+    if not ppu_changed_names or set(ppu_changed_names) != set(ppu_gaps):
+        raise ValueError("ppu control does not affect every input gap")
+    ppu_dir = directory / "controls/ppu_asset"
+    ppu_candidate = (ppu_dir / "candidate.nes").read_bytes()
+    ppu_control = ppu_evidence.get("control", {})
+    if ((ppu_dir / "rom.s").read_bytes() != source_bytes
+            or (ppu_dir / "ppu-tiles.json").read_bytes() != changed_ppu_json
+            or any((ppu_dir / "gaps" / name).read_bytes() != changed_ppu_gaps[name] for name in ppu_changed_names)
+            or ppu_control.get("asset_sha256") != digest(changed_ppu_json)
+            or ppu_control.get("gap_sha256") != {name: digest(changed_ppu_gaps[name]) for name in ppu_changed_names}
+            or ppu_control.get("candidate_sha256") != digest(ppu_candidate)
+            or ppu_control.get("changed_offsets") != ppu_assets.verify_control(reference, ppu_candidate,
+                                                                                     prg_offset, ppu)):
+        raise ValueError("ppu source-change control is stale or invalid")
     chr_offset = parsed["chr"]["offset"]
     reference_chr = reference[chr_offset:chr_offset + parsed["chr"]["size"]]
     chr_asset, chr_payload, chr_source, chr_hash = chr_assets.select(root, reference_chr, digest(reference))

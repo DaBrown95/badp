@@ -7,6 +7,9 @@ export BADP_ROM = $(ROM)
 
 .PHONY: help setup setup-mesen targets identify audit audit-all build progress verify-gameplay verify-controller verify-audio-bank verify-record-boundary verify-record-overlaps verify-script-overlap verify-indexed-audio verify-sprite-shapes state-table-inventory indexed-jump-inventory native-control-flow native-script-calls position-records script-entries script-flow slot-record-flow contact-record-flow native-event-flow direct-record-flow packed-text ppu-streams trace-audio trace-audio-route audio-inventory audio-flow trace-sprites sprite-inventory map-data trace-map extract-chr-tiles extract-map-chunks extract-map-layouts extract-packed-text extract-sprite-frames extract-menu-tiles prg-inventory trace-runtime-extents runtime-extents test
 help:
+	@echo 'make verify-script-only-records Check record-sentinel reads and skipped fields'
+	@echo 'make extract-ppu-tiles Export editable logical PPU tile payloads locally'
+	@echo 'make extract-palettes Export editable palette colours and animation groups locally'
 	@echo 'make source-audit Account for every physical PRG region and unresolved use'
 	@echo 'make targets   Show the primary target and sequential target order'
 	@echo 'make identify  Inspect a ROM (default: primary target; override TARGET=id or ROM=path)'
@@ -195,6 +198,18 @@ source-audit:
 .PHONY: sprite-layout
 sprite-layout:
 	$(PYTHON) -m tools.sprite_layout
+
+.PHONY: extract-palettes
+extract-palettes:
+	$(PYTHON) -m tools.palette_assets
+
+.PHONY: extract-ppu-tiles
+extract-ppu-tiles:
+	$(PYTHON) -m tools.ppu_assets
+
+.PHONY: verify-script-only-records
+verify-script-only-records:
+	$(PYTHON) -m tools.verify_script_only_records
 
 trace-runtime-extents:
 	$(PYTHON) -m tools.trace_runtime_extents

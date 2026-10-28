@@ -1,7 +1,7 @@
 """Round-trip locally supplied, inventoried sprite-frame metadata and tile pairs.
 
-The address list records emulator observations, not a complete inventory or a
-claim that overlapping interpretations cannot exist. Tile indices and attribute
+The address list combines a reviewed contiguous layout with a subset of
+emulator observations. Other entries and overlapping interpretations may exist. Tile indices and attribute
 bytes are game assets and remain in ignored local files.
 """
 from __future__ import annotations

@@ -33,7 +33,7 @@ class OverlayAssemblyTests(unittest.TestCase):
                  'BogusBranchIfMatchingSlotReady', 'BogusMarkMatchingSlots',
                  'BogusSetVoicePointers', 'BogusAddSelectedFieldClamped',
                  'BogusSetInvertedState3B', 'ContactPointerScriptOverlay',
-                 'SlotRuntimeRecord', 'SlotCompactRecord', 'BogusAddSlotFields00', 'SlotRecordVoiceOverlay', 'SlotRecordScriptOverlay', 'SlotRecordBranchPrefix',
+                 'SlotRuntimeRecord', 'SlotScriptOnlyRecord', 'SlotCompactRecord', 'BogusAddSlotFields00', 'SlotRecordVoiceOverlay', 'SlotRecordScriptOverlay', 'SlotRecordBranchPrefix',
                  'AudioNoteView', 'AudioScriptByte', 'AudioScriptPair', 'AudioScriptTriple',
                  'AudioScriptWord', 'AudioScriptTarget', 'AudioScriptTargetByte',
                  'AudioScriptTargetTriple', 'AudioScriptQuad', 'AudioScriptFourWords')
@@ -304,6 +304,17 @@ PpuStreamRelative $0123
                 result, error, _ = self.assemble(bad)
                 self.assertNotEqual(result, 0)
                 self.assertIn('audio/script byte disagreement', error)
+
+    def test_script_only_record_retains_unused_fields_and_tenth_byte_lookahead(self):
+        from tools.slot_record_flow import record_used_offsets, resolve_access
+        result, error, output = self.assemble(
+            'SlotScriptOnlyRecord $12, $2345, $67, $89, $AB, $CD, $EF\n.byte $7E')
+        self.assertEqual(result, 0, error)
+        self.assertEqual(output, bytes([0x12, 0xff, 0x45, 0x23, 0x67, 0x89, 0xab, 0xcd, 0xef, 0x7e]))
+        bank1 = bytearray(0x8000)
+        bank1[0x100:0x10a] = output
+        reference = resolve_access(bytes(0x8000), bytes(bank1), 0x100, 0, 0)
+        self.assertEqual(record_used_offsets(reference), {1, 2, 3})
 
     def test_position_prefix_shares_compact_record_and_or_views(self):
         result, error, output = self.assemble(

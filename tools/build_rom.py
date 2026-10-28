@@ -11,7 +11,7 @@ import subprocess
 import sys
 import tempfile
 
-from . import chr_assets, map_assets, map_layout_assets, menu_assets, sprite_assets, text_assets
+from . import chr_assets, map_assets, map_layout_assets, menu_assets, palette_assets, ppu_assets, sprite_assets, text_assets
 from .identify_rom import inspect_rom
 from .project import IDENTITY_PARTS, load_target
 from .setup import verified_tools
@@ -20,7 +20,7 @@ from .setup import verified_tools
 ROOT = Path(__file__).resolve().parents[1]
 TARGET = "us-v1.5"
 PROOF_INPUTS = ("tools/build_rom.py", "tools/identify_rom.py", "tools/project.py",
-                "tools/setup.py", "tools/chr_assets.py", "tools/map_assets.py", "tools/map_layout_assets.py", "tools/menu_assets.py", "tools/sprite_assets.py", "tools/sprite_metadata.py", "tools/text_assets.py",
+                "tools/setup.py", "tools/chr_assets.py", "tools/map_assets.py", "tools/map_layout_assets.py", "tools/menu_assets.py", "tools/palette_assets.py", "config/palettes-us-v1.5.json", "tools/ppu_assets.py", "tools/ppu_streams.py", "config/ppu-streams-us-v1.5.json", "tools/sprite_assets.py", "tools/sprite_metadata.py", "tools/text_assets.py",
                 "tools/map_data.py", "tools/packed_text.py", "tools/script_entries.py",
                 "config/cc65-toolchain.json", "config/sprite-frames-us-v1.5.json", "config/sprite-resources-us-v1.5.json")
 
@@ -75,6 +75,31 @@ SYMBOL_CONTROLS = {
 # The marker must occur exactly once in the maintained source, even when its
 # macro expands into two banks. Controls are built from isolated source copies.
 MUTATIONS = {
+    "script_only_record_b6dc": ("CONTROL_SCRIPT_ONLY_RECORD_B6DC", "SlotScriptOnlyRecord $FF, (ContactScriptB787 - BankStart), $00, $FF, $00, $00, $00", "SlotScriptOnlyRecord $FF, ((ContactScriptB787 - BankStart) + 1), $00, $FF, $00, $00, $00"),
+    "script_only_record_bcb7": ("CONTROL_SCRIPT_ONLY_RECORD_BCB7", "SlotScriptOnlyRecord $FF, (ContactScriptBCE3 - BankStart), $00, $FF, $00, $00, $00", "SlotScriptOnlyRecord $FF, ((ContactScriptBCE3 - BankStart) + 1), $00, $FF, $00, $00, $00"),
+    "script_only_record_bd12": ("CONTROL_SCRIPT_ONLY_RECORD_BD12", "SlotScriptOnlyRecord $FF, (ContactScriptBD4D - BankStart), $00, $FF, $00, $00, $00", "SlotScriptOnlyRecord $FF, ((ContactScriptBD4D - BankStart) + 1), $00, $FF, $00, $00, $00"),
+    "script_only_record_d4ca": ("CONTROL_SCRIPT_ONLY_RECORD_D4CA", "SlotScriptOnlyRecord $FF, (ContextContactScriptD67C - BankStart), $40, $FF, $00, $00, $00", "SlotScriptOnlyRecord $FF, ((ContextContactScriptD67C - BankStart) + 1), $40, $FF, $00, $00, $00"),
+    "script_only_record_da25": ("CONTROL_SCRIPT_ONLY_RECORD_DA25", "SlotScriptOnlyRecord $FF, (RuntimeScriptE764 - BankStart), $40, $FF, $00, $00, $00", "SlotScriptOnlyRecord $FF, ((RuntimeScriptE764 - BankStart) + 1), $40, $FF, $00, $00, $00"),
+    "script_only_record_da82": ("CONTROL_SCRIPT_ONLY_RECORD_DA82", "SlotScriptOnlyRecord $FF, (RuntimeScriptE764 - BankStart), $40, $FF, $00, $00, $00", "SlotScriptOnlyRecord $FF, ((RuntimeScriptE764 - BankStart) + 1), $40, $FF, $00, $00, $00"),
+    "script_only_record_dab5": ("CONTROL_SCRIPT_ONLY_RECORD_DAB5", "SlotScriptOnlyRecord $FF, (RuntimeScriptE764 - BankStart), $40, $FF, $00, $00, $00", "SlotScriptOnlyRecord $FF, ((RuntimeScriptE764 - BankStart) + 1), $40, $FF, $00, $00, $00"),
+    "script_only_record_db57": ("CONTROL_SCRIPT_ONLY_RECORD_DB57", "SlotScriptOnlyRecord $FF, (RuntimeScriptE764 - BankStart), $40, $FF, $00, $00, $00", "SlotScriptOnlyRecord $FF, ((RuntimeScriptE764 - BankStart) + 1), $40, $FF, $00, $00, $00"),
+    "script_only_record_dd6b": ("CONTROL_SCRIPT_ONLY_RECORD_DD6B", "SlotScriptOnlyRecord $FF, (RuntimeScriptE764 - BankStart), $40, $FF, $00, $00, $00", "SlotScriptOnlyRecord $FF, ((RuntimeScriptE764 - BankStart) + 1), $40, $FF, $00, $00, $00"),
+    "script_only_record_dd98": ("CONTROL_SCRIPT_ONLY_RECORD_DD98", "SlotScriptOnlyRecord $FF, (RuntimeScriptE764 - BankStart), $40, $FF, $00, $00, $00", "SlotScriptOnlyRecord $FF, ((RuntimeScriptE764 - BankStart) + 1), $40, $FF, $00, $00, $00"),
+    "script_only_record_ddc5": ("CONTROL_SCRIPT_ONLY_RECORD_DDC5", "SlotScriptOnlyRecord $FF, (RuntimeScriptE764 - BankStart), $40, $FF, $00, $00, $00", "SlotScriptOnlyRecord $FF, ((RuntimeScriptE764 - BankStart) + 1), $40, $FF, $00, $00, $00"),
+    "script_only_record_ddf2": ("CONTROL_SCRIPT_ONLY_RECORD_DDF2", "SlotScriptOnlyRecord $FF, (RuntimeScriptE764 - BankStart), $40, $FF, $00, $00, $00", "SlotScriptOnlyRecord $FF, ((RuntimeScriptE764 - BankStart) + 1), $40, $FF, $00, $00, $00"),
+    "script_only_record_e04c": ("CONTROL_SCRIPT_ONLY_RECORD_E04C", "SlotScriptOnlyRecord $FF, (RuntimeScriptE764 - BankStart), $40, $FF, $00, $00, $00", "SlotScriptOnlyRecord $FF, ((RuntimeScriptE764 - BankStart) + 1), $40, $FF, $00, $00, $00"),
+    "script_only_record_e0c2": ("CONTROL_SCRIPT_ONLY_RECORD_E0C2", "SlotScriptOnlyRecord $FF, (RuntimeScriptE764 - BankStart), $40, $FF, $00, $00, $00", "SlotScriptOnlyRecord $FF, ((RuntimeScriptE764 - BankStart) + 1), $40, $FF, $00, $00, $00"),
+    "script_only_record_e305": ("CONTROL_SCRIPT_ONLY_RECORD_E305", "SlotScriptOnlyRecord $FF, (RuntimeScriptE764 - BankStart), $00, $FF, $00, $00, $00", "SlotScriptOnlyRecord $FF, ((RuntimeScriptE764 - BankStart) + 1), $00, $FF, $00, $00, $00"),
+    "script_only_record_e3a1": ("CONTROL_SCRIPT_ONLY_RECORD_E3A1", "SlotScriptOnlyRecord $FF, (RuntimeScriptE764 - BankStart), $00, $FF, $00, $00, $00", "SlotScriptOnlyRecord $FF, ((RuntimeScriptE764 - BankStart) + 1), $00, $FF, $00, $00, $00"),
+    "script_only_record_e43d": ("CONTROL_SCRIPT_ONLY_RECORD_E43D", "SlotScriptOnlyRecord $FF, (RuntimeScriptE764 - BankStart), $00, $FF, $00, $00, $00", "SlotScriptOnlyRecord $FF, ((RuntimeScriptE764 - BankStart) + 1), $00, $FF, $00, $00, $00"),
+    "script_only_record_eaf6": ("CONTROL_SCRIPT_ONLY_RECORD_EAF6", "SlotScriptOnlyRecord $FF, (RuntimeScriptE764 - BankStart), $40, $FF, $00, $00, $00", "SlotScriptOnlyRecord $FF, ((RuntimeScriptE764 - BankStart) + 1), $40, $FF, $00, $00, $00"),
+    "script_only_record_eb1c": ("CONTROL_SCRIPT_ONLY_RECORD_EB1C", "SlotScriptOnlyRecord $FF, (RuntimeScriptE764 - BankStart), $40, $FF, $00, $00, $00", "SlotScriptOnlyRecord $FF, ((RuntimeScriptE764 - BankStart) + 1), $40, $FF, $00, $00, $00"),
+    "script_only_record_eb7d": ("CONTROL_SCRIPT_ONLY_RECORD_EB7D", "SlotScriptOnlyRecord $FF, (RuntimeScriptE764 - BankStart), $40, $FF, $00, $00, $00", "SlotScriptOnlyRecord $FF, ((RuntimeScriptE764 - BankStart) + 1), $40, $FF, $00, $00, $00"),
+    "script_only_record_ebdc": ("CONTROL_SCRIPT_ONLY_RECORD_EBDC", "SlotScriptOnlyRecord $FF, (RuntimeScriptE764 - BankStart), $40, $FF, $00, $00, $00", "SlotScriptOnlyRecord $FF, ((RuntimeScriptE764 - BankStart) + 1), $40, $FF, $00, $00, $00"),
+    "script_only_record_ed2a": ("CONTROL_SCRIPT_ONLY_RECORD_ED2A", "SlotScriptOnlyRecord $FF, (RuntimeScriptE764 - BankStart), $40, $FF, $00, $00, $00", "SlotScriptOnlyRecord $FF, ((RuntimeScriptE764 - BankStart) + 1), $40, $FF, $00, $00, $00"),
+    "script_only_record_ed5f": ("CONTROL_SCRIPT_ONLY_RECORD_ED5F", "SlotScriptOnlyRecord $FF, (RuntimeScriptE764 - BankStart), $40, $FF, $00, $00, $00", "SlotScriptOnlyRecord $FF, ((RuntimeScriptE764 - BankStart) + 1), $40, $FF, $00, $00, $00"),
+    "script_only_record_ee71": ("CONTROL_SCRIPT_ONLY_RECORD_EE71", "SlotScriptOnlyRecord $FF, (InteractionScriptF00F - BankStart), $00, $FF, $00, $00, $00", "SlotScriptOnlyRecord $FF, ((InteractionScriptF00F - BankStart) + 1), $00, $FF, $00, $00, $00"),
+    "script_only_record_eef1": ("CONTROL_SCRIPT_ONLY_RECORD_EEF1", "SlotScriptOnlyRecord $FF, (InteractionScriptF00F - BankStart), $00, $FF, $00, $00, $00", "SlotScriptOnlyRecord $FF, ((InteractionScriptF00F - BankStart) + 1), $00, $FF, $00, $00, $00"),
     "sprite_resource_b5d3": ("CONTROL_SPRITE_RESOURCE_B5D3", "ObservedSpriteAnimationHeader $04, $28", "ObservedSpriteAnimationHeader $05, $28"),
     "sprite_table_b5d3": ("CONTROL_SPRITE_TABLE_B5D3", ".word SpriteFrameC177", ".word SpriteFrameC177 + 1"),
     "sprite_resource_b5de": ("CONTROL_SPRITE_RESOURCE_B5DE", "ObservedSpriteAnimationHeader $03, $0A", "ObservedSpriteAnimationHeader $02, $0A"),
@@ -1577,9 +1602,6 @@ MUTATIONS = {
     "inventory_template_pointers": ("CONTROL_INVENTORY_TEMPLATE_POINTERS", "$50A5, $50AE", "$50A6, $50AE"),
     "candidate_list_pointers": ("CONTROL_CANDIDATE_LIST_POINTERS", "CandidateValuesFCA7 - BankStart, CandidateValuesFCA7 - BankStart", "CandidateValuesFCA7 - BankStart + 1, CandidateValuesFCA7 - BankStart"),
     "candidate_values_fca7": ("CONTROL_CANDIDATE_VALUES_FCA7", "$0E, $15", "$0F, $15"),
-    'contact_record_b6dd': ('CONTROL_CONTACT_RECORD_B6DD', '$FF', '$FE'),
-    'contact_record_bcb8': ('CONTROL_CONTACT_RECORD_BCB8', '$FF', '$FE'),
-    'contact_record_bd13': ('CONTROL_CONTACT_RECORD_BD13', '$FF', '$FE'),
     'contact_record_d226': ('CONTROL_CONTACT_RECORD_D226', '$FF', '$FE'),
     'contact_record_fc61': ('CONTROL_CONTACT_RECORD_FC61', '$BF61', '$BF60'),
     'contact_script_b787': ('CONTROL_CONTACT_SCRIPT_B787', 'ContactScriptB78C, $1D', 'ContactScriptB78C, $1C'),
@@ -1590,30 +1612,9 @@ MUTATIONS = {
     'contact_script_fc9f': ('CONTROL_CONTACT_SCRIPT_FC9F', 'BogusWait $12', 'BogusWait $13'),
     'reviewed_contact_d447': ('CONTROL_REVIEWED_CONTACT_D447', '$C533', '$C532'),
     'reviewed_contact_d534': ('CONTROL_REVIEWED_CONTACT_D534', '$C5B1', '$C5B0'),
-    'reviewed_contact_da25': ('CONTROL_REVIEWED_CONTACT_DA25', '$FF', '$FE'),
-    'reviewed_contact_da82': ('CONTROL_REVIEWED_CONTACT_DA82', '$FF', '$FE'),
-    'reviewed_contact_dab5': ('CONTROL_REVIEWED_CONTACT_DAB5', '$FF', '$FE'),
     'observed_record_db1b': ('CONTROL_OBSERVED_RECORD_DB1B', 'RuntimeScriptE764 - BankStart', 'RuntimeScriptE764 - BankStart + 1'),
-    'reviewed_contact_db57': ('CONTROL_REVIEWED_CONTACT_DB57', '$FF', '$FE'),
-    'reviewed_contact_dd6b': ('CONTROL_REVIEWED_CONTACT_DD6B', '$FF', '$FE'),
-    'reviewed_contact_dd98': ('CONTROL_REVIEWED_CONTACT_DD98', '$FF', '$FE'),
-    'reviewed_contact_ddc5': ('CONTROL_REVIEWED_CONTACT_DDC5', '$FF', '$FE'),
-    'reviewed_contact_ddf2': ('CONTROL_REVIEWED_CONTACT_DDF2', '$FF', '$FE'),
-    'reviewed_contact_e04c': ('CONTROL_REVIEWED_CONTACT_E04C', '$FF', '$FE'),
-    'reviewed_contact_e0c2': ('CONTROL_REVIEWED_CONTACT_E0C2', '$FF', '$FE'),
-    'reviewed_contact_e305': ('CONTROL_REVIEWED_CONTACT_E305', '$FF', '$FE'),
-    'reviewed_contact_e3a1': ('CONTROL_REVIEWED_CONTACT_E3A1', '$FF', '$FE'),
-    'reviewed_contact_e43d': ('CONTROL_REVIEWED_CONTACT_E43D', '$FF', '$FE'),
-    'reviewed_contact_eaf6': ('CONTROL_REVIEWED_CONTACT_EAF6', '$FF', '$FE'),
-    'reviewed_contact_eb1c': ('CONTROL_REVIEWED_CONTACT_EB1C', '$FF', '$FE'),
-    'reviewed_contact_eb7d': ('CONTROL_REVIEWED_CONTACT_EB7D', '$FF', '$FE'),
-    'reviewed_contact_ebdc': ('CONTROL_REVIEWED_CONTACT_EBDC', '$FF', '$FE'),
-    'reviewed_contact_ed2a': ('CONTROL_REVIEWED_CONTACT_ED2A', '$FF', '$FE'),
-    'reviewed_contact_ed5f': ('CONTROL_REVIEWED_CONTACT_ED5F', '$FF', '$FE'),
-    'reviewed_contact_ee71': ('CONTROL_REVIEWED_CONTACT_EE71', '$FF', '$FE'),
     'reviewed_contact_ee8b': ('CONTROL_REVIEWED_CONTACT_EE8B', '$FF', '$FE'),
     'reviewed_contact_ee9d': ('CONTROL_REVIEWED_CONTACT_EE9D', '$FF', '$FE'),
-    'reviewed_contact_eef1': ('CONTROL_REVIEWED_CONTACT_EEF1', '$FF', '$FE'),
     'reviewed_contact_ef09': ('CONTROL_REVIEWED_CONTACT_EF09', '$FF', '$FE'),
     'mode_record_b893_resource': ('CONTROL_MODE_RECORD_B893_RESOURCE', '$B5FD', '$B5FC'),
     'mode_record_b893_fields': ('CONTROL_MODE_RECORD_B893_FIELDS', '.byte $00, $FF, $00, $00, $00', '.byte $01, $FF, $00, $00, $00'),
@@ -1690,7 +1691,6 @@ MUTATIONS = {
     'compact_context_ed1e': ('CONTROL_COMPACT_CONTEXT_ED1E', '$C7BF', '$C7BE'),
     'compact_context_ed50': ('CONTROL_COMPACT_CONTEXT_ED50', '$B68A', '$B68B'),
     'compact_context_ed53': ('CONTROL_COMPACT_CONTEXT_ED53', '$BC6D', '$BC6C'),
-    'context_contact_d4cb': ('CONTROL_CONTEXT_CONTACT_D4CB', '$FF', '$FE'),
     'position_sentinel_d4dd': ('CONTROL_POSITION_SENTINEL_D4DD', '$FF', '$FE'),
     'position_sentinel_d4df': ('CONTROL_POSITION_SENTINEL_D4DF', '$FF', '$FE'),
     'position_sentinel_d547': ('CONTROL_POSITION_SENTINEL_D547', '$FF', '$FE'),
@@ -2382,6 +2382,28 @@ def build() -> dict:
                 raise ValueError("menu gap does not match the local source complement")
             path.write_bytes(payload)
         (work / "inputs/menu-tiles.json").write_bytes(menu_assets.serialize(menu))
+        palette, palette_spans, palette_source, palette_input_hash = palette_assets.select(ROOT, prg, parsed["file"]["sha256"])
+        palette_gaps = map_layout_assets.gap_payloads(prg, regions, palette_spans)
+        if (map_assets.GAP_NAME in palette_gaps
+                or set(palette_gaps) & (set(layout_gaps) | set(text_gaps) | set(sprite_gaps) | set(menu_gaps))):
+            raise ValueError("palette and other assets share an input gap")
+        for name, payload in palette_gaps.items():
+            path = work / "inputs" / name
+            if not path.is_file() or path.stat().st_size != len(payload):
+                raise ValueError("palette gap does not match the local source complement")
+            path.write_bytes(payload)
+        (work / "inputs/palettes.json").write_bytes(palette_assets.serialize(palette))
+        ppu, ppu_spans, ppu_source, ppu_input_hash = ppu_assets.select(ROOT, prg, parsed["file"]["sha256"])
+        ppu_gaps = map_layout_assets.gap_payloads(prg, regions, ppu_spans)
+        if (map_assets.GAP_NAME in ppu_gaps
+                or set(ppu_gaps) & (set(layout_gaps) | set(text_gaps) | set(sprite_gaps) | set(menu_gaps) | set(palette_gaps))):
+            raise ValueError("ppu and other assets share an input gap")
+        for name, payload in ppu_gaps.items():
+            path = work / "inputs" / name
+            if not path.is_file() or path.stat().st_size != len(payload):
+                raise ValueError("ppu gap does not match the local source complement")
+            path.write_bytes(payload)
+        (work / "inputs/ppu-tiles.json").write_bytes(ppu_assets.serialize(ppu))
         output_path = assemble(work, tool_paths, Path("source/rom.s"), Path("bible-adventures"))
         output = output_path.read_bytes()
         if output != reference:
@@ -2558,6 +2580,62 @@ def build() -> dict:
                          "control": {"asset_sha256": digest(changed_menu_json),
                                      "gap_sha256": {name: digest(changed_menu_gaps[name]) for name in menu_changed_names},
                                      "candidate_sha256": digest(menu_candidate), "changed_offsets": menu_changed}}
+        # Exercise every initial palette and trailing animation group before assembly.
+        palette_control_dir = work / "controls/palette_asset"
+        palette_control_dir.mkdir(parents=True)
+        (palette_control_dir / "rom.s").write_text(source)
+        changed_palette = palette_assets.changed_asset(palette)
+        changed_palette_json = palette_assets.serialize(changed_palette)
+        changed_palette_spans = palette_assets.encode(ROOT, changed_palette, prg, parsed["file"]["sha256"])
+        changed_palette_gaps = map_layout_assets.gap_payloads(prg, regions, changed_palette_spans)
+        palette_changed_names = [name for name in palette_gaps if changed_palette_gaps[name] != palette_gaps[name]]
+        if not palette_changed_names or set(palette_changed_names) != set(palette_gaps):
+            raise ValueError("palette control must affect every palette input gap")
+        (palette_control_dir / "palettes.json").write_bytes(changed_palette_json)
+        (palette_control_dir / "gaps").mkdir()
+        shutil.copytree(work / "inputs", palette_control_dir / "inputs")
+        for name in palette_changed_names:
+            (palette_control_dir / "gaps" / name).write_bytes(changed_palette_gaps[name])
+            (palette_control_dir / "inputs" / name).write_bytes(changed_palette_gaps[name])
+        palette_control_rom = assemble(work, tool_paths, Path("controls/palette_asset/rom.s"),
+                                    Path("controls/palette_asset/candidate"), Path("controls/palette_asset/inputs"))
+        palette_candidate = palette_control_rom.read_bytes()
+        palette_changed = palette_assets.verify_control(reference, palette_candidate, parsed["prg"]["offset"], palette)
+        retire_control_intermediates(palette_control_dir)
+        shutil.rmtree(palette_control_dir / "inputs")
+        palette_evidence = {"source": palette_source, "input_sha256": palette_input_hash,
+                         "gap_sha256": {name: digest(payload) for name, payload in palette_gaps.items()},
+                         "control": {"asset_sha256": digest(changed_palette_json),
+                                     "gap_sha256": {name: digest(changed_palette_gaps[name]) for name in palette_changed_names},
+                                     "candidate_sha256": digest(palette_candidate), "changed_offsets": palette_changed}}
+        # Exercise every logical PPU payload without introducing command bytes.
+        ppu_control_dir = work / "controls/ppu_asset"
+        ppu_control_dir.mkdir(parents=True)
+        (ppu_control_dir / "rom.s").write_text(source)
+        changed_ppu = ppu_assets.changed_asset(ppu)
+        changed_ppu_json = ppu_assets.serialize(changed_ppu)
+        changed_ppu_spans = ppu_assets.encode(ROOT, changed_ppu, prg, parsed["file"]["sha256"])
+        changed_ppu_gaps = map_layout_assets.gap_payloads(prg, regions, changed_ppu_spans)
+        ppu_changed_names = [name for name in ppu_gaps if changed_ppu_gaps[name] != ppu_gaps[name]]
+        if not ppu_changed_names or set(ppu_changed_names) != set(ppu_gaps):
+            raise ValueError("ppu control must affect every ppu input gap")
+        (ppu_control_dir / "ppu-tiles.json").write_bytes(changed_ppu_json)
+        (ppu_control_dir / "gaps").mkdir()
+        shutil.copytree(work / "inputs", ppu_control_dir / "inputs")
+        for name in ppu_changed_names:
+            (ppu_control_dir / "gaps" / name).write_bytes(changed_ppu_gaps[name])
+            (ppu_control_dir / "inputs" / name).write_bytes(changed_ppu_gaps[name])
+        ppu_control_rom = assemble(work, tool_paths, Path("controls/ppu_asset/rom.s"),
+                                    Path("controls/ppu_asset/candidate"), Path("controls/ppu_asset/inputs"))
+        ppu_candidate = ppu_control_rom.read_bytes()
+        ppu_changed = ppu_assets.verify_control(reference, ppu_candidate, parsed["prg"]["offset"], ppu)
+        retire_control_intermediates(ppu_control_dir)
+        shutil.rmtree(ppu_control_dir / "inputs")
+        ppu_evidence = {"source": ppu_source, "input_sha256": ppu_input_hash,
+                         "gap_sha256": {name: digest(payload) for name, payload in ppu_gaps.items()},
+                         "control": {"asset_sha256": digest(changed_ppu_json),
+                                     "gap_sha256": {name: digest(changed_ppu_gaps[name]) for name in ppu_changed_names},
+                                     "candidate_sha256": digest(ppu_candidate), "changed_offsets": ppu_changed}}
         # Mutate a pixel in each physical 8 KiB CHR interval before assembly.
         chr_control_dir = work / "controls/chr_asset"
         chr_control_dir.mkdir(parents=True)
@@ -2597,7 +2675,7 @@ def build() -> dict:
             "verification_input_sha256": {name: digest((ROOT / name).read_bytes()) for name in PROOF_INPUTS},
             "source_regions": regions, "local_prg_gaps": gaps, "map_assets": asset_evidence,
             "layout_assets": layout_evidence, "text_assets": text_evidence, "sprite_assets": sprite_evidence,
-            "menu_assets": menu_evidence, "chr_assets": chr_evidence,
+            "menu_assets": menu_evidence, "palette_assets": palette_evidence, "ppu_assets": ppu_evidence, "chr_assets": chr_evidence,
             "counts": {"matching_code_bytes": counts["code"], "structured_data_bytes": counts["data"],
                        "local_prg_bytes": sum(g["size"] for g in gaps),
                        "local_chr_bytes": len(chr_data), "container_header_bytes": 16},

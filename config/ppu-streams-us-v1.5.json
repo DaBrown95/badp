@@ -1,0 +1,26 @@
+{
+  "schema_version": 1,
+  "target": "us-v1.5",
+  "source": "Logical streams from native pointer tables, named BOGUS queues and inventory remap cases; candidate selection and lookahead retain their uncertainty",
+  "encoded_pointers": [
+    "0x5067",
+    "0x5083",
+    "0x5099",
+    "0x50a5",
+    "0x50ae",
+    "0x50b7",
+    "0x50c0",
+    "0x50c9",
+    "0x50d2",
+    "0x50db",
+    "0x50e4",
+    "0x50ed",
+    "0x50f6",
+    "0x50ff",
+    "0x5108",
+    "0x5111",
+    "0x5143",
+    "0x518d",
+    "0x51d8"
+  ]
+}

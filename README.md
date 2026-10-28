@@ -49,7 +49,7 @@ are not measures of gameplay completion.
 <!-- BEGIN GENERATED PROGRESS -->
 | Version | Reconstructed PRG | Status |
 | --- | ---: | --- |
-| USA v1.5 | **68.31%** (44,766 / 65,536 bytes) | In progress |
+| USA v1.5 | **68.54%** (44,916 / 65,536 bytes) | In progress |
 | USA v1.4 | **0.00%** (0 / 65,536 bytes) | Not started |
 | USA v1.3 | **0.00%** (0 / 65,536 bytes) | Not started |
 | USA v1.2 | **0.00%** (0 / 65,536 bytes) | Not started |
@@ -142,6 +142,15 @@ exports the fourteen menu display streams locally; their tile bytes are editable
 while command positions and stream lengths stay fixed. These bytes can also
 have other candidate uses and do not count as source progress.
 
+`make extract-palettes` exports the 26 reviewed palette streams as initial
+sixteen-colour palettes and trailing animation groups. Their headers stay in
+source; colour bytes remain local and receive no source credit. The build
+checks edits to both initial palettes and animation groups against the fixed ROM.
+`make extract-ppu-tiles` similarly exports the 236 tile bytes in the 19 reviewed
+logical inventory PPU streams. Address commands, terminators and payload lengths
+stay fixed; tile edits cannot introduce command bytes. Both local formats retain
+their possible overlapping uses and do not establish that every stream executes.
+
 On macOS with Apple silicon and Homebrew's SDL2 installed, an optional emulator
 check exercises the opening of each adventure:
 
@@ -214,6 +223,9 @@ and simultaneous press/release handling on the reference and build.
 | `make trace-map` | Check map fetches in extended v1.5 emulator inputs. |
 | `make prg-inventory` | Combine verified source ownership with candidate and observed data uses. |
 | `make source-audit` | Account for every physical PRG region, local asset and competing candidate use. |
+| `make extract-palettes` | Export palette colours and animation groups locally. |
+| `make extract-ppu-tiles` | Export logical inventory PPU tile payloads locally. |
+| `make verify-script-only-records` | Check controlled sentinel-record reads and preserved sprite fields. |
 | `make sprite-layout` | Check the contiguous sprite layout and compare frame and directory relocations. |
 | `make trace-runtime-extents` | Capture sampled Moses script and record accesses. |
 | `make runtime-extents` | Check sampled command and record bytes against the current source map. |

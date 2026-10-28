@@ -11,7 +11,7 @@ import json
 from pathlib import Path
 import sys
 
-from . import map_assets, map_layout_assets, menu_assets, sprite_assets, text_assets
+from . import map_assets, map_layout_assets, menu_assets, palette_assets, ppu_assets, sprite_assets, text_assets
 from .build_rom import digest
 from .identify_rom import inspect_rom
 from .prg_inventory import CATEGORIES, inventory
@@ -20,7 +20,7 @@ from .project import IDENTITY_PARTS, load_project, load_target
 from .script_entries import BANK_SIZE, ROOT, load_audited_banks
 
 INPUTS = ('tools/source_audit.py', 'tools/map_assets.py', 'tools/map_layout_assets.py',
-          'tools/menu_assets.py', 'tools/sprite_assets.py', 'tools/text_assets.py',
+          'tools/menu_assets.py', 'tools/palette_assets.py', 'tools/ppu_assets.py', 'tools/ppu_streams.py', 'config/ppu-streams-us-v1.5.json', 'config/palettes-us-v1.5.json', 'tools/sprite_assets.py', 'tools/text_assets.py',
           'config/sprite-frames-us-v1.5.json')
 
 
@@ -88,6 +88,10 @@ def asset_spans(root: Path, prg: bytes, reference: str) -> dict[str, list[tuple[
                          ('menu_tiles', menu_assets)):
         _, spans, _, _ = module.select(root, prg, reference)
         result[name] = [(bank * BANK_SIZE + offset, len(data)) for bank, offset, data in spans]
+    _, spans, _, _ = palette_assets.select(root, prg, reference)
+    result['palette_colours'] = [(bank * BANK_SIZE + offset, len(data)) for bank, offset, data in spans]
+    _, spans, _, _ = ppu_assets.select(root, prg, reference)
+    result['ppu_tile_payloads'] = [(bank * BANK_SIZE + offset, len(data)) for bank, offset, data in spans]
     _, spans, _, _ = sprite_assets.select(root, prg, reference)
     result['inventoried_sprite_frames'] = [(bank * BANK_SIZE + offset, len(data))
                                          for bank, offset, data in spans]

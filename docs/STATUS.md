@@ -34,8 +34,8 @@ independent source trees or treat one version's evidence as verifying the rest.
 simultaneous reconstruction. Keep progress and completion evidence per target.
 
 The v1.5 build now assembles and links to the exact reference, with 21,474 bytes
-of source code and 23,292 bytes of structured data across the physical PRG banks.
-It still includes 20,770 local PRG bytes and 65,536 local CHR bytes. A total of
+of source code and 23,442 bytes of structured data across the physical PRG banks.
+It still includes 20,620 local PRG bytes and 65,536 local CHR bytes. A total of
 2,080 independent source-change controls verify every listed reconstructed region.
 Passing input audits or whole-ROM equality alone is not reconstruction
 completion. The developer identifies BOGUS as the
@@ -1900,3 +1900,67 @@ review is retained in `analysis/us-v1.5/palette-layout-review.json`; the payload
 still need a controlled local asset encoder. Unclassified padding candidates,
 unreferenced map bytes, inventory display payloads and partial record fields
 remain separate work items rather than being credited by a label.
+
+## Palette and inventory-display asset checkpoint
+
+The 560 colour bytes in all 26 reviewed palette streams now have a local
+editable representation, with sixteen initial colours followed by the trailing
+animation groups. `make extract-palettes` writes the local file. The encoder
+preserves source-owned headers, group widths, frame counts and tick values;
+it rejects layouts where the background copy's retained Y high byte would
+invalidate this geometry. A retained assembly control changes colour 1 in
+every initial palette and every trailing group, for 51 exact ROM-byte changes.
+Colour 1 is consumed by both the background and sprite setup paths.
+
+The existing logical PPU inventory supplies nineteen non-overlapping streams
+with 193 source-owned control bytes and 236 local tile bytes. Their 57 payload
+segments can now be exported with `make extract-ppu-tiles`. Address operands
+and terminators remain in source; payload lengths are fixed, and editable tile
+values exclude the zero, `$FE` and `$FF` control encodings. The assembly control
+changes one tile in each of the 57 payloads, preserving their command structure.
+This represents their logical contents without upgrading candidate selection,
+scheduling, overlapping script interpretations or lookahead observations.
+
+The fresh build remains byte-identical, all 2,080 source-change controls pass,
+and both new asset controls pass. All six reference audits and 333 synthetic
+tooling tests pass, including rejection of stale local inputs, retained-control
+changes, invalid headers, malformed row counts, control-byte edits and
+overlapping PPU starts. Including the record batch below, source ownership is
+44,916 bytes (68.54% of PRG). The source audit accounts for 20,168 additional
+local asset bytes, leaving 452 unresolved local PRG bytes. No colour or tile
+payload is credited as code.
+
+The connected record-format review completes 25 native-contact record views.
+They previously had only their resource sentinel and script pointer in source,
+with six remaining local bytes in each nine-byte record. `SlotScriptOnlyRecord`
+now preserves the ignored low resource byte and the five fields skipped after
+the resource high-byte `$FF` test, adding 150 structured-data bytes. Old labels
+at the resource sentinel remain aliases at exactly their original addresses.
+Each coalesced record has a meaningful pointer-change control; aliases,
+neighbouring data and possible other entries remain intact. The tenth fetch is
+lookahead into the next record or script, outside this nine-byte declaration.
+These views do not establish ordinary-play contact or exclude other uses.
+
+`make verify-script-only-records` injects each of the 25 record pointers into
+the native loader on both ROMs. It checks all ten mapped PRG fetches, the exact
+record-buffer read sequence, installed script pointers and preservation of the
+skipped sprite fields. It also checks the ten old-buffer dummy reads performed
+by the indexed stores during the copy. Those are bus reads, distinct from the
+later record-field selections; the behavior is described in the NESdev
+[indexed-addressing reference](https://www.nesdev.org/wiki/Addressing_modes#Indexed_addressing).
+The first probe omitted those reads and initially sampled the wrong slot-script
+RAM addresses. Its two useful failure traces remain local; the corrected probe
+derives those RAM bases from the maintained include symbols and checks every
+event rather than filtering the extra reads. The verified result remains in
+`analysis/us-v1.5/script-only-record-verification.json`. No script execution,
+contact reachability, rendering or physical-cartridge claim follows from it.
+
+A new comparative observation also strengthens the bank-tail layout review.
+Between v1.4 and v1.5, the identical seven-byte controller-mode helper moves
+forward by 22 bytes, ending at `$FD29` and `$FD3F` respectively. The identical
+banked native-call wrapper stays fixed at `$FD88`; the preceding zero suffix
+therefore shrinks from 95 to 73 bytes. Bank 1's zero suffix before the same
+wrapper is 32 and 30 bytes respectively. The corresponding fixed-offset bytes
+in older releases differ, so this is not generalized across all revisions.
+`analysis/us-v1.5/bank-tail-comparison.json` retains the audited comparison;
+zero content or comparative layout alone is not an exclusion of executable use.

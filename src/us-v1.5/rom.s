@@ -160,6 +160,16 @@ compareRangeReturn:
     .byte mode_flags, field_0690, field_06a0, field_06b0, field_06c0
 .endmacro
 
+; The resource high-byte sentinel disables all sprite fields in this view.
+; Retain the unused low resource byte and five unused fields explicitly. The
+; zero-mode loader can still install the script pointer; its tenth fetch is
+; lookahead into the following record or script, outside this nine-byte layout.
+.macro SlotScriptOnlyRecord unused_resource_low, encoded_script, unused_flags, unused_0690, unused_06a0, unused_06b0, unused_06c0
+    .byte unused_resource_low, $FF
+    .word encoded_script
+    .byte unused_flags, unused_0690, unused_06a0, unused_06b0, unused_06c0
+.endmacro
+
 ; In a negative loader mode, the two-byte resource pointer is followed
 ; immediately by the flag byte; the loader does not install a script pointer.
 .macro SlotCompactRecord sprite_pointer, mode_flags
@@ -18655,13 +18665,12 @@ ContextScriptB6C4:
 SlotRuntimeB6D3:
     SlotRuntimeRecord $B693, (ScriptB6EE - BankStart), $00, $FF, $00, $00, $00 ; CONTROL_SLOT_RUNTIME_B6D3
 .assert (* - BankStart) = $36DC, error, "bank 1 slot record B6D3 end"
-    .incbin "bank1_b6dc_b6dd.bin"
-; A possible contact event reads the resource sentinel and script pointer.
-ContactRecordB6DD:
-    .byte $FF ; CONTROL_CONTACT_RECORD_B6DD
-    .word ContactScriptB787 - BankStart
-.assert (* - BankStart) = $36E0, error, "bank 1 contact record B6DD end"
-    .incbin "bank1_b6e0_b6e5.bin"
+; Native-contact record view at $B6DC; resource high $FF skips the six
+; explicitly retained fields. Other entry points and interpretations remain possible.
+SlotScriptOnlyB6DC:
+    SlotScriptOnlyRecord $FF, (ContactScriptB787 - BankStart), $00, $FF, $00, $00, $00 ; CONTROL_SCRIPT_ONLY_RECORD_B6DC
+ContactRecordB6DD = SlotScriptOnlyB6DC + 1
+.assert (* - BankStart) = $36E5, error, "bank 1 script-only record B6DC end"
 ; Observed in Moses level two through $B718 with loader mode $02. The
 ; pointer and the five later fields are consumed; the intervening bytes are
 ; skipped in this mode and remain local. The pointed-to sprite stays local.
@@ -19431,13 +19440,12 @@ CompactContextBCAB:
 SlotRuntimeBCAE:
     SlotRuntimeRecord $B5D3, (ScriptBCC0 - BankStart), $00, $FF, $00, $00, $00 ; CONTROL_SLOT_RUNTIME_BCAE
 .assert (* - BankStart) = $3CB7, error, "bank 1 slot record BCAE end"
-    .incbin "bank1_bcb7_bcb8.bin"
-; A possible contact event reads the resource sentinel and script pointer.
-ContactRecordBCB8:
-    .byte $FF ; CONTROL_CONTACT_RECORD_BCB8
-    .word ContactScriptBCE3 - BankStart
-.assert (* - BankStart) = $3CBB, error, "bank 1 contact record BCB8 end"
-    .incbin "bank1_bcbb_bcc0.bin"
+; Native-contact record view at $BCB7; resource high $FF skips the six
+; explicitly retained fields. Other entry points and interpretations remain possible.
+SlotScriptOnlyBCB7:
+    SlotScriptOnlyRecord $FF, (ContactScriptBCE3 - BankStart), $00, $FF, $00, $00, $00 ; CONTROL_SCRIPT_ONLY_RECORD_BCB7
+ContactRecordBCB8 = SlotScriptOnlyBCB7 + 1
+.assert (* - BankStart) = $3CC0, error, "bank 1 script-only record BCB7 end"
 ; Candidate entry from a slot descriptor. The full graph is contained here;
 ; gameplay role and runtime use are not yet established.
 ScriptBCC0:
@@ -19477,13 +19485,12 @@ ContactScriptBD06:
 SlotRuntimeBD09:
     SlotRuntimeRecord $B7F2, (ScriptBD1B - BankStart), $40, $FF, $00, $00, $00 ; CONTROL_SLOT_RUNTIME_BD09
 .assert (* - BankStart) = $3D12, error, "bank 1 slot record BD09 end"
-    .incbin "bank1_bd12_bd13.bin"
-; A possible contact event reads the resource sentinel and script pointer.
-ContactRecordBD13:
-    .byte $FF ; CONTROL_CONTACT_RECORD_BD13
-    .word ContactScriptBD4D - BankStart
-.assert (* - BankStart) = $3D16, error, "bank 1 contact record BD13 end"
-    .incbin "bank1_bd16_bd1b.bin"
+; Native-contact record view at $BD12; resource high $FF skips the six
+; explicitly retained fields. Other entry points and interpretations remain possible.
+SlotScriptOnlyBD12:
+    SlotScriptOnlyRecord $FF, (ContactScriptBD4D - BankStart), $00, $FF, $00, $00, $00 ; CONTROL_SCRIPT_ONLY_RECORD_BD12
+ContactRecordBD13 = SlotScriptOnlyBD12 + 1
+.assert (* - BankStart) = $3D1B, error, "bank 1 script-only record BD12 end"
 ; Repeated slot-record and voice-pointer sequence with the original retry.
 ScriptBD1B:
     BogusSetDispatchCounter $85 ; CONTROL_BOGUS_BD1B
@@ -20802,13 +20809,13 @@ CompactContextD4BE:
 SlotRuntimeD4C1:
     SlotRuntimeRecord $BFD3, $551B, $00, $FF, $00, $00, $00 ; CONTROL_SLOT_RUNTIME_D4C1
 .assert (* - BankStart) = $54CA, error, "bank 1 slot record D4C1 end"
-    .incbin "bank1_d4ca_d4cb.bin"
-; Possible contact event after a later script clears the slot's flag.
-ContextContactRecordD4CB:
-    .byte $FF ; CONTROL_CONTEXT_CONTACT_D4CB
-    .word ContextContactScriptD67C - BankStart
-.assert (* - BankStart) = $54CE, error, "bank 1 context contact record D4CB end"
-    .incbin "bank1_d4ce_d4d4.bin"
+; Native-contact record view at $D4CA; resource high $FF skips the six
+; explicitly retained fields. Other entry points and interpretations remain possible.
+SlotScriptOnlyD4CA:
+    SlotScriptOnlyRecord $FF, (ContextContactScriptD67C - BankStart), $40, $FF, $00, $00, $00 ; CONTROL_SCRIPT_ONLY_RECORD_D4CA
+ContextContactRecordD4CB = SlotScriptOnlyD4CA + 1
+.assert (* - BankStart) = $54D3, error, "bank 1 script-only record D4CA end"
+    .incbin "bank1_d4d3_d4d4.bin"
 ; Candidate descriptor-context access; runtime reachability remains unverified.
 ; Resource high byte $FF skips visual fields and low pointer byte.
 ContextResourceSentinelD4D3:
@@ -21863,13 +21870,13 @@ CompactContextDA19:
 SlotRuntimeDA1C:
     SlotRuntimeRecord $B65B, (ScriptE9BC - BankStart), $22, $FF, $00, $00, $00 ; CONTROL_SLOT_RUNTIME_DA1C
 .assert (* - BankStart) = $5A25, error, "bank 1 slot record DA1C end"
-    .incbin "bank1_da25_da26.bin"
-; Possible contact for descriptor base $DA1C; execution remains unverified.
-ReviewedContactDA25:
-    .byte $FF ; CONTROL_REVIEWED_CONTACT_DA25
-    .word RuntimeScriptE764 - BankStart
-.assert (* - BankStart) = $5A29, error, "bank 1 candidate contact da25 end"
-    .incbin "bank1_da29_da37.bin"
+; Native-contact record view at $DA25; resource high $FF skips the six
+; explicitly retained fields. Other entry points and interpretations remain possible.
+SlotScriptOnlyDA25:
+    SlotScriptOnlyRecord $FF, (RuntimeScriptE764 - BankStart), $40, $FF, $00, $00, $00 ; CONTROL_SCRIPT_ONLY_RECORD_DA25
+ReviewedContactDA25 = SlotScriptOnlyDA25 + 1
+.assert (* - BankStart) = $5A2E, error, "bank 1 script-only record DA25 end"
+    .incbin "bank1_da2e_da37.bin"
 ; Candidate descriptor $DA1C, command $EA26, mode $00.
 SlotFlowDA37:
     SlotRuntimeRecord $B654, $6AA2, $00, $FF, $00, $00, $00 ; CONTROL_SLOT_FLOW_DA37
@@ -21921,13 +21928,13 @@ CompactContextDA76:
 SlotRuntimeDA79:
     SlotRuntimeRecord $B83F, (ScriptE9BA - BankStart), $22, $FF, $00, $00, $00 ; CONTROL_SLOT_RUNTIME_DA79
 .assert (* - BankStart) = $5A82, error, "bank 1 slot record DA79 end"
-    .incbin "bank1_da82_da83.bin"
-; Possible contact for descriptor base $DA79; execution remains unverified.
-ReviewedContactDA82:
-    .byte $FF ; CONTROL_REVIEWED_CONTACT_DA82
-    .word RuntimeScriptE764 - BankStart
-.assert (* - BankStart) = $5A86, error, "bank 1 candidate contact da82 end"
-    .incbin "bank1_da86_da94.bin"
+; Native-contact record view at $DA82; resource high $FF skips the six
+; explicitly retained fields. Other entry points and interpretations remain possible.
+SlotScriptOnlyDA82:
+    SlotScriptOnlyRecord $FF, (RuntimeScriptE764 - BankStart), $40, $FF, $00, $00, $00 ; CONTROL_SCRIPT_ONLY_RECORD_DA82
+ReviewedContactDA82 = SlotScriptOnlyDA82 + 1
+.assert (* - BankStart) = $5A8B, error, "bank 1 script-only record DA82 end"
+    .incbin "bank1_da8b_da94.bin"
 ; Candidate descriptor $DA79, command $EA26, mode $00.
 SlotFlowDA94:
     SlotRuntimeRecord $B838, $6AA2, $00, $FF, $00, $00, $00 ; CONTROL_SLOT_FLOW_DA94
@@ -21947,13 +21954,12 @@ CompactContextDAA9:
 SlotRuntimeDAAC:
     SlotRuntimeRecord $B67A, $6D11, $22, $FF, $00, $00, $00 ; CONTROL_SLOT_RUNTIME_DAAC
 .assert (* - BankStart) = $5AB5, error, "bank 1 slot record DAAC end"
-    .incbin "bank1_dab5_dab6.bin"
-; Possible contact for descriptor base $DAAC; execution remains unverified.
-ReviewedContactDAB5:
-    .byte $FF ; CONTROL_REVIEWED_CONTACT_DAB5
-    .word RuntimeScriptE764 - BankStart
-.assert (* - BankStart) = $5AB9, error, "bank 1 candidate contact dab5 end"
-    .incbin "bank1_dab9_dabe.bin"
+; Native-contact record view at $DAB5; resource high $FF skips the six
+; explicitly retained fields. Other entry points and interpretations remain possible.
+SlotScriptOnlyDAB5:
+    SlotScriptOnlyRecord $FF, (RuntimeScriptE764 - BankStart), $40, $FF, $00, $00, $00 ; CONTROL_SCRIPT_ONLY_RECORD_DAB5
+ReviewedContactDAB5 = SlotScriptOnlyDAB5 + 1
+.assert (* - BankStart) = $5ABE, error, "bank 1 script-only record DAB5 end"
 ; Candidate descriptor $DAAC, script $EE2A, mode $01.
 ModeRecordDABEResource:
     .word $B664 ; CONTROL_MODE_RECORD_DABE_RESOURCE
@@ -22079,13 +22085,12 @@ CompactContextDB4B:
 SlotRuntimeDB4E:
     SlotRuntimeRecord $B937, (ScriptED7C - BankStart), $23, $FF, $00, $00, $00 ; CONTROL_SLOT_RUNTIME_DB4E
 .assert (* - BankStart) = $5B57, error, "bank 1 slot record DB4E end"
-    .incbin "bank1_db57_db58.bin"
-; Possible contact for descriptor base $DB4E; execution remains unverified.
-ReviewedContactDB57:
-    .byte $FF ; CONTROL_REVIEWED_CONTACT_DB57
-    .word RuntimeScriptE764 - BankStart
-.assert (* - BankStart) = $5B5B, error, "bank 1 candidate contact db57 end"
-    .incbin "bank1_db5b_db60.bin"
+; Native-contact record view at $DB57; resource high $FF skips the six
+; explicitly retained fields. Other entry points and interpretations remain possible.
+SlotScriptOnlyDB57:
+    SlotScriptOnlyRecord $FF, (RuntimeScriptE764 - BankStart), $40, $FF, $00, $00, $00 ; CONTROL_SCRIPT_ONLY_RECORD_DB57
+ReviewedContactDB57 = SlotScriptOnlyDB57 + 1
+.assert (* - BankStart) = $5B60, error, "bank 1 script-only record DB57 end"
 ; Candidate descriptor $DB66, command $E89D, negative mode.
 CompactContextDB60:
     SlotCompactRecord $B876, $22 ; CONTROL_COMPACT_CONTEXT_DB60
@@ -22379,13 +22384,12 @@ CompactContextDD5F:
 SlotRuntimeDD62:
     SlotRuntimeRecord $B7AA, (ScriptDE0D - BankStart), $22, $FF, $00, $00, $00 ; CONTROL_SLOT_RUNTIME_DD62
 .assert (* - BankStart) = $5D6B, error, "bank 1 slot record DD62 end"
-    .incbin "bank1_dd6b_dd6c.bin"
-; Possible contact for descriptor base $DD62; execution remains unverified.
-ReviewedContactDD6B:
-    .byte $FF ; CONTROL_REVIEWED_CONTACT_DD6B
-    .word RuntimeScriptE764 - BankStart
-.assert (* - BankStart) = $5D6F, error, "bank 1 candidate contact dd6b end"
-    .incbin "bank1_dd6f_dd74.bin"
+; Native-contact record view at $DD6B; resource high $FF skips the six
+; explicitly retained fields. Other entry points and interpretations remain possible.
+SlotScriptOnlyDD6B:
+    SlotScriptOnlyRecord $FF, (RuntimeScriptE764 - BankStart), $40, $FF, $00, $00, $00 ; CONTROL_SCRIPT_ONLY_RECORD_DD6B
+ReviewedContactDD6B = SlotScriptOnlyDD6B + 1
+.assert (* - BankStart) = $5D74, error, "bank 1 script-only record DD6B end"
 ; Candidate descriptor $DD62, command $DE81, mode $00.
 SlotFlowDD74:
     SlotRuntimeRecord $B7AA, $5ED0, $23, $00, $16, $61, $22 ; CONTROL_SLOT_FLOW_DD74
@@ -22409,13 +22413,12 @@ CompactContextDD8C:
 SlotRuntimeDD8F:
     SlotRuntimeRecord $B7B3, (ScriptDE0D - BankStart), $22, $FF, $00, $00, $00 ; CONTROL_SLOT_RUNTIME_DD8F
 .assert (* - BankStart) = $5D98, error, "bank 1 slot record DD8F end"
-    .incbin "bank1_dd98_dd99.bin"
-; Possible contact for descriptor base $DD8F; execution remains unverified.
-ReviewedContactDD98:
-    .byte $FF ; CONTROL_REVIEWED_CONTACT_DD98
-    .word RuntimeScriptE764 - BankStart
-.assert (* - BankStart) = $5D9C, error, "bank 1 candidate contact dd98 end"
-    .incbin "bank1_dd9c_dda1.bin"
+; Native-contact record view at $DD98; resource high $FF skips the six
+; explicitly retained fields. Other entry points and interpretations remain possible.
+SlotScriptOnlyDD98:
+    SlotScriptOnlyRecord $FF, (RuntimeScriptE764 - BankStart), $40, $FF, $00, $00, $00 ; CONTROL_SCRIPT_ONLY_RECORD_DD98
+ReviewedContactDD98 = SlotScriptOnlyDD98 + 1
+.assert (* - BankStart) = $5DA1, error, "bank 1 script-only record DD98 end"
 ; Candidate descriptor $DD8F, command $DE81, mode $00.
 SlotFlowDDA1:
     SlotRuntimeRecord $B7B3, $5ED0, $23, $00, $16, $61, $22 ; CONTROL_SLOT_FLOW_DDA1
@@ -22439,13 +22442,12 @@ CompactContextDDB9:
 SlotRuntimeDDBC:
     SlotRuntimeRecord $B866, (ScriptDE0D - BankStart), $22, $FF, $00, $00, $00 ; CONTROL_SLOT_RUNTIME_DDBC
 .assert (* - BankStart) = $5DC5, error, "bank 1 slot record DDBC end"
-    .incbin "bank1_ddc5_ddc6.bin"
-; Possible contact for descriptor base $DDBC; execution remains unverified.
-ReviewedContactDDC5:
-    .byte $FF ; CONTROL_REVIEWED_CONTACT_DDC5
-    .word RuntimeScriptE764 - BankStart
-.assert (* - BankStart) = $5DC9, error, "bank 1 candidate contact ddc5 end"
-    .incbin "bank1_ddc9_ddce.bin"
+; Native-contact record view at $DDC5; resource high $FF skips the six
+; explicitly retained fields. Other entry points and interpretations remain possible.
+SlotScriptOnlyDDC5:
+    SlotScriptOnlyRecord $FF, (RuntimeScriptE764 - BankStart), $40, $FF, $00, $00, $00 ; CONTROL_SCRIPT_ONLY_RECORD_DDC5
+ReviewedContactDDC5 = SlotScriptOnlyDDC5 + 1
+.assert (* - BankStart) = $5DCE, error, "bank 1 script-only record DDC5 end"
 ; Candidate descriptor $DDBC, command $DE81, mode $00.
 SlotFlowDDCE:
     SlotRuntimeRecord $B866, $5ED0, $23, $00, $16, $61, $22 ; CONTROL_SLOT_FLOW_DDCE
@@ -22469,13 +22471,12 @@ CompactContextDDE6:
 SlotRuntimeDDE9:
     SlotRuntimeRecord $B79A, (ScriptDE0D - BankStart), $22, $FF, $00, $00, $00 ; CONTROL_SLOT_RUNTIME_DDE9
 .assert (* - BankStart) = $5DF2, error, "bank 1 slot record DDE9 end"
-    .incbin "bank1_ddf2_ddf3.bin"
-; Possible contact for descriptor base $DDE9; execution remains unverified.
-ReviewedContactDDF2:
-    .byte $FF ; CONTROL_REVIEWED_CONTACT_DDF2
-    .word RuntimeScriptE764 - BankStart
-.assert (* - BankStart) = $5DF6, error, "bank 1 candidate contact ddf2 end"
-    .incbin "bank1_ddf6_ddfb.bin"
+; Native-contact record view at $DDF2; resource high $FF skips the six
+; explicitly retained fields. Other entry points and interpretations remain possible.
+SlotScriptOnlyDDF2:
+    SlotScriptOnlyRecord $FF, (RuntimeScriptE764 - BankStart), $40, $FF, $00, $00, $00 ; CONTROL_SCRIPT_ONLY_RECORD_DDF2
+ReviewedContactDDF2 = SlotScriptOnlyDDF2 + 1
+.assert (* - BankStart) = $5DFB, error, "bank 1 script-only record DDF2 end"
 ; Candidate descriptor $DDE9, command $DE81, mode $00.
 SlotFlowDDFB:
     SlotRuntimeRecord $B79A, $5ED0, $23, $00, $16, $61, $22 ; CONTROL_SLOT_FLOW_DDFB
@@ -22806,13 +22807,12 @@ CompactContextE040HighAndMode:
 SlotRuntimeE043:
     SlotRuntimeRecord $B9E1, (ScriptE067 - BankStart), $00, $FF, $00, $00, $00 ; CONTROL_SLOT_RUNTIME_E043
 .assert (* - BankStart) = $604C, error, "bank 1 slot record E043 end"
-    .incbin "bank1_e04c_e04d.bin"
-; Possible contact for descriptor base $E043; execution remains unverified.
-ReviewedContactE04C:
-    .byte $FF ; CONTROL_REVIEWED_CONTACT_E04C
-    .word RuntimeScriptE764 - BankStart
-.assert (* - BankStart) = $6050, error, "bank 1 candidate contact e04c end"
-    .incbin "bank1_e050_e055.bin"
+; Native-contact record view at $E04C; resource high $FF skips the six
+; explicitly retained fields. Other entry points and interpretations remain possible.
+SlotScriptOnlyE04C:
+    SlotScriptOnlyRecord $FF, (RuntimeScriptE764 - BankStart), $40, $FF, $00, $00, $00 ; CONTROL_SCRIPT_ONLY_RECORD_E04C
+ReviewedContactE04C = SlotScriptOnlyE04C + 1
+.assert (* - BankStart) = $6055, error, "bank 1 script-only record E04C end"
 ; Candidate descriptor $E043, script $E262, mode $02. Other fields have
 ; competing script interpretations and remain local.
 ModeRecordE055Resource:
@@ -22928,13 +22928,12 @@ CandidateScriptE0B7 = CompactE0B6 + 1
 SlotRuntimeE0B9:
     SlotRuntimeRecord $BB1F, (ScriptE0DD - BankStart), $00, $FF, $00, $00, $00 ; CONTROL_SLOT_RUNTIME_E0B9
 .assert (* - BankStart) = $60C2, error, "bank 1 slot record E0B9 end"
-    .incbin "bank1_e0c2_e0c3.bin"
-; Possible contact for descriptor base $E0B9; execution remains unverified.
-ReviewedContactE0C2:
-    .byte $FF ; CONTROL_REVIEWED_CONTACT_E0C2
-    .word RuntimeScriptE764 - BankStart
-.assert (* - BankStart) = $60C6, error, "bank 1 candidate contact e0c2 end"
-    .incbin "bank1_e0c6_e0cb.bin"
+; Native-contact record view at $E0C2; resource high $FF skips the six
+; explicitly retained fields. Other entry points and interpretations remain possible.
+SlotScriptOnlyE0C2:
+    SlotScriptOnlyRecord $FF, (RuntimeScriptE764 - BankStart), $40, $FF, $00, $00, $00 ; CONTROL_SCRIPT_ONLY_RECORD_E0C2
+ReviewedContactE0C2 = SlotScriptOnlyE0C2 + 1
+.assert (* - BankStart) = $60CB, error, "bank 1 script-only record E0C2 end"
 ; Candidate descriptor $E0B9, script $E232, mode $02.
 ModeRecordE0CBResource:
     .word $B611 ; CONTROL_MODE_RECORD_E0CB_RESOURCE
@@ -23231,13 +23230,12 @@ CompactContextE2F9:
 SlotRuntimeE2FC:
     SlotRuntimeRecord $B8E7, (ScriptE486 - BankStart), $23, $FF, $00, $00, $00 ; CONTROL_SLOT_RUNTIME_E2FC
 .assert (* - BankStart) = $6305, error, "bank 1 slot record E2FC end"
-    .incbin "bank1_e305_e306.bin"
-; Possible contact for descriptor base $E2FC; execution remains unverified.
-ReviewedContactE305:
-    .byte $FF ; CONTROL_REVIEWED_CONTACT_E305
-    .word RuntimeScriptE764 - BankStart
-.assert (* - BankStart) = $6309, error, "bank 1 candidate contact e305 end"
-    .incbin "bank1_e309_e30e.bin"
+; Native-contact record view at $E305; resource high $FF skips the six
+; explicitly retained fields. Other entry points and interpretations remain possible.
+SlotScriptOnlyE305:
+    SlotScriptOnlyRecord $FF, (RuntimeScriptE764 - BankStart), $00, $FF, $00, $00, $00 ; CONTROL_SCRIPT_ONLY_RECORD_E305
+ReviewedContactE305 = SlotScriptOnlyE305 + 1
+.assert (* - BankStart) = $630E, error, "bank 1 script-only record E305 end"
 ; Candidate descriptor $E2FC, command $E4B0, mode $00.
 SlotFlowE30E:
     SlotRuntimeRecord $C4E9, $68F2, $00, $FF, $00, $00, $00 ; CONTROL_SLOT_FLOW_E30E
@@ -23311,13 +23309,12 @@ CompactContextE395:
 SlotRuntimeE398:
     SlotRuntimeRecord $B823, (ScriptE48E - BankStart), $23, $FF, $00, $00, $00 ; CONTROL_SLOT_RUNTIME_E398
 .assert (* - BankStart) = $63A1, error, "bank 1 slot record E398 end"
-    .incbin "bank1_e3a1_e3a2.bin"
-; Possible contact for descriptor base $E398; execution remains unverified.
-ReviewedContactE3A1:
-    .byte $FF ; CONTROL_REVIEWED_CONTACT_E3A1
-    .word RuntimeScriptE764 - BankStart
-.assert (* - BankStart) = $63A5, error, "bank 1 candidate contact e3a1 end"
-    .incbin "bank1_e3a5_e3aa.bin"
+; Native-contact record view at $E3A1; resource high $FF skips the six
+; explicitly retained fields. Other entry points and interpretations remain possible.
+SlotScriptOnlyE3A1:
+    SlotScriptOnlyRecord $FF, (RuntimeScriptE764 - BankStart), $00, $FF, $00, $00, $00 ; CONTROL_SCRIPT_ONLY_RECORD_E3A1
+ReviewedContactE3A1 = SlotScriptOnlyE3A1 + 1
+.assert (* - BankStart) = $63AA, error, "bank 1 script-only record E3A1 end"
 ; Candidate descriptor $E398, command $E4B0, mode $00.
 SlotFlowE3AA:
     SlotRuntimeRecord $C225, $68F2, $00, $FF, $00, $00, $00 ; CONTROL_SLOT_FLOW_E3AA
@@ -23388,13 +23385,12 @@ CompactContextE431:
 SlotRuntimeE434:
     SlotRuntimeRecord $B77E, (ScriptE47C - BankStart), $23, $FF, $00, $00, $00 ; CONTROL_SLOT_RUNTIME_E434
 .assert (* - BankStart) = $643D, error, "bank 1 slot record E434 end"
-    .incbin "bank1_e43d_e43e.bin"
-; Possible contact for descriptor base $E434; execution remains unverified.
-ReviewedContactE43D:
-    .byte $FF ; CONTROL_REVIEWED_CONTACT_E43D
-    .word RuntimeScriptE764 - BankStart
-.assert (* - BankStart) = $6441, error, "bank 1 candidate contact e43d end"
-    .incbin "bank1_e441_e446.bin"
+; Native-contact record view at $E43D; resource high $FF skips the six
+; explicitly retained fields. Other entry points and interpretations remain possible.
+SlotScriptOnlyE43D:
+    SlotScriptOnlyRecord $FF, (RuntimeScriptE764 - BankStart), $00, $FF, $00, $00, $00 ; CONTROL_SCRIPT_ONLY_RECORD_E43D
+ReviewedContactE43D = SlotScriptOnlyE43D + 1
+.assert (* - BankStart) = $6446, error, "bank 1 script-only record E43D end"
 ; Candidate descriptor $E434, command $E4B0, mode $00.
 SlotFlowE446:
     SlotRuntimeRecord $C049, $68F2, $00, $FF, $00, $00, $00 ; CONTROL_SLOT_FLOW_E446
@@ -24469,13 +24465,12 @@ CompactContextEAEA:
 SlotRuntimeEAED:
     SlotRuntimeRecord $B608, (ScriptEC03 - BankStart), $22, $00, $16, $61, $12 ; CONTROL_SLOT_RUNTIME_EAED
 .assert (* - BankStart) = $6AF6, error, "bank 1 slot record EAED end"
-    .incbin "bank1_eaf6_eaf7.bin"
-; Possible contact for descriptor base $EAED; execution remains unverified.
-ReviewedContactEAF6:
-    .byte $FF ; CONTROL_REVIEWED_CONTACT_EAF6
-    .word RuntimeScriptE764 - BankStart
-.assert (* - BankStart) = $6AFA, error, "bank 1 candidate contact eaf6 end"
-    .incbin "bank1_eafa_eaff.bin"
+; Native-contact record view at $EAF6; resource high $FF skips the six
+; explicitly retained fields. Other entry points and interpretations remain possible.
+SlotScriptOnlyEAF6:
+    SlotScriptOnlyRecord $FF, (RuntimeScriptE764 - BankStart), $40, $FF, $00, $00, $00 ; CONTROL_SCRIPT_ONLY_RECORD_EAF6
+ReviewedContactEAF6 = SlotScriptOnlyEAF6 + 1
+.assert (* - BankStart) = $6AFF, error, "bank 1 script-only record EAF6 end"
 ; Candidate descriptor $EAED, script $ECE2, mode $02. The resource high byte
 ; also starts a possible pair-bit command using the skipped pointer bytes.
 ModeRecordEAFFPointer = $BAE9 ; CONTROL_MODE_RECORD_EAFF_RESOURCE
@@ -24510,13 +24505,12 @@ CompactContextEB10Resource:
 SlotRuntimeEB13:
     SlotRuntimeRecord $B608, (ScriptEC03 - BankStart), $22, $00, $16, $61, $22 ; CONTROL_SLOT_RUNTIME_EB13
 .assert (* - BankStart) = $6B1C, error, "bank 1 slot record EB13 end"
-    .incbin "bank1_eb1c_eb1d.bin"
-; Possible contact for descriptor base $EB13; execution remains unverified.
-ReviewedContactEB1C:
-    .byte $FF ; CONTROL_REVIEWED_CONTACT_EB1C
-    .word RuntimeScriptE764 - BankStart
-.assert (* - BankStart) = $6B20, error, "bank 1 candidate contact eb1c end"
-    .incbin "bank1_eb20_eb25.bin"
+; Native-contact record view at $EB1C; resource high $FF skips the six
+; explicitly retained fields. Other entry points and interpretations remain possible.
+SlotScriptOnlyEB1C:
+    SlotScriptOnlyRecord $FF, (RuntimeScriptE764 - BankStart), $40, $FF, $00, $00, $00 ; CONTROL_SCRIPT_ONLY_RECORD_EB1C
+ReviewedContactEB1C = SlotScriptOnlyEB1C + 1
+.assert (* - BankStart) = $6B25, error, "bank 1 script-only record EB1C end"
 ; Observed mode-specific record fields; unread neighbouring bytes stay local.
 SweepPartialEB25Resource:
     .word $B5F0 ; CONTROL_SWEEP_RESOURCE_EB25
@@ -24574,13 +24568,12 @@ CompactContextEB71:
 SlotRuntimeEB74:
     SlotRuntimeRecord $B848, (ScriptEBFD - BankStart), $22, $00, $16, $61, $22 ; CONTROL_SLOT_RUNTIME_EB74
 .assert (* - BankStart) = $6B7D, error, "bank 1 slot record EB74 end"
-    .incbin "bank1_eb7d_eb7e.bin"
-; Possible contact for descriptor base $EB74; execution remains unverified.
-ReviewedContactEB7D:
-    .byte $FF ; CONTROL_REVIEWED_CONTACT_EB7D
-    .word RuntimeScriptE764 - BankStart
-.assert (* - BankStart) = $6B81, error, "bank 1 candidate contact eb7d end"
-    .incbin "bank1_eb81_eb86.bin"
+; Native-contact record view at $EB7D; resource high $FF skips the six
+; explicitly retained fields. Other entry points and interpretations remain possible.
+SlotScriptOnlyEB7D:
+    SlotScriptOnlyRecord $FF, (RuntimeScriptE764 - BankStart), $40, $FF, $00, $00, $00 ; CONTROL_SCRIPT_ONLY_RECORD_EB7D
+ReviewedContactEB7D = SlotScriptOnlyEB7D + 1
+.assert (* - BankStart) = $6B86, error, "bank 1 script-only record EB7D end"
 ; Candidate descriptor $EB74, script $ECE2, mode $02.
 ModeRecordEB86Resource:
     .word $B858 ; CONTROL_MODE_RECORD_EB86_RESOURCE
@@ -24651,13 +24644,12 @@ CompactContextEBD0:
 SlotRuntimeEBD3:
     SlotRuntimeRecord $C72F, (ScriptEBEE - BankStart), $22, $FF, $00, $00, $00 ; CONTROL_SLOT_RUNTIME_EBD3
 .assert (* - BankStart) = $6BDC, error, "bank 1 slot record EBD3 end"
-    .incbin "bank1_ebdc_ebdd.bin"
-; Possible contact for descriptor base $EBD3; execution remains unverified.
-ReviewedContactEBDC:
-    .byte $FF ; CONTROL_REVIEWED_CONTACT_EBDC
-    .word RuntimeScriptE764 - BankStart
-.assert (* - BankStart) = $6BE0, error, "bank 1 candidate contact ebdc end"
-    .incbin "bank1_ebe0_ebe5.bin"
+; Native-contact record view at $EBDC; resource high $FF skips the six
+; explicitly retained fields. Other entry points and interpretations remain possible.
+SlotScriptOnlyEBDC:
+    SlotScriptOnlyRecord $FF, (RuntimeScriptE764 - BankStart), $40, $FF, $00, $00, $00 ; CONTROL_SCRIPT_ONLY_RECORD_EBDC
+ReviewedContactEBDC = SlotScriptOnlyEBDC + 1
+.assert (* - BankStart) = $6BE5, error, "bank 1 script-only record EBDC end"
 ; Candidate descriptor $EBD3, script $ECE2, mode $02.
 ModeRecordEBE5Resource:
     .word $B9CA ; CONTROL_MODE_RECORD_EBE5_RESOURCE
@@ -24819,13 +24811,13 @@ CompactContextED1E:
 SlotRuntimeED21:
     SlotRuntimeRecord $BA0A, $6D45, $22, $FF, $00, $00, $00 ; CONTROL_SLOT_RUNTIME_ED21
 .assert (* - BankStart) = $6D2A, error, "bank 1 slot record ED21 end"
-    .incbin "bank1_ed2a_ed2b.bin"
-; Possible contact for descriptor base $ED21; execution remains unverified.
-ReviewedContactED2A:
-    .byte $FF ; CONTROL_REVIEWED_CONTACT_ED2A
-    .word RuntimeScriptE764 - BankStart
-.assert (* - BankStart) = $6D2E, error, "bank 1 candidate contact ed2a end"
-    .incbin "bank1_ed2e_ed34.bin"
+; Native-contact record view at $ED2A; resource high $FF skips the six
+; explicitly retained fields. Other entry points and interpretations remain possible.
+SlotScriptOnlyED2A:
+    SlotScriptOnlyRecord $FF, (RuntimeScriptE764 - BankStart), $40, $FF, $00, $00, $00 ; CONTROL_SCRIPT_ONLY_RECORD_ED2A
+ReviewedContactED2A = SlotScriptOnlyED2A + 1
+.assert (* - BankStart) = $6D33, error, "bank 1 script-only record ED2A end"
+    .incbin "bank1_ed33_ed34.bin"
 ; Candidate descriptor $ED21, script $EE2A, mode $01.
 ModeRecordED33Sentinel:
     .byte $FF ; CONTROL_MODE_RECORD_ED33_SENTINEL
@@ -24854,13 +24846,12 @@ CompactContextED53:
 SlotRuntimeED56:
     SlotRuntimeRecord $B68A, (ScriptED71 - BankStart), $22, $FF, $00, $00, $00 ; CONTROL_SLOT_RUNTIME_ED56
 .assert (* - BankStart) = $6D5F, error, "bank 1 slot record ED56 end"
-    .incbin "bank1_ed5f_ed60.bin"
-; Possible contact for descriptor base $ED56; execution remains unverified.
-ReviewedContactED5F:
-    .byte $FF ; CONTROL_REVIEWED_CONTACT_ED5F
-    .word RuntimeScriptE764 - BankStart
-.assert (* - BankStart) = $6D63, error, "bank 1 candidate contact ed5f end"
-    .incbin "bank1_ed63_ed68.bin"
+; Native-contact record view at $ED5F; resource high $FF skips the six
+; explicitly retained fields. Other entry points and interpretations remain possible.
+SlotScriptOnlyED5F:
+    SlotScriptOnlyRecord $FF, (RuntimeScriptE764 - BankStart), $40, $FF, $00, $00, $00 ; CONTROL_SCRIPT_ONLY_RECORD_ED5F
+ReviewedContactED5F = SlotScriptOnlyED5F + 1
+.assert (* - BankStart) = $6D68, error, "bank 1 script-only record ED5F end"
 ; Candidate descriptor $ED56, script $EE2A, mode $01.
 ModeRecordED68Resource:
     .word $B683 ; CONTROL_MODE_RECORD_ED68_RESOURCE
@@ -25002,13 +24993,12 @@ OverlayScriptEE65:
 SlotRuntimeEE68:
     SlotRuntimeRecord $B6B7, $6E7A, $00, $00, $20, $D9, $11 ; CONTROL_SLOT_RUNTIME_EE68
 .assert (* - BankStart) = $6E71, error, "bank 1 slot record EE68 end"
-    .incbin "bank1_ee71_ee72.bin"
-; Possible contact for descriptor base $EE68; execution remains unverified.
-ReviewedContactEE71:
-    .byte $FF ; CONTROL_REVIEWED_CONTACT_EE71
-    .word InteractionScriptF00F - BankStart
-.assert (* - BankStart) = $6E75, error, "bank 1 candidate contact ee71 end"
-    .incbin "bank1_ee75_ee7a.bin"
+; Native-contact record view at $EE71; resource high $FF skips the six
+; explicitly retained fields. Other entry points and interpretations remain possible.
+SlotScriptOnlyEE71:
+    SlotScriptOnlyRecord $FF, (InteractionScriptF00F - BankStart), $00, $FF, $00, $00, $00 ; CONTROL_SCRIPT_ONLY_RECORD_EE71
+ReviewedContactEE71 = SlotScriptOnlyEE71 + 1
+.assert (* - BankStart) = $6E7A, error, "bank 1 script-only record EE71 end"
 ; Possible continuation after a retained script pointer; reachability is unverified.
 RetainedScriptEE7A:
     BogusSetSlot0640Pair $00, $40 ; CONTROL_RETAINED_SCRIPT_EE7A
@@ -25116,13 +25106,12 @@ OverlayScriptEEE5:
 SlotRuntimeEEE8:
     SlotRuntimeRecord $B74E, $6EFA, $00, $00, $20, $D9, $11 ; CONTROL_SLOT_RUNTIME_EEE8
 .assert (* - BankStart) = $6EF1, error, "bank 1 slot record EEE8 end"
-    .incbin "bank1_eef1_eef2.bin"
-; Possible contact for descriptor base $EEE8; execution remains unverified.
-ReviewedContactEEF1:
-    .byte $FF ; CONTROL_REVIEWED_CONTACT_EEF1
-    .word InteractionScriptF00F - BankStart
-.assert (* - BankStart) = $6EF5, error, "bank 1 candidate contact eef1 end"
-    .incbin "bank1_eef5_eefa.bin"
+; Native-contact record view at $EEF1; resource high $FF skips the six
+; explicitly retained fields. Other entry points and interpretations remain possible.
+SlotScriptOnlyEEF1:
+    SlotScriptOnlyRecord $FF, (InteractionScriptF00F - BankStart), $00, $FF, $00, $00, $00 ; CONTROL_SCRIPT_ONLY_RECORD_EEF1
+ReviewedContactEEF1 = SlotScriptOnlyEEF1 + 1
+.assert (* - BankStart) = $6EFA, error, "bank 1 script-only record EEF1 end"
 ; Possible continuation after a retained script pointer; reachability is unverified.
 RetainedScriptEEFA:
     BogusSetSlot0640Pair $00, $42 ; CONTROL_RETAINED_SCRIPT_EEFA

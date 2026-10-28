@@ -11,7 +11,9 @@ from unittest.mock import patch
 from test_build import synthetic_map
 from test_map_assets import synthetic_prg
 from test_menu_assets import synthetic_menu_prg
-from tools import chr_assets, map_assets, map_layout_assets, menu_assets, packed_text, sprite_assets, text_assets
+from test_palette_assets import synthetic_palettes
+from test_ppu_assets import synthetic_ppu_assets
+from tools import chr_assets, map_assets, map_layout_assets, menu_assets, palette_assets, ppu_assets, packed_text, sprite_assets, text_assets
 from tools.build_rom import (MUTATIONS, PROOF_INPUTS, SYMBOL_CONTROLS, digest, mutate_include,
                              mutate_source, source_regions)
 from tools.identify_rom import inspect_rom
@@ -105,6 +107,13 @@ class ProofFreshnessTests(unittest.TestCase):
         # Separate synthetic menu input from packed-text gaps without copying game data.
         source_map["regions"].append({"id": "synthetic-menu-separator", "bank": 1, "cpu": "0xf300",
                                       "size": 2, "kind": "data", "control": "reset"})
+        for cpu, size in ((0xe000, 3), (0xe013, 3), (0xe036, 2)):
+            source_map["regions"].append({"id": f"synthetic-palette-{cpu:x}", "bank": 0,
+                                          "cpu": hex(cpu), "size": size, "kind": "data", "control": "reset"})
+        for bank in (0, 1):
+            for cpu, size in ((0xf800, 3), (0xf805, 3), (0xf80a, 1), (0xf80b, 2)):
+                source_map["regions"].append({"id": f"synthetic-ppu-{bank}-{cpu:x}", "bank": bank,
+                                              "cpu": hex(cpu), "size": size, "kind": "data", "control": "reset"})
         source_map_bytes = json.dumps(source_map).encode()
         write("src/rom.s", source)
         write("include/nes.inc", include)
@@ -123,7 +132,7 @@ class ProofFreshnessTests(unittest.TestCase):
 
         preliminary_regions = source_regions(source_map, 16)
         code_regions = [r for r in preliminary_regions if r["kind"] == "code" and r["bank"] == 0]
-        prg = bytearray(synthetic_menu_prg(synthetic_prg()))
+        prg = bytearray(synthetic_ppu_assets(self.root, synthetic_palettes(self.root, synthetic_menu_prg(synthetic_prg()))))
         prg[0x7000:0x7004] = bytes([0x05, 0x11, 0x42, 0x37])
         prg[0x7010:0x7014] = bytes([0x06, 0x11, 0x43, 0x38])
         symbol_offsets = {}
@@ -298,6 +307,68 @@ class ProofFreshnessTests(unittest.TestCase):
                          "control": {"asset_sha256": digest(changed_menu_json),
                                      "gap_sha256": {name: digest(changed_menu_gaps[name]) for name in menu_names},
                                      "candidate_sha256": digest(menu_candidate), "changed_offsets": menu_offsets}}
+        palette, palette_spans, palette_source, palette_hash = palette_assets.select(self.root, prg, digest(reference))
+        palette_gaps = map_layout_assets.gap_payloads(prg, regions, palette_spans)
+        if set(palette_gaps) & (set(layout_gaps) | set(text_gaps) | set(sprite_gaps)):
+            raise ValueError("synthetic palette and other assets unexpectedly overlap")
+        (inputs / "palettes.json").write_bytes(palette_assets.serialize(palette))
+        for name, payload in palette_gaps.items():
+            (inputs / name).write_bytes(payload)
+        changed_palette = palette_assets.changed_asset(palette)
+        changed_palette_json = palette_assets.serialize(changed_palette)
+        changed_palette_spans = palette_assets.encode(self.root, changed_palette, prg, digest(reference))
+        changed_palette_gaps = map_layout_assets.gap_payloads(prg, regions, changed_palette_spans)
+        palette_names = [name for name in palette_gaps if palette_gaps[name] != changed_palette_gaps[name]]
+        candidate_data = bytearray(reference)
+        for bank, offset, payload in changed_palette_spans:
+            start = 16 + bank * map_assets.BANK_SIZE + offset
+            candidate_data[start:start + len(payload)] = payload
+        palette_candidate = bytes(candidate_data)
+        palette_offsets = palette_assets.verify_control(reference, palette_candidate, 16, palette)
+        palette_dir = self.proof_dir / "controls/palette_asset"
+        palette_dir.mkdir(parents=True)
+        (palette_dir / "rom.s").write_bytes(source)
+        (palette_dir / "palettes.json").write_bytes(changed_palette_json)
+        (palette_dir / "gaps").mkdir()
+        for name in palette_names:
+            (palette_dir / "gaps" / name).write_bytes(changed_palette_gaps[name])
+        (palette_dir / "candidate.nes").write_bytes(palette_candidate)
+        palette_evidence = {"source": palette_source, "input_sha256": palette_hash,
+                         "gap_sha256": {name: digest(payload) for name, payload in palette_gaps.items()},
+                         "control": {"asset_sha256": digest(changed_palette_json),
+                                     "gap_sha256": {name: digest(changed_palette_gaps[name]) for name in palette_names},
+                                     "candidate_sha256": digest(palette_candidate), "changed_offsets": palette_offsets}}
+        ppu, ppu_spans, ppu_source, ppu_hash = ppu_assets.select(self.root, prg, digest(reference))
+        ppu_gaps = map_layout_assets.gap_payloads(prg, regions, ppu_spans)
+        if set(ppu_gaps) & (set(layout_gaps) | set(text_gaps) | set(sprite_gaps) | set(menu_gaps) | set(palette_gaps)):
+            raise ValueError("synthetic ppu and other assets unexpectedly overlap")
+        (inputs / "ppu-tiles.json").write_bytes(ppu_assets.serialize(ppu))
+        for name, payload in ppu_gaps.items():
+            (inputs / name).write_bytes(payload)
+        changed_ppu = ppu_assets.changed_asset(ppu)
+        changed_ppu_json = ppu_assets.serialize(changed_ppu)
+        changed_ppu_spans = ppu_assets.encode(self.root, changed_ppu, prg, digest(reference))
+        changed_ppu_gaps = map_layout_assets.gap_payloads(prg, regions, changed_ppu_spans)
+        ppu_names = [name for name in ppu_gaps if ppu_gaps[name] != changed_ppu_gaps[name]]
+        candidate_data = bytearray(reference)
+        for bank, offset, payload in changed_ppu_spans:
+            start = 16 + bank * map_assets.BANK_SIZE + offset
+            candidate_data[start:start + len(payload)] = payload
+        ppu_candidate = bytes(candidate_data)
+        ppu_offsets = ppu_assets.verify_control(reference, ppu_candidate, 16, ppu)
+        ppu_dir = self.proof_dir / "controls/ppu_asset"
+        ppu_dir.mkdir(parents=True)
+        (ppu_dir / "rom.s").write_bytes(source)
+        (ppu_dir / "ppu-tiles.json").write_bytes(changed_ppu_json)
+        (ppu_dir / "gaps").mkdir()
+        for name in ppu_names:
+            (ppu_dir / "gaps" / name).write_bytes(changed_ppu_gaps[name])
+        (ppu_dir / "candidate.nes").write_bytes(ppu_candidate)
+        ppu_evidence = {"source": ppu_source, "input_sha256": ppu_hash,
+                         "gap_sha256": {name: digest(payload) for name, payload in ppu_gaps.items()},
+                         "control": {"asset_sha256": digest(changed_ppu_json),
+                                     "gap_sha256": {name: digest(changed_ppu_gaps[name]) for name in ppu_names},
+                                     "candidate_sha256": digest(ppu_candidate), "changed_offsets": ppu_offsets}}
         chr_offset = parsed["chr"]["offset"]
         reference_chr = reference[chr_offset:chr_offset + parsed["chr"]["size"]]
         chr_asset, chr_payload, chr_source, chr_hash = chr_assets.select(self.root, reference_chr, digest(reference))
@@ -363,7 +434,7 @@ class ProofFreshnessTests(unittest.TestCase):
             "output_sha256": digest(reference), "reference_sha256": digest(reference),
             "component_matches": {p: True for p in IDENTITY_PARTS}, "source_regions": regions,
             "map_assets": asset_evidence, "layout_assets": layout_evidence, "text_assets": text_evidence,
-            "sprite_assets": sprite_evidence, "menu_assets": menu_evidence, "chr_assets": chr_evidence,
+            "sprite_assets": sprite_evidence, "menu_assets": menu_evidence, "palette_assets": palette_evidence, "ppu_assets": ppu_evidence, "chr_assets": chr_evidence,
             "counts": {"matching_code_bytes": code, "structured_data_bytes": data,
                        "local_prg_bytes": 65536 - code - data, "local_chr_bytes": 65536},
             "controls": controls, "symbol_controls": symbol_controls,
@@ -443,6 +514,54 @@ class ProofFreshnessTests(unittest.TestCase):
         name = next(iter(self.proof["menu_assets"]["control"]["gap_sha256"]))
         (self.proof_dir / "controls/menu_asset/gaps" / name).write_bytes(b"changed")
         with self.assertRaisesRegex(ValueError, "menu source-change control"):
+            self.verify()
+
+    def test_changed_palette_asset_or_control_is_rejected(self):
+        asset_path = self.root / palette_assets.ASSET_PATH
+        asset_path.parent.mkdir(parents=True)
+        raw = (self.proof_dir / "inputs/palettes.json").read_bytes()
+        asset = json.loads(raw)
+        asset_path.write_bytes(raw)
+        with self.assertRaisesRegex(ValueError, "palette asset build evidence is stale"):
+            self.verify()
+        self.proof["palette_assets"]["source"] = "local"
+        self.proof["palette_assets"]["input_sha256"] = digest(raw)
+        self.save_proof()
+        self.verify()
+        asset_path.write_bytes(palette_assets.serialize(palette_assets.changed_asset(asset)))
+        with self.assertRaisesRegex(ValueError, "palette asset build evidence is stale"):
+            self.verify()
+        asset_path.unlink()
+        self.proof["palette_assets"]["source"] = "reference"
+        self.proof["palette_assets"]["input_sha256"] = digest(raw)
+        self.save_proof()
+        name = next(iter(self.proof["palette_assets"]["control"]["gap_sha256"]))
+        (self.proof_dir / "controls/palette_asset/gaps" / name).write_bytes(b"changed")
+        with self.assertRaisesRegex(ValueError, "palette source-change control"):
+            self.verify()
+
+    def test_changed_ppu_asset_or_control_is_rejected(self):
+        asset_path = self.root / ppu_assets.ASSET_PATH
+        asset_path.parent.mkdir(parents=True)
+        raw = (self.proof_dir / "inputs/ppu-tiles.json").read_bytes()
+        asset = json.loads(raw)
+        asset_path.write_bytes(raw)
+        with self.assertRaisesRegex(ValueError, "ppu asset build evidence is stale"):
+            self.verify()
+        self.proof["ppu_assets"]["source"] = "local"
+        self.proof["ppu_assets"]["input_sha256"] = digest(raw)
+        self.save_proof()
+        self.verify()
+        asset_path.write_bytes(ppu_assets.serialize(ppu_assets.changed_asset(asset)))
+        with self.assertRaisesRegex(ValueError, "ppu asset build evidence is stale"):
+            self.verify()
+        asset_path.unlink()
+        self.proof["ppu_assets"]["source"] = "reference"
+        self.proof["ppu_assets"]["input_sha256"] = digest(raw)
+        self.save_proof()
+        name = next(iter(self.proof["ppu_assets"]["control"]["gap_sha256"]))
+        (self.proof_dir / "controls/ppu_asset/gaps" / name).write_bytes(b"changed")
+        with self.assertRaisesRegex(ValueError, "ppu source-change control"):
             self.verify()
 
     def test_changed_sprite_asset_or_control_is_rejected(self):
