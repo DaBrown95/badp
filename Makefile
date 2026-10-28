@@ -5,7 +5,7 @@ export BADP_TARGET = $(TARGET)
 export BADP_ROM = $(ROM)
 .DEFAULT_GOAL := help
 
-.PHONY: help setup setup-mesen targets identify audit audit-all build progress verify-gameplay verify-controller verify-audio-bank indexed-jump-inventory native-control-flow native-script-calls position-records script-entries script-flow slot-record-flow contact-record-flow native-event-flow direct-record-flow packed-text ppu-streams trace-audio trace-audio-route audio-inventory audio-flow trace-sprites sprite-inventory map-data trace-map extract-map-chunks extract-map-layouts extract-packed-text prg-inventory trace-runtime-extents runtime-extents test
+.PHONY: help setup setup-mesen targets identify audit audit-all build progress verify-gameplay verify-controller verify-audio-bank verify-record-boundary indexed-jump-inventory native-control-flow native-script-calls position-records script-entries script-flow slot-record-flow contact-record-flow native-event-flow direct-record-flow packed-text ppu-streams trace-audio trace-audio-route audio-inventory audio-flow trace-sprites sprite-inventory map-data trace-map extract-map-chunks extract-map-layouts extract-packed-text prg-inventory trace-runtime-extents runtime-extents test
 help:
 	@echo 'make targets   Show the primary target and sequential target order'
 	@echo 'make identify  Inspect a ROM (default: primary target; override TARGET=id or ROM=path)'
@@ -18,6 +18,7 @@ help:
 	@echo 'make verify-gameplay  Compare v1.5 opening gameplay and inventory in MesenCE'
 	@echo 'make verify-controller Check v1.5 controller bit order and transitions'
 	@echo 'make verify-audio-bank Check audio selector and mapper behavior in MesenCE'
+	@echo 'make verify-record-boundary Check record fetch wrapping in MesenCE'
 	@echo 'make indexed-jump-inventory Check the $$F434 index and local table candidates'
 	@echo 'make native-control-flow  Inventory reconstructed native transfers locally'
 	@echo 'make native-script-calls  Inventory candidate BOGUS native-call targets'
@@ -78,6 +79,9 @@ verify-controller:
 
 verify-audio-bank:
 	$(PYTHON) -m tools.verify_audio_bank
+
+verify-record-boundary:
+	$(PYTHON) -m tools.verify_record_boundary
 
 indexed-jump-inventory:
 	$(PYTHON) -m tools.indexed_jump_inventory

@@ -52,6 +52,11 @@ class SlotRecordFlowTests(unittest.TestCase):
         result = resolve_access(bytes(b0), bytes(b1), 0x7fff, 0, 0)
         self.assertEqual(result['status'], 'fetch_crosses_bank_boundary')
         self.assertNotIn('fields', result)
+        self.assertEqual(result['fetch_plan']['segments'][0]['selection'], 'secondary_write')
+        self.assertEqual(result['fetch_plan']['segments'][1]['length'], 9)
+        wrapped = resolve_access(bytes(b0), bytes(b1), 0x0001, 2, 0xff)
+        self.assertEqual(wrapped['encoded_pointer'], '0xffff')
+        self.assertEqual(wrapped['fetch_plan']['segments'][0]['selection'], 'current_mapping')
         for offset, mode in ((256, 0), (0, -1), (True, 0), (0, True)):
             with self.subTest(offset=offset, mode=mode), self.assertRaises(ValueError):
                 resolve_access(bytes(b0), bytes(b1), 0x100, offset, mode)

@@ -11,7 +11,7 @@ from pathlib import Path
 import sys
 
 from .script_entries import (BANK_SIZE, DESCRIPTORS, DESCRIPTOR_COUNT, ROOT,
-                             _locate, _location, decode_slot_record, inventory,
+                             _locate, _location, decode_slot_record, inventory, record_fetch_plan,
                              load_audited_banks)
 from .script_flow import ConditionalIndexedJump, PredecessorIndexedJump, PRIMARY_INDEXED_JUMPS, walk
 
@@ -34,6 +34,7 @@ def resolve_access(bank0: bytes, bank1: bytes, base: int, offset: int, mode: int
               'offset': offset, 'mode': mode}
     if position + 10 > BANK_SIZE:
         result['status'] = 'fetch_crosses_bank_boundary'
+        result['fetch_plan'] = record_fetch_plan(encoded)
         return result
     raw = (bank0, bank1)[bank][position:position + 10]
     fields = decode_slot_record(raw)

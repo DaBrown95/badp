@@ -19,8 +19,13 @@ sentinels. In negative mode it uses the first two bytes as a resource pointer
 and byte 2 as flags; it does not install a script pointer. In zero mode it can
 install bytes 2–3 as a script pointer, then use byte 4 and bytes 5–8 when the
 resource pointer is present. Other modes read different subsets. The tenth
-fetch byte may belong to a following record or script. Fetches crossing a
-physical bank boundary are reported rather than interpreted.
+fetch byte may belong to a following record or script. When a ten-byte fetch
+passes CPU address `$FFFF`, it wraps to internal RAM at `$0000`, rather than
+continuing into another physical PRG bank. Such candidates include a fetch
+plan, but RAM-dependent fields are not decoded or credited as source. The
+cartridge-window mapping remains an assumption until independently established.
+The plan covers effective data addresses; it is not a complete CPU bus-cycle
+trace and does not account for possible dummy reads on page crossings.
 
 This is a static candidate analysis. In particular, the assumption that a
 script remains associated with a descriptor base is not proven for every

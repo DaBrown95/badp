@@ -1082,6 +1082,8 @@ BogusActionOpcode_BogusSetSlotPositionFromOperands = $1D
 ; Fetch X bytes from ($53), or select the length using the first byte and the
 ; table at $FDA7 when X is zero. Copy the record to $60 and, if a bank switch
 ; occurred, restore the stored default selection. Record meanings are pending.
+; A ten-byte fetch at $FFFF reads one cartridge-window byte, then CPU RAM at
+; $0000-$0008. The address wraps instead of continuing into another PRG bank.
 FetchVariableRecord:
     lda a:RecordPointerHigh                    ; CONTROL_RECORD_FETCH
     pha

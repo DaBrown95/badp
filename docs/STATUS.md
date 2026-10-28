@@ -307,8 +307,9 @@ The 83 descriptor-linked slot records that fit within a physical bank now
 express the nine bytes used by the loader as resource and script pointers,
 mode flags and four slot fields. The loader actually fetches ten bytes, and
 the tenth may belong to the next record or command. A separate descriptor
-points across a bank boundary and remains unclassified. Resource payloads
-remain local, and pointer roles and execution require runtime confirmation.
+points at `$FFFF`; its fetch wraps into CPU RAM and remains unclassified.
+Resource payloads remain local, and pointer roles and execution require runtime
+confirmation.
 The temporary record transcription script was retired after integration;
 the structured source and current build proof remain.
 
@@ -422,9 +423,9 @@ original extra borrow, saved-state gate and pointer selection.
 
 A local script-entry inventory follows the 114 observed slot descriptors to
 84 distinct record addresses: 83 fit entirely within the inferred bank, while
-one address, referenced five times, crosses the bank boundary. The inspected
-records yield 71 distinct candidate script entries whose first command lengths
-are valid. Bank mapping is a static inference and the tool does not follow
+one address, referenced five times, wraps from the cartridge window into RAM.
+The inspected records yield 71 distinct candidate script entries whose first
+command lengths are valid. Bank mapping is a static inference and the tool does not follow
 branches or prove execution. Its output is ignored local analysis and does not
 count as reconstructed PRG.
 
@@ -1613,3 +1614,30 @@ static candidate graph, not reachability, an instruction-boundary proof, a
 mapper guarantee, or a complete inventory of dynamically constructed calls.
 The metadata and input identities are retained locally in
 `analysis/us-v1.5/native-script-calls.json`.
+
+Five v1.5 descriptor entries (`$40`, `$41`, `$46`, `$47`, `$4C`) contain
+`$FFFF` as their record pointer. If the caller takes the zero-offset load path,
+the reconstructed fetch copies its first byte from CPU `$FFFF` and its next
+nine from internal RAM `$0000-$0008`. The field values are therefore dependent
+on runtime RAM, not fixed bytes in another PRG bank. The existing crossing
+status stays unresolved; the inventory now records the effective-address
+segments without decoding the RAM-dependent record.
+
+`make verify-record-boundary` exercises four controlled fetch cases and six
+controlled descriptor indices on both the audited ROM and matching build. A
+single RAM-byte change affects exactly the corresponding copied byte. The
+descriptor probe injects its entry point and bypasses the caller's outer gate;
+neither probe establishes gameplay reachability, original cartridge mapping, or
+all CPU bus cycles. In particular, the effective-address plan does not model
+page-crossing dummy reads. The direct path reaches `SharedReturn`; the secondary
+path returns through the mapper-switch helper after restoring the default bank.
+The retained verification is local under
+`analysis/us-v1.5/record-boundary-verification.json`. Superseded exploratory
+replay scripts and their duplicate log were retired after the maintained probe
+passed.
+
+For later adaptation, the audited v1.4 input has the same 61 bytes as the v1.5
+helper at `$FE6C-$FEA8` in both PRG banks. The 78-byte v1.5 descriptor fragment at
+bank 0 `$A086` occurs once in v1.4 bank 0 at `$A070`. These are byte comparisons
+only; they do not establish v1.4 callers, mapping or a matching build. The
+comparison script and metadata remain under `analysis/us-v1.5/`.

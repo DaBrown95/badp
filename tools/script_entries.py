@@ -36,6 +36,27 @@ def _location(bank: int, offset: int) -> dict:
             'physical_prg_offset': bank * BANK_SIZE + offset}
 
 
+def record_fetch_plan(encoded: int) -> dict:
+    """Describe the ten CPU reads, without guessing RAM or mapper state.
+
+    FetchVariableRecord sets the high address bit for a secondary-bank fetch.
+    Indexed reads use 16-bit CPU addresses, so a fetch past $FFFF wraps into
+    internal RAM rather than continuing into another physical PRG bank.
+    """
+    _locate(encoded)
+    cpu = encoded | 0x8000
+    prg_length = min(10, 0x10000 - cpu)
+    ram_length = 10 - prg_length
+    segments = [{'kind': 'prg_window', 'cpu_start': f'0x{cpu:04x}',
+                 'bank_offset': cpu - 0x8000, 'length': prg_length,
+                 'selection': 'secondary_write' if encoded < 0x8000 else 'current_mapping'}]
+    if ram_length:
+        segments.append({'kind': 'cpu_internal_ram', 'cpu_start': '0x0000',
+                         'ram_offset': 0, 'length': ram_length,
+                         'values': 'runtime_dependent'})
+    return {'fetch_length': 10, 'wraps_cpu_address_space': bool(ram_length), 'segments': segments}
+
+
 def decode_slot_record(raw: bytes) -> dict:
     """Describe the nine used bytes and the loader's tenth fetched byte.
 
@@ -82,6 +103,7 @@ def inventory(bank0: bytes, bank1: bytes, descriptor_offset: int,
         records[key] = record
         if offset + 10 > BANK_SIZE:
             record['status'] = 'crosses_bank_boundary'
+            record['fetch_plan'] = record_fetch_plan(encoded)
             continue
         raw = banks[bank][offset:offset + 10]
         record['status'] = 'inspected'

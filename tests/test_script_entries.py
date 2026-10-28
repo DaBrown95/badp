@@ -2,7 +2,7 @@
 import unittest
 from unittest.mock import patch
 
-from tools.script_entries import BANK_SIZE, _locate, decode_slot_record, inventory, main
+from tools.script_entries import BANK_SIZE, _locate, decode_slot_record, inventory, main, record_fetch_plan
 
 
 def banks():
@@ -68,7 +68,25 @@ class ScriptEntryTests(unittest.TestCase):
         b1[0x40] = 4
         got = inventory(bytes(b0), bytes(b1), 0, 2, bytes([1, 1]))
         self.assertEqual(got['records'][0]['status'], 'crosses_bank_boundary')
+        self.assertEqual(got['records'][0]['fetch_plan'], record_fetch_plan(0xffff))
         self.assertEqual(got['entries'][0]['status'], 'opcode_outside_length_table')
+
+    def test_record_fetch_wraps_into_runtime_ram_not_another_rom_bank(self):
+        for encoded, selection in ((0xffff, 'current_mapping'), (0x7fff, 'secondary_write')):
+            plan = record_fetch_plan(encoded)
+            self.assertTrue(plan['wraps_cpu_address_space'])
+            self.assertEqual(plan['segments'], [
+                {'kind': 'prg_window', 'cpu_start': '0xffff', 'bank_offset': 0x7fff,
+                 'length': 1, 'selection': selection},
+                {'kind': 'cpu_internal_ram', 'cpu_start': '0x0000', 'ram_offset': 0,
+                 'length': 9, 'values': 'runtime_dependent'}])
+        self.assertEqual([s['length'] for s in record_fetch_plan(0xfffb)['segments']], [5, 5])
+        self.assertEqual([s['length'] for s in record_fetch_plan(0xfff7)['segments']], [9, 1])
+        self.assertFalse(record_fetch_plan(0xfff6)['wraps_cpu_address_space'])
+        self.assertEqual(record_fetch_plan(0xfff6)['segments'][0]['length'], 10)
+        for invalid in (-1, 0x10000, True):
+            with self.subTest(encoded=invalid), self.assertRaises(ValueError):
+                record_fetch_plan(invalid)
 
     def test_zero_length_and_command_crossing_are_reported(self):
         b0, b1 = banks()
