@@ -5,7 +5,7 @@ from pathlib import Path
 import tempfile
 import unittest
 
-from tools.prg_inventory import _optional_trace, palette_setup_spans, summarize
+from tools.prg_inventory import _optional_trace, palette_setup_spans, script_graph_spans, summarize
 
 
 class PrgInventoryTests(unittest.TestCase):
@@ -44,6 +44,30 @@ class PrgInventoryTests(unittest.TestCase):
         self.assertEqual(result['uncatalogued_bytes'], 4)
         self.assertEqual(result['category_bytes']['observed_audio_commands'], 2)
         self.assertEqual(result['category_bytes']['candidate_audio_commands'], 3)
+
+    def test_script_inventory_keeps_both_graphs_and_inline_tables(self):
+        def location(offset):
+            return {'bank_offset': offset, 'physical_prg_offset': offset}
+        descriptor_graph = {'unprocessed': [], 'nodes': [
+            {'location': location(2), 'length': 2}]}
+        direct_graph = {'unprocessed': [], 'nodes': [
+            {'location': location(2), 'length': 2,
+             'lookup_records': [{'location': location(8), 'size': 4}]},
+            {'location': location(0x7fff), 'length': 2}]}
+        spans = script_graph_spans([descriptor_graph, direct_graph])
+        self.assertEqual(spans, [(2, 2), (2, 2), (8, 4)])
+        result = summarize({'candidate_script_bytes': spans}, bank_size=0x8000, bank_count=1)
+        self.assertEqual(result['category_bytes']['candidate_script_bytes'], 6)
+        direct_graph['unprocessed'] = [1]
+        with self.assertRaisesRegex(ValueError, 'incomplete'):
+            script_graph_spans([descriptor_graph, direct_graph])
+
+    def test_static_sprite_evidence_does_not_hide_observed_overlap(self):
+        result = summarize({'candidate_sprite_bytes': [(0, 2)],
+                            'candidate_sprite_static_bytes': [(1, 3)]}, bank_size=8, bank_count=1)
+        self.assertEqual(result['observed_and_static_sprite_bytes'], 1)
+        self.assertEqual(result['uncatalogued_bytes'], 4)
+        self.assertEqual(result['category_bytes']['candidate_sprite_static_bytes'], 3)
 
     def test_ppu_stream_overlap_is_not_silently_assigned_exclusively(self):
         result = summarize({'candidate_script_bytes': [(2, 3)],

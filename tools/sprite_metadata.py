@@ -39,6 +39,88 @@ def decode_resource_header(data: bytes) -> dict:
     return {'kind': 'direct', 'frame': decode_frame_header(data)}
 
 
+def resource_pointer_candidates(descriptor_records: list[dict], references: list[dict]) -> dict:
+    """Collect possible resource pointers without treating CPU RAM as ROM."""
+    values = []
+    for entry in descriptor_records:
+        if entry.get('status') == 'inspected':
+            fields = entry['decoded_fields']
+            if fields['sprite_fields_present']:
+                values.append(fields['sprite_pointer'])
+    for entry in references:
+        if entry.get('status') == 'candidate':
+            fields = entry['fields']
+            if fields['sprite_fields_present']:
+                values.append(fields['sprite_pointer'])
+    if any(type(value) is not int or not 0 <= value <= 0xffff for value in values):
+        raise ValueError('invalid candidate sprite pointer')
+    return {'rom_pointers': sorted({value for value in values if 0x8000 <= value < 0xff00}),
+            'non_rom_pointers': sorted({value for value in values if value < 0x8000}),
+            'sentinel_pointers': sorted({value for value in values if value >= 0xff00})}
+
+
+def inventory_candidates(bank0: bytes, pointers: list[int]) -> dict:
+    """Follow candidate resource and bounded animation-frame pointers in bank 0.
+
+    The candidate descriptor association and bank mapping are not runtime
+    evidence. Other frame indices can be computed dynamically. Returned spans
+    are physical PRG offsets and include only bytes within this bank.
+    """
+    if len(bank0) != 0x8000 or any(type(p) is not int or not 0x8000 <= p < 0xff00 for p in pointers):
+        raise ValueError('expected a full bank and bank-0 candidate pointers')
+    spans: list[tuple[int, int]] = []
+    headers = []
+    frames: dict[int, dict] = {}
+    crossings = []
+    non_rom_frames: set[int] = set()
+
+    def record_frame(pointer: int) -> None:
+        if pointer < 0x8000:
+            non_rom_frames.add(pointer)
+            return
+        offset = pointer - 0x8000
+        if offset in frames:
+            return
+        if offset + 2 > len(bank0):
+            crossings.append({'kind': 'frame_header', 'cpu_address': pointer})
+            return
+        decoded = decode_frame_header(bank0[offset:offset + 2])
+        frames[offset] = {'cpu_address': pointer, 'physical_prg_offset': offset, 'decoded': decoded}
+        spans.append((offset, 2))
+        for relative in decoded['tile_read_offsets']:
+            if offset + relative < len(bank0):
+                spans.append((offset + relative, 1))
+            else:
+                crossings.append({'kind': 'frame_tile', 'cpu_address': pointer, 'index': relative})
+
+    for pointer in sorted(set(pointers)):
+        offset = pointer - 0x8000
+        if bank0[offset] == 0x4f:
+            headers.append({'cpu_address': pointer, 'kind': 'empty'})
+            # The slot loader also reads the following dimension byte, even
+            # though the sprite allocator stops at the empty marker.
+            spans.append((offset, 2))
+        elif bank0[offset] == 0x53:
+            if offset + 3 > len(bank0):
+                crossings.append({'kind': 'resource_header', 'cpu_address': pointer})
+                continue
+            count = bank0[offset + 1] or 256
+            available = min(count, (len(bank0) - offset - 3) // 2)
+            headers.append({'cpu_address': pointer, 'kind': 'animated', 'candidate_frames': count,
+                            'frame_pointers_within_bank': available})
+            spans.append((offset, 3 + 2 * available))
+            if available != count:
+                crossings.append({'kind': 'frame_pointer_table', 'cpu_address': pointer})
+            for index in range(available):
+                position = offset + 3 + 2 * index
+                record_frame(int.from_bytes(bank0[position:position + 2], 'little'))
+        else:
+            headers.append({'cpu_address': pointer, 'kind': 'direct'})
+            record_frame(pointer)
+    return {'resources': headers, 'frames': [frames[offset] for offset in sorted(frames)],
+            'spans': spans, 'crossings': crossings, 'non_rom_frames': sorted(non_rom_frames)}
+
+
 def inventory_observed(trace: dict, bank0: bytes, bank1: bytes) -> dict:
     """Validate observed mapped header samples and describe their formats.
 

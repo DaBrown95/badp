@@ -34,9 +34,9 @@ independent source trees or treat one version's evidence as verifying the rest.
 simultaneous reconstruction. Keep progress and completion evidence per target.
 
 The v1.5 build now assembles and links to the exact reference, with 21,474 bytes
-of source code and 18,773 bytes of structured data across the physical PRG banks.
-It still includes 25,289 local PRG bytes and 65,536 local CHR bytes. A total of
-1,221 independent source-change controls verify every listed reconstructed region.
+of source code and 19,185 bytes of structured data across the physical PRG banks.
+It still includes 24,877 local PRG bytes and 65,536 local CHR bytes. A total of
+1,228 independent source-change controls verify every listed reconstructed region.
 Passing input audits or whole-ROM equality alone is not reconstruction
 completion. The developer identifies BOGUS as the
 state-machine engine in the [Vance Kozik interview](https://www.nesworld.com/kozik.php);
@@ -286,12 +286,13 @@ supplied map-chunk data. The offset table and state-indexed vertical-base seeds
 are source; map layouts and chunk contents remain local. Runtime bounds on
 either table have not been established.
 `make prg-inventory` combines the current verified source map with candidate
-map, script, record, palette-setup, candidate audio and PPU-stream uses, round-tripped packed text, and
-optional validated audio and sprite traces. It counts physical bytes once while
-retaining overlapping uses. With the current local traces, 5,270 PRG bytes have no use
+map, descriptor-context and direct-target scripts and records, palette setup,
+candidate audio and PPU-stream uses, round-tripped packed text, and optional
+validated audio and sprite traces. It counts physical bytes once while
+retaining overlapping uses. With the current local traces, 2,445 PRG bytes have no use
 in these inventories; that number is not a count of remaining code. The report
-also retains 65 possible map/script overlap bytes and 35 possible record/script
-overlap bytes. It records its input identities and writes metadata only to
+also retains 65 possible map/script overlap bytes and 37 possible record/script
+overlap bytes across the combined inventories. It records its input identities and writes metadata only to
 ignored `analysis/us-v1.5/prg-inventory.json`.
 `make audio-flow` follows literal voice starts in reconstructed commands and the
 native opcode-$18 start. It models both loop outcomes, stops at voice-stop
@@ -598,6 +599,15 @@ branch destinations and referenced assets remain local, and the object roles
 and gameplay effects are provisional. Temporary local transcriptions were
 retired after integration; the maintained source and matching proof remain.
 
+A possible saved-state restoration exposes 412 additional physical bytes as
+structured script and record source. The connected paths at `$B1F5`,
+`$B399-$B3C7`, `$D25A-$D3AE` and `$FD56-$FD65` include a 50-case value
+remapping table and candidate direct record `$D3AE`. Opcode `$98` marks slots
+disabled and yields; a later restore can re-enable a retained slot, but that
+restoration and these particular paths have not been observed in gameplay.
+The direct record may be read in several inherited modes, with byte 2 serving
+as a negative-mode flag or a skipped low byte of a `$FFFF` script sentinel.
+
 The `$B532`, `$BD58`, `$D3C9`, `$DB81`, `$E691`, `$EF7E` and `$F24C`
 continuations are structured source, connecting earlier map selection, slot,
 audio, palette and input state paths. Indirect jump tables and some referenced
@@ -632,6 +642,16 @@ The resource and frame data remain local, not source-progress credit.
 `make sprite-inventory` checks them against the audited ROM and describes the
 headers in ignored local analysis. These checks do not verify rendered animation
 or establish a complete inventory of sprite assets.
+`make prg-inventory` also follows candidate resource pointers from descriptor
+records and possible record accesses, assuming the default bank-0 mapping. It
+finds 176 possible resource headers and 282 distinct frame headers; their
+candidate reads cover 3,872 physical bytes, including 1,238 bytes also covered
+by the existing runtime sprite trace. Six distinct non-ROM resource addresses
+are excluded; no candidate frame reads crossed the bank in this inventory.
+Animation counts bound these particular candidate table entries, while other
+computed indices and unobserved contexts remain open. These are possible uses,
+not reachability or exclusive data ownership; graphics payloads stay local and
+receive no source-progress credit.
 
 The sprite animation update now advances timers and handles loop or hold-on-
 last-frame behavior. The audio voice start, stop, arbitration and command

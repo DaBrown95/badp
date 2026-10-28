@@ -12,21 +12,23 @@ import os
 from pathlib import Path
 import sys
 
-from . import audio_commands, audio_flow, map_data, packed_text, ppu_streams, slot_record_flow, sprite_metadata
+from . import (audio_commands, audio_flow, direct_record_flow, map_data, packed_text, ppu_streams,
+               slot_record_flow, sprite_metadata)
 from .build_rom import source_regions
 from .progress import verify_primary
 from .project import input_path
 from .script_entries import (BANK_SIZE, DESCRIPTORS, DESCRIPTOR_COUNT, ROOT,
                              inventory as descriptor_inventory, load_audited_banks)
-from .script_flow import PRIMARY_INDEXED_JUMPS
+from .script_flow import PRIMARY_INDEXED_JUMPS, walk
 from .setup_mesen import spec
 
 CATEGORIES = ('source_code', 'source_data', 'candidate_map_chunks', 'candidate_map_layouts',
               'packed_text_records', 'observed_audio_commands', 'candidate_sprite_bytes',
               'candidate_script_bytes', 'candidate_record_bytes', 'candidate_palette_setup_bytes',
-              'candidate_audio_commands', 'candidate_ppu_stream_bytes')
+              'candidate_audio_commands', 'candidate_ppu_stream_bytes', 'candidate_sprite_static_bytes')
 INVENTORY_INPUTS = ('tools/prg_inventory.py', 'tools/map_data.py', 'tools/packed_text.py',
                     'tools/script_entries.py', 'tools/script_flow.py', 'tools/slot_record_flow.py',
+                    'tools/direct_record_flow.py',
                     'tools/audio_commands.py', 'tools/audio_flow.py', 'tools/ppu_streams.py',
                     'tools/sprite_metadata.py', 'tools/setup_mesen.py',
                     'config/mesence-toolchain.json')
@@ -78,6 +80,8 @@ def summarize(spans: dict[str, list[tuple[int, int]]], *, bank_size: int = BANK_
     record_mask = 1 << CATEGORIES.index('candidate_record_bytes')
     observed_audio_mask = 1 << CATEGORIES.index('observed_audio_commands')
     candidate_audio_mask = 1 << CATEGORIES.index('candidate_audio_commands')
+    observed_sprite_mask = 1 << CATEGORIES.index('candidate_sprite_bytes')
+    static_sprite_mask = 1 << CATEGORIES.index('candidate_sprite_static_bytes')
     return {'prg_bytes': size, 'category_bytes': counts, 'use_combinations': groups,
             'uncatalogued_bytes': combinations.get(0, 0),
             'source_and_candidate_data_bytes': sum(bool(mask & source_mask) and bool(mask & data_mask)
@@ -90,7 +94,27 @@ def summarize(spans: dict[str, list[tuple[int, int]]], *, bank_size: int = BANK_
                                                      for mask in masks),
             'observed_and_candidate_audio_bytes': sum(bool(mask & observed_audio_mask)
                                                       and bool(mask & candidate_audio_mask) for mask in masks),
+            'observed_and_static_sprite_bytes': sum(bool(mask & observed_sprite_mask)
+                                                     and bool(mask & static_sprite_mask) for mask in masks),
             'uncatalogued_spans': unknown}
+
+
+def script_graph_spans(graphs: list[dict]) -> list[tuple[int, int]]:
+    """Collect script and inline-table extents from all candidate graphs."""
+    spans = []
+    for graph in graphs:
+        if graph['unprocessed']:
+            raise ValueError('candidate script graph is incomplete')
+        for node in graph['nodes']:
+            location, length = node['location'], node.get('length', 0)
+            if length and location['bank_offset'] + length <= BANK_SIZE:
+                spans.append((location['physical_prg_offset'], length))
+            for key in ('lookup_records', 'jump_records'):
+                for record in node.get(key, []):
+                    location, length = record['location'], record.get('size', 2)
+                    if length and location['bank_offset'] + length <= BANK_SIZE:
+                        spans.append((location['physical_prg_offset'], length))
+    return spans
 
 
 def _digest(path: Path) -> str:
@@ -169,24 +193,25 @@ def inventory(root: Path = ROOT) -> dict:
             seeds.append((base, int(record['encoded_script_pointer'], 16)))
     flow = slot_record_flow.trace(bank0, bank1, lengths, seeds, indexed_jumps=PRIMARY_INDEXED_JUMPS)
     graph = flow['merged_script_flow']
-    if flow['unprocessed_contexts'] or graph['unprocessed']:
+    source = (root / config['source']).read_text()
+    direct_seeds = direct_record_flow.source_script_seeds(source, config['regions'])
+    direct_graph = walk(bank0, bank1, lengths, direct_seeds, indexed_jumps=PRIMARY_INDEXED_JUMPS,
+                        limit=25000)
+    if flow['unprocessed_contexts'] or graph['unprocessed'] or direct_graph['unprocessed']:
         raise ValueError('candidate script context inventory is incomplete')
-    for node in graph['nodes']:
-        location, length = node['location'], node.get('length', 0)
-        if length and location['bank_offset'] + length <= BANK_SIZE:
-            spans['candidate_script_bytes'].append((location['physical_prg_offset'], length))
-        for key in ('lookup_records', 'jump_records'):
-            for record in node.get(key, []):
-                location, length = record['location'], record.get('size', 2)
-                if length and location['bank_offset'] + length <= BANK_SIZE:
-                    spans['candidate_script_bytes'].append((location['physical_prg_offset'], length))
-    for reference_entry in flow['references']:
+    direct = direct_record_flow.direct_inventory(bank0, bank1, direct_graph)
+    spans['candidate_script_bytes'] = script_graph_spans([graph, direct_graph])
+    candidate_references = flow['references'] + direct['references']
+    for reference_entry in candidate_references:
         if reference_entry['status'] == 'candidate':
             start = reference_entry['location']['physical_prg_offset']
             spans['candidate_record_bytes'].extend((start + offset, 1)
                 for offset in slot_record_flow.record_used_offsets(reference_entry))
 
-    source = (root / config['source']).read_text()
+    sprite_pointers = sprite_metadata.resource_pointer_candidates(descriptors['records'], candidate_references)
+    sprite_candidates = sprite_metadata.inventory_candidates(bank0, sprite_pointers['rom_pointers'])
+    spans['candidate_sprite_static_bytes'] = sprite_candidates['spans']
+
     audio_graph = audio_flow.walk(bank0, bank1, audio_flow.literal_seeds(source))
     if audio_graph['unprocessed']:
         raise ValueError('candidate audio flow reached its node limit')
@@ -249,14 +274,23 @@ def inventory(root: Path = ROOT) -> dict:
                     'build_proof_sha256': build_proof_sha256, 'inventory_input_sha256': inventory_inputs,
                     'optional_traces': {name: trace_hashes.get(name) for name, _, _ in trace_specs},
                     'sprite_offsets_crossing_bank': crossing_sprite_offsets,
+                    'direct_script_overlap_bytes': direct_graph['overlapping_physical_bytes'],
+                    'direct_record_script_overlap_bytes': direct['record_script_overlaps']['physical_bytes'],
+                    'direct_dynamic_slot_pointers': len(direct['dynamic_slot_pointer_commands']),
+                    'static_sprite_resource_count': len(sprite_candidates['resources']),
+                    'static_sprite_frame_count': len(sprite_candidates['frames']),
+                    'static_sprite_crossings': len(sprite_candidates['crossings']),
+                    'static_sprite_non_rom_resources': len(sprite_pointers['non_rom_pointers']),
+                    'static_sprite_non_rom_frames': len(sprite_candidates['non_rom_frames']),
                     'audio_fetches_crossing_bank': audio_graph['crossing_fetches'],
                     'audio_overlapping_decode_bytes': audio_graph['overlapping_decode_bytes'],
                     'ppu_lookahead_crossing_streams': ppu_graph['lookahead_crossing_streams'],
                     'ppu_overlapping_stream_bytes': ppu_graph['overlapping_stream_bytes'],
                     'interpretation': 'Overlapping evidence is retained; uncatalogued does not mean code. '
-                                      'Candidate script and record paths are descriptor-derived; audio paths use literal starts. '
+                                      'Candidate scripts and records include descriptor contexts and direct-target paths; audio paths use literal starts. '
                                       'Audio and PPU streams may be unreachable or incomplete; '
-                                      'candidate map, sprite and palette ranges do not prove exclusive data use.'})
+                                      'Candidate map, sprite and palette ranges do not prove exclusive data use; '
+                                      'static sprite frame indices and resource contexts may be unreachable.'})
     return summary
 
 
@@ -277,6 +311,15 @@ def main() -> int:
                           'map_and_candidate_script_bytes': result['map_and_candidate_script_bytes'],
                           'record_and_candidate_script_bytes': result['record_and_candidate_script_bytes'],
                           'observed_and_candidate_audio_bytes': result['observed_and_candidate_audio_bytes'],
+                          'observed_and_static_sprite_bytes': result['observed_and_static_sprite_bytes'],
+                          'direct_script_overlap_bytes': result['direct_script_overlap_bytes'],
+                          'direct_record_script_overlap_bytes': result['direct_record_script_overlap_bytes'],
+                          'direct_dynamic_slot_pointers': result['direct_dynamic_slot_pointers'],
+                          'static_sprite_resource_count': result['static_sprite_resource_count'],
+                          'static_sprite_frame_count': result['static_sprite_frame_count'],
+                          'static_sprite_crossings': result['static_sprite_crossings'],
+                          'static_sprite_non_rom_resources': result['static_sprite_non_rom_resources'],
+                          'static_sprite_non_rom_frames': result['static_sprite_non_rom_frames'],
                           'optional_traces_present': [k for k, v in result['optional_traces'].items() if v],
                           'output': 'analysis/us-v1.5/prg-inventory.json'}, indent=2))
     except (OSError, ValueError, KeyError, TypeError) as exc:

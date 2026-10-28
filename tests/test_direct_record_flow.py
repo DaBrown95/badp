@@ -10,8 +10,8 @@ class SourceScriptSeedTests(unittest.TestCase):
 
     def test_only_explicit_bank_one_script_labels_are_seeds(self):
         source = ('.scope Bank0\nRuntimeScript9000:\n.endscope\n.scope Bank1\n'
-                  'RuntimeScript9000:\nCandidate9003:\nData9006:\n.endscope\nScript9004:\n')
-        self.assertEqual(source_script_seeds(source, self.regions), [0x1000, 0x1003])
+                  'RuntimeScript9000:\nCandidate9003:\nData9006:\nRestoreScript9009:\n.endscope\nScript9004:\n')
+        self.assertEqual(source_script_seeds(source, self.regions), [0x1000, 0x1003, 0x1009])
 
     def test_rejects_unowned_or_duplicate_labels(self):
         for source in ('.scope Bank1\nScript9000:\n',

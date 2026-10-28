@@ -39,7 +39,7 @@ their index ranges remain unverified, and unbounded `$44` sites still stop.
 The `$8A` stack-buffer operation has a possible normal-return successor. Its
 `$FF` form clears `$0100-$011F`; a sufficiently deep stack could put a return
 address in that range, so the walk does not model every possible outcome.
-The `$79`, `$84`, `$8D/$8E`, `$A4`, `$BC` and `$BD` handlers also have normal
+The `$79`, `$84`, `$8D/$8E`, `$A4`, `$AA`, `$BC-$BE` handlers also have normal
 return successors; that does not prove their execution or termination.
 The `$11/$12` selectors have a possible next or yield path; `$65`, `$A2`,
 `$AF`, `$B2` and `$B8-$BA` can return to the next command. Opcode `$AD` can
@@ -48,7 +48,10 @@ linked-slot scan can loop indefinitely, so this edge assumes a return. The
 `$77` voice check can branch to its encoded target or continue.
 Opcode `$17` can continue if its saved-pointer high byte is `$FF`; otherwise
 it restores a dynamic pointer whose target the walker does not infer.
-The `$0F`, `$98` and `$99` main-state changes stop the walk because later
+The `$98` state-save handler marks slots disabled before yielding. A later
+`$99` restoration can re-enable retained slots, so the walker records a
+possible resume after `$98`; slot survival and restoration are not guaranteed.
+The `$0F` and `$99` main-state changes stop the walk because their later
 scheduling is unproven. In particular, treating the bytes after `$0F` as an
 automatic continuation produced a speculative command decode over a
 descriptor-linked record; the separately evidenced record is now data.
@@ -57,7 +60,7 @@ and unreviewed handlers stop their paths. The walker rejects malformed lengths,
 records that cross the physical bank boundary and invalid input, and reports
 physical-byte overlaps and any nodes left by its traversal limit.
 
-On the current pinned v1.5 input the bounded walk finds 1,936 candidate commands
+On the current pinned v1.5 input the bounded walk finds 1,941 candidate commands
 starting from the descriptor-derived entries, with 38 nodes stopping at dynamic
 or unreviewed handlers and no physical-byte overlaps. Those are static candidates,
 not a complete script inventory, gameplay evidence or source ownership. The

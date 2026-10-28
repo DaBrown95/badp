@@ -30,7 +30,7 @@ script traversal limits and overlapping decodes; it does not mark source as
 owned. On the pinned v1.5 input it finds 176 contexts, 691 references and 213
 distinct candidate addresses, with no unprocessed contexts. One context,
 base `$6D56` and entry `$5D00`, has 11 bytes with competing script decodes.
-The union of those script entries contains 2,521 candidate commands and 13
+The union of those script entries contains 2,529 candidate commands and 13
 physical bytes with conflicting decodes across contexts. They
 fall within the existing `$BD1B` and `$DC35` script regions. The competing
 entries depend on possible record accesses at `$DA40` and `$ED71`, respectively;
@@ -38,7 +38,7 @@ their assumed descriptor associations and interpretations remain unverified.
 The overlaps do not establish which path actually executes.
 A separate `make direct-record-flow` walk seeds every named bank-1 script
 entry and checks direct `$16` targets against the resulting script graph.
-It finds 16 candidate commands with 14 distinct direct targets. The possible
+It finds 17 candidate commands with 15 distinct direct targets. The possible
 record at `$B077` overlaps two candidate script bytes; neither interpretation
 is accepted there.
 In the directed 16,000-frame runs, the `$B05D` branch saw slot values `$0001`,

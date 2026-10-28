@@ -504,6 +504,18 @@ compareRangeReturn:
     .byte $C0
     .word value
 .endmacro
+; Configure bank selectors from the operand, current slot value or state.
+.macro BogusConfigureBanksFromOperand value
+    .byte $AA, value
+.endmacro
+; Clear bit $20 on the slot found at a related-link depth.
+.macro BogusClearRelatedSlotBit20 depth
+    .byte $BD, depth
+.endmacro
+; Set bit $20 on the current slot.
+.macro BogusSetCurrentSlotBit20
+    .byte $BE
+.endmacro
 .macro BogusRemapSlotValue
     .byte $B1
 .endmacro
@@ -14773,7 +14785,10 @@ SuccessorScriptB1F0:
 SuccessorScriptB1F3:
     BogusSaveStateAndPlaceSlots $10
 .assert (* - BankStart) = $31F5, error, "bank 1 candidate successor $B1BB end"
-    .incbin "bank1_b1f5_b1f7.bin"
+; Possible continuation after state restoration; slot survival is unverified.
+RestoreScriptB1F5:
+    BogusLoadRecordAndClearSavedState $48 ; CONTROL_RESTORE_SCRIPT_B1F5
+.assert (* - BankStart) = $31F7, error, "bank 1 restore candidate B1F5 end"
 ; Candidate successors of opening-observed scripts, from reviewed handler rules.
 ; Independent labels preserve alternate entries; reachability remains unproven.
 SuccessorScriptB1F7:
@@ -15099,7 +15114,30 @@ DirectNextScriptB394:
 DirectNextScriptB396:
     BogusJumpBank1 DirectNextScriptD253
 .assert (* - BankStart) = $3399, error, "bank 1 candidate successor $B394 end"
-    .incbin "bank1_b399_b3c7.bin"
+; Candidate path after a saved slot is restored. Its direct record load can
+; preserve the next pointer; actual mode, restoration and reachability are unknown.
+RestoreScriptB399:
+    BogusSetSlotC0 $FF ; CONTROL_RESTORE_SCRIPT_B399
+    BogusSetSpriteAttribute20 $00
+    BogusLoadSlotValueArray $3D
+    BogusBranchIfSlotValueEqual RestoreScriptB3BA, $00, $00
+    BogusLoadSlotRecordAtPointer $53AE
+RestoreScriptB3A7:
+    BogusSetSlotValue $0003
+    BogusStoreSlotValueArray $3D
+    BogusCallNativeEncoded $B51B
+    BogusSaveStateAndPlaceSlots $10
+RestoreScriptB3B1:
+    BogusReadSlotValue $0F
+    BogusStoreSlotValueArray $3D
+    BogusCallNativeEncoded $B51B
+    BogusSetMainState $13
+RestoreScriptB3BA:
+    BogusSetBackgroundPalettePointer $FFFF
+    BogusSetSpritePalettePointer $FFFF
+    BogusMarkMatchingSlots $D0, $01, $08, $00
+    BogusLoadRecordAndClearSavedState $3F
+.assert (* - BankStart) = $33C7, error, "bank 1 restore candidate B399 end"
 ; Candidate descriptor $B3E5, command $B67F, mode $FF.
 SlotFlowB3C7:
     SlotCompactRecord $BF1B, $00 ; CONTROL_SLOT_FLOW_B3C7
@@ -16644,7 +16682,136 @@ DirectNextScriptD255:
 DirectNextScriptD258:
     BogusSaveStateAndPlaceSlots $12
 .assert (* - BankStart) = $525A, error, "bank 1 candidate successor $D253 end"
-    .incbin "bank1_d25a_d3b7.bin"
+; Candidate continuation after $98 changes state and a later restore
+; re-enables the retained slot. The state change does not itself prove resumption.
+RestoreScriptD25A:
+    BogusSetDispatchCounter $8F ; CONTROL_RESTORE_SCRIPT_D25A
+    BogusSelectStateTableValue $AA
+    BogusConfigureBanksFromOperand $00
+    BogusSelectStateTableValue $4E
+    BogusSetSpritePalettePointer $0000
+    BogusSelectStateTableValue $0F
+    BogusBranchIfSlotValueNotEqual RestoreScriptD272, $0004
+    BogusSetBackgroundPalettePointer $C864
+    BogusSetSpritePalettePointer $C818
+RestoreScriptD272:
+    BogusSetSlotValue $2E00
+    BogusStoreSlotValueArray $3D
+    BogusStoreSlotValueArray $FF
+    BogusLoadPage0140BySlotHigh
+    BogusMaskSlotValue $00FF
+    BogusRemapSlotValue
+.assert (* - BankStart) = $527E, error, "bank 1 restore candidate D25A end"
+; Four-byte value/replacement cases; the handler fetches four bytes even
+; when the two-byte zero terminator ends the table.
+RestoreRemapD27E:
+    BogusRemapCase $000E, $3302 ; CONTROL_RESTORE_REMAP_D27E
+    BogusRemapCase $0015, $3304
+    BogusRemapCase $0011, $3402
+    BogusRemapCase $0012, $3404
+    BogusRemapCase $001C, $3502
+    BogusRemapCase $001D, $3504
+    BogusRemapCase $001A, $3602
+    BogusRemapCase $001B, $3604
+    BogusRemapCase $002A, $3702
+    BogusRemapCase $002B, $3704
+    BogusRemapCase $0018, $3802
+    BogusRemapCase $0019, $3804
+    BogusRemapCase $002E, $3302
+    BogusRemapCase $002F, $3304
+    BogusRemapCase $0030, $3402
+    BogusRemapCase $0031, $3404
+    BogusRemapCase $0032, $3502
+    BogusRemapCase $0033, $3504
+    BogusRemapCase $0034, $3602
+    BogusRemapCase $0035, $3604
+    BogusRemapCase $0036, $3702
+    BogusRemapCase $0037, $3704
+    BogusRemapCase $0023, $3802
+    BogusRemapCase $0024, $3804
+    BogusRemapCase $0038, $3902
+    BogusRemapCase $0039, $3904
+    BogusRemapCase $0056, $3A02
+    BogusRemapCase $0057, $3A04
+    BogusRemapCase $004E, $3302
+    BogusRemapCase $004F, $3304
+    BogusRemapCase $003C, $3402
+    BogusRemapCase $003D, $3404
+    BogusRemapCase $003E, $3502
+    BogusRemapCase $003F, $3504
+    BogusRemapCase $0042, $3602
+    BogusRemapCase $0043, $3604
+    BogusRemapCase $0044, $3702
+    BogusRemapCase $0045, $3704
+    BogusRemapCase $0048, $3802
+    BogusRemapCase $0049, $3804
+    BogusRemapCase $004A, $3902
+    BogusRemapCase $004B, $3904
+    BogusRemapCase $005A, $3301
+    BogusRemapCase $005B, $3401
+    BogusRemapCase $0010, $3501
+    BogusRemapCase $005E, $3601
+    BogusRemapCase $005C, $3701
+    BogusRemapCase $005F, $3801
+    BogusRemapCase $0068, $3901
+    BogusRemapCase $0069, $3A01
+    BogusRemapEnd
+.assert (* - BankStart) = $5348, error, "bank 1 restore remap D27E end"
+RestoreScriptD348:
+    BogusBranchIfSlotValueEqual RestoreScriptD399, $FF, $FF ; CONTROL_RESTORE_SCRIPT_D348
+    BogusSetDispatchCounter $0C
+    BogusStoreSlotValueArray $3D
+    BogusLoadPage0140BySlotHigh
+    BogusAddSlotValueFromArray $3D
+    BogusSwapSlotValueBytes
+    BogusStoreSlotValueArray $3D
+    BogusSwapSlotValueBytes
+    BogusMaskSlotValue $00FF
+    BogusClampSlotValueAtMost $0007
+    BogusSwapSlotValueBytes
+    BogusLoadSlotLowFromByteArray $3D
+    BogusSwapSlotValueBytes
+    BogusStoreSlotLowAtIndexedPage
+    BogusSetDispatchCounter $08
+    BogusLoadSlotValueArray $FF
+    BogusLookupSlotValue
+    BogusLookupCaseBank1 RestoreScriptD37A, $2B00
+    BogusLookupCaseBank1 RestoreScriptD382, $2C00
+    BogusLookupCaseBank1 RestoreScriptD38A, $2D00
+    BogusLookupCaseBank1 RestoreScriptD392, $2E00
+    BogusLookupEnd
+RestoreScriptD37A:
+    BogusClearRelatedSlotBit20 $01
+    BogusMarkRelatedSlotAtDepth $28, $01
+    BogusJumpBank1 RestoreScriptD397
+RestoreScriptD382:
+    BogusClearRelatedSlotBit20 $02
+    BogusMarkRelatedSlotAtDepth $28, $02
+    BogusJumpBank1 RestoreScriptD397
+RestoreScriptD38A:
+    BogusClearRelatedSlotBit20 $03
+    BogusMarkRelatedSlotAtDepth $28, $03
+    BogusJumpBank1 RestoreScriptD397
+RestoreScriptD392:
+    BogusClearRelatedSlotBit20 $04
+    BogusMarkRelatedSlotAtDepth $28, $04
+RestoreScriptD397:
+    BogusWait $1B
+RestoreScriptD399:
+    BogusLoadSlotValueArray $FF
+    BogusAddSlotValue $FF00
+    BogusBranchIfSlotValueAtLeast (BankStart + $5277), $2B00
+    BogusSetDispatchCounter $83
+    BogusMarkMatchingSlots $00, $01, $13, $00
+    BogusSetCurrentSlotBit20
+    BogusJumpBank1 RestoreScriptB399
+.assert (* - BankStart) = $53AE, error, "bank 1 restore candidate D348 end"
+; A candidate direct $16 target. Its inherited mode is unknown: byte 2
+; is negative-mode flags and also the skipped low byte of a $FFFF script
+; sentinel in zero mode. The resource payload remains local.
+RestoreRecordD3AE:
+    SlotRuntimeRecord $BC89, $FFFF, $00, $FF, $00, $00, $00 ; CONTROL_RESTORE_RECORD_D3AE
+.assert (* - BankStart) = $53B7, error, "bank 1 restore candidate record D3AE end"
 ; Descriptor-linked slot record; resource data remains local.
 SlotRuntimeD3B7:
     SlotRuntimeRecord $C70D, (ScriptD3C9 - BankStart), $00, $FF, $00, $00, $00 ; CONTROL_SLOT_RUNTIME_D3B7
@@ -21001,7 +21168,14 @@ CandidateFD3C:
     BogusCallNativeEncoded $B51B
     BogusSaveStateAndPlaceSlots $10
 .assert (* - BankStart) = $7D56, error, "bank 1 candidate script FD05 end"
-    .incbin "bank1_fd56_fd65.bin"
+; Possible resumed slot continuation after state restoration.
+RestoreScriptFD56:
+    BogusLoadSlotValueArray $FF ; CONTROL_RESTORE_SCRIPT_FD56
+    BogusAddSlotValue $0001
+    BogusBranchIfSlotValueEqual BranchScriptFD65, $05, $00
+    BogusCallNativeEncoded $B51B
+    BogusSetMainState $00
+.assert (* - BankStart) = $7D65, error, "bank 1 restore candidate FD56 end"
 ; Candidate path from a literal branch target in maintained source.
 ; Independent entries are labelled; runtime reachability is not implied.
 BranchScriptFD65:

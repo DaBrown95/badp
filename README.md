@@ -42,7 +42,7 @@ are not measures of gameplay completion.
 <!-- BEGIN GENERATED PROGRESS -->
 | Version | Reconstructed PRG | Status |
 | --- | ---: | --- |
-| USA v1.5 | **61.41%** (40,247 / 65,536 bytes) | In progress |
+| USA v1.5 | **62.04%** (40,659 / 65,536 bytes) | In progress |
 | USA v1.4 | **0.00%** (0 / 65,536 bytes) | Not started |
 | USA v1.3 | **0.00%** (0 / 65,536 bytes) | Not started |
 | USA v1.2 | **0.00%** (0 / 65,536 bytes) | Not started |
@@ -150,7 +150,7 @@ cartridge behaviour.
 | `make sprite-inventory` | Validate and decode the local sprite trace; payloads remain local. |
 | `make map-data` | Decode candidate map layouts and chunks to local analysis. |
 | `make trace-map` | Check map fetches in extended v1.5 emulator inputs. |
-| `make prg-inventory` | Combine verified source ownership and local data-use evidence. |
+| `make prg-inventory` | Combine verified source ownership with candidate and observed data uses. |
 | `make test` | Test the tooling using synthetic data; no game ROM needed. |
 
 Other versions have pinned reference identities but do not have builds yet.

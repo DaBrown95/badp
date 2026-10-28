@@ -148,6 +148,29 @@ class ScriptFlowTests(unittest.TestCase):
             {'kind': 'next', 'encoded_pointer': '0x0013'}])
         self.assertEqual(nodes['0x0013']['status'], 'unreviewed_or_dynamic_handler')
 
+    def test_bank_configuration_and_disabled_slot_can_return_normally(self):
+        b0, b1, lengths = fixture()
+        lengths[0xaa], lengths[0xbe] = 2, 1
+        b1[0x10:0x14] = bytes([0xaa, 0, 0xbe, 0x16])
+        nodes = by_pointer(walk(bytes(b0), bytes(b1), bytes(lengths), [0x10]))
+        self.assertEqual(nodes['0x0010']['successors'], [
+            {'kind': 'next', 'encoded_pointer': '0x0012'}])
+        self.assertEqual(nodes['0x0012']['successors'], [
+            {'kind': 'next', 'encoded_pointer': '0x0013'}])
+
+    def test_state_save_continuation_requires_possible_restoration(self):
+        b0, b1, lengths = fixture()
+        lengths[0x98], lengths[0x0f], lengths[0x99] = 2, 2, 1
+        b1[0x10:0x13] = bytes([0x98, 0x12, 0x16])
+        b1[0x20:0x22] = bytes([0x0f, 1])
+        b1[0x30] = 0x99
+        nodes = by_pointer(walk(bytes(b0), bytes(b1), bytes(lengths), [0x10, 0x20, 0x30]))
+        self.assertEqual(nodes['0x0010']['status'], 'reviewed_possible_state_restore_resume')
+        self.assertEqual(nodes['0x0010']['successors'], [
+            {'kind': 'possible_resume_after_restore', 'encoded_pointer': '0x0012'}])
+        self.assertEqual(nodes['0x0020']['successors'], [])
+        self.assertEqual(nodes['0x0030']['successors'], [])
+
     def test_slot_comparisons_branch_and_bounds_update_falls_through(self):
         b0, b1, lengths = fixture()
         lengths[0x93] = lengths[0x94] = 4
@@ -269,14 +292,11 @@ class ScriptFlowTests(unittest.TestCase):
         b0, b1, lengths = fixture()
         lengths[0x0f] = 2
         b1[0x10:0x12] = bytes([0x99, 0x3e])
-        b1[0x20:0x22] = bytes([0x98, 0x3e])
         b1[0x30:0x33] = bytes([0x0f, 0x10, 0x69])
-        nodes = by_pointer(walk(bytes(b0), bytes(b1), bytes(lengths), [0x10, 0x20, 0x30]))
+        nodes = by_pointer(walk(bytes(b0), bytes(b1), bytes(lengths), [0x10, 0x30]))
         self.assertEqual(nodes['0x0010']['status'], 'reviewed_main_state_change')
         self.assertEqual(nodes['0x0010']['successors'], [])
         self.assertNotIn('0x0011', nodes)
-        self.assertEqual(nodes['0x0020']['status'], 'reviewed_main_state_change')
-        self.assertNotIn('0x0021', nodes)
         self.assertEqual(nodes['0x0030']['status'], 'reviewed_main_state_change')
         self.assertEqual(nodes['0x0030']['successors'], [])
         self.assertNotIn('0x0032', nodes)
