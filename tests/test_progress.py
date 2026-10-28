@@ -9,6 +9,8 @@ import unittest
 from unittest.mock import patch
 
 from test_build import synthetic_map
+from test_map_assets import synthetic_prg
+from tools import map_assets
 from tools.build_rom import MUTATIONS, PROOF_INPUTS, digest, mutate_source, source_regions
 from tools.identify_rom import inspect_rom
 from tools.progress import BEGIN, END, main, percentage, progress_data, render_table, update_readme, verify_primary
@@ -103,7 +105,7 @@ class ProofFreshnessTests(unittest.TestCase):
         for name in self.tools:
             write(f"fake-tools/{name}", name.encode())
 
-        reference = b"NES\x1a" + bytes([4, 8]) + bytes(10) + bytes(131072)
+        reference = b"NES\x1a" + bytes([4, 8]) + bytes(10) + synthetic_prg() + bytes(65536)
         write("baseroms/synthetic.nes", reference)
         parsed = inspect_rom(reference)
         self.target = {"input_path": "baseroms/synthetic.nes",
@@ -113,6 +115,30 @@ class ProofFreshnessTests(unittest.TestCase):
                            ("bible-adventures.nes", reference), ("bible-adventures.dbg", b"synthetic debug")):
             (self.proof_dir / path).parent.mkdir(parents=True, exist_ok=True)
             (self.proof_dir / path).write_bytes(data)
+        asset, asset_payload, asset_source, asset_hash = map_assets.select(
+            self.root, synthetic_prg(), digest(reference))
+        inputs = self.proof_dir / "inputs"
+        inputs.mkdir()
+        (inputs / map_assets.GAP_NAME).write_bytes(asset_payload)
+        (inputs / "map-chunks.json").write_bytes(map_assets.serialize(asset))
+        changed_asset = map_assets.changed_asset(asset)
+        changed_json = map_assets.serialize(changed_asset)
+        changed_payload = map_assets.encode(changed_asset, synthetic_prg(), digest(reference))
+        changed_reference = bytearray(reference)
+        changed_reference[16 + map_assets.BANK_SIZE] ^= 1
+        asset_candidate = bytes(changed_reference)
+        asset_dir = self.proof_dir / "controls/map_asset"
+        asset_dir.mkdir(parents=True)
+        (asset_dir / "rom.s").write_bytes(source)
+        (asset_dir / "map-chunks.json").write_bytes(changed_json)
+        (asset_dir / "map-chunks.bin").write_bytes(changed_payload)
+        (asset_dir / "candidate.nes").write_bytes(asset_candidate)
+        asset_evidence = {"source": asset_source, "input_sha256": asset_hash,
+                          "payload_sha256": digest(asset_payload),
+                          "control": {"asset_sha256": digest(changed_json),
+                                      "payload_sha256": digest(changed_payload),
+                                      "candidate_sha256": digest(asset_candidate),
+                                      "changed_offsets": [16 + map_assets.BANK_SIZE]}}
         controls = []
         for name in MUTATIONS:
             selected = [r for r in regions if r["control"] == name]
@@ -142,6 +168,7 @@ class ProofFreshnessTests(unittest.TestCase):
             "toolchain_revision": "synthetic", "tool_sha256": {n: digest(p.read_bytes()) for n, p in self.tools.items()},
             "output_sha256": digest(reference), "reference_sha256": digest(reference),
             "component_matches": {p: True for p in IDENTITY_PARTS}, "source_regions": regions,
+            "map_assets": asset_evidence,
             "counts": {"matching_code_bytes": code, "structured_data_bytes": data,
                        "local_prg_bytes": 65536 - code - data, "local_chr_bytes": 65536},
             "controls": controls,
@@ -165,6 +192,29 @@ class ProofFreshnessTests(unittest.TestCase):
     def test_changed_debug_information_is_rejected(self):
         (self.proof_dir / "bible-adventures.dbg").write_bytes(b"changed debug")
         with self.assertRaisesRegex(ValueError, "debug information is stale"):
+            self.verify()
+
+    def test_changed_map_asset_or_control_is_rejected(self):
+        asset_path = self.root / map_assets.ASSET_PATH
+        asset_path.parent.mkdir(parents=True)
+        asset = map_assets.capture(synthetic_prg(), self.target["reference"]["file"]["sha256"])
+        asset_bytes = map_assets.serialize(asset)
+        asset_path.write_bytes(asset_bytes)
+        with self.assertRaisesRegex(ValueError, "map asset build evidence is stale"):
+            self.verify()
+        self.proof["map_assets"]["source"] = "local"
+        self.proof["map_assets"]["input_sha256"] = digest(asset_bytes)
+        self.save_proof()
+        self.verify()
+        asset_path.write_bytes(map_assets.serialize(map_assets.changed_asset(asset)))
+        with self.assertRaisesRegex(ValueError, "map asset build evidence is stale"):
+            self.verify()
+        asset_path.unlink()
+        self.proof["map_assets"]["source"] = "reference"
+        self.proof["map_assets"]["input_sha256"] = digest(asset_bytes)
+        self.save_proof()
+        (self.proof_dir / "controls/map_asset/map-chunks.bin").write_bytes(b"changed")
+        with self.assertRaisesRegex(ValueError, "map asset source-change control"):
             self.verify()
 
     def test_modified_control_or_missing_control_is_rejected(self):

@@ -5,11 +5,13 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import shutil
 from pathlib import Path
 import subprocess
 import sys
 import tempfile
 
+from . import map_assets
 from .identify_rom import inspect_rom
 from .project import IDENTITY_PARTS, load_target
 from .setup import verified_tools
@@ -18,7 +20,8 @@ from .setup import verified_tools
 ROOT = Path(__file__).resolve().parents[1]
 TARGET = "us-v1.5"
 PROOF_INPUTS = ("tools/build_rom.py", "tools/identify_rom.py", "tools/project.py",
-                "tools/setup.py", "config/cc65-toolchain.json")
+                "tools/setup.py", "tools/map_assets.py", "tools/map_data.py", "tools/script_entries.py",
+                "config/cc65-toolchain.json")
 
 # Each mutation changes a meaningful instruction or structured data value.
 # The marker must occur exactly once in the maintained source, even when its
@@ -1729,10 +1732,11 @@ def verify_control(reference: bytes, candidate: bytes, regions: list[dict], cont
     return sorted(changed)
 
 
-def assemble(work: Path, tools: dict[str, Path], source: Path, prefix: Path) -> Path:
+def assemble(work: Path, tools: dict[str, Path], source: Path, prefix: Path,
+             input_dir: Path = Path("inputs")) -> Path:
     prefix.parent.mkdir(parents=True, exist_ok=True)
     subprocess.run([
-        str(tools["ca65"]), "-g", "-I", "source", "--bin-include-dir", "inputs",
+        str(tools["ca65"]), "-g", "-I", "source", "--bin-include-dir", str(input_dir),
         "-l", str(prefix.with_suffix(".lst")), "-o", str(prefix.with_suffix(".o")), str(source),
     ], cwd=work, check=True)
     result = prefix.with_suffix(".nes")
@@ -1784,6 +1788,12 @@ def build() -> dict:
         (work / "source/nes.inc").write_bytes(include)
         (work / "source/link.cfg").write_bytes(linker)
         gaps = extract_gaps(prg, chr_data, regions, work / "inputs")
+        asset, asset_payload, asset_source, asset_input_hash = map_assets.select(ROOT, prg, parsed["file"]["sha256"])
+        asset_input = work / "inputs" / map_assets.GAP_NAME
+        if not asset_input.is_file() or len(asset_input.read_bytes()) != map_assets.REGION_SIZE:
+            raise ValueError("map asset region does not match the local gap")
+        asset_input.write_bytes(asset_payload)
+        (work / "inputs/map-chunks.json").write_bytes(map_assets.serialize(asset))
         output_path = assemble(work, tool_paths, Path("source/rom.s"), Path("bible-adventures"))
         output = output_path.read_bytes()
         if output != reference:
@@ -1809,6 +1819,30 @@ def build() -> dict:
                              "source_sha256": digest(changed_source.encode()),
                              "candidate_sha256": digest(candidate)})
             retire_control_intermediates(control_dir)
+        # A separate asset control changes one structured tile before assembly.
+        # The opaque slot remains untouched, and no output bytes are patched.
+        asset_control_dir = work / "controls/map_asset"
+        asset_control_dir.mkdir(parents=True)
+        (asset_control_dir / "rom.s").write_text(source)
+        changed_asset = map_assets.changed_asset(asset)
+        changed_json = map_assets.serialize(changed_asset)
+        changed_payload = map_assets.encode(changed_asset, prg, parsed["file"]["sha256"])
+        (asset_control_dir / "map-chunks.json").write_bytes(changed_json)
+        (asset_control_dir / "map-chunks.bin").write_bytes(changed_payload)
+        shutil.copytree(work / "inputs", asset_control_dir / "inputs")
+        (asset_control_dir / "inputs" / map_assets.GAP_NAME).write_bytes(changed_payload)
+        asset_control_rom = assemble(work, tool_paths, Path("controls/map_asset/rom.s"),
+                                     Path("controls/map_asset/candidate"), Path("controls/map_asset/inputs"))
+        asset_candidate = asset_control_rom.read_bytes()
+        asset_changed = map_assets.verify_control(reference, asset_candidate, parsed["prg"]["offset"])
+        retire_control_intermediates(asset_control_dir)
+        shutil.rmtree(asset_control_dir / "inputs")
+        asset_evidence = {"source": asset_source, "input_sha256": asset_input_hash,
+                          "payload_sha256": digest(asset_payload),
+                          "control": {"asset_sha256": digest(changed_json),
+                                      "payload_sha256": digest(changed_payload),
+                                      "candidate_sha256": digest(asset_candidate),
+                                      "changed_offsets": asset_changed}}
         counts = {kind: sum(r["size"] for r in regions if r["kind"] == kind)
                   for kind in ("code", "data")}
         pin = json.loads((ROOT / "config/cc65-toolchain.json").read_text())
@@ -1824,7 +1858,7 @@ def build() -> dict:
             "catalogue_sha256": digest((ROOT / "config/catalogues/no-intro-nes.json").read_bytes()),
             "tool_sha256": {name: digest(path.read_bytes()) for name, path in tool_paths.items()},
             "verification_input_sha256": {name: digest((ROOT / name).read_bytes()) for name in PROOF_INPUTS},
-            "source_regions": regions, "local_prg_gaps": gaps,
+            "source_regions": regions, "local_prg_gaps": gaps, "map_assets": asset_evidence,
             "counts": {"matching_code_bytes": counts["code"], "structured_data_bytes": counts["data"],
                        "local_prg_bytes": sum(g["size"] for g in gaps),
                        "local_chr_bytes": len(chr_data), "container_header_bytes": 16},

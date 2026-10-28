@@ -111,7 +111,12 @@ cartridge and program behaviour. Input audits do not establish a working build.
 `make build` assembles and links v1.5 in a fresh directory, verifies the entire
 ROM and its components, and runs the source-change controls. Output and proof:
 `build/us-v1.5/bible-adventures.nes` and `build/us-v1.5/proof.json`. They remain
-local, along with the extracted inputs and control builds.
+local, along with the extracted inputs and control builds. The optional
+`make extract-map-chunks` command exports the 145 referenced map chunks as editable
+local tile and attribute rows under `extracted/`. If present, the build encodes
+that file; otherwise it derives the same local input from the audited ROM. The
+one unreferenced slot stays opaque. A changed tile makes the matching comparison
+fail, and these local assets do not count as reconstructed PRG source.
 
 On macOS with Apple silicon and Homebrew's SDL2 installed, an optional emulator
 check exercises the opening of each adventure:
@@ -169,6 +174,7 @@ and simultaneous press/release handling on the reference and build.
 | `make trace-sprites` | Capture sprite resource and frame entries during extended v1.5 inputs. |
 | `make sprite-inventory` | Validate and decode the local sprite trace; payloads remain local. |
 | `make map-data` | Decode candidate map layouts and chunks to local analysis. |
+| `make extract-map-chunks` | Export editable map chunks to ignored local storage. |
 | `make trace-map` | Check map fetches in extended v1.5 emulator inputs. |
 | `make prg-inventory` | Combine verified source ownership with candidate and observed data uses. |
 | `make trace-runtime-extents` | Capture sampled Moses script and record accesses. |

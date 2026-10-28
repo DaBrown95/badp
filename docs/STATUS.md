@@ -1491,3 +1491,15 @@ constructed transfers require separate review.
 Source comments now name the reconstructed map row, audio, deferred PPU and
 division helpers. Their higher-level semantics and runtime coverage remain
 provisional; matching bytes alone do not validate those interpretations.
+
+The 145 table-referenced map chunks can now be exported to an ignored local
+file with `make extract-map-chunks`. Each is represented as eight tile rows and
+two attribute rows; the unreferenced slot 22 remains opaque. The encoder checks
+the audited reference identity, reviewed table geometry, slot types and row
+dimensions. The v1.5 assembler consumes the encoded local file when present,
+or generates the same local input from the reference when it is absent. A
+retained asset control changes one tile in an isolated copy before assembly;
+the full ROM comparison observes exactly that physical byte changing. Editing
+the local asset or its retained evidence invalidates progress until the build
+is reverified. Neither the decoded assets nor the opaque slot are credited as
+source; possible overlapping script uses and mapper assumptions remain open.

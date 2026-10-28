@@ -6,6 +6,7 @@ import json
 from pathlib import Path
 import sys
 
+from . import map_assets
 from .build_rom import MUTATIONS, PROOF_INPUTS, digest, mutate_source, source_regions, verify_control
 from .identify_rom import inspect_rom
 from .project import IDENTITY_PARTS, load_project, load_target
@@ -75,6 +76,29 @@ def verify_primary(root: Path, target: dict) -> dict:
             or proof.get("output_sha256") != digest(output)
             or proof.get("reference_sha256") != digest(reference)):
         raise ValueError("retained build does not match the reference")
+    prg_offset = parsed["prg"]["offset"]
+    prg = reference[prg_offset:prg_offset + parsed["prg"]["size"]]
+    asset, payload, asset_source, asset_input_hash = map_assets.select(root, prg, digest(reference))
+    asset_evidence = proof.get("map_assets", {})
+    if (asset_evidence.get("source") != asset_source or asset_evidence.get("input_sha256") != asset_input_hash
+            or asset_evidence.get("payload_sha256") != digest(payload)
+            or (directory / "inputs" / map_assets.GAP_NAME).read_bytes() != payload
+            or (directory / "inputs/map-chunks.json").read_bytes() != map_assets.serialize(asset)):
+        raise ValueError("map asset build evidence is stale")
+    changed_asset = map_assets.changed_asset(asset)
+    changed_json = map_assets.serialize(changed_asset)
+    changed_payload = map_assets.encode(changed_asset, prg, digest(reference))
+    asset_dir = directory / "controls/map_asset"
+    asset_candidate = (asset_dir / "candidate.nes").read_bytes()
+    asset_control = asset_evidence.get("control", {})
+    if ((asset_dir / "rom.s").read_bytes() != source_bytes
+            or (asset_dir / "map-chunks.json").read_bytes() != changed_json
+            or (asset_dir / "map-chunks.bin").read_bytes() != changed_payload
+            or asset_control.get("asset_sha256") != digest(changed_json)
+            or asset_control.get("payload_sha256") != digest(changed_payload)
+            or asset_control.get("candidate_sha256") != digest(asset_candidate)
+            or asset_control.get("changed_offsets") != map_assets.verify_control(reference, asset_candidate, prg_offset)):
+        raise ValueError("map asset source-change control is stale or invalid")
     components = proof.get("component_matches", {})
     if set(components) != set(IDENTITY_PARTS) or any(value is not True for value in components.values()):
         raise ValueError("component comparisons are incomplete")
