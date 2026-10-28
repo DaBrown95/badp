@@ -38,7 +38,7 @@ their assumed descriptor associations and interpretations remain unverified.
 The overlaps do not establish which path actually executes.
 A separate `make direct-record-flow` walk seeds every named bank-1 script
 entry and checks direct `$16` targets against the resulting script graph.
-The latest scan starts from 1,825 named candidate script entries and finds 28
+The latest scan starts from 1,836 named candidate script entries and finds 28
 possible direct-load commands with 26 distinct direct targets. Its widened
 walk contains 9,072 bytes with overlapping script decodes and 72 possible
 record/script overlap bytes. The added entries are candidate contexts, so
@@ -183,3 +183,9 @@ The context and script graph limits are separate. Each context walk and the
 merged walk use the same 65,536-node default; the native-event inventory
 rejects incomplete individual and merged graphs. The limit bounds the 16-bit
 encoded pointer space, not a claim that all possible game behavior is known.
+
+The candidate `$DA40` zero-mode record has a structured six-byte prefix; its
+last three visual fields overlap the existing `$DA46` record. Candidate
+contact pointers at `$DA50`, `$E012` and `$E0FE` also decode as BOGUS commands,
+and the source asserts both interpretations. The `$DB64` mode-1 flag is
+represented separately. These static descriptor associations remain unverified.

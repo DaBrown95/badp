@@ -1461,6 +1461,14 @@ BogusOpcodeMarkSlotAndYield = $2E
     AudioNote duration, note
 .endmacro
 
+; A contact script pointer can also be a two-byte BOGUS command.
+; The pointer and command share both bytes; reachability remains unresolved.
+.macro ContactPointerScriptOverlay target, value
+    .assert <(target - BankStart) = $64, lderror, "contact/script opcode disagreement"
+    .assert >(target - BankStart) = value, lderror, "contact/script operand disagreement"
+    BogusSetInvertedState3B value
+.endmacro
+
 ; A script command can occupy the same physical bytes as a possible record.
 ; These forms assert both interpretations without implying either path executes.
 .macro BogusJumpCompactOverlay target, resource, flags
@@ -19310,12 +19318,30 @@ ReviewedContactDA25:
 SlotFlowDA37:
     SlotRuntimeRecord $B654, $6AA2, $00, $FF, $00, $00, $00 ; CONTROL_SLOT_FLOW_DA37
 .assert (* - BankStart) = $5A40, error, "bank 1 slot record flow DA37 end"
-    .incbin "bank1_da40_da46.bin"
+; Candidate zero-mode record for descriptor $DA1C, command $EA3E. Its last
+; three visual fields overlap the following record; the association is unverified.
+CandidateRecordDA40Prefix:
+    .word $B644, $3D22 ; CONTROL_RECORD_DA40_PREFIX
+    .byte $B6, $00
+.assert (* - BankStart) = $5A46, error, "bank 1 candidate record DA40 prefix end"
 ; Descriptor-linked slot record; resource data remains local.
 SlotRuntimeDA46:
     SlotRuntimeRecord $B644, (ScriptE9BA - BankStart), $22, $FF, $00, $00, $00 ; CONTROL_SLOT_RUNTIME_DA46
 .assert (* - BankStart) = $5A4F, error, "bank 1 slot record DA46 end"
-    .incbin "bank1_da4f_da61.bin"
+    .incbin "bank1_da4f_da50.bin"
+; Possible contact for descriptor $DA46; pointer bytes also decode as BOGUS.
+; Neither context nor execution is established.
+CandidateContactDA4FHigh:
+    .byte $FF
+CandidateScriptDA51:
+    ContactPointerScriptOverlay RuntimeScriptE764, $67 ; CONTROL_CONTACT_SCRIPT_DA50
+.assert (* - BankStart) = $5A53, error, "bank 1 contact/script overlay da50 end"
+; Candidate script decode; these bytes also resemble skipped contact fields.
+; The descriptor and script contexts are unverified.
+CandidateScriptDA53:
+    BogusMaskSlotValue $00FF ; CONTROL_CANDIDATE_SCRIPT_DA53
+.assert (* - BankStart) = $5A56, error, "bank 1 candidate script da53 end"
+    .incbin "bank1_da56_da61.bin"
 ; Candidate descriptor $DA46, command $EA26, mode $00.
 SlotFlowDA61:
     SlotRuntimeRecord $B63D, $6AA2, $00, $FF, $00, $00, $00 ; CONTROL_SLOT_FLOW_DA61
@@ -19445,7 +19471,12 @@ ObservedRecordDB1BScript:
     .byte $FF
     .word RuntimeScriptE764 - BankStart ; CONTROL_OBSERVED_RECORD_DB1B
 .assert (* - BankStart) = $5B1F, error, "bank 1 observed record db1b end"
-    .incbin "bank1_db1f_db24.bin"
+; Candidate script decode; these bytes also resemble skipped contact fields.
+; The descriptor and script contexts are unverified.
+CandidateScriptDB1F:
+    BogusMaskSlotValue $00FF ; CONTROL_CANDIDATE_SCRIPT_DB1F
+.assert (* - BankStart) = $5B22, error, "bank 1 candidate script db1f end"
+    .incbin "bank1_db22_db24.bin"
 ; Resource pointer read by the slot-record loader. Unread neighbouring bytes remain local.
 PartialRecordDB24Resource:
     .word $B87F ; CONTROL_PARTIAL_RESOURCE_DB24
@@ -19496,7 +19527,12 @@ ReviewedContactDB57:
 CompactContextDB60:
     SlotCompactRecord $B876, $22 ; CONTROL_COMPACT_CONTEXT_DB60
 .assert (* - BankStart) = $5B63, error, "bank 1 compact candidate db60 end"
-    .incbin "bank1_db63_db66.bin"
+    .incbin "bank1_db63_db64.bin"
+; Candidate mode-$01 flag for a record based at $DB60; other modes differ.
+CandidateRecordDB60Mode1Flag:
+    .byte $C3 ; CONTROL_RECORD_DB60_MODE1_FLAG
+.assert (* - BankStart) = $5B65, error, "bank 1 candidate record DB60 mode-1 flag end"
+    .incbin "bank1_db65_db66.bin"
 ; Descriptor-linked slot record; resource data remains local.
 SlotRuntimeDB66:
     SlotRuntimeRecord $B876, (ScriptDB81 - BankStart), $22, $FF, $00, $00, $00 ; CONTROL_SLOT_RUNTIME_DB66
@@ -20100,7 +20136,20 @@ SlotFlowDFFF:
 SlotRuntimeE008:
     SlotRuntimeRecord $B82A, (ScriptE02C - BankStart), $00, $FF, $00, $00, $00 ; CONTROL_SLOT_RUNTIME_E008
 .assert (* - BankStart) = $6011, error, "bank 1 slot record E008 end"
-    .incbin "bank1_e011_e02c.bin"
+    .incbin "bank1_e011_e012.bin"
+; Possible contact for descriptor $E008; pointer bytes also decode as BOGUS.
+; Neither context nor execution is established.
+CandidateContactE011High:
+    .byte $FF
+CandidateScriptE013:
+    ContactPointerScriptOverlay RuntimeScriptE764, $67 ; CONTROL_CONTACT_SCRIPT_E012
+.assert (* - BankStart) = $6015, error, "bank 1 contact/script overlay e012 end"
+; Candidate script decode; these bytes also resemble skipped contact fields.
+; The descriptor and script contexts are unverified.
+CandidateScriptE015:
+    BogusMaskSlotValue $00FF ; CONTROL_CANDIDATE_SCRIPT_E015
+.assert (* - BankStart) = $6018, error, "bank 1 candidate script e015 end"
+    .incbin "bank1_e018_e02c.bin"
 ; Four entry points choose slot flags before entering the shared $E120 path.
 ScriptE02C:
     BogusSetSlotD0Bits $03       ; CONTROL_BOGUS_E02C
@@ -20233,7 +20282,20 @@ SlotFlowE0EB:
 SlotRuntimeE0F4:
     SlotRuntimeRecord $BB3D, (ScriptE118 - BankStart), $00, $FF, $00, $00, $00 ; CONTROL_SLOT_RUNTIME_E0F4
 .assert (* - BankStart) = $60FD, error, "bank 1 slot record E0F4 end"
-    .incbin "bank1_e0fd_e10f.bin"
+    .incbin "bank1_e0fd_e0fe.bin"
+; Possible contact for descriptor $E0F4; pointer bytes also decode as BOGUS.
+; Neither context nor execution is established.
+CandidateContactE0FDHigh:
+    .byte $FF
+CandidateScriptE0FF:
+    ContactPointerScriptOverlay RuntimeScriptE764, $67 ; CONTROL_CONTACT_SCRIPT_E0FE
+.assert (* - BankStart) = $6101, error, "bank 1 contact/script overlay e0fe end"
+; Candidate script decode; these bytes also resemble skipped contact fields.
+; The descriptor and script contexts are unverified.
+CandidateScriptE101:
+    BogusMaskSlotValue $00FF ; CONTROL_CANDIDATE_SCRIPT_E101
+.assert (* - BankStart) = $6104, error, "bank 1 candidate script e101 end"
+    .incbin "bank1_e104_e10f.bin"
 ; Candidate descriptor $E0F4, script $E262, mode $02.
 ModeRecordE10FResource:
     .word $B626 ; CONTROL_MODE_RECORD_E10F_RESOURCE
@@ -21892,7 +21954,18 @@ ScriptEC06:
     BogusClearSlot0790Bits $01
     BogusJumpBank1 ScriptEC33
 .assert (* - BankStart) = $6C1A, error, "bank 1 script EBEE end"
-    .incbin "bank1_ec1a_ec2b.bin"
+    .incbin "bank1_ec1a_ec20.bin"
+; Candidate script commands following an unverified banked entry.
+; The conditional branch targets the existing $EC2B script.
+CandidateScriptEC20:
+    BogusStoreSlotValueArray $FF ; CONTROL_CANDIDATE_SCRIPT_EC20
+CandidateScriptEC22:
+    BogusReadSlotValue $0F
+CandidateScriptEC24:
+    BogusBranchIfSlotValueNotEqual ScriptEC2B, $0003
+CandidateScriptEC29:
+    BogusSetSlotD0Bits $40
+.assert (* - BankStart) = $6C2B, error, "bank 1 candidate script EC20 end"
 ; Slot interactions and indexed audio paths; external data payloads remain local.
 ScriptEC2B:
     BogusSetSlot0640Pair $04, $00 ; CONTROL_BOGUS_EC2B

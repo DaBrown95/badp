@@ -23,6 +23,7 @@ class OverlayAssemblyTests(unittest.TestCase):
                  'BogusBranchAndClearSlot0620Bit08', 'BogusBranchIfSlot0520AtMost',
                  'BogusBranchIfMatchingSlotReady', 'BogusMarkMatchingSlots',
                  'BogusSetVoicePointers', 'BogusAddSelectedFieldClamped',
+                 'BogusSetInvertedState3B', 'ContactPointerScriptOverlay',
                  'AudioNoteView', 'AudioScriptByte', 'AudioScriptPair', 'AudioScriptTriple',
                  'AudioScriptWord', 'AudioScriptTarget', 'AudioScriptTargetByte',
                  'AudioScriptTargetTriple', 'AudioScriptQuad', 'AudioScriptFourWords')
@@ -68,9 +69,10 @@ BogusJumpCompactOverlay $9356, $5604, $13
 BogusModeResourceOverlay $12, $120A
 BogusSetJumpRecordOverlay $34, $9456, $345D, $5604, $14
 AudioNoteBogusOverlay $01, $05, $25
+ContactPointerScriptOverlay $9364, $13
 ''')
         self.assertEqual(result, 0, error)
-        self.assertEqual(output, bytes.fromhex('04 56 13 0a 12 5d 34 04 56 14 25'))
+        self.assertEqual(output, bytes.fromhex('04 56 13 0a 12 5d 34 04 56 14 25 64 13'))
 
     def test_multi_byte_audio_script_forms(self):
         # Synthetic commands exercise every operand layout, including target
@@ -112,6 +114,8 @@ AudioNoteBogusOverlay $01, $05, $25
 
     def test_mismatched_views_fail_assembly_or_link(self):
         cases = (
+            ('ContactPointerScriptOverlay $9365, $13', 'contact/script opcode'),
+            ('ContactPointerScriptOverlay $9364, $12', 'contact/script operand'),
             ('AudioNoteBogusOverlay $01, $05, $24', 'audio/script opcode'),
             ('BogusJumpCompactOverlay $9356, $5704, $13', 'jump/compact resource'),
             ('BogusJumpCompactOverlay $9356, $5604, $14', 'jump/compact flags'),

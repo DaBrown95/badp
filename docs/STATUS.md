@@ -1206,3 +1206,18 @@ are represented alongside their possible audio-note views. The `$38` command
 preserves its third operand even though the shared handler does not inspect it.
 Candidate contexts and bank selection remain unverified; changed-source
 controls and the whole-ROM comparison verify the emitted bytes.
+
+The widened inventory also supports a partial candidate `$DA40` slot record;
+its final visual fields overlap the existing record at `$DA46`. The possible
+mode-1 flag at `$DB64` is represented separately. Three candidate contact
+pointers at `$DA50`, `$E012` and `$E0FE` share their pointer bytes with a
+possible two-byte BOGUS command; assembly checks both views. Four adjacent
+three-byte script candidates use bytes that resemble fields skipped by the
+zero-mode contact loader. Associations and execution remain unverified.
+
+A further candidate command sequence at `$EC20` branches to the existing
+`$EC2B` script. Its known static predecessors come from speculative graph paths,
+including paths through bytes otherwise represented as native code; no runtime
+entry is established. Its command forms and emitted bytes are represented,
+but this is weaker evidence than an observed script entry. Each added extent
+has a changed-source control.

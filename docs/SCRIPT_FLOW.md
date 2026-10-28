@@ -125,3 +125,8 @@ comparing the third with `$07C0,x`; the walk records both target and
 fallthrough. The widened walk also finds three further four-byte script/audio
 overlays and alternative candidate boundaries at `$A9FF`, `$AA01`, `$AA90`
 and `$AA91`. This is conservative static evidence, not proof of reachability.
+
+The possible `$EC20` command sequence branches to the existing `$EC2B` script.
+Its known predecessors arise in speculative static paths, including possible
+script decodes over native-code bytes. The sequence is represented as a
+candidate; no runtime entry or descriptor association is established.
