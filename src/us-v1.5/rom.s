@@ -193,6 +193,9 @@ compareRangeReturn:
 .macro AudioWriteFive first, second, third, fourth
     .byte $F9, first, second, third, fourth
 .endmacro
+.macro AudioWriteRegister register, value
+    .byte ($EC | register), value
+.endmacro
 .macro AudioDelay duration
     .byte $FB, duration
 .endmacro
@@ -6933,6 +6936,9 @@ ShiftARight3:
 
 ; The table at $A37E selects bank-control values from the current state. A
 ; direct entry at $CC95 accepts the table byte in A; the $FF table value skips.
+; An operand with bit $10 set produces an index beyond the 16-byte BankValues
+; table. Those mapper writes can conflict with the ROM byte and select a
+; different PRG bank; the matching target preserves this unbounded behavior.
 ConfigureBanksFromState:
     ldx $01                       ; CONTROL_BANKS_FROM_STATE
     lda StateBankSelectors,x
@@ -13788,7 +13794,14 @@ ScriptRecordLengths:
 .segment "PRG1"
 .scope Bank1
 BankStart:
-    .incbin "bank1_8000_a6d0.bin"
+    .incbin "bank1_8000_a6c8.bin"
+; Candidate audio flow under bank-1 selection; reachability is unverified.
+AudioCandidateA6C8:
+    AudioSelectChannel $03 ; CONTROL_AUDIO_CANDIDATE_A6C8
+    AudioWriteFive $04, $00, $83, $08
+    AudioNote $02, $1F
+    AudioStopVoice
+.assert (* - BankStart) = $26D0, error, "bank 1 audio candidate A6C8 end"
 ; Opcode $B3 selects a two-byte voice-4 pointer by slot value. Three indices
 ; were observed on the reference ROM; the actual runtime bounds are unknown.
 IndexedVoice4PointersA6D0:
@@ -13862,7 +13875,21 @@ AudioObservedA72F:
     AudioDelay $08
     AudioStopVoice
 .assert (* - BankStart) = $2757, error, "bank 1 observed audio A6F9 end"
-    .incbin "bank1_a757_a77a.bin"
+    .incbin "bank1_a757_a760.bin"
+; Candidate audio flow under bank-1 selection; reachability is unverified.
+AudioCandidateA760:
+    AudioSelectChannel $03 ; CONTROL_AUDIO_CANDIDATE_A760
+    AudioWriteFive $94, $D9, $7B, $38
+    AudioDelay $08
+    AudioStopVoice
+    AudioSelectChannel $03
+    AudioWriteFive $94, $D9, $7A, $38
+    AudioDelay $02
+    AudioSelectChannel $03
+    AudioWriteFive $94, $D9, $7B, $38
+    AudioDelay $01
+    AudioStopVoice
+.assert (* - BankStart) = $277A, error, "bank 1 audio candidate A760 end"
 ; Partial audio commands observed in reference playback.
 AudioObservedA77A:
     AudioSelectChannel $00 ; CONTROL_AUDIO_OBSERVED_A77A
@@ -13874,7 +13901,28 @@ AudioObservedA77A:
     AudioDelay $08
     AudioStopVoice
 .assert (* - BankStart) = $278C, error, "bank 1 observed audio A77A end"
-    .incbin "bank1_a78c_a7b3.bin"
+; Candidate audio flow under bank-1 selection; reachability is unverified.
+AudioCandidateA78C:
+    AudioSelectChannel $00 ; CONTROL_AUDIO_CANDIDATE_A78C
+.assert (* - BankStart) = $278D, error, "bank 1 audio candidate A78C end"
+    .incbin "bank1_a78d_a792.bin"
+; Candidate audio flow under bank-1 selection; reachability is unverified.
+AudioCandidateA792:
+    AudioDelay $18 ; CONTROL_AUDIO_CANDIDATE_A792
+    AudioStopVoice
+    AudioSelectChannel $01
+    AudioDelay $04
+    AudioWriteFive $AE, $8E, $00, $99
+    AudioDelay $18
+    AudioStopVoice
+    AudioSelectChannel $00
+    AudioWriteFive $A3, $9B, $FF, $07
+    AudioDelay $18
+    AudioStopVoice
+    AudioSelectChannel $00
+    AudioWriteFive $A0, $8B, $00, $03
+.assert (* - BankStart) = $27AF, error, "bank 1 audio candidate A792 end"
+    .incbin "bank1_a7af_a7b3.bin"
 ; Partial audio commands observed in reference playback.
 AudioObservedA7B3:
     AudioWriteFive $1E, $92, $EF, $28 ; CONTROL_AUDIO_OBSERVED_A7B3
@@ -13912,7 +13960,15 @@ AudioObservedA7D6:
     AudioDelay $10
     AudioStopVoice
 .assert (* - BankStart) = $2807, error, "bank 1 observed audio A7B3 end"
-    .incbin "bank1_a807_a81d.bin"
+; Candidate audio flow under bank-1 selection; reachability is unverified.
+AudioCandidateA807:
+    AudioSelectChannel $00 ; CONTROL_AUDIO_CANDIDATE_A807
+    AudioWriteFive $C0, $82, $4D, $B0
+    AudioDelay $0C
+    AudioLoop $02, (AudioCandidateA807 - BankStart)
+    AudioStopVoice
+.assert (* - BankStart) = $2814, error, "bank 1 audio candidate A807 end"
+    .incbin "bank1_a814_a81d.bin"
 ; Partial audio commands observed in reference playback.
 AudioObservedA81D:
     AudioSelectChannel $03 ; CONTROL_AUDIO_OBSERVED_A81D
@@ -13933,7 +13989,13 @@ AudioObservedA837:
     AudioLoop $08, (AudioObservedA837 - BankStart)
     AudioStopVoice
 .assert (* - BankStart) = $2844, error, "bank 1 observed audio A82C end"
-    .incbin "bank1_a844_a84d.bin"
+; Candidate audio flow under bank-1 selection; reachability is unverified.
+AudioCandidateA844:
+    AudioSelectChannel $01 ; CONTROL_AUDIO_CANDIDATE_A844
+    AudioWriteFive $8E, $8B, $00, $8B
+    AudioDelay $08
+    AudioStopVoice
+.assert (* - BankStart) = $284D, error, "bank 1 audio candidate A844 end"
 ; Partial audio commands observed in reference playback.
 AudioObservedA84D:
     AudioSelectChannel $01 ; CONTROL_AUDIO_OBSERVED_A84D
@@ -13941,7 +14003,30 @@ AudioObservedA84D:
     AudioDelay $08
     AudioStopVoice
 .assert (* - BankStart) = $2856, error, "bank 1 observed audio A84D end"
-    .incbin "bank1_a856_a887.bin"
+; Candidate audio flow under bank-1 selection; reachability is unverified.
+AudioCandidateA856:
+    AudioSelectChannel $00 ; CONTROL_AUDIO_CANDIDATE_A856
+    AudioWriteFive $DA, $9C, $1D, $88
+    AudioDelay $08
+    AudioStopVoice
+AudioCandidateA85F:
+    AudioSelectChannel $03
+    AudioWriteFive $DF, $00, $02, $1A
+    AudioDelay $02
+    AudioLoop $08, (AudioCandidateA85F - BankStart)
+    AudioStopVoice
+    AudioSelectChannel $00
+    AudioWriteFive $9F, $99, $01, $19
+    AudioDelay $04
+    AudioStopVoice
+    AudioSelectChannel $01
+    AudioDelay $08
+    AudioWriteFive $1B, $9D, $00, $83
+    AudioDelay $14
+    AudioWriteFive $1B, $9D, $00, $83
+    AudioDelay $08
+    AudioStopVoice
+.assert (* - BankStart) = $2887, error, "bank 1 audio candidate A856 end"
 ; Partial audio commands observed in reference playback.
 AudioObservedA887:
     AudioSelectChannel $01 ; CONTROL_AUDIO_OBSERVED_A887
@@ -13955,7 +14040,14 @@ AudioObservedA887:
     AudioClearChannelMask
     AudioStopVoice
 .assert (* - BankStart) = $289B, error, "bank 1 observed audio A887 end"
-    .incbin "bank1_a89b_a8ad.bin"
+; Candidate audio flow under bank-1 selection; reachability is unverified.
+AudioCandidateA89B:
+    AudioSelectChannel $03 ; CONTROL_AUDIO_CANDIDATE_A89B
+    AudioWriteFive $A0, $7F, $8E, $88
+    AudioDelay $08
+    AudioStopVoice
+.assert (* - BankStart) = $28A4, error, "bank 1 audio candidate A89B end"
+    .incbin "bank1_a8a4_a8ad.bin"
 ; Partial audio commands observed in reference playback.
 AudioObservedA8AD:
     AudioSelectChannel $03 ; CONTROL_AUDIO_OBSERVED_A8AD
@@ -13963,7 +14055,207 @@ AudioObservedA8AD:
     AudioDelay $03
     AudioLoop $0F, (AudioObservedA8AD - BankStart)
 .assert (* - BankStart) = $28B9, error, "bank 1 observed audio A8AD end"
-    .incbin "bank1_a8b9_aa58.bin"
+; Candidate audio flow under bank-1 selection; reachability is unverified.
+AudioCandidateA8B9:
+    AudioStopVoice ; CONTROL_AUDIO_CANDIDATE_A8B9
+    AudioSelectChannel $03
+    AudioWriteRegister $00, $18
+    AudioWriteRegister $01, $4C
+    AudioWriteRegister $02, $5C
+    AudioWriteRegister $03, $2A
+    AudioWriteRegister $00, $42
+.assert (* - BankStart) = $28C5, error, "bank 1 audio candidate A8B9 end"
+    .incbin "bank1_a8c5_a8d1.bin"
+; Candidate audio flow under bank-1 selection; reachability is unverified.
+AudioCandidateA8D1:
+    AudioWriteRegister $03, $73 ; CONTROL_AUDIO_CANDIDATE_A8D1
+    AudioWriteRegister $00, $40
+    AudioWriteRegister $01, $4C
+    AudioWriteRegister $02, $5F
+    AudioWriteRegister $03, $73
+    AudioWriteRegister $00, $1F
+    AudioWriteRegister $01, $4C
+    AudioWriteRegister $02, $5F
+    AudioWriteRegister $03, $73
+    AudioWriteRegister $00, $1E
+    AudioWriteRegister $01, $4C
+    AudioWriteRegister $02, $5F
+    AudioWriteRegister $03, $73
+    AudioWriteRegister $00, $1D
+    AudioWriteRegister $01, $4C
+    AudioWriteRegister $02, $5F
+    AudioWriteRegister $03, $73
+    AudioWriteRegister $00, $1C
+    AudioWriteRegister $01, $4C
+    AudioWriteRegister $02, $5F
+    AudioWriteRegister $03, $73
+    AudioWriteRegister $00, $1B
+    AudioWriteRegister $01, $4C
+.assert (* - BankStart) = $28FF, error, "bank 1 audio candidate A8D1 end"
+    .incbin "bank1_a8ff_a90d.bin"
+; Candidate audio flow under bank-1 selection; reachability is unverified.
+AudioCandidateA90D:
+    AudioWriteRegister $01, $4C ; CONTROL_AUDIO_CANDIDATE_A90D
+    AudioWriteRegister $02, $5F
+    AudioWriteRegister $03, $73
+    AudioWriteRegister $00, $18
+    AudioWriteRegister $01, $4C
+    AudioWriteRegister $02, $5F
+    AudioWriteRegister $03, $73
+    AudioWriteRegister $00, $17
+    AudioWriteRegister $01, $4C
+.assert (* - BankStart) = $291F, error, "bank 1 audio candidate A90D end"
+    .incbin "bank1_a91f_a935.bin"
+; Candidate audio flow under bank-1 selection; reachability is unverified.
+AudioCandidateA935:
+    AudioWriteRegister $01, $4C ; CONTROL_AUDIO_CANDIDATE_A935
+    AudioWriteRegister $02, $5F
+    AudioWriteRegister $03, $73
+    AudioWriteRegister $00, $13
+    AudioWriteRegister $01, $4C
+    AudioWriteRegister $02, $5F
+    AudioWriteRegister $03, $73
+    AudioStopVoice
+    AudioSelectChannel $00
+    AudioInstrument $01
+    AudioNote $02, $0C
+    AudioNote $02, $13
+.assert (* - BankStart) = $2948, error, "bank 1 audio candidate A935 end"
+    .incbin "bank1_a948_a96a.bin"
+; Candidate audio flow under bank-1 selection; reachability is unverified.
+AudioCandidateA96A:
+    AudioNote $00, $0C ; CONTROL_AUDIO_CANDIDATE_A96A
+    AudioNote $00, $0F
+    AudioNote $00, $0E
+    AudioNote $00, $0C
+    AudioNote $00, $0B
+    AudioNote $00, $0E
+    AudioNote $00, $0C
+    AudioNote $00, $07
+    AudioNote $00, $0C
+    AudioNote $00, $0E
+    AudioNote $00, $0F
+    AudioNote $00, $11
+    AudioNote $00, $13
+    AudioNote $00, $15
+    AudioNote $00, $16
+    AudioNote $00, $15
+    AudioNote $00, $13
+    AudioNote $00, $16
+    AudioNote $00, $15
+    AudioNote $00, $13
+    AudioNote $00, $12
+    AudioNote $00, $15
+    AudioNote $01, $13
+    AudioNote $01, $0E
+    AudioNote $01, $13
+    AudioNote $01, $15
+    AudioNote $00, $16
+    AudioNote $00, $18
+    AudioNote $00, $16
+    AudioNote $00, $18
+    AudioNote $01, $18
+    AudioNote $00, $16
+    AudioNote $00, $18
+    AudioNote $00, $1A
+    AudioNote $00, $18
+    AudioNote $00, $1A
+    AudioNote $00, $1B
+    AudioNote $00, $1A
+    AudioNote $00, $18
+    AudioNote $00, $16
+    AudioNote $00, $15
+    AudioNote $00, $16
+    AudioNote $00, $1A
+    AudioNote $00, $18
+    AudioNote $00, $1A
+    AudioNote $00, $12
+    AudioNote $00, $1A
+    AudioNote $00, $18
+    AudioNote $00, $1A
+    AudioNote $00, $13
+    AudioNote $00, $1A
+    AudioNote $00, $18
+    AudioNote $00, $1A
+    AudioNote $00, $12
+    AudioNote $00, $1A
+    AudioNote $00, $18
+    AudioNote $00, $1A
+    AudioNote $00, $16
+    AudioNote $00, $13
+.assert (* - BankStart) = $29A5, error, "bank 1 audio candidate A96A end"
+    .incbin "bank1_a9a5_a9ba.bin"
+; Candidate audio flow under bank-1 selection; reachability is unverified.
+AudioCandidateA9BA:
+    AudioNote $01, $16 ; CONTROL_AUDIO_CANDIDATE_A9BA
+    AudioNote $01, $14
+    AudioNote $01, $1A
+    AudioNote $01, $1F
+    AudioNote $01, $14
+    AudioNote $01, $13
+    AudioNote $01, $18
+    AudioNote $01, $1F
+    AudioNote $01, $13
+    AudioNote $00, $11
+    AudioNote $00, $0F
+    AudioNote $00, $11
+    AudioNote $00, $13
+    AudioNote $00, $11
+    AudioNote $00, $1A
+    AudioNote $00, $18
+    AudioNote $00, $1A
+    AudioNote $00, $0F
+    AudioNote $00, $18
+    AudioNote $00, $17
+    AudioNote $00, $18
+    AudioNote $00, $0E
+    AudioNote $00, $17
+    AudioNote $00, $15
+.assert (* - BankStart) = $29D2, error, "bank 1 audio candidate A9BA end"
+    .incbin "bank1_a9d2_a9dd.bin"
+; Candidate audio flow under bank-1 selection; reachability is unverified.
+AudioCandidateA9DD:
+    AudioNote $00, $0F ; CONTROL_AUDIO_CANDIDATE_A9DD
+    AudioNote $00, $13
+    AudioNote $00, $11
+    AudioNote $00, $13
+    AudioNote $00, $0B
+    AudioNote $00, $13
+    AudioNote $00, $11
+    AudioNote $00, $13
+    AudioNote $00, $0C
+    AudioNote $00, $13
+    AudioNote $00, $11
+    AudioNote $00, $13
+    AudioNote $00, $0B
+    AudioNote $00, $13
+    AudioNote $00, $11
+    AudioNote $00, $13
+    AudioNote $02, $0F
+    AudioNote $02, $11
+    AudioNote $02, $13
+    AudioNote $02, $11
+    AudioNote $02, $07
+.assert (* - BankStart) = $29F2, error, "bank 1 audio candidate A9DD end"
+    .incbin "bank1_a9f2_a9f6.bin"
+; Candidate audio flow under bank-1 selection; reachability is unverified.
+AudioCandidateA9F6:
+    AudioNote $04, $1F ; CONTROL_AUDIO_CANDIDATE_A9F6
+    AudioNote $04, $1F
+    AudioNote $04, $1F
+    AudioNote $04, $1F
+    AudioNote $04, $1F
+    AudioNote $02, $07
+    AudioNote $02, $0E
+    AudioNote $02, $0A
+    AudioNote $01, $1F
+    AudioNote $01, $09
+.assert (* - BankStart) = $2A00, error, "bank 1 audio candidate A9F6 end"
+    .incbin "bank1_aa00_aa57.bin"
+; Candidate audio flow under bank-1 selection; reachability is unverified.
+AudioCandidateAA57:
+    AudioRestorePointer ; CONTROL_AUDIO_CANDIDATE_AA57
+.assert (* - BankStart) = $2A58, error, "bank 1 audio candidate AA57 end"
 ; Partial audio commands observed in reference playback.
 AudioObservedAA58:
     AudioSelectChannel $00 ; CONTROL_AUDIO_OBSERVED_AA58
@@ -13979,7 +14271,24 @@ AudioObservedAA58:
     AudioNote $01, $18
     AudioNote $01, $18
 .assert (* - BankStart) = $2A64, error, "bank 1 observed audio AA58 end"
-    .incbin "bank1_aa64_aad8.bin"
+    .incbin "bank1_aa64_aa78.bin"
+; Candidate audio flow under bank-1 selection; reachability is unverified.
+AudioCandidateAA78:
+    AudioNote $01, $0C ; CONTROL_AUDIO_CANDIDATE_AA78
+    AudioNote $01, $10
+    AudioNote $01, $13
+    AudioNote $01, $16
+    AudioNote $01, $15
+    AudioNote $01, $13
+    AudioNote $01, $15
+    AudioNote $01, $11
+    AudioNote $01, $13
+    AudioNote $01, $15
+    AudioNote $01, $18
+    AudioNote $01, $16
+    AudioNote $01, $16
+.assert (* - BankStart) = $2A85, error, "bank 1 audio candidate AA78 end"
+    .incbin "bank1_aa85_aad8.bin"
 ; Partial audio commands observed in reference playback.
 AudioObservedAAD8:
     AudioSelectChannel $02 ; CONTROL_AUDIO_OBSERVED_AAD8
@@ -14128,7 +14437,10 @@ AudioObservedAC58:
     AudioNote $02, $15
     AudioNote $02, $18
 .assert (* - BankStart) = $2C6F, error, "bank 1 observed audio AC58 end"
-    .incbin "bank1_ac6f_ac70.bin"
+; Candidate audio flow under bank-1 selection; reachability is unverified.
+AudioCandidateAC6F:
+    AudioStopVoice ; CONTROL_AUDIO_CANDIDATE_AC6F
+.assert (* - BankStart) = $2C70, error, "bank 1 audio candidate AC6F end"
 ; Audio commands observed during the extended Moses route.
 AudioObservedAC70:
     AudioSelectChannel $01 ; CONTROL_AUDIO_OBSERVED_AC70
@@ -14152,7 +14464,10 @@ AudioObservedAC70:
 AudioObservedAC86:
     AudioNote $02, $05 ; CONTROL_AUDIO_OBSERVED_AC86
 .assert (* - BankStart) = $2C87, error, "bank 1 observed audio AC86 end"
-    .incbin "bank1_ac87_ac88.bin"
+; Candidate audio flow under bank-1 selection; reachability is unverified.
+AudioCandidateAC87:
+    AudioStopVoice ; CONTROL_AUDIO_CANDIDATE_AC87
+.assert (* - BankStart) = $2C88, error, "bank 1 audio candidate AC87 end"
 ; Partial audio commands observed in reference playback.
 AudioObservedAC88:
     AudioSelectChannel $00 ; CONTROL_AUDIO_OBSERVED_AC88
@@ -14169,7 +14484,11 @@ AudioObservedAC88:
     AudioNote $00, $0E
     AudioNote $03, $0C
 .assert (* - BankStart) = $2C95, error, "bank 1 observed audio AC88 end"
-    .incbin "bank1_ac95_ac97.bin"
+; Candidate audio flow under bank-1 selection; reachability is unverified.
+AudioCandidateAC95:
+    AudioNote $03, $0E ; CONTROL_AUDIO_CANDIDATE_AC95
+    AudioStopVoice
+.assert (* - BankStart) = $2C97, error, "bank 1 audio candidate AC95 end"
 ; Partial audio commands observed in reference playback.
 AudioObservedAC97:
     AudioSelectChannel $01 ; CONTROL_AUDIO_OBSERVED_AC97
@@ -14180,7 +14499,11 @@ AudioObservedAC97:
     AudioNote $02, $00
     AudioNote $03, $00
 .assert (* - BankStart) = $2C9E, error, "bank 1 observed audio AC97 end"
-    .incbin "bank1_ac9e_aca0.bin"
+; Candidate audio flow under bank-1 selection; reachability is unverified.
+AudioCandidateAC9E:
+    AudioNote $03, $07 ; CONTROL_AUDIO_CANDIDATE_AC9E
+    AudioStopVoice
+.assert (* - BankStart) = $2CA0, error, "bank 1 audio candidate AC9E end"
 ; Record accesses observed at the bank-0 loader in the opening scenarios.
 ; Fields behind a $FFFF resource pointer may not be read by the loader.
 RuntimeRecordACA0:

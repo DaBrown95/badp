@@ -10,7 +10,7 @@ Follow the user's instructions over this file.
 ## Version strategy
 
 - Focus reconstruction on the primary target first. Establish its matching
-  build, source inventory and gameplay verification before moving through
+  build and source inventory before moving through
   v1.4, v1.3, v1.2, v1.1 and the unversioned release. All six remain in scope.
 - Share understood engine code, scripts and data definitions wherever supported
   by evidence. Express version differences in explicit target configuration or
@@ -40,7 +40,7 @@ Follow the user's instructions over this file.
   provisional. Distinguish static findings, byte matches and runtime evidence.
 - Preserve original bugs and hardware behaviour in matching source. Document
   known bugs briefly; keep optional fixes separate from the matching target.
-- Work in small connected batches. Keep one latest verified full-build proof,
+- Work in substantial connected batches. Keep one latest verified full-build proof,
   including changed-source negative controls, and a bounded set of useful
   failures. Preserve unique attempts and findings; record retirement of obsolete
   generated payloads. An old hash ledger does not require permanent retention.
@@ -83,10 +83,14 @@ Follow the user's instructions over this file.
   source ownership. Keep native code, decoded scripts/data, extracted assets,
   copied regions and unresolved bytes separate. Leave the unknown game-code
   denominator unknown; never credit unverified work.
-- Whole-ROM equality is one gate. Completion also requires a reviewed inventory
-  of all code banks, indirect targets, scripts and data formats, plus reproducible
-  gameplay checks across all three adventures and shared systems. Necessary local
+- Whole-ROM byte equality establishes identical executable behaviour under the
+  same conditions; it does not establish that source names, boundaries or data
+  interpretations are correct. Completion also requires a reviewed inventory of
+  all code banks, indirect targets, scripts and data formats. Necessary local
   graphics/audio inputs must be accounted for without counting them as code.
+  Use runtime investigation to resolve specific source, data-format or mapping
+  uncertainties. Completing levels is not a separate acceptance requirement;
+  retain existing useful gameplay checks.
 - Documentation-only edits need link and diff checks, not a ROM rebuild.
 
 ## Publication and privacy

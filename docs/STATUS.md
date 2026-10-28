@@ -1058,7 +1058,7 @@ stream boundaries or correct sound on hardware.
 
 The static audio walk also finds 294 unobserved candidate commands across
 23 currently uncontested regions totaling 430 bytes. Their decoded fields
-round-trip locally, but they remain uncredited: the stack-copy routine selects
+round-tripped locally at that checkpoint and remained uncredited: the stack-copy routine selects
 its physical bank using state-dependent `$03C2`/`$03C3`, and the mapping for
 these unobserved paths has not been established. The candidate report and
 decoded blocks are retained in ignored local analysis for further investigation.
@@ -1114,3 +1114,22 @@ A reference-only search reached the upper staircase near the baby, but its
 bounded beam hit the emulator time limit and a 72-case pickup-timing sweep did
 not observe a linked baby. The attempts remain in local analysis and do not
 rule out other routes or interaction timings.
+
+The audio bank question was investigated with controlled CPU and RAM inputs in
+the pinned emulator. The byte-matched selector routine was exercised for all
+128 nonnegative input values with both incoming carry states on each ROM. Its
+usual selector values `$00`–`$0F` produce the eight mapper bytes `$0D`–`$7D`;
+each mapped a tested audio fetch to physical bank 1. Values with bit `$10` set
+index beyond the 16-byte bank-value table. Among the 16 resulting mapper bytes,
+`$8D`, `$BD` and `$FD` selected physical bank 0 in the controlled probe due to
+the byte present at the write address. The full input range is not claimed to
+be reachable in normal gameplay, and this is emulator evidence, not hardware
+proof. `make verify-audio-bank` reproduces the checks.
+
+With the normal bank-1 mapping established as a conditional interpretation,
+247 further audio commands in 22 uncontested partial regions (373 bytes) are
+now structured source. Their bytes and command decoding match the audited ROM,
+and each region has its own changed-source control. They remain labelled as
+static candidates: execution, stream boundaries and the bank selected in every
+possible context are not established. The separately observed 57 bytes were
+already accounted for; competing uses remain local.

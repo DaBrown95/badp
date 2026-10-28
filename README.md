@@ -22,19 +22,23 @@ redraw, frame motion and slot updates, arithmetic, packed-text decoding, and
 shared banked record and data-copy routines. The script command dispatcher, its record-length and
 handler tables, and source at all 197 handler entries are also reconstructed.
 Slot descriptors, position-record streams, audio lookup tables and several
-script regions are represented as structured data. Some scripts and slot
-records have also been observed during the opening gameplay checks. Remaining
+script regions are represented as structured data. Some audio command paths
+are static candidates under bank-1 selection; their reachability is unverified.
+Some scripts and slot records have also been observed during the opening gameplay checks. Remaining
 PRG bytes and CHR graphics are local binary inclusions.
 Changed-source controls check that each reconstructed region affects the
 assembled output.
 
 We will complete v1.5 first, then adapt the shared reconstruction to the other
-versions in order. Each version needs its own matching and gameplay evidence.
+versions in order. Each version needs its own matching evidence. Byte equality
+establishes identical executable behaviour under the same conditions; it does
+not establish the correctness of inferred source names or data formats.
 The [project configuration](config/project.json) records the primary target and
 rollout order.
 
 Percentages show verified reconstructed code and structured data as a share of
-physical PRG bytes. PRG also contains data whose format is not yet understood;
+physical PRG bytes. Verification checks the emitted bytes and source controls;
+inferred meanings can remain provisional. PRG also contains data whose format is not yet understood;
 the game's total code denominator is unknown. CHR graphics, the container
 header and copied bytes do not count as reconstructed source. These percentages
 are not measures of gameplay completion.
@@ -42,7 +46,7 @@ are not measures of gameplay completion.
 <!-- BEGIN GENERATED PROGRESS -->
 | Version | Reconstructed PRG | Status |
 | --- | ---: | --- |
-| USA v1.5 | **64.21%** (42,080 / 65,536 bytes) | In progress |
+| USA v1.5 | **64.78%** (42,453 / 65,536 bytes) | In progress |
 | USA v1.4 | **0.00%** (0 / 65,536 bytes) | Not started |
 | USA v1.3 | **0.00%** (0 / 65,536 bytes) | Not started |
 | USA v1.2 | **0.00%** (0 / 65,536 bytes) | Not started |
@@ -146,6 +150,7 @@ and simultaneous press/release handling on the reference and build.
 | `make build` | Build and compare v1.5; retain source-change controls. |
 | `make verify-gameplay` | Compare v1.5 opening scenarios and inventory in MesenCE. |
 | `make verify-controller` | Compare controller bit order and simultaneous transitions. |
+| `make verify-audio-bank` | Check audio selector and mapper behavior with controlled inputs. |
 | `make progress` | Rebuild and update the per-version tracker. |
 | `make position-records` | Decode v1.5 position records to ignored local analysis. |
 | `make script-entries` | Inventory candidate v1.5 script entry points locally. |
