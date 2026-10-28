@@ -49,7 +49,7 @@ are not measures of gameplay completion.
 <!-- BEGIN GENERATED PROGRESS -->
 | Version | Reconstructed PRG | Status |
 | --- | ---: | --- |
-| USA v1.5 | **66.36%** (43,488 / 65,536 bytes) | In progress |
+| USA v1.5 | **66.56%** (43,620 / 65,536 bytes) | In progress |
 | USA v1.4 | **0.00%** (0 / 65,536 bytes) | Not started |
 | USA v1.3 | **0.00%** (0 / 65,536 bytes) | Not started |
 | USA v1.2 | **0.00%** (0 / 65,536 bytes) | Not started |
@@ -132,9 +132,10 @@ with their source definitions; other edits fail the matching comparison. The
 locally supplied asset data does not count as reconstructed PRG source.
 `make extract-sprite-frames` exports 132 observed v1.5 sprite frames as local
 rows of tile indices and attribute bytes. The build reads those rows when the
-file exists; frame headers and dimensions stay fixed. These PRG records refer
-to CHR graphics, which remain a separate local input. Other sprite frames and
-possible overlapping uses are still being investigated. `make extract-menu-tiles`
+file exists; observed frame dimensions are in source, and the preceding header
+bytes stay local and fixed. These PRG records refer to CHR graphics, which remain
+a separate local input. Other sprite frames and possible overlapping uses are
+still being investigated. `make extract-menu-tiles`
 exports the fourteen menu display streams locally; their tile bytes are editable,
 while command positions and stream lengths stay fixed. These bytes can also
 have other candidate uses and do not count as source progress.
@@ -181,6 +182,7 @@ and simultaneous press/release handling on the reference and build.
 | `make verify-record-overlaps` | Check controlled overlapping record fields. |
 | `make verify-script-overlap` | Check a controlled ambiguous record and script path. |
 | `make verify-indexed-audio` | Check a controlled indexed audio lookup. |
+| `make verify-sprite-shapes` | Check observed frame dimension reads. |
 | `make state-table-inventory` | Check state-table indexing and conditional palette read addresses. |
 | `make indexed-jump-inventory` | Check `$F434` index behavior and candidate table reads. |
 | `make native-control-flow` | Inventory reconstructed native transfers and bank alternatives. |

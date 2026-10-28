@@ -5,7 +5,7 @@ from pathlib import Path
 import tempfile
 import unittest
 
-from tools import sprite_assets
+from tools import map_layout_assets, sprite_assets
 
 
 class SpriteAssetTests(unittest.TestCase):
@@ -31,6 +31,24 @@ class SpriteAssetTests(unittest.TestCase):
         edited = copy.deepcopy(self.asset)
         edited['frames'][0]['tile_rows'][0][1] = [9, 10]
         self.assertEqual(sprite_assets.encode(self.root, edited, self.prg, self.sha)[0][2][-2:], bytes([9, 10]))
+
+    def test_dimension_can_be_source_owned_while_tiles_remain_local(self):
+        spans = sprite_assets.encode(self.root, self.asset, self.prg, self.sha)
+        regions = [{'bank': 0, 'cpu': '0x9001', 'size': 1}]
+        with self.assertRaises(ValueError):
+            map_layout_assets.gap_payloads(self.prg, regions, spans)
+        gaps = map_layout_assets.gap_payloads(self.prg, regions, spans, allow_owned=True)
+        self.assertIn('bank0_9002_10000.bin', gaps)
+        changed = copy.deepcopy(spans)
+        frame = bytearray(changed[0][2]); frame[1] ^= 1
+        changed[0] = (0, changed[0][1], bytes(frame))
+        with self.assertRaisesRegex(ValueError, 'source-owned byte'):
+            map_layout_assets.gap_payloads(self.prg, regions, changed, allow_owned=True)
+        updated = sprite_assets.encode(self.root, sprite_assets.changed_asset(self.asset), self.prg, self.sha)
+        changed_gaps = map_layout_assets.gap_payloads(self.prg, regions, updated, allow_owned=True)
+        payloads = [(bank, start + 2, data[2:]) for bank, start, data in spans]
+        payload_gaps = map_layout_assets.gap_payloads(self.prg, regions, payloads)
+        self.assertEqual({name for name in gaps if gaps[name] != changed_gaps[name]}, set(payload_gaps))
 
     def test_control_changes_one_tile_per_frame(self):
         changed = sprite_assets.changed_asset(self.asset)

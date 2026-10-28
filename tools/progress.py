@@ -165,7 +165,7 @@ def verify_primary(root: Path, target: dict) -> dict:
                                                                                      text_spans, changed_text_spans)):
         raise ValueError("packed-text source-change control is stale or invalid")
     sprites, sprite_spans, sprite_source, sprite_input_hash = sprite_assets.select(root, prg, digest(reference))
-    sprite_gaps = map_layout_assets.gap_payloads(prg, regions, sprite_spans)
+    sprite_gaps = map_layout_assets.gap_payloads(prg, regions, sprite_spans, allow_owned=True)
     if map_assets.GAP_NAME in sprite_gaps or set(sprite_gaps) & (set(layout_gaps) | set(text_gaps)):
         raise ValueError("sprite frames and other assets share an input gap")
     sprite_evidence = proof.get("sprite_assets", {})
@@ -177,10 +177,12 @@ def verify_primary(root: Path, target: dict) -> dict:
     changed_sprites = sprite_assets.changed_asset(sprites)
     changed_sprite_json = sprite_assets.serialize(changed_sprites)
     changed_sprite_spans = sprite_assets.encode(root, changed_sprites, prg, digest(reference))
-    changed_sprite_gaps = map_layout_assets.gap_payloads(prg, regions, changed_sprite_spans)
+    changed_sprite_gaps = map_layout_assets.gap_payloads(prg, regions, changed_sprite_spans, allow_owned=True)
+    sprite_payload_spans = [(bank, start + 2, payload[2:]) for bank, start, payload in sprite_spans]
+    sprite_payload_gaps = map_layout_assets.gap_payloads(prg, regions, sprite_payload_spans)
     sprite_changed_names = [name for name in sprite_gaps if changed_sprite_gaps[name] != sprite_gaps[name]]
-    if not sprite_changed_names or set(sprite_changed_names) != set(sprite_gaps):
-        raise ValueError("sprite control does not affect every input gap")
+    if not sprite_changed_names or set(sprite_changed_names) != set(sprite_payload_gaps):
+        raise ValueError("sprite control does not affect every payload gap")
     sprite_dir = directory / "controls/sprite_asset"
     sprite_candidate = (sprite_dir / "candidate.nes").read_bytes()
     sprite_control = sprite_evidence.get("control", {})

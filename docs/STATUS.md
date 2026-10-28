@@ -34,9 +34,9 @@ independent source trees or treat one version's evidence as verifying the rest.
 simultaneous reconstruction. Keep progress and completion evidence per target.
 
 The v1.5 build now assembles and links to the exact reference, with 21,474 bytes
-of source code and 22,014 bytes of structured data across the physical PRG banks.
-It still includes 22,048 local PRG bytes and 65,536 local CHR bytes. A total of
-1,658 independent source-change controls verify every listed reconstructed region.
+of source code and 22,146 bytes of structured data across the physical PRG banks.
+It still includes 21,916 local PRG bytes and 65,536 local CHR bytes. A total of
+1,790 independent source-change controls verify every listed reconstructed region.
 Passing input audits or whole-ROM equality alone is not reconstruction
 completion. The developer identifies BOGUS as the
 state-machine engine in the [Vance Kozik interview](https://www.nesworld.com/kozik.php);
@@ -345,7 +345,7 @@ in these inventories; that number is not a count of remaining code. The report
 also retains 7,633 possible map/script overlap bytes and 864 possible record/script
 overlap bytes across the combined inventories. The expanded field-setter walk
 introduces many speculative competing decodes; it does not establish their
-reachability. It also reports 8,154 source-owned bytes covered by candidate
+reachability. It also reports 8,286 source-owned bytes covered by candidate
 data uses, which can include compatible uses as well as competing ones. The
 report records its input identities and writes metadata only to
 ignored `analysis/us-v1.5/prg-inventory.json`.
@@ -728,7 +728,8 @@ The local sprite probe observed 83 distinct resource headers and 132 frame
 headers in bank 0 during the 16,000-frame exploratory inputs. None of these
 observed frames wrap the eight-bit index or cross the bank, although the frame
 reader permits wrapping and zero dimension nibbles produce 256 loop iterations.
-The resource and frame data remain local, not source-progress credit.
+The observed frame dimension bytes are source; other resource and frame
+content remains local and receives no source-progress credit.
 `make trace-sprites` captures the observations with the pinned emulator;
 `make sprite-inventory` checks them against the audited ROM and describes the
 headers in ignored local analysis. These checks do not verify rendered animation
@@ -1795,3 +1796,17 @@ The probe stops before resource reads; it supports the field interpretations
 but does not establish that these descriptor and script contexts coincide in
 normal play, nor does it verify real cartridge behavior. Its evidence remains
 under ignored `analysis/us-v1.5/record-overlap-verification.json`.
+
+The dimension byte of each of the 132 observed bank-0 sprite frames is now
+structured source, for 132 additional physical PRG bytes. Each source label
+points to the original frame start; its preceding header byte and tile pairs
+remain local. The observed frame-entry probe supplies the frame addresses,
+and the reconstructed frame routine reads the following byte as column and
+row nibbles. Each dimension has an independent changed-source control.
+`make verify-sprite-shapes` injects every observed frame address on both ROMs
+and checks both dimension reads, physical mapping and decoded nibbles.
+Other script or sprite interpretations may overlap; neither the observed
+entry samples nor matching bytes establish a complete sprite inventory or
+physical board behavior. The sprite asset encoder still requires reference
+headers, checks agreement with source-owned dimension bytes, and changes a
+tile in every observed frame in its retained control.

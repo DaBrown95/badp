@@ -6981,10 +6981,416 @@ FadeWaitVBlank:
     bpl FadeWaitVBlank
     rts
 .assert (* - BankStart) = $35D3, error, "bank 0 palette fade wait end"
+; The frame reader interprets byte 1 as packed column and row counts.
+; Zero nibbles retain the original eight-bit counter wrap behavior.
+.macro ObservedSpriteFrameShape columns, rows
+    .assert (columns >= 0) .and (columns <= 15), error, "invalid frame columns"
+    .assert (rows >= 0) .and (rows <= 15), error, "invalid frame rows"
+    .byte ((columns << 4) | rows)
+.endmacro
+
 ; Palette control headers selected by state tables or possible BOGUS paths.
 ; Colour payloads remain local. Some bytes also have candidate script or
 ; sprite uses; the labels do not establish exclusive use or reachability.
-    .incbin "bank0_b5d3_c7df.bin"
+; Observed frame dimension bytes are source; preceding bytes and tile pairs
+; remain local. Other candidate script or sprite views may overlap.
+    .incbin "bank0_b5d3_ba24.bin"
+ObservedSpriteFrameBA23 = * - 1
+    ObservedSpriteFrameShape $01, $01 ; CONTROL_SPRITE_SHAPE_BA23
+    .incbin "bank0_ba25_ba28.bin"
+ObservedSpriteFrameBA27 = * - 1
+    ObservedSpriteFrameShape $02, $01 ; CONTROL_SPRITE_SHAPE_BA27
+    .incbin "bank0_ba29_ba2e.bin"
+ObservedSpriteFrameBA2D = * - 1
+    ObservedSpriteFrameShape $02, $01 ; CONTROL_SPRITE_SHAPE_BA2D
+    .incbin "bank0_ba2f_ba34.bin"
+ObservedSpriteFrameBA33 = * - 1
+    ObservedSpriteFrameShape $02, $01 ; CONTROL_SPRITE_SHAPE_BA33
+    .incbin "bank0_ba35_ba3a.bin"
+ObservedSpriteFrameBA39 = * - 1
+    ObservedSpriteFrameShape $02, $01 ; CONTROL_SPRITE_SHAPE_BA39
+    .incbin "bank0_ba3b_ba40.bin"
+ObservedSpriteFrameBA3F = * - 1
+    ObservedSpriteFrameShape $02, $01 ; CONTROL_SPRITE_SHAPE_BA3F
+    .incbin "bank0_ba41_ba46.bin"
+ObservedSpriteFrameBA45 = * - 1
+    ObservedSpriteFrameShape $02, $01 ; CONTROL_SPRITE_SHAPE_BA45
+    .incbin "bank0_ba47_ba4c.bin"
+ObservedSpriteFrameBA4B = * - 1
+    ObservedSpriteFrameShape $07, $07 ; CONTROL_SPRITE_SHAPE_BA4B
+    .incbin "bank0_ba4d_bab4.bin"
+ObservedSpriteFrameBAB3 = * - 1
+    ObservedSpriteFrameShape $01, $01 ; CONTROL_SPRITE_SHAPE_BAB3
+    .incbin "bank0_bab5_bada.bin"
+ObservedSpriteFrameBAD9 = * - 1
+    ObservedSpriteFrameShape $03, $01 ; CONTROL_SPRITE_SHAPE_BAD9
+    .incbin "bank0_badb_bae2.bin"
+ObservedSpriteFrameBAE1 = * - 1
+    ObservedSpriteFrameShape $03, $01 ; CONTROL_SPRITE_SHAPE_BAE1
+    .incbin "bank0_bae3_baea.bin"
+ObservedSpriteFrameBAE9 = * - 1
+    ObservedSpriteFrameShape $03, $01 ; CONTROL_SPRITE_SHAPE_BAE9
+    .incbin "bank0_baeb_bafa.bin"
+ObservedSpriteFrameBAF9 = * - 1
+    ObservedSpriteFrameShape $02, $02 ; CONTROL_SPRITE_SHAPE_BAF9
+    .incbin "bank0_bafb_bb04.bin"
+ObservedSpriteFrameBB03 = * - 1
+    ObservedSpriteFrameShape $02, $02 ; CONTROL_SPRITE_SHAPE_BB03
+    .incbin "bank0_bb05_bb8c.bin"
+ObservedSpriteFrameBB8B = * - 1
+    ObservedSpriteFrameShape $01, $01 ; CONTROL_SPRITE_SHAPE_BB8B
+    .incbin "bank0_bb8d_bb90.bin"
+ObservedSpriteFrameBB8F = * - 1
+    ObservedSpriteFrameShape $04, $01 ; CONTROL_SPRITE_SHAPE_BB8F
+    .incbin "bank0_bb91_bb9a.bin"
+ObservedSpriteFrameBB99 = * - 1
+    ObservedSpriteFrameShape $04, $01 ; CONTROL_SPRITE_SHAPE_BB99
+    .incbin "bank0_bb9b_bba4.bin"
+ObservedSpriteFrameBBA3 = * - 1
+    ObservedSpriteFrameShape $04, $01 ; CONTROL_SPRITE_SHAPE_BBA3
+    .incbin "bank0_bba5_bbae.bin"
+ObservedSpriteFrameBBAD = * - 1
+    ObservedSpriteFrameShape $04, $01 ; CONTROL_SPRITE_SHAPE_BBAD
+    .incbin "bank0_bbaf_bbf8.bin"
+ObservedSpriteFrameBBF7 = * - 1
+    ObservedSpriteFrameShape $07, $07 ; CONTROL_SPRITE_SHAPE_BBF7
+    .incbin "bank0_bbf9_bc7a.bin"
+ObservedSpriteFrameBC79 = * - 1
+    ObservedSpriteFrameShape $01, $01 ; CONTROL_SPRITE_SHAPE_BC79
+    .incbin "bank0_bc7b_bc7e.bin"
+ObservedSpriteFrameBC7D = * - 1
+    ObservedSpriteFrameShape $01, $02 ; CONTROL_SPRITE_SHAPE_BC7D
+    .incbin "bank0_bc7f_bc84.bin"
+ObservedSpriteFrameBC83 = * - 1
+    ObservedSpriteFrameShape $02, $01 ; CONTROL_SPRITE_SHAPE_BC83
+    .incbin "bank0_bc85_bc8a.bin"
+ObservedSpriteFrameBC89 = * - 1
+    ObservedSpriteFrameShape $02, $02 ; CONTROL_SPRITE_SHAPE_BC89
+    .incbin "bank0_bc8b_be9e.bin"
+ObservedSpriteFrameBE9D = * - 1
+    ObservedSpriteFrameShape $02, $01 ; CONTROL_SPRITE_SHAPE_BE9D
+    .incbin "bank0_be9f_bea4.bin"
+ObservedSpriteFrameBEA3 = * - 1
+    ObservedSpriteFrameShape $01, $05 ; CONTROL_SPRITE_SHAPE_BEA3
+    .incbin "bank0_bea5_beb0.bin"
+ObservedSpriteFrameBEAF = * - 1
+    ObservedSpriteFrameShape $01, $05 ; CONTROL_SPRITE_SHAPE_BEAF
+    .incbin "bank0_beb1_bebc.bin"
+ObservedSpriteFrameBEBB = * - 1
+    ObservedSpriteFrameShape $01, $05 ; CONTROL_SPRITE_SHAPE_BEBB
+    .incbin "bank0_bebd_bec8.bin"
+ObservedSpriteFrameBEC7 = * - 1
+    ObservedSpriteFrameShape $01, $05 ; CONTROL_SPRITE_SHAPE_BEC7
+    .incbin "bank0_bec9_bed4.bin"
+ObservedSpriteFrameBED3 = * - 1
+    ObservedSpriteFrameShape $01, $05 ; CONTROL_SPRITE_SHAPE_BED3
+    .incbin "bank0_bed5_bee0.bin"
+ObservedSpriteFrameBEDF = * - 1
+    ObservedSpriteFrameShape $01, $05 ; CONTROL_SPRITE_SHAPE_BEDF
+    .incbin "bank0_bee1_beec.bin"
+ObservedSpriteFrameBEEB = * - 1
+    ObservedSpriteFrameShape $01, $05 ; CONTROL_SPRITE_SHAPE_BEEB
+    .incbin "bank0_beed_bef8.bin"
+ObservedSpriteFrameBEF7 = * - 1
+    ObservedSpriteFrameShape $01, $05 ; CONTROL_SPRITE_SHAPE_BEF7
+    .incbin "bank0_bef9_bf04.bin"
+ObservedSpriteFrameBF03 = * - 1
+    ObservedSpriteFrameShape $01, $05 ; CONTROL_SPRITE_SHAPE_BF03
+    .incbin "bank0_bf05_bf28.bin"
+ObservedSpriteFrameBF27 = * - 1
+    ObservedSpriteFrameShape $02, $02 ; CONTROL_SPRITE_SHAPE_BF27
+    .incbin "bank0_bf29_bf32.bin"
+ObservedSpriteFrameBF31 = * - 1
+    ObservedSpriteFrameShape $02, $02 ; CONTROL_SPRITE_SHAPE_BF31
+    .incbin "bank0_bf33_bf3c.bin"
+ObservedSpriteFrameBF3B = * - 1
+    ObservedSpriteFrameShape $02, $02 ; CONTROL_SPRITE_SHAPE_BF3B
+    .incbin "bank0_bf3d_bfac.bin"
+ObservedSpriteFrameBFAB = * - 1
+    ObservedSpriteFrameShape $02, $02 ; CONTROL_SPRITE_SHAPE_BFAB
+    .incbin "bank0_bfad_bfb6.bin"
+ObservedSpriteFrameBFB5 = * - 1
+    ObservedSpriteFrameShape $02, $02 ; CONTROL_SPRITE_SHAPE_BFB5
+    .incbin "bank0_bfb7_bfc0.bin"
+ObservedSpriteFrameBFBF = * - 1
+    ObservedSpriteFrameShape $02, $02 ; CONTROL_SPRITE_SHAPE_BFBF
+    .incbin "bank0_bfc1_bfca.bin"
+ObservedSpriteFrameBFC9 = * - 1
+    ObservedSpriteFrameShape $02, $02 ; CONTROL_SPRITE_SHAPE_BFC9
+    .incbin "bank0_bfcb_bfde.bin"
+ObservedSpriteFrameBFDD = * - 1
+    ObservedSpriteFrameShape $02, $02 ; CONTROL_SPRITE_SHAPE_BFDD
+    .incbin "bank0_bfdf_bfe8.bin"
+ObservedSpriteFrameBFE7 = * - 1
+    ObservedSpriteFrameShape $02, $02 ; CONTROL_SPRITE_SHAPE_BFE7
+    .incbin "bank0_bfe9_bff2.bin"
+ObservedSpriteFrameBFF1 = * - 1
+    ObservedSpriteFrameShape $02, $02 ; CONTROL_SPRITE_SHAPE_BFF1
+    .incbin "bank0_bff3_c004.bin"
+ObservedSpriteFrameC003 = * - 1
+    ObservedSpriteFrameShape $02, $02 ; CONTROL_SPRITE_SHAPE_C003
+    .incbin "bank0_c005_c00e.bin"
+ObservedSpriteFrameC00D = * - 1
+    ObservedSpriteFrameShape $02, $02 ; CONTROL_SPRITE_SHAPE_C00D
+    .incbin "bank0_c00f_c018.bin"
+ObservedSpriteFrameC017 = * - 1
+    ObservedSpriteFrameShape $02, $02 ; CONTROL_SPRITE_SHAPE_C017
+    .incbin "bank0_c019_c022.bin"
+ObservedSpriteFrameC021 = * - 1
+    ObservedSpriteFrameShape $02, $02 ; CONTROL_SPRITE_SHAPE_C021
+    .incbin "bank0_c023_c02c.bin"
+ObservedSpriteFrameC02B = * - 1
+    ObservedSpriteFrameShape $02, $02 ; CONTROL_SPRITE_SHAPE_C02B
+    .incbin "bank0_c02d_c036.bin"
+ObservedSpriteFrameC035 = * - 1
+    ObservedSpriteFrameShape $02, $02 ; CONTROL_SPRITE_SHAPE_C035
+    .incbin "bank0_c037_c040.bin"
+ObservedSpriteFrameC03F = * - 1
+    ObservedSpriteFrameShape $02, $02 ; CONTROL_SPRITE_SHAPE_C03F
+    .incbin "bank0_c041_c0a8.bin"
+ObservedSpriteFrameC0A7 = * - 1
+    ObservedSpriteFrameShape $04, $01 ; CONTROL_SPRITE_SHAPE_C0A7
+    .incbin "bank0_c0a9_c0b2.bin"
+ObservedSpriteFrameC0B1 = * - 1
+    ObservedSpriteFrameShape $04, $01 ; CONTROL_SPRITE_SHAPE_C0B1
+    .incbin "bank0_c0b3_c0bc.bin"
+ObservedSpriteFrameC0BB = * - 1
+    ObservedSpriteFrameShape $04, $01 ; CONTROL_SPRITE_SHAPE_C0BB
+    .incbin "bank0_c0bd_c0c6.bin"
+ObservedSpriteFrameC0C5 = * - 1
+    ObservedSpriteFrameShape $03, $02 ; CONTROL_SPRITE_SHAPE_C0C5
+    .incbin "bank0_c0c7_c0d4.bin"
+ObservedSpriteFrameC0D3 = * - 1
+    ObservedSpriteFrameShape $03, $02 ; CONTROL_SPRITE_SHAPE_C0D3
+    .incbin "bank0_c0d5_c122.bin"
+ObservedSpriteFrameC121 = * - 1
+    ObservedSpriteFrameShape $02, $01 ; CONTROL_SPRITE_SHAPE_C121
+    .incbin "bank0_c123_c128.bin"
+ObservedSpriteFrameC127 = * - 1
+    ObservedSpriteFrameShape $02, $01 ; CONTROL_SPRITE_SHAPE_C127
+    .incbin "bank0_c129_c12e.bin"
+ObservedSpriteFrameC12D = * - 1
+    ObservedSpriteFrameShape $02, $01 ; CONTROL_SPRITE_SHAPE_C12D
+    .incbin "bank0_c12f_c134.bin"
+ObservedSpriteFrameC133 = * - 1
+    ObservedSpriteFrameShape $03, $02 ; CONTROL_SPRITE_SHAPE_C133
+    .incbin "bank0_c135_c142.bin"
+ObservedSpriteFrameC141 = * - 1
+    ObservedSpriteFrameShape $03, $02 ; CONTROL_SPRITE_SHAPE_C141
+    .incbin "bank0_c143_c150.bin"
+ObservedSpriteFrameC14F = * - 1
+    ObservedSpriteFrameShape $03, $02 ; CONTROL_SPRITE_SHAPE_C14F
+    .incbin "bank0_c151_c164.bin"
+ObservedSpriteFrameC163 = * - 1
+    ObservedSpriteFrameShape $02, $02 ; CONTROL_SPRITE_SHAPE_C163
+    .incbin "bank0_c165_c16e.bin"
+ObservedSpriteFrameC16D = * - 1
+    ObservedSpriteFrameShape $02, $02 ; CONTROL_SPRITE_SHAPE_C16D
+    .incbin "bank0_c16f_c290.bin"
+ObservedSpriteFrameC28F = * - 1
+    ObservedSpriteFrameShape $07, $07 ; CONTROL_SPRITE_SHAPE_C28F
+    .incbin "bank0_c291_c314.bin"
+ObservedSpriteFrameC313 = * - 1
+    ObservedSpriteFrameShape $04, $01 ; CONTROL_SPRITE_SHAPE_C313
+    .incbin "bank0_c315_c31e.bin"
+ObservedSpriteFrameC31D = * - 1
+    ObservedSpriteFrameShape $04, $01 ; CONTROL_SPRITE_SHAPE_C31D
+    .incbin "bank0_c31f_c328.bin"
+ObservedSpriteFrameC327 = * - 1
+    ObservedSpriteFrameShape $04, $01 ; CONTROL_SPRITE_SHAPE_C327
+    .incbin "bank0_c329_c332.bin"
+ObservedSpriteFrameC331 = * - 1
+    ObservedSpriteFrameShape $04, $01 ; CONTROL_SPRITE_SHAPE_C331
+    .incbin "bank0_c333_c39c.bin"
+ObservedSpriteFrameC39B = * - 1
+    ObservedSpriteFrameShape $03, $01 ; CONTROL_SPRITE_SHAPE_C39B
+    .incbin "bank0_c39d_c3a4.bin"
+ObservedSpriteFrameC3A3 = * - 1
+    ObservedSpriteFrameShape $03, $01 ; CONTROL_SPRITE_SHAPE_C3A3
+    .incbin "bank0_c3a5_c3ac.bin"
+ObservedSpriteFrameC3AB = * - 1
+    ObservedSpriteFrameShape $03, $01 ; CONTROL_SPRITE_SHAPE_C3AB
+    .incbin "bank0_c3ad_c3c4.bin"
+ObservedSpriteFrameC3C3 = * - 1
+    ObservedSpriteFrameShape $04, $02 ; CONTROL_SPRITE_SHAPE_C3C3
+    .incbin "bank0_c3c5_c3d6.bin"
+ObservedSpriteFrameC3D5 = * - 1
+    ObservedSpriteFrameShape $04, $02 ; CONTROL_SPRITE_SHAPE_C3D5
+    .incbin "bank0_c3d7_c3e8.bin"
+ObservedSpriteFrameC3E7 = * - 1
+    ObservedSpriteFrameShape $04, $02 ; CONTROL_SPRITE_SHAPE_C3E7
+    .incbin "bank0_c3e9_c3fa.bin"
+ObservedSpriteFrameC3F9 = * - 1
+    ObservedSpriteFrameShape $04, $02 ; CONTROL_SPRITE_SHAPE_C3F9
+    .incbin "bank0_c3fb_c40c.bin"
+ObservedSpriteFrameC40B = * - 1
+    ObservedSpriteFrameShape $04, $02 ; CONTROL_SPRITE_SHAPE_C40B
+    .incbin "bank0_c40d_c41e.bin"
+ObservedSpriteFrameC41D = * - 1
+    ObservedSpriteFrameShape $04, $02 ; CONTROL_SPRITE_SHAPE_C41D
+    .incbin "bank0_c41f_c430.bin"
+ObservedSpriteFrameC42F = * - 1
+    ObservedSpriteFrameShape $04, $02 ; CONTROL_SPRITE_SHAPE_C42F
+    .incbin "bank0_c431_c442.bin"
+ObservedSpriteFrameC441 = * - 1
+    ObservedSpriteFrameShape $04, $02 ; CONTROL_SPRITE_SHAPE_C441
+    .incbin "bank0_c443_c454.bin"
+ObservedSpriteFrameC453 = * - 1
+    ObservedSpriteFrameShape $04, $02 ; CONTROL_SPRITE_SHAPE_C453
+    .incbin "bank0_c455_c466.bin"
+ObservedSpriteFrameC465 = * - 1
+    ObservedSpriteFrameShape $04, $02 ; CONTROL_SPRITE_SHAPE_C465
+    .incbin "bank0_c467_c49c.bin"
+ObservedSpriteFrameC49B = * - 1
+    ObservedSpriteFrameShape $04, $02 ; CONTROL_SPRITE_SHAPE_C49B
+    .incbin "bank0_c49d_c4ae.bin"
+ObservedSpriteFrameC4AD = * - 1
+    ObservedSpriteFrameShape $04, $02 ; CONTROL_SPRITE_SHAPE_C4AD
+    .incbin "bank0_c4af_c4c0.bin"
+ObservedSpriteFrameC4BF = * - 1
+    ObservedSpriteFrameShape $02, $01 ; CONTROL_SPRITE_SHAPE_C4BF
+    .incbin "bank0_c4c1_c4c6.bin"
+ObservedSpriteFrameC4C5 = * - 1
+    ObservedSpriteFrameShape $02, $01 ; CONTROL_SPRITE_SHAPE_C4C5
+    .incbin "bank0_c4c7_c4cc.bin"
+ObservedSpriteFrameC4CB = * - 1
+    ObservedSpriteFrameShape $02, $01 ; CONTROL_SPRITE_SHAPE_C4CB
+    .incbin "bank0_c4cd_c4d2.bin"
+ObservedSpriteFrameC4D1 = * - 1
+    ObservedSpriteFrameShape $02, $01 ; CONTROL_SPRITE_SHAPE_C4D1
+    .incbin "bank0_c4d3_c534.bin"
+ObservedSpriteFrameC533 = * - 1
+    ObservedSpriteFrameShape $01, $01 ; CONTROL_SPRITE_SHAPE_C533
+    .incbin "bank0_c535_c550.bin"
+ObservedSpriteFrameC54F = * - 1
+    ObservedSpriteFrameShape $03, $01 ; CONTROL_SPRITE_SHAPE_C54F
+    .incbin "bank0_c551_c558.bin"
+ObservedSpriteFrameC557 = * - 1
+    ObservedSpriteFrameShape $03, $01 ; CONTROL_SPRITE_SHAPE_C557
+    .incbin "bank0_c559_c560.bin"
+ObservedSpriteFrameC55F = * - 1
+    ObservedSpriteFrameShape $03, $01 ; CONTROL_SPRITE_SHAPE_C55F
+    .incbin "bank0_c561_c570.bin"
+ObservedSpriteFrameC56F = * - 1
+    ObservedSpriteFrameShape $03, $01 ; CONTROL_SPRITE_SHAPE_C56F
+    .incbin "bank0_c571_c578.bin"
+ObservedSpriteFrameC577 = * - 1
+    ObservedSpriteFrameShape $03, $01 ; CONTROL_SPRITE_SHAPE_C577
+    .incbin "bank0_c579_c580.bin"
+ObservedSpriteFrameC57F = * - 1
+    ObservedSpriteFrameShape $03, $01 ; CONTROL_SPRITE_SHAPE_C57F
+    .incbin "bank0_c581_c5ba.bin"
+ObservedSpriteFrameC5B9 = * - 1
+    ObservedSpriteFrameShape $01, $02 ; CONTROL_SPRITE_SHAPE_C5B9
+    .incbin "bank0_c5bb_c5c0.bin"
+ObservedSpriteFrameC5BF = * - 1
+    ObservedSpriteFrameShape $01, $02 ; CONTROL_SPRITE_SHAPE_C5BF
+    .incbin "bank0_c5c1_c5c6.bin"
+ObservedSpriteFrameC5C5 = * - 1
+    ObservedSpriteFrameShape $01, $02 ; CONTROL_SPRITE_SHAPE_C5C5
+    .incbin "bank0_c5c7_c5dc.bin"
+ObservedSpriteFrameC5DB = * - 1
+    ObservedSpriteFrameShape $01, $02 ; CONTROL_SPRITE_SHAPE_C5DB
+    .incbin "bank0_c5dd_c5e2.bin"
+ObservedSpriteFrameC5E1 = * - 1
+    ObservedSpriteFrameShape $01, $02 ; CONTROL_SPRITE_SHAPE_C5E1
+    .incbin "bank0_c5e3_c5f6.bin"
+ObservedSpriteFrameC5F5 = * - 1
+    ObservedSpriteFrameShape $03, $02 ; CONTROL_SPRITE_SHAPE_C5F5
+    .incbin "bank0_c5f7_c604.bin"
+ObservedSpriteFrameC603 = * - 1
+    ObservedSpriteFrameShape $03, $02 ; CONTROL_SPRITE_SHAPE_C603
+    .incbin "bank0_c605_c612.bin"
+ObservedSpriteFrameC611 = * - 1
+    ObservedSpriteFrameShape $03, $02 ; CONTROL_SPRITE_SHAPE_C611
+    .incbin "bank0_c613_c620.bin"
+ObservedSpriteFrameC61F = * - 1
+    ObservedSpriteFrameShape $03, $02 ; CONTROL_SPRITE_SHAPE_C61F
+    .incbin "bank0_c621_c62e.bin"
+ObservedSpriteFrameC62D = * - 1
+    ObservedSpriteFrameShape $03, $02 ; CONTROL_SPRITE_SHAPE_C62D
+    .incbin "bank0_c62f_c678.bin"
+ObservedSpriteFrameC677 = * - 1
+    ObservedSpriteFrameShape $02, $01 ; CONTROL_SPRITE_SHAPE_C677
+    .incbin "bank0_c679_c67e.bin"
+ObservedSpriteFrameC67D = * - 1
+    ObservedSpriteFrameShape $02, $01 ; CONTROL_SPRITE_SHAPE_C67D
+    .incbin "bank0_c67f_c684.bin"
+ObservedSpriteFrameC683 = * - 1
+    ObservedSpriteFrameShape $02, $01 ; CONTROL_SPRITE_SHAPE_C683
+    .incbin "bank0_c685_c68a.bin"
+ObservedSpriteFrameC689 = * - 1
+    ObservedSpriteFrameShape $02, $01 ; CONTROL_SPRITE_SHAPE_C689
+    .incbin "bank0_c68b_c690.bin"
+ObservedSpriteFrameC68F = * - 1
+    ObservedSpriteFrameShape $02, $01 ; CONTROL_SPRITE_SHAPE_C68F
+    .incbin "bank0_c691_c696.bin"
+ObservedSpriteFrameC695 = * - 1
+    ObservedSpriteFrameShape $02, $01 ; CONTROL_SPRITE_SHAPE_C695
+    .incbin "bank0_c697_c6a4.bin"
+ObservedSpriteFrameC6A3 = * - 1
+    ObservedSpriteFrameShape $02, $02 ; CONTROL_SPRITE_SHAPE_C6A3
+    .incbin "bank0_c6a5_c6b8.bin"
+ObservedSpriteFrameC6B7 = * - 1
+    ObservedSpriteFrameShape $02, $02 ; CONTROL_SPRITE_SHAPE_C6B7
+    .incbin "bank0_c6b9_c6c2.bin"
+ObservedSpriteFrameC6C1 = * - 1
+    ObservedSpriteFrameShape $02, $02 ; CONTROL_SPRITE_SHAPE_C6C1
+    .incbin "bank0_c6c3_c6cc.bin"
+ObservedSpriteFrameC6CB = * - 1
+    ObservedSpriteFrameShape $03, $01 ; CONTROL_SPRITE_SHAPE_C6CB
+    .incbin "bank0_c6cd_c6d4.bin"
+ObservedSpriteFrameC6D3 = * - 1
+    ObservedSpriteFrameShape $03, $01 ; CONTROL_SPRITE_SHAPE_C6D3
+    .incbin "bank0_c6d5_c6dc.bin"
+ObservedSpriteFrameC6DB = * - 1
+    ObservedSpriteFrameShape $03, $01 ; CONTROL_SPRITE_SHAPE_C6DB
+    .incbin "bank0_c6dd_c6e4.bin"
+ObservedSpriteFrameC6E3 = * - 1
+    ObservedSpriteFrameShape $02, $02 ; CONTROL_SPRITE_SHAPE_C6E3
+    .incbin "bank0_c6e5_c6ee.bin"
+ObservedSpriteFrameC6ED = * - 1
+    ObservedSpriteFrameShape $02, $02 ; CONTROL_SPRITE_SHAPE_C6ED
+    .incbin "bank0_c6ef_c6f8.bin"
+ObservedSpriteFrameC6F7 = * - 1
+    ObservedSpriteFrameShape $02, $02 ; CONTROL_SPRITE_SHAPE_C6F7
+    .incbin "bank0_c6f9_c702.bin"
+ObservedSpriteFrameC701 = * - 1
+    ObservedSpriteFrameShape $01, $01 ; CONTROL_SPRITE_SHAPE_C701
+    .incbin "bank0_c703_c706.bin"
+ObservedSpriteFrameC705 = * - 1
+    ObservedSpriteFrameShape $01, $01 ; CONTROL_SPRITE_SHAPE_C705
+    .incbin "bank0_c707_c70a.bin"
+ObservedSpriteFrameC709 = * - 1
+    ObservedSpriteFrameShape $01, $01 ; CONTROL_SPRITE_SHAPE_C709
+    .incbin "bank0_c70b_c70e.bin"
+ObservedSpriteFrameC70D = * - 1
+    ObservedSpriteFrameShape $01, $01 ; CONTROL_SPRITE_SHAPE_C70D
+    .incbin "bank0_c70f_c712.bin"
+ObservedSpriteFrameC711 = * - 1
+    ObservedSpriteFrameShape $02, $01 ; CONTROL_SPRITE_SHAPE_C711
+    .incbin "bank0_c713_c718.bin"
+ObservedSpriteFrameC717 = * - 1
+    ObservedSpriteFrameShape $02, $01 ; CONTROL_SPRITE_SHAPE_C717
+    .incbin "bank0_c719_c71e.bin"
+ObservedSpriteFrameC71D = * - 1
+    ObservedSpriteFrameShape $02, $01 ; CONTROL_SPRITE_SHAPE_C71D
+    .incbin "bank0_c71f_c724.bin"
+ObservedSpriteFrameC723 = * - 1
+    ObservedSpriteFrameShape $02, $01 ; CONTROL_SPRITE_SHAPE_C723
+    .incbin "bank0_c725_c72a.bin"
+ObservedSpriteFrameC729 = * - 1
+    ObservedSpriteFrameShape $02, $01 ; CONTROL_SPRITE_SHAPE_C729
+    .incbin "bank0_c72b_c7ca.bin"
+ObservedSpriteFrameC7C9 = * - 1
+    ObservedSpriteFrameShape $02, $01 ; CONTROL_SPRITE_SHAPE_C7C9
+    .incbin "bank0_c7cb_c7d0.bin"
+ObservedSpriteFrameC7CF = * - 1
+    ObservedSpriteFrameShape $02, $01 ; CONTROL_SPRITE_SHAPE_C7CF
+    .incbin "bank0_c7d1_c7dc.bin"
+ObservedSpriteFrameC7DB = * - 1
+    ObservedSpriteFrameShape $01, $01 ; CONTROL_SPRITE_SHAPE_C7DB
+    .incbin "bank0_c7dd_c7df.bin"
 PaletteHeaderC7DF:
     PaletteStreamHeader $00, $00, $00 ; CONTROL_PALETTE_HEADER_C7DF
     .incbin "bank0_c7e2_c7f2.bin"
