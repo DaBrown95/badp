@@ -18,10 +18,10 @@ from .setup_mesen import ROOT, digest_file, spec, verify_emulator
 
 FRAMES = (240, 650, 1200, 1400, 1496, 1511, 1550, 1700, 1800, 2100, 2150, 2300,
           2400, 2600, 2800, 3000, 3100, 3200, 3250, 3300, 3350, 3400, 3450, 3650, 3700, 3750,
-          3800, 3825, 3850, 3900, 4050, 4150, 4300, 4400, 4500, 4600, 4650, 4750, 4900, 5000, 5100, 5200, 5250, 5300, 5375, 5450, 5500, 5550, 5575, 5625, 5650, 5700, 5880, 5950, 6000, 6040, 6100, 6160, 6200, 6260, 6300, 6340, 6500, 6690, 6740, 6780, 6800, 6840, 6900, 7000, 7020, 7100)
+          3800, 3825, 3850, 3900, 4050, 4150, 4300, 4400, 4500, 4600, 4650, 4750, 4900, 5000, 5100, 5200, 5250, 5300, 5375, 5450, 5500, 5550, 5575, 5625, 5650, 5700, 5880, 5950, 6000, 6040, 6100, 6160, 6200, 6260, 6300, 6340, 6500, 6690, 6740, 6780, 6800, 6840, 6900, 7000, 7020, 7100, 7200, 7300, 7400)
 SLOT_FRAMES = (1400, 1496, 1511, 1550, 1700, 1800, 2100, 2150, 2300,
                2400, 2600, 2800, 3000, 3100, 3200, 3250, 3300, 3350, 3400, 3450, 3650, 3700, 3750,
-               3800, 3825, 3850, 3900, 4050, 4150, 4300, 4400, 4500, 4600, 4650, 4750, 4900, 5000, 5100, 5200, 5250, 5300, 5375, 5450, 5500, 5550, 5575, 5625, 5650, 5700, 5880, 5950, 6000, 6040, 6100, 6160, 6200, 6260, 6300, 6340, 6500, 6690, 6740, 6780, 6800, 6840, 6900, 7000, 7020, 7100)
+               3800, 3825, 3850, 3900, 4050, 4150, 4300, 4400, 4500, 4600, 4650, 4750, 4900, 5000, 5100, 5200, 5250, 5300, 5375, 5450, 5500, 5550, 5575, 5625, 5650, 5700, 5880, 5950, 6000, 6040, 6100, 6160, 6200, 6260, 6300, 6340, 6500, 6690, 6740, 6780, 6800, 6840, 6900, 7000, 7020, 7100, 7200, 7300, 7400)
 # Pinned emulator screenshot of the first-level success screen for the audited v1.5 input.
 MOSES_SUCCESS_SCREEN_SHA256 = 'c3d483860076f9e782d92de0913c671d4ed1aef84f8ce81688423cad40c19346'
 # Pinned second-level success screen for the same audited input.
@@ -273,7 +273,7 @@ def validate_scenario(evidence: dict, expected_state: int, *, inventory: bool = 
         carried_frames = (5950, 6000, 6040, 6100, 6160, 6200, 6260, 6300, 6340,
                           6500, 6690, 6740, 6780, 6800, 6840, 6900, 7000, 7020)
         if roof:
-            carried_frames += (7100,)
+            carried_frames += (7100, 7200, 7300, 7400)
         if (not evidence['stage2_record_mode2']
                 or any(slots[str(frame)]['player_descriptor'] != 1 or
                 slots[str(frame)]['object_descriptor'] != 0x6a for frame in SLOT_FRAMES if frame <= 3350)
@@ -340,7 +340,8 @@ def validate_scenario(evidence: dict, expected_state: int, *, inventory: bool = 
                    < frames['6740']['scroll_x'] + slots['6740']['player_x'] + 100):
             raise ValueError('Moses pickup, carry and recovery observations did not match')
         if roof and (frames['6900']['scroll_y'] + slots['6900']['player_y'] > 120
-                     or frames['7100']['scroll_x'] + slots['7100']['player_x'] < 600):
+                     or frames['7100']['scroll_x'] + slots['7100']['player_x'] < 600
+                     or frames['7400']['scroll_x'] + slots['7400']['player_x'] < 1200):
             raise ValueError('Moses roof route did not reach the stairs while carrying')
     if (evidence['mapper_value_mismatches'] or evidence['unmapped_mapper_writes']
             or evidence['physical_prg_banks_seen'] != [0, 1]):
@@ -480,7 +481,7 @@ def run(root: Path = ROOT) -> dict:
         destination = output / run_name
         if destination.exists():
             raise ValueError('runtime evidence directory already exists')
-        report = {'schema_version': 1, 'target': 'us-v1.5', 'scope': 'opening gameplay and Noah inventory',
+        report = {'schema_version': 1, 'target': 'us-v1.5', 'scope': 'opening gameplay, Moses roof route and Noah inventory',
                   'reference_sha256': target['reference']['file']['sha256'],
                   'source_sha256': verified['source_sha256'],
                   'source_map_sha256': verified['source_map_sha256'],

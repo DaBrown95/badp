@@ -902,3 +902,15 @@ trace inline lookup payloads and is not an inventory of later levels.
 The maintained Moses trace was also refreshed after adding the second route.
 Through frame 7,100 it observed 59,261 script fetches, 643 record loads and
 47,928 inline lookups, with no sampled extents in local gaps.
+
+The roof branch has been extended through a deterministic sequence of jumps
+and pickup actions to frame 7,400. Both reference and build replays carried the
+baby to world x=1,295, past the midpoint of the third-level layout. The updated
+scenario retains both the earlier route and this later checkpoint; it does not
+complete the level. A reference-only trace of this branch sampled 63,362
+script fetches and 725 record loads, with no unowned command extents, consumed
+record fields or native instruction starts. Inline lookup payloads were not
+included in that particular trace.
+The maintained lower-route trace was refreshed through frame 7,400 as well:
+it observed 60,596 script fetches, 668 record loads and 48,974 inline lookups,
+with no sampled extents in local gaps.
