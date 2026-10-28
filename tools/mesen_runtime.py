@@ -18,10 +18,10 @@ from .setup_mesen import ROOT, digest_file, spec, verify_emulator
 
 FRAMES = (240, 650, 1200, 1400, 1496, 1511, 1550, 1700, 1800, 2100, 2150, 2300,
           2400, 2600, 2800, 3000, 3100, 3200, 3250, 3300, 3350, 3400, 3450, 3650, 3700, 3750,
-          3800, 3825, 3850, 3900, 4050, 4150, 4300)
+          3800, 3825, 3850, 3900, 4050, 4150, 4300, 4400, 4500, 4600, 4650, 4750, 4900)
 SLOT_FRAMES = (1400, 1496, 1511, 1550, 1700, 1800, 2100, 2150, 2300,
                2400, 2600, 2800, 3000, 3100, 3200, 3250, 3300, 3350, 3400, 3450, 3650, 3700, 3750,
-               3800, 3825, 3850, 3900, 4050, 4150, 4300)
+               3800, 3825, 3850, 3900, 4050, 4150, 4300, 4400, 4500, 4600, 4650, 4750, 4900)
 # Pinned emulator screenshot of the first-level success screen for the audited v1.5 input.
 MOSES_SUCCESS_SCREEN_SHA256 = 'c3d483860076f9e782d92de0913c671d4ed1aef84f8ce81688423cad40c19346'
 SCENARIOS = (('noah', 1), ('moses', 5), ('david', 11), ('inventory', 1))
@@ -50,6 +50,7 @@ def parse_output(output: str) -> tuple[dict, dict[int, bytes], dict[str, bytes]]
     reported = None
     probes = None
     inventory = None
+    stage2_record = None
     targets: dict[str, int] = {}
     warnings = 0
     for line in output.splitlines():
@@ -135,6 +136,13 @@ def parse_output(output: str) -> tuple[dict, dict[int, bytes], dict[str, bytes]]
             inventory = tuple(map(int, parts[1:]))
             if any(value < 0 for value in inventory):
                 raise ValueError('invalid inventory count')
+        elif line.startswith('BADP_STAGE2_RECORD '):
+            parts = line.split()
+            if stage2_record is not None or len(parts) != 2:
+                raise ValueError('malformed or duplicate stage-two record evidence')
+            stage2_record = int(parts[1])
+            if stage2_record < 0:
+                raise ValueError('invalid stage-two record count')
         elif line.startswith('BADP_TARGET '):
             parts = line.split()
             if len(parts) != 4 or parts[1] not in ('script', 'record'):
@@ -152,7 +160,7 @@ def parse_output(output: str) -> tuple[dict, dict[int, bytes], dict[str, bytes]]
     expected_targets = ({f'script:{address:04X}' for address in SCRIPT_TARGETS}
                         | {f'record:{address:04X}' for address in RECORD_TARGETS})
     if (set(frames) != set(FRAMES) or set(slots) != set(SLOT_FRAMES) or reported != expected or not writes
-            or probes is None or inventory is None or set(targets) != expected_targets):
+            or probes is None or inventory is None or stage2_record is None or set(targets) != expected_targets):
         raise ValueError('runtime evidence is incomplete or inconsistent')
     write_data = ('\n'.join(writes) + '\n').encode('ascii')
     audio_data = ('\n'.join(audio) + '\n').encode('ascii')
@@ -168,6 +176,7 @@ def parse_output(output: str) -> tuple[dict, dict[int, bytes], dict[str, bytes]]
              'script_fetch_probes': probes[0], 'record_load_probes': probes[1],
              'inventory_list_index_zero': inventory[0], 'inventory_template_index_zero': inventory[1],
              'inventory_other_index_reads': inventory[2],
+             'stage2_record_mode2': stage2_record,
              'contested_target_hits': dict(sorted(targets.items())),
              'uninitialized_read_warnings': warnings}, images,
             {'mapper': write_data, 'apu': audio_data, 'oam_dma': dma_data})
@@ -189,7 +198,8 @@ def validate_scenario(evidence: dict, expected_state: int, *, inventory: bool = 
         raise ValueError('rightward input did not produce the expected opening-area change')
     if expected_state == 5:
         slots = evidence['slots']
-        if (any(slots[str(frame)]['player_descriptor'] != 1 or
+        if (not evidence['stage2_record_mode2']
+                or any(slots[str(frame)]['player_descriptor'] != 1 or
                 slots[str(frame)]['object_descriptor'] != 0x6a for frame in SLOT_FRAMES if frame <= 3350)
                 or slots['1400']['object_link'] != 0xff
                 or any(slots[str(frame)]['object_link'] != 1
@@ -202,7 +212,7 @@ def validate_scenario(evidence: dict, expected_state: int, *, inventory: bool = 
                 or frames['3350']['scroll_x'] < frames['3200']['scroll_x']
                 or any(frames[str(frame)]['state'] != 16 for frame in (3400, 3450, 3650))
                 or frames['3450']['screenshot_sha256'] != MOSES_SUCCESS_SCREEN_SHA256
-                or any(frames[str(frame)]['state'] != 6 for frame in (3700, 3750, 3800, 3825, 3850, 3900, 4050, 4150, 4300))
+                or any(frames[str(frame)]['state'] != 6 for frame in (3700, 3750, 3800, 3825, 3850, 3900, 4050, 4150, 4300, 4400, 4500, 4600, 4650, 4750, 4900))
                 or frames['3750']['screenshot_sha256'] == frames['3450']['screenshot_sha256']
                 or slots['3750']['third_descriptor'] != 0x6a or slots['3750']['third_link'] != 0xff
                 or slots['3900']['third_descriptor'] != 0x6a or slots['3900']['third_link'] != 1
@@ -211,7 +221,15 @@ def validate_scenario(evidence: dict, expected_state: int, *, inventory: bool = 
                 or frames['4050']['scroll_x'] < 128 or frames['4300']['scroll_x'] < 450
                 or slots['4300']['third_descriptor'] != 0x6a or slots['4300']['third_link'] != 1
                 or slots['4300']['third_x'] != slots['4300']['player_x']
-                or slots['4300']['third_y'] >= slots['4300']['player_y']):
+                or slots['4300']['third_y'] >= slots['4300']['player_y']
+                or frames['4600']['scroll_x'] < 850
+                or slots['4600']['third_descriptor'] != 0x6a or slots['4600']['third_link'] != 1
+                or slots['4600']['third_x'] != slots['4600']['player_x']
+                or slots['4600']['third_y'] >= slots['4600']['player_y']
+                or frames['4900']['scroll_x'] < 1190
+                or slots['4900']['third_descriptor'] != 0x6a or slots['4900']['third_link'] != 1
+                or slots['4900']['third_x'] != slots['4900']['player_x']
+                or slots['4900']['third_y'] >= slots['4900']['player_y']):
             raise ValueError('Moses pickup, carry and recovery observations did not match')
     if (evidence['mapper_value_mismatches'] or evidence['unmapped_mapper_writes']
             or evidence['physical_prg_banks_seen'] != [0, 1]):

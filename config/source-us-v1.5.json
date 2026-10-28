@@ -791,6 +791,8 @@
     {"id": "bank1-slot-record-b3e5", "bank": 1, "cpu": "0xb3e5", "size": 9, "kind": "data", "control": "slot_runtime_b3e5"},
     {"id": "bank1-slot-record-b685", "bank": 1, "cpu": "0xb685", "size": 9, "kind": "data", "control": "slot_runtime_b685"},
     {"id": "bank1-slot-record-b6d3", "bank": 1, "cpu": "0xb6d3", "size": 9, "kind": "data", "control": "slot_runtime_b6d3"},
+    {"id": "bank1-moses-stage2-resource-b6e5", "bank": 1, "cpu": "0xb6e5", "size": 2, "kind": "data", "control": "moses_stage2_resource_b6e5"},
+    {"id": "bank1-moses-stage2-fields-b6e9", "bank": 1, "cpu": "0xb6e9", "size": 5, "kind": "data", "control": "moses_stage2_fields_b6e9"},
     {"id": "bank1-slot-record-b7b5", "bank": 1, "cpu": "0xb7b5", "size": 9, "kind": "data", "control": "slot_runtime_b7b5"},
     {"id": "bank1-slot-record-b7e5", "bank": 1, "cpu": "0xb7e5", "size": 9, "kind": "data", "control": "slot_runtime_b7e5"},
     {"id": "bank1-slot-record-b88a", "bank": 1, "cpu": "0xb88a", "size": 9, "kind": "data", "control": "slot_runtime_b88a"},

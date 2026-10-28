@@ -12,6 +12,7 @@ local apu_writes=0
 local dma_writes=0
 local fetch_probes=0
 local record_probes=0
+local stage2_record_mode2=0
 local inventory_list_zero=0
 local inventory_template_zero=0
 local inventory_other=0
@@ -66,6 +67,10 @@ emu.addMemoryCallback(function()
   record_probes=record_probes+1
   local pointer=emu.read(0xFE,emu.memType.nesDebug)+256*emu.read(0xFF,emu.memType.nesDebug)
   if record_hits[pointer] then record_hits[pointer]=record_hits[pointer]+1 end
+  if pointer==0x36E5 and emu.read(0x03C2,emu.memType.nesDebug)%2==1
+     and emu.read(0x57,emu.memType.nesDebug)==2 then
+   stage2_record_mode2=stage2_record_mode2+1
+  end
  end
 end,emu.callbackType.exec,0xF10C,0xF10C)
 -- Opcode $54 adds the current slot value to its encoded base before reading
@@ -104,10 +109,11 @@ emu.addEventCallback(function()
        or (frames>=3650 and frames<3660)
   if frames>=3750 then
    left=false
-   right=frames<3760 or (frames>=3900 and frames<4300)
+   right=frames<3760 or (frames>=3900 and frames<4900 and not (frames>=4600 and frames<4640))
    jump=(frames>=3760 and frames<3790) or (frames>=3815 and frames<3843)
         or (frames>=3900 and frames<3928) or (frames>=3960 and frames<3988)
-        or (frames>=4065 and frames<4093)
+        or (frames>=4065 and frames<4093) or (frames>=4310 and frames<4338)
+        or (frames>=4400 and frames<4428) or (frames>=4680 and frames<4708)
    pickup=frames>=3855 and frames<3865
   end
  end
@@ -121,12 +127,12 @@ emu.addEventCallback(function()
 end,emu.eventType.inputPolled)
 emu.addEventCallback(function()
  frames=frames+1
- if frames==240 or frames==650 or frames==1200 or frames==1400 or frames==1496 or frames==1511 or frames==1550 or frames==1700 or frames==1800 or frames==2100 or frames==2150 or frames==2300 or frames==2400 or frames==2600 or frames==2800 or frames==3000 or frames==3100 or frames==3200 or frames==3250 or frames==3300 or frames==3350 or frames==3400 or frames==3450 or frames==3650 or frames==3700 or frames==3750 or frames==3800 or frames==3825 or frames==3850 or frames==3900 or frames==4050 or frames==4150 or frames==4300 then
+ if frames==240 or frames==650 or frames==1200 or frames==1400 or frames==1496 or frames==1511 or frames==1550 or frames==1700 or frames==1800 or frames==2100 or frames==2150 or frames==2300 or frames==2400 or frames==2600 or frames==2800 or frames==3000 or frames==3100 or frames==3200 or frames==3250 or frames==3300 or frames==3350 or frames==3400 or frames==3450 or frames==3650 or frames==3700 or frames==3750 or frames==3800 or frames==3825 or frames==3850 or frames==3900 or frames==4050 or frames==4150 or frames==4300 or frames==4400 or frames==4500 or frames==4600 or frames==4650 or frames==4750 or frames==4900 then
   local state=emu.getState()
   local p=emu.convertAddress(0x8000,emu.memType.nesMemory)
   print(string.format('BADP_FRAME %d %d %d %d %d %d %d %d %s',frames,emu.read(0,emu.memType.nesDebug),emu.read(1,emu.memType.nesDebug),emu.read(0x03ee,emu.memType.nesDebug)+256*emu.read(0x03ef,emu.memType.nesDebug),emu.read(0x03f0,emu.memType.nesDebug)+256*emu.read(0x03f1,emu.memType.nesDebug),p.address,state['cpu.cycleCount'],nmis,hex(emu.takeScreenshot())))
  end
- if frames==1400 or frames==1496 or frames==1511 or frames==1550 or frames==1700 or frames==1800 or frames==2100 or frames==2150 or frames==2300 or frames==2400 or frames==2600 or frames==2800 or frames==3000 or frames==3100 or frames==3200 or frames==3250 or frames==3300 or frames==3350 or frames==3400 or frames==3450 or frames==3650 or frames==3700 or frames==3750 or frames==3800 or frames==3825 or frames==3850 or frames==3900 or frames==4050 or frames==4150 or frames==4300 then
+ if frames==1400 or frames==1496 or frames==1511 or frames==1550 or frames==1700 or frames==1800 or frames==2100 or frames==2150 or frames==2300 or frames==2400 or frames==2600 or frames==2800 or frames==3000 or frames==3100 or frames==3200 or frames==3250 or frames==3300 or frames==3350 or frames==3400 or frames==3450 or frames==3650 or frames==3700 or frames==3750 or frames==3800 or frames==3825 or frames==3850 or frames==3900 or frames==4050 or frames==4150 or frames==4300 or frames==4400 or frames==4500 or frames==4600 or frames==4650 or frames==4750 or frames==4900 then
   print(string.format('BADP_SLOT %d %d %d %d %d %d %d %d %d %d %d %d',frames,
    emu.read(0x04E1,emu.memType.nesDebug),emu.read(0x04E2,emu.memType.nesDebug),
    emu.read(0x06D2,emu.memType.nesDebug),emu.read(0x0582,emu.memType.nesDebug),
@@ -135,11 +141,12 @@ emu.addEventCallback(function()
    emu.read(0x06D3,emu.memType.nesDebug),emu.read(0x0583,emu.memType.nesDebug),
    emu.read(0x0593,emu.memType.nesDebug)))
  end
- if frames==4300 then
+ if frames==4900 then
   -- stop() can return before the emulator stops invoking callbacks.
   recording=false
   print(string.format('BADP_SUMMARY %d %d %d %d %d %d %d %d',writes,mismatch,unmapped,banks[0] and 1 or 0,banks[1] and 1 or 0,nmis,apu_writes,dma_writes))
   print(string.format('BADP_PROBE %d %d',fetch_probes,record_probes))
+  print(string.format('BADP_STAGE2_RECORD %d',stage2_record_mode2))
   print(string.format('BADP_INVENTORY %d %d %d',inventory_list_zero,inventory_template_zero,inventory_other))
   for _,address in ipairs(script_targets) do print(string.format('BADP_TARGET script %04X %d',address,script_hits[address])) end
   for _,address in ipairs(record_targets) do print(string.format('BADP_TARGET record %04X %d',address,record_hits[address])) end

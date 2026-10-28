@@ -687,6 +687,8 @@ MUTATIONS = {
     "slot_runtime_b3e5": ("CONTROL_SLOT_RUNTIME_B3E5", "$BEA3", "$BEA2"),
     "slot_runtime_b685": ("CONTROL_SLOT_RUNTIME_B685", "$BC83", "$BC82"),
     "slot_runtime_b6d3": ("CONTROL_SLOT_RUNTIME_B6D3", "$B693", "$B692"),
+    "moses_stage2_resource_b6e5": ("CONTROL_MOSES_STAGE2_RESOURCE_B6E5", ".word $B693", ".word $B692"),
+    "moses_stage2_fields_b6e9": ("CONTROL_MOSES_STAGE2_FIELDS_B6E9", ".byte $00, $00, $20, $50, $12", ".byte $00, $00, $20, $50, $13"),
     "slot_runtime_b7b5": ("CONTROL_SLOT_RUNTIME_B7B5", "$BC83", "$BC82"),
     "slot_runtime_b7e5": ("CONTROL_SLOT_RUNTIME_B7E5", "$B945", "$B944"),
     "slot_runtime_b88a": ("CONTROL_SLOT_RUNTIME_B88A", "$B5FD", "$B5FC"),

@@ -34,9 +34,9 @@ independent source trees or treat one version's evidence as verifying the rest.
 simultaneous reconstruction. Keep progress and completion evidence per target.
 
 The v1.5 build now assembles and links to the exact reference, with 21,474 bytes
-of source code and 18,766 bytes of structured data across the physical PRG banks.
-It still includes 25,296 local PRG bytes and 65,536 local CHR bytes. A total of
-1,219 independent source-change controls verify every listed reconstructed region.
+of source code and 18,773 bytes of structured data across the physical PRG banks.
+It still includes 25,289 local PRG bytes and 65,536 local CHR bytes. A total of
+1,221 independent source-change controls verify every listed reconstructed region.
 Passing input audits or whole-ROM equality alone is not reconstruction
 completion. The developer identifies BOGUS as the
 state-machine engine in the [Vance Kozik interview](https://www.nesworld.com/kozik.php);
@@ -44,7 +44,7 @@ the original source language and toolchain remain unestablished.
 
 ## v1.5 opening-gameplay evidence
 
-`make verify-gameplay` runs 4,300 NTSC frames each for Noah, Moses and David,
+`make verify-gameplay` runs 4,900 NTSC frames each for Noah, Moses and David,
 plus a separate Noah inventory scenario,
 in pinned MesenCE 2.2.1, with zeroed power-on RAM and fixed mapper/alignment
 settings. It compares the audited reference and verified build under the same
@@ -53,9 +53,9 @@ change in scroll and screenshot after rightward input. The Moses sequence also
 presses B to lift the baby, jumps past the first approaching enemy and crosses
 the first water gap. It recovers him after a later collision, backtracks over the
 position trigger, reaches the first-level success screen and picks him up again
-in level two before crossing two water gaps.
+in level two before crossing five water gaps.
 Sampled slot fields show the link, its loss and recovery; a pinned screenshot
-hash checks the success screen. The thirty-three sampled
+hash checks the success screen. The thirty-nine sampled
 frames, slot fields, state and cycle counts, mapper-write streams, NMI counts, OAM DMA and
 APU-register write streams agreed between the reference and build. Both PRG
 banks appeared in the emulator's mapper-write mapping; every observed write
@@ -78,6 +78,20 @@ instruction starts in local PRG gaps. All 676 observed script pointer/bank
 pairs began inside source-owned regions; this does not verify their complete
 paths or later level-two interactions. The trace remains under
 `analysis/us-v1.5/*stage2-pickup-execution.json`.
+The later second-level crossing trace observed 708 distinct script pointer/bank
+pairs, all beginning in source-owned regions, and no native instruction starts
+in local PRG gaps. The slot-record loader read `$36E5` in mode `$02`; a
+post-switch mapping check confirmed PRG bank 1 for that fetch, among 327 checked
+fetches without a mismatch. The resource pointer and five fields actually read
+at `$B6E5` and `$B6E9` are now source, with separate source-mutation controls.
+The two intervening bytes and pointed-to sprite remain local. This is evidence
+for the exercised emulator route, not proof of all uses or physical hardware.
+The trace files remain in ignored `analysis/us-v1.5/`.
+The first 4,900-frame reference/build attempt reported differing Moses
+runtime evidence without identifying a field. A subsequent focused comparison
+matched; the cause of the initial discrepancy remains unestablished. The failure
+log and focused comparison are kept locally in `reports/us-v1.5/runtime-failures/`
+and `analysis/us-v1.5/compare-stage2-4900-diagnostics.json`, respectively.
 Local jump-timing explorations beyond frame 2,800 lost the baby before the
 frame-3,000 samples; the attempts and screenshots remain under
 `analysis/us-v1.5/moses-second-*`. They are exploratory reference runs, not

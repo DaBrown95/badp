@@ -15478,7 +15478,17 @@ ContextScriptB6C4:
 SlotRuntimeB6D3:
     SlotRuntimeRecord $B693, (ScriptB6EE - BankStart), $00, $FF, $00, $00, $00 ; CONTROL_SLOT_RUNTIME_B6D3
 .assert (* - BankStart) = $36DC, error, "bank 1 slot record B6D3 end"
-    .incbin "bank1_b6dc_b6ee.bin"
+    .incbin "bank1_b6dc_b6e5.bin"
+; Observed in Moses level two through $B718 with loader mode $02. The
+; pointer and the five later fields are consumed; the intervening bytes are
+; skipped in this mode and remain local. The pointed-to sprite stays local.
+MosesStageTwoResourceB6E5:
+    .word $B693 ; CONTROL_MOSES_STAGE2_RESOURCE_B6E5
+.assert (* - BankStart) = $36E7, error, "bank 1 stage-two resource B6E5 end"
+    .incbin "bank1_b6e7_b6e9.bin"
+MosesStageTwoFieldsB6E9:
+    .byte $00, $00, $20, $50, $12 ; CONTROL_MOSES_STAGE2_FIELDS_B6E9
+.assert (* - BankStart) = $36EE, error, "bank 1 stage-two fields B6E9 end"
 ; Connected slot-action script with coordinate checks, linked-slot search and
 ; original wait/loop behaviour. The gameplay object is not yet identified.
 ScriptB6EE:
