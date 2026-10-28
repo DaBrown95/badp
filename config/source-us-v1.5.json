@@ -787,6 +787,7 @@
     {"id": "bank0-default-split-parameters", "bank": 0, "cpu": "0x9efa", "size": 4, "kind": "data", "control": "default_split_parameters"},
     {"id": "bank0-map-chunk-offsets", "bank": 0, "cpu": "0xa1de", "size": 292, "kind": "data", "control": "map_chunk_offsets"},
     {"id": "bank0-initial-vertical-seeds", "bank": 0, "cpu": "0xa368", "size": 22, "kind": "data", "control": "initial_vertical_seeds"},
+    {"id": "bank1-observed-audio-ab10", "bank": 1, "cpu": "0xab10", "size": 304, "kind": "data", "control": "audio_observed_ab10"},
     {"id": "bank1-slot-record-aca3", "bank": 1, "cpu": "0xaca3", "size": 9, "kind": "data", "control": "slot_runtime_aca3"},
     {"id": "bank1-slot-record-b3e5", "bank": 1, "cpu": "0xb3e5", "size": 9, "kind": "data", "control": "slot_runtime_b3e5"},
     {"id": "bank1-slot-record-b685", "bank": 1, "cpu": "0xb685", "size": 9, "kind": "data", "control": "slot_runtime_b685"},

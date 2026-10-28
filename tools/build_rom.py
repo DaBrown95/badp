@@ -715,6 +715,7 @@ MUTATIONS = {
     "slot_runtime_d470": ("CONTROL_SLOT_RUNTIME_D470", "$BE93", "$BE92"),
     "slot_runtime_d4c1": ("CONTROL_SLOT_RUNTIME_D4C1", "$BFD3", "$BFD2"),
     "slot_runtime_d52b": ("CONTROL_SLOT_RUNTIME_D52B", "$C587", "$C586"),
+    "audio_observed_ab10": ("CONTROL_AUDIO_OBSERVED_AB10", "AudioDelay $0B", "AudioDelay $0A"),
     "runtime_compact_d581": ("CONTROL_RUNTIME_COMPACT_D581", "$B965", "$B964"),
     "slot_runtime_d584": ("CONTROL_SLOT_RUNTIME_D584", "$C5F5", "$C5F4"),
     "slot_runtime_d6d7": ("CONTROL_SLOT_RUNTIME_D6D7", "$BC79", "$BC78"),

@@ -355,7 +355,7 @@ walk has 47 starts, 851 command contexts and 1,443 distinct physical bytes,
 with no conflicting decodes or five-byte fetches crossing a bank. All 706 bytes
 used by the existing audio trace also occur in these candidate paths.
 Indexed or otherwise dynamic starts and unobserved playback remain open; the
-decoded audio payloads stay local and do not count as reconstructed code.
+candidate audio payloads were still local at this checkpoint.
 `make ppu-streams` decodes 19 candidate inventory PPU streams from literal queues,
 pointer tables and remap cases. Their logical commands cover 429 physical bytes;
 the current candidates have no overlapping streams or possible bank-crossing
@@ -759,8 +759,8 @@ Noah, Moses and David respectively in the 16,000-frame exploratory inputs.
 All 279 distinct observed entries were in physical PRG bank 1. Their decoded
 command extents cover 706 bytes without conflicting observed entries. The probe
 checked the mapped physical address after the bank switch; it does not identify
-complete streams or establish audio playback correctness. Audio payloads stay
-local and receive no source-progress credit. `make trace-audio` reproduces the
+complete streams or establish audio playback correctness. The observed audio
+payloads were local at this checkpoint. `make trace-audio` reproduces the
 probe with the pinned emulator; `make audio-inventory` validates its local
 `analysis/us-v1.5/audio-sweep.json` observations against the audited ROM and
 writes the decoded inventory to ignored local analysis.
@@ -1036,3 +1036,12 @@ the maintained scenario checks those writes and the uninterrupted baby link.
 The five-scenario reference/build comparison passed with this extension. The
 reference-only runtime trace observed 77,869 script fetches, 997 record loads
 and 62,601 inline reads without finding sampled local extents in those paths.
+
+The observed audio commands at bank 1 `$AB10`–`$AC3F` are now structured
+source: 45 delays, 42 five-register commands and one loop. All 88 command
+starts were observed in the Noah, Moses and David reference runs, and the
+current PRG inventory found no competing use for those 304 bytes. The loop
+target is the observed command at `$AC10`. `$F9` retains the original stale
+fifth stack byte behavior; its source representation has four payload values.
+This is a partial stream and does not establish audio playback correctness or
+the bounds of neighboring streams.

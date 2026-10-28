@@ -181,12 +181,24 @@ compareRangeReturn:
     .word horizontal_base, horizontal
 .endmacro
 
-; Indexed audio-control tables store encoded voice pointers; payloads remain local.
+; Indexed audio-control tables store encoded voice pointers.
 .macro AudioPointerEntry pointer
     .word pointer
 .endmacro
 .macro AudioVoicePointerRecord voice0, voice1, voice2, voice3
     .word voice0, voice1, voice2, voice3
+.endmacro
+; Audio $F9 copies four source values; the fifth register uses a stale stack
+; byte in the original interpreter. The matching stream contains four values.
+.macro AudioWriteFive first, second, third, fourth
+    .byte $F9, first, second, third, fourth
+.endmacro
+.macro AudioDelay duration
+    .byte $FB, duration
+.endmacro
+.macro AudioLoop count, target
+    .byte $C0, count
+    .word target
 .endmacro
 
 ; Opcode $89 reads a seven-byte state record at base plus seven times an index.
@@ -13773,7 +13785,101 @@ IndexedVoiceRecordsA6E4:
     AudioVoicePointerRecord $FFFF, $FFFF, $27E3, $27F4 ; CONTROL_INDEXED_VOICE_RECORDS
     AudioVoicePointerRecord $FFFF, $FFFF, $26F4, $26F5
 .assert (* - BankStart) = $26F4, error, "bank 1 indexed voice records end"
-    .incbin "bank1_a6f4_aca0.bin"
+    .incbin "bank1_a6f4_ab10.bin"
+; All 88 commands below were observed in Noah, Moses and David reference runs.
+; This is a partial stream: its neighboring data and other entry points stay local.
+AudioObservedAB10:
+    AudioDelay $0B ; CONTROL_AUDIO_OBSERVED_AB10
+    AudioWriteFive $60, $00, $A1, $02
+    AudioDelay $0B
+    AudioWriteFive $60, $00, $C3, $01
+    AudioDelay $0B
+    AudioWriteFive $16, $9F, $0D, $9B
+    AudioDelay $0B
+    AudioWriteFive $60, $00, $AB, $01
+    AudioDelay $17
+    AudioWriteFive $60, $00, $C3, $01
+    AudioDelay $0B
+    AudioWriteFive $60, $00, $FB, $01
+    AudioDelay $17
+    AudioWriteFive $60, $00, $1B, $02
+    AudioDelay $0B
+    AudioWriteFive $60, $00, $FB, $01
+    AudioDelay $0B
+    AudioWriteFive $60, $00, $7E, $02
+    AudioDelay $17
+    AudioWriteFive $60, $00, $A1, $02
+    AudioDelay $05
+    AudioWriteFive $60, $00, $7E, $02
+    AudioDelay $05
+    AudioWriteFive $60, $00, $A1, $02
+    AudioDelay $05
+    AudioWriteFive $16, $9F, $0D, $9B
+    AudioDelay $05
+    AudioWriteFive $60, $00, $AB, $01
+    AudioDelay $05
+    AudioWriteFive $60, $00, $C3, $01
+    AudioDelay $05
+    AudioWriteFive $60, $00, $FB, $01
+    AudioDelay $17
+    AudioWriteFive $60, $00, $1B, $02
+    AudioDelay $0B
+    AudioWriteFive $60, $00, $FB, $01
+    AudioDelay $0B
+    AudioWriteFive $60, $00, $C3, $01
+    AudioDelay $0B
+    AudioWriteFive $60, $00, $AB, $01
+    AudioDelay $0B
+    AudioWriteFive $16, $9F, $0D, $9B
+    AudioDelay $0B
+    AudioWriteFive $60, $00, $A1, $02
+    AudioDelay $0B
+    AudioWriteFive $60, $00, $7E, $02
+    AudioDelay $0B
+    AudioWriteFive $60, $00, $A1, $02
+    AudioDelay $0B
+    AudioWriteFive $60, $00, $C3, $01
+    AudioDelay $0B
+    AudioWriteFive $16, $9F, $0D, $9B
+    AudioDelay $0B
+    AudioWriteFive $60, $00, $AB, $01
+    AudioDelay $17
+    AudioWriteFive $60, $00, $C3, $01
+    AudioDelay $0B
+    AudioWriteFive $60, $00, $FB, $01
+    AudioDelay $17
+    AudioWriteFive $60, $00, $1B, $02
+    AudioDelay $0B
+    AudioWriteFive $60, $00, $FB, $01
+    AudioDelay $0B
+    AudioWriteFive $60, $00, $7E, $02
+    AudioDelay $17
+    AudioWriteFive $60, $00, $A1, $02
+    AudioDelay $17
+    AudioWriteFive $60, $00, $A1, $02
+    AudioDelay $0B
+    AudioWriteFive $60, $00, $FB, $01
+    AudioDelay $0B
+    AudioWriteFive $60, $00, $FB, $01
+    AudioDelay $0B
+    AudioDelay $10
+AudioObservedLoopAC10:
+    AudioWriteFive $60, $00, $FB, $01
+    AudioDelay $0B
+    AudioLoop $06, (AudioObservedLoopAC10 - BankStart)
+    AudioWriteFive $16, $9F, $0D, $9B
+    AudioDelay $17
+    AudioWriteFive $16, $9F, $0D, $9B
+    AudioDelay $0B
+    AudioWriteFive $60, $00, $37, $02
+    AudioDelay $0B
+    AudioWriteFive $60, $00, $37, $02
+    AudioDelay $0B
+    AudioDelay $10
+    AudioWriteFive $60, $00, $37, $02
+    AudioDelay $0B
+.assert (* - BankStart) = $2C40, error, "bank 1 observed audio AB10 end"
+    .incbin "bank1_ac40_aca0.bin"
 ; Record accesses observed at the bank-0 loader in the opening scenarios.
 ; Fields behind a $FFFF resource pointer may not be read by the loader.
 RuntimeRecordACA0:
