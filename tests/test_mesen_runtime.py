@@ -36,12 +36,12 @@ def synthetic_output(state=1, *, inventory=False):
         if frame in SLOT_FRAMES:
             link = 255 if frame in (1400, 3250) else 1
             y = 160 if frame == 1400 else 130
-            third_link = 1 if 3900 <= frame <= 5550 or frame in (5950, 6000, 6040, 6100, 6160, 6200, 6260, 6300, 6340, 6500, 6740, 6780, 6840, 6900, 7020) else 255
+            third_link = 1 if 3900 <= frame <= 5550 or frame in (5950, 6000, 6040, 6100, 6160, 6200, 6260, 6300, 6340, 6500, 6690, 6740, 6780, 6800, 6840, 6900, 7000, 7020, 7100) else 255
             x = 220 if frame == 7020 else 60 if frame == 6100 else 140 if frame == 6340 else 96
             player_y = 72 if frame == 6740 else 120 if frame == 6340 else 144
             third_y = 60 if frame == 6740 else 80
             lines.append(f'BADP_SLOT {frame} 1 106 {link} 96 {y} {x} {player_y} 106 {third_link} {x} {third_y}')
-    lines.append('BADP_SUMMARY 2 0 0 1 1 7020 1 1')
+    lines.append('BADP_SUMMARY 2 0 0 1 1 7100 1 1')
     lines.append('BADP_PPU_SUMMARY 1')
     lines.append('BADP_PROBE 4 2')
     lines.append(f'BADP_STAGE2_RECORD {int(state == 5)}')
@@ -78,8 +78,8 @@ class MesenRuntimeTests(unittest.TestCase):
 
     def test_missing_duplicate_or_inconsistent_evidence_fails(self):
         text = synthetic_output()
-        for invalid in (text.replace('BADP_SUMMARY 2 0 0 1 1 7020 1 1', ''),
-                        text + 'BADP_SUMMARY 2 0 0 1 1 7020 1 1\n',
+        for invalid in (text.replace('BADP_SUMMARY 2 0 0 1 1 7100 1 1', ''),
+                        text + 'BADP_SUMMARY 2 0 0 1 1 7100 1 1\n',
                         text.replace('BADP_TARGET script 3D21 0\n', ''),
                         text.replace('BADP_INVENTORY 0 0 0\n', ''),
                         text.replace('BADP_STAGE2_RECORD 0\n', ''),
@@ -100,7 +100,7 @@ class MesenRuntimeTests(unittest.TestCase):
                         text.replace('BADP_SLOT 1400 1 106 255 96 160 96 144 106 255 96 80\n', ''),
                         text + 'BADP_SLOT 1400 1 106 255 96 160 96 144 106 255 96 80\n',
                         text.replace('BADP_SLOT 1400 1 106 255', 'BADP_SLOT 1400 1 106 256'),
-                        text.replace('BADP_SUMMARY 2 0 0 1 1 7020 1 1', 'BADP_SUMMARY 2 1 0 1 1 7020 1 1'),
+                        text.replace('BADP_SUMMARY 2 0 0 1 1 7100 1 1', 'BADP_SUMMARY 2 1 0 1 1 7100 1 1'),
                         text.replace('BADP_PPU_SUMMARY 1', 'BADP_PPU_SUMMARY 2'),
                         text.replace('BADP_PPU 1 123 42 100 2000 80 1', 'BADP_PPU 1 123 42 341 2000 80 1'),
                         text.replace('BADP_PPU 1 123 42 100 2000 80 1', 'BADP_PPU 1 123 42 100 2004 80 1'),
@@ -265,6 +265,21 @@ class MesenRuntimeTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, 'pickup, carry and recovery'):
             validate_scenario(evidence, 5)
 
+    def test_roof_route_requires_height_distance_and_carried_baby(self):
+        evidence = synthetic_moses_evidence()
+        evidence['slots']['6900']['player_y'] = 100
+        evidence['frames']['7100']['scroll_x'] = 500
+        evidence['slots']['7100']['player_x'] = 120
+        evidence['slots']['7100']['third_x'] = 120
+        validate_scenario(evidence, 5, roof=True)
+        evidence['slots']['7100']['third_link'] = 255
+        with self.assertRaisesRegex(ValueError, 'pickup, carry and recovery'):
+            validate_scenario(evidence, 5, roof=True)
+        evidence['slots']['7100']['third_link'] = 1
+        evidence['frames']['7100']['scroll_x'] = 0
+        with self.assertRaisesRegex(ValueError, 'roof route'):
+            validate_scenario(evidence, 5, roof=True)
+
     def test_difference_summary_handles_missing_fields_and_limits(self):
         self.assertEqual(evidence_difference_paths({'a': {'x': 1}, 'b': [1, 2]},
                                                    {'a': {'x': 2, 'y': 3}, 'b': [2, 3]}, limit=2),
@@ -277,8 +292,8 @@ class MesenRuntimeTests(unittest.TestCase):
             reference = {'frames': {'240': {'state': 0}}}
             candidate = {'frames': {'240': {'state': 1}}}
             frames = {240: PNG_SIGNATURE + b'synthetic'}
-            ref_events = {'mapper': b'original', 'apu': b'audio', 'oam_dma': b'dma'}
-            candidate_events = {**ref_events, 'mapper': b'different'}
+            ref_events = {'mapper': b'original', 'apu': b'audio', 'ppu': b'ppu', 'oam_dma': b'dma'}
+            candidate_events = {**ref_events, 'mapper': b'different', 'ppu': b'changed timing'}
             out = retain_runtime_failure(Path(tmp), 'moses', 'different evidence',
                                          {'source_sha256': 'test'}, reference, candidate,
                                          frames, frames, ref_events, candidate_events)
@@ -287,10 +302,11 @@ class MesenRuntimeTests(unittest.TestCase):
             self.assertEqual(saved['build'], candidate)
             self.assertEqual(saved['reason'], 'different evidence')
             self.assertEqual(saved['different_evidence_paths'], ['/frames/240/state'])
-            self.assertEqual(saved['different_event_streams'], ['mapper'])
+            self.assertEqual(saved['different_event_streams'], ['mapper', 'ppu'])
             self.assertEqual(saved['different_screenshots'], [])
             self.assertEqual((out / 'reference-240.png').read_bytes(), frames[240])
             self.assertEqual(zlib.decompress((out / 'build-mapper.txt.zlib').read_bytes()), b'different')
+            self.assertEqual(zlib.decompress((out / 'build-ppu.txt.zlib').read_bytes()), b'changed timing')
             with self.assertRaisesRegex(ValueError, 'invalid runtime failure scenario'):
                 retain_runtime_failure(Path(tmp), '../unsafe', '', {}, {}, {}, {}, {}, {}, {})
 

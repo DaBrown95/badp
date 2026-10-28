@@ -195,7 +195,8 @@ emu.addEventCallback(function()
  local left=false
  local jump=frames>=1500 and frames<1510
  local pickup=false
- if SCENARIO==1 then
+ local route_up=false
+ if SCENARIO==1 or SCENARIO==4 then
   -- Recover Moses at the edge, then cross the position trigger again.
   left=frames>=3320 and frames<3355
   right=((frames>=1450 and frames<1481) or (frames>=1508 and frames<3450))
@@ -232,15 +233,29 @@ emu.addEventCallback(function()
     right=frames>=6420 and frames<6460
     jump=frames>=6360 and ((frames-6360)%80)<28
    elseif frames>=6500 then
-    left=frames>=6680 and frames<6740
-    right=false
-    jump=frames>=6530 and ((frames-6530)%80)<28
-    if frames>=6740 then
-     left=(frames>=6820 and frames<6840) or (frames>=6860 and frames<6880)
-     right=frames<6820 or (frames>=6840 and frames<6860) or frames>=6980
-     jump=(frames>=6780 and frames<6800) or (frames>=6820 and frames<6840)
-          or (frames>=6860 and frames<6880) or (frames>=6900 and frames<6920)
-          or (frames>=6940 and frames<6960) or frames>=6980
+    if SCENARIO==4 then
+     -- Climb from the earlier checkpoint, then follow the roof to the stairs.
+     -- Each letter selects a ten-frame input: A/B/C mean neutral/left/right;
+     -- add 3 for jump, 6 for up, or both for up and jump.
+     local step=math.floor((frames-6500)/10)+1
+     local action=step<=19 and (string.byte('HDFCKEEBEJFIBKKKIBD',step)-64) or 3
+     local direction=(action-1)%3
+     left=direction==1
+     right=direction==2
+     jump=math.floor((action-1)/3)%2==1
+     route_up=action>6
+     pickup=false
+    else
+     left=frames>=6680 and frames<6740
+     right=false
+     jump=frames>=6530 and ((frames-6530)%80)<28
+     if frames>=6740 then
+      left=(frames>=6820 and frames<6840) or (frames>=6860 and frames<6880)
+      right=frames<6820 or (frames>=6840 and frames<6860) or frames>=6980
+      jump=(frames>=6780 and frames<6800) or (frames>=6820 and frames<6840)
+           or (frames>=6860 and frames<6880) or (frames>=6900 and frames<6920)
+           or (frames>=6940 and frames<6960) or frames>=6980
+     end
     end
    end
   end
@@ -251,7 +266,7 @@ emu.addEventCallback(function()
   jump=false
   select=(frames>=1500 and frames<1510) or (frames>=2600 and frames<2610)
  end
- emu.setInput({up=move and (SCENARIO==0 or SCENARIO==3),down=move and SCENARIO==2,left=left,right=right,start=start,select=select,a=jump,b=pickup},0)
+ emu.setInput({up=route_up or (move and (SCENARIO==0 or SCENARIO==3)),down=move and SCENARIO==2,left=left,right=right,start=start,select=select,a=jump,b=pickup},0)
 end,emu.eventType.inputPolled)
 emu.addEventCallback(function()
  frames=frames+1
@@ -266,12 +281,12 @@ emu.addEventCallback(function()
    end
   end
  end
- if frames==240 or frames==650 or frames==1200 or frames==1400 or frames==1496 or frames==1511 or frames==1550 or frames==1700 or frames==1800 or frames==2100 or frames==2150 or frames==2300 or frames==2400 or frames==2600 or frames==2800 or frames==3000 or frames==3100 or frames==3200 or frames==3250 or frames==3300 or frames==3350 or frames==3400 or frames==3450 or frames==3650 or frames==3700 or frames==3750 or frames==3800 or frames==3825 or frames==3850 or frames==3900 or frames==4050 or frames==4150 or frames==4300 or frames==4400 or frames==4500 or frames==4600 or frames==4650 or frames==4750 or frames==4900 or frames==5000 or frames==5100 or frames==5200 or frames==5250 or frames==5300 or frames==5375 or frames==5450 or frames==5500 or frames==5550 or frames==5575 or frames==5625 or frames==5650 or frames==5700 or frames==5880 or frames==5950 or frames==6000 or frames==6040 or frames==6100 or frames==6160 or frames==6200 or frames==6260 or frames==6300 or frames==6340 or frames==6500 or frames==6740 or frames==6780 or frames==6840 or frames==6900 or frames==7020 then
+ if frames==240 or frames==650 or frames==1200 or frames==1400 or frames==1496 or frames==1511 or frames==1550 or frames==1700 or frames==1800 or frames==2100 or frames==2150 or frames==2300 or frames==2400 or frames==2600 or frames==2800 or frames==3000 or frames==3100 or frames==3200 or frames==3250 or frames==3300 or frames==3350 or frames==3400 or frames==3450 or frames==3650 or frames==3700 or frames==3750 or frames==3800 or frames==3825 or frames==3850 or frames==3900 or frames==4050 or frames==4150 or frames==4300 or frames==4400 or frames==4500 or frames==4600 or frames==4650 or frames==4750 or frames==4900 or frames==5000 or frames==5100 or frames==5200 or frames==5250 or frames==5300 or frames==5375 or frames==5450 or frames==5500 or frames==5550 or frames==5575 or frames==5625 or frames==5650 or frames==5700 or frames==5880 or frames==5950 or frames==6000 or frames==6040 or frames==6100 or frames==6160 or frames==6200 or frames==6260 or frames==6300 or frames==6340 or frames==6500 or frames==6690 or frames==6740 or frames==6780 or frames==6800 or frames==6840 or frames==6900 or frames==7000 or frames==7020 or frames==7100 then
   local state=emu.getState()
   local p=emu.convertAddress(0x8000,emu.memType.nesMemory)
   print(string.format('BADP_FRAME %d %d %d %d %d %d %d %d %s',frames,emu.read(0,emu.memType.nesDebug),emu.read(1,emu.memType.nesDebug),emu.read(0x03ee,emu.memType.nesDebug)+256*emu.read(0x03ef,emu.memType.nesDebug),emu.read(0x03f0,emu.memType.nesDebug)+256*emu.read(0x03f1,emu.memType.nesDebug),p.address,state['cpu.cycleCount'],nmis,hex(emu.takeScreenshot())))
  end
- if frames==1400 or frames==1496 or frames==1511 or frames==1550 or frames==1700 or frames==1800 or frames==2100 or frames==2150 or frames==2300 or frames==2400 or frames==2600 or frames==2800 or frames==3000 or frames==3100 or frames==3200 or frames==3250 or frames==3300 or frames==3350 or frames==3400 or frames==3450 or frames==3650 or frames==3700 or frames==3750 or frames==3800 or frames==3825 or frames==3850 or frames==3900 or frames==4050 or frames==4150 or frames==4300 or frames==4400 or frames==4500 or frames==4600 or frames==4650 or frames==4750 or frames==4900 or frames==5000 or frames==5100 or frames==5200 or frames==5250 or frames==5300 or frames==5375 or frames==5450 or frames==5500 or frames==5550 or frames==5575 or frames==5625 or frames==5650 or frames==5700 or frames==5880 or frames==5950 or frames==6000 or frames==6040 or frames==6100 or frames==6160 or frames==6200 or frames==6260 or frames==6300 or frames==6340 or frames==6500 or frames==6740 or frames==6780 or frames==6840 or frames==6900 or frames==7020 then
+ if frames==1400 or frames==1496 or frames==1511 or frames==1550 or frames==1700 or frames==1800 or frames==2100 or frames==2150 or frames==2300 or frames==2400 or frames==2600 or frames==2800 or frames==3000 or frames==3100 or frames==3200 or frames==3250 or frames==3300 or frames==3350 or frames==3400 or frames==3450 or frames==3650 or frames==3700 or frames==3750 or frames==3800 or frames==3825 or frames==3850 or frames==3900 or frames==4050 or frames==4150 or frames==4300 or frames==4400 or frames==4500 or frames==4600 or frames==4650 or frames==4750 or frames==4900 or frames==5000 or frames==5100 or frames==5200 or frames==5250 or frames==5300 or frames==5375 or frames==5450 or frames==5500 or frames==5550 or frames==5575 or frames==5625 or frames==5650 or frames==5700 or frames==5880 or frames==5950 or frames==6000 or frames==6040 or frames==6100 or frames==6160 or frames==6200 or frames==6260 or frames==6300 or frames==6340 or frames==6500 or frames==6690 or frames==6740 or frames==6780 or frames==6800 or frames==6840 or frames==6900 or frames==7000 or frames==7020 or frames==7100 then
   print(string.format('BADP_SLOT %d %d %d %d %d %d %d %d %d %d %d %d',frames,
    emu.read(0x04E1,emu.memType.nesDebug),emu.read(0x04E2,emu.memType.nesDebug),
    emu.read(0x06D2,emu.memType.nesDebug),emu.read(0x0582,emu.memType.nesDebug),
@@ -280,7 +295,7 @@ emu.addEventCallback(function()
    emu.read(0x06D3,emu.memType.nesDebug),emu.read(0x0583,emu.memType.nesDebug),
    emu.read(0x0593,emu.memType.nesDebug)))
  end
- if frames==7020 then
+ if frames==7100 then
   -- stop() can return before the emulator stops invoking callbacks.
   recording=false
   print(string.format('BADP_SUMMARY %d %d %d %d %d %d %d %d',writes,mismatch,unmapped,banks[0] and 1 or 0,banks[1] and 1 or 0,nmis,apu_writes,dma_writes))

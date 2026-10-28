@@ -882,3 +882,23 @@ extended to 65,810 frames. It sampled 484,780 script fetches and 6,566 record
 loads, with no unowned native instruction entries, script extents or consumed
 record fields in this run. It does not reproduce the original movie or finish
 Noah's adventure, and does not establish complete reachability.
+
+An alternate third-level route branches from frame 6,500 and uses jump and
+upward inputs to reach the roof. Reference and build replays landed on the roof
+with Moses still linked, then carried him right to world x=617 by frame 7,100.
+A separate `moses-roof` gameplay scenario retains the previous platform route
+and checks this route's roof height, later distance, carried slot and identical
+reference/build evidence. Straight rightward input beyond that point loses the
+baby near the descending stairs, so this is not a third-level completion.
+A failed intermediate comparison also exposed that failure retention did not
+accept the PPU event stream added earlier. The retention path now saves that
+stream for both sides, with a synthetic mismatch test; the failed comparison
+remains local for investigation.
+A separate reference-only probe of the roof and first stair continuation
+through frame 7,220 sampled 61,026 script fetches and 700 record loads. Their
+fixed command extents and consumed record fields were already source-owned;
+no native instruction entry in a local gap was observed. This probe did not
+trace inline lookup payloads and is not an inventory of later levels.
+The maintained Moses trace was also refreshed after adding the second route.
+Through frame 7,100 it observed 59,261 script fetches, 643 record loads and
+47,928 inline lookups, with no sampled extents in local gaps.

@@ -18,15 +18,15 @@ from .setup_mesen import ROOT, digest_file, spec, verify_emulator
 
 FRAMES = (240, 650, 1200, 1400, 1496, 1511, 1550, 1700, 1800, 2100, 2150, 2300,
           2400, 2600, 2800, 3000, 3100, 3200, 3250, 3300, 3350, 3400, 3450, 3650, 3700, 3750,
-          3800, 3825, 3850, 3900, 4050, 4150, 4300, 4400, 4500, 4600, 4650, 4750, 4900, 5000, 5100, 5200, 5250, 5300, 5375, 5450, 5500, 5550, 5575, 5625, 5650, 5700, 5880, 5950, 6000, 6040, 6100, 6160, 6200, 6260, 6300, 6340, 6500, 6740, 6780, 6840, 6900, 7020)
+          3800, 3825, 3850, 3900, 4050, 4150, 4300, 4400, 4500, 4600, 4650, 4750, 4900, 5000, 5100, 5200, 5250, 5300, 5375, 5450, 5500, 5550, 5575, 5625, 5650, 5700, 5880, 5950, 6000, 6040, 6100, 6160, 6200, 6260, 6300, 6340, 6500, 6690, 6740, 6780, 6800, 6840, 6900, 7000, 7020, 7100)
 SLOT_FRAMES = (1400, 1496, 1511, 1550, 1700, 1800, 2100, 2150, 2300,
                2400, 2600, 2800, 3000, 3100, 3200, 3250, 3300, 3350, 3400, 3450, 3650, 3700, 3750,
-               3800, 3825, 3850, 3900, 4050, 4150, 4300, 4400, 4500, 4600, 4650, 4750, 4900, 5000, 5100, 5200, 5250, 5300, 5375, 5450, 5500, 5550, 5575, 5625, 5650, 5700, 5880, 5950, 6000, 6040, 6100, 6160, 6200, 6260, 6300, 6340, 6500, 6740, 6780, 6840, 6900, 7020)
+               3800, 3825, 3850, 3900, 4050, 4150, 4300, 4400, 4500, 4600, 4650, 4750, 4900, 5000, 5100, 5200, 5250, 5300, 5375, 5450, 5500, 5550, 5575, 5625, 5650, 5700, 5880, 5950, 6000, 6040, 6100, 6160, 6200, 6260, 6300, 6340, 6500, 6690, 6740, 6780, 6800, 6840, 6900, 7000, 7020, 7100)
 # Pinned emulator screenshot of the first-level success screen for the audited v1.5 input.
 MOSES_SUCCESS_SCREEN_SHA256 = 'c3d483860076f9e782d92de0913c671d4ed1aef84f8ce81688423cad40c19346'
 # Pinned second-level success screen for the same audited input.
 MOSES_LEVEL_TWO_SUCCESS_SHA256 = '74a782b79533afa78724df4550879634814f4c4e15cdeb4291380df2c7b225ca'
-SCENARIOS = (('noah', 1), ('moses', 5), ('david', 11), ('inventory', 1))
+SCENARIOS = (('noah', 1), ('moses', 5), ('david', 11), ('inventory', 1), ('moses-roof', 5))
 SCRIPT_TARGETS = (0x3D21, 0x3D22, 0x5CFE, 0x5D00, 0x5D01, 0x5D04, 0x5D06, 0x5D08, 0x5D0A)
 RECORD_TARGETS = (0x5A40, 0x6D71, 0x6E65, 0x6E7F, 0x6ECD, 0x6EE5, 0x6EFD)
 PNG_SIGNATURE = b'\x89PNG\r\n\x1a\n'
@@ -244,7 +244,7 @@ def parse_output(output: str) -> tuple[dict, dict[int, bytes], dict[str, bytes]]
             {'mapper': write_data, 'apu': audio_data, 'ppu': ppu_data, 'oam_dma': dma_data})
 
 
-def validate_scenario(evidence: dict, expected_state: int, *, inventory: bool = False) -> None:
+def validate_scenario(evidence: dict, expected_state: int, *, inventory: bool = False, roof: bool = False) -> None:
     frames = evidence['frames']
     expected_frames = ((1200, 1), (1400, 1), (1800, 16), (2100, 16), (2300, 16), (2800, 1)) if inventory else tuple(
         (frame, expected_state) for frame in (1200, 1400, 1800, 2100, 2300))
@@ -270,6 +270,10 @@ def validate_scenario(evidence: dict, expected_state: int, *, inventory: bool = 
         raise ValueError('rightward input did not produce the expected opening-area change')
     if expected_state == 5:
         slots = evidence['slots']
+        carried_frames = (5950, 6000, 6040, 6100, 6160, 6200, 6260, 6300, 6340,
+                          6500, 6690, 6740, 6780, 6800, 6840, 6900, 7000, 7020)
+        if roof:
+            carried_frames += (7100,)
         if (not evidence['stage2_record_mode2']
                 or any(slots[str(frame)]['player_descriptor'] != 1 or
                 slots[str(frame)]['object_descriptor'] != 0x6a for frame in SLOT_FRAMES if frame <= 3350)
@@ -315,15 +319,15 @@ def validate_scenario(evidence: dict, expected_state: int, *, inventory: bool = 
                 or frames['5700']['state'] != 7 or slots['5700']['third_descriptor'] != 0x6a
                 or slots['5700']['third_link'] != 0xff
                 or frames['5700']['screenshot_sha256'] == frames['5625']['screenshot_sha256']
-                or any(frames[str(frame)]['state'] != 7 for frame in (5880, 5950, 6000, 6040, 6100, 6160, 6200, 6260, 6300, 6340, 6500, 6740, 6780, 6840, 6900, 7020))
+                or any(frames[str(frame)]['state'] != 7 for frame in (5880, *carried_frames))
                 or slots['5880']['third_descriptor'] != 0x6a or slots['5880']['third_link'] != 0xff
                 or any(slots[str(frame)]['third_descriptor'] != 0x6a
                        or slots[str(frame)]['third_link'] != 1
-                       # The carried slot trails by four pixels at frame 6780.
-                       or abs(slots[str(frame)]['third_x'] - slots[str(frame)]['player_x']) > (4 if frame == 6780 else 0)
+                       # The carried slot can trail by four pixels at the two jump samples.
+                       or abs(slots[str(frame)]['third_x'] - slots[str(frame)]['player_x']) > (4 if frame in (6690, 6780) else 0)
                        or slots[str(frame)]['third_y'] >= slots[str(frame)]['player_y']
-                       for frame in (5950, 6000, 6040, 6100, 6160, 6200, 6260, 6300, 6340, 6500, 6740, 6780, 6840, 6900, 7020))
-                or any(slots[str(frame)]['player_descriptor'] != 1 for frame in (6500, 6740, 6780, 6840, 6900, 7020))
+                       for frame in carried_frames)
+                or any(slots[str(frame)]['player_descriptor'] != 1 for frame in carried_frames if frame >= 6500)
                 or frames['6100']['scroll_x'] != frames['6000']['scroll_x']
                 or slots['6100']['player_x'] + 32 >= slots['6000']['player_x']
                 or frames['6340']['scroll_x'] + slots['6340']['player_x']
@@ -335,6 +339,9 @@ def validate_scenario(evidence: dict, expected_state: int, *, inventory: bool = 
                 or frames['7020']['scroll_x'] + slots['7020']['player_x']
                    < frames['6740']['scroll_x'] + slots['6740']['player_x'] + 100):
             raise ValueError('Moses pickup, carry and recovery observations did not match')
+        if roof and (frames['6900']['scroll_y'] + slots['6900']['player_y'] > 120
+                     or frames['7100']['scroll_x'] + slots['7100']['player_x'] < 600):
+            raise ValueError('Moses roof route did not reach the stairs while carrying')
     if (evidence['mapper_value_mismatches'] or evidence['unmapped_mapper_writes']
             or evidence['physical_prg_banks_seen'] != [0, 1]):
         raise ValueError('mapper write evidence did not meet the observed-bank checks')
@@ -407,7 +414,7 @@ def retain_runtime_failure(output: Path, scenario: str, reason: str, metadata: d
                 raise ValueError('invalid runtime failure screenshot')
             (destination / f'{label}-{frame}.png').write_bytes(png)
         for kind, data in events.items():
-            if kind not in ('mapper', 'apu', 'oam_dma'):
+            if kind not in ('mapper', 'apu', 'ppu', 'oam_dma'):
                 raise ValueError('invalid runtime failure event stream')
             (destination / f'{label}-{kind}.txt.zlib').write_bytes(zlib.compress(data, 9))
     return destination
@@ -442,8 +449,8 @@ def run(root: Path = ROOT) -> dict:
             if digest_file(SDL2) != sdl_digest:
                 raise ValueError('SDL2 changed during runtime verification')
             try:
-                validate_scenario(ref, expected_state, inventory=name == 'inventory')
-                validate_scenario(candidate, expected_state, inventory=name == 'inventory')
+                validate_scenario(ref, expected_state, inventory=name == 'inventory', roof=name == 'moses-roof')
+                validate_scenario(candidate, expected_state, inventory=name == 'inventory', roof=name == 'moses-roof')
                 if ref != candidate or ref_events != candidate_events:
                     raise ValueError('reference and build runtime evidence differ')
             except ValueError as exc:

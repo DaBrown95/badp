@@ -62,7 +62,7 @@ def controller_script(template: str) -> str:
     begin = template.index(start_marker)
     end = template.index(end_marker, begin) + len(end_marker)
     callback = template[begin:end]
-    original = (' emu.setInput({up=move and (SCENARIO==0 or SCENARIO==3),down=move and SCENARIO==2,'
+    original = (' emu.setInput({up=route_up or (move and (SCENARIO==0 or SCENARIO==3)),down=move and SCENARIO==2,'
                 'left=left,right=right,start=start,select=select,a=jump,b=pickup},0)')
     if callback.count(original) != 1:
         raise ValueError('gameplay input assignment is ambiguous')
