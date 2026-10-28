@@ -68,7 +68,7 @@ and unreviewed handlers stop their paths. The walker rejects malformed lengths,
 records that cross the physical bank boundary and invalid input, and reports
 physical-byte overlaps and any nodes left by its traversal limit.
 
-On the current pinned v1.5 input the bounded walk finds 1,941 candidate commands
+An earlier bounded walk of the pinned v1.5 input found 1,941 candidate commands
 starting from the descriptor-derived entries, with 38 nodes stopping at dynamic
 or unreviewed handlers and no physical-byte overlaps. Those are static candidates,
 not a complete script inventory, gameplay evidence or source ownership. The
@@ -110,3 +110,10 @@ slot updates, then either yield or return; the selector can also abort the
 handler. The static walk retains the following command as a possible next or
 resumed entry in each case. This is a possible control-flow edge, not proof of
 slot selection, resumption or execution.
+
+A further 65 candidate multi-byte BOGUS commands share 177 bytes with possible
+single-byte audio notes. Their source emits the reviewed script form and
+asserts the note values for every byte, including little-endian branch and
+voice-pointer operands. The candidate inventory found no other script boundary
+or catalogued data use in these selected extents. The two interpretations and
+bank selection remain conditional, not evidence that either path executes.

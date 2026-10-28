@@ -1171,3 +1171,21 @@ existing script extent near `$B638`. It also reaches locally supplied data.
 These additional paths do not prove either view is used and do not change the
 byte-match evidence; their descriptor contexts and overlapping command
 boundaries remain unresolved.
+
+Sixty-five further candidate BOGUS commands occupy 177 bytes that also decode
+as individual audio notes, across sixteen source extents. The script forms use
+reviewed handler macros, while note duration and pitch values are checked
+against every command byte. Selection required a unique candidate script
+boundary and excluded other catalogued data uses. Both script context and
+bank-1 audio execution remain provisional; the assertions establish compatible
+encodings, not reachability. Synthetic assembler checks cover the operand
+layouts and reject inconsistent notes, and each extent has a separate
+changed-source control.
+
+Naming the individual candidate entries broadens the separate direct-target
+walk to 1,822 seeds, 7,942 candidate nodes, 25 possible direct commands and
+23 distinct direct targets. It now reports 2,784 bytes with overlapping script
+decodes and 36 possible record/script overlap bytes. These are conservative
+static possibilities, not evidence of execution. The combined PRG inventory's
+physical script and record coverage did not expand, and all 177 selected bytes
+retain only the two stated catalogued views in that inventory.
