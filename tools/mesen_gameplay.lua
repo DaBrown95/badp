@@ -104,7 +104,7 @@ emu.addMemoryCallback(function(_,value)
 end,emu.callbackType.write,0x04E1,0x04E1)
 -- Noah's player slot uses the same record allocator while carrying an animal.
 emu.addMemoryCallback(function(_,value)
- if SCENARIO~=5 or noah_first==0 or frames>=2100 then return end
+ if SCENARIO~=5 or noah_first==0 or frames>=3300 then return end
  local state=emu.getState();local pc=state['cpu.pc'];local m=emu.convertAddress(pc,emu.memType.nesMemory)
  local physical=(m and m.memType==emu.memType.nesPrgRom) and m.address or -1
  if value==0xFF and pc==0xF1F7 and physical==0x71F7 and not noah_reload then
@@ -396,7 +396,7 @@ emu.addEventCallback(function()
  end
  if SCENARIO==5 and frames>=1400 then
   -- Approach an animal, pick it up, then carry it to the right.
-  left=false;right=(frames<1510) or (frames>=1700 and frames<2100)
+  left=false;right=(frames<1510) or (frames>=1700 and frames<3300)
   jump=false;pickup=frames>=1525 and frames<1535;route_up=false;start=false
  end
  local select=false
@@ -455,7 +455,7 @@ emu.addEventCallback(function()
    end
   end
  end
- if SCENARIO==5 and frames>=1500 and frames<=2100 then
+ if SCENARIO==5 and frames>=1500 and frames<=3300 then
   local state=emu.read(1,emu.memType.nesDebug)
   local player=emu.read(0x04E1,emu.memType.nesDebug)
   local animal=emu.read(0x04E2,emu.memType.nesDebug)

@@ -402,13 +402,13 @@ def validate_scenario(evidence: dict, expected_state: int, *, inventory: bool = 
     if noah_carry:
         slots = evidence['slots']
         if (expected_state != 1 or evidence['noah_carry_first'] != 1530
-                or evidence['noah_carry_samples'] != 2101 - evidence['noah_carry_first']
+                or evidence['noah_carry_samples'] != 3301 - evidence['noah_carry_first']
                 or evidence['noah_carry_bad'] or evidence['noah_player_absent'] != 2
                 or evidence['noah_reload_count'] < 2 or evidence['noah_reload_bad'] or evidence['noah_reload_open']
-                or evidence['noah_last_world_x'] < 1000
+                or evidence['noah_last_world_x'] < 3000
                 or slots['1400']['object_descriptor'] != 0x0e or slots['1400']['object_link'] != 0xff
                 or any(slots[str(frame)]['object_descriptor'] != 0x0e
-                       or slots[str(frame)]['object_link'] != 1 for frame in (1550, 1700, 1800, 2100))):
+                       or slots[str(frame)]['object_link'] != 1 for frame in (1550, 1700, 1800, 2100, 3200, 3300))):
             raise ValueError('Noah animal pickup and carry was not observed')
     if expected_state == 5:
         slots = evidence['slots']

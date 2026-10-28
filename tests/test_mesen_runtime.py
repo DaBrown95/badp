@@ -50,7 +50,7 @@ def synthetic_output(state=1, *, inventory=False):
     lines.append('BADP_LEVEL4 1 104 96 106 255 176 160')
     lines.append('BADP_LEVEL4_CARRY 2178 0 8268 7 30 0 0 10446 16 2160 1')
     lines.append('BADP_LEVEL5_CARRY 1901 0 10786 5 13 0 0 12687 16 2195 1')
-    lines.append('BADP_NOAH_CARRY 571 0 1530 2 3 0 0 1004')
+    lines.append('BADP_NOAH_CARRY 1771 0 1530 2 3 0 0 3054')
     lines.append('BADP_PROBE 4 2')
     lines.append(f'BADP_STAGE2_RECORD {int(state == 5)}')
     lines.append(f'BADP_POSITION_EVENT {int(state == 11)} 0')
@@ -72,13 +72,13 @@ def synthetic_moses_evidence():
 class MesenRuntimeTests(unittest.TestCase):
     def test_noah_carry_requires_continuity_and_valid_reload(self):
         evidence, _, _ = parse_output(synthetic_output(state=1))
-        for frame in ('1400', '1550', '1700', '1800', '2100'):
+        for frame in ('1400', '1550', '1700', '1800', '2100', '3200', '3300'):
             evidence['slots'][frame].update(object_descriptor=0x0e,
                                              object_link=0xff if frame == '1400' else 1)
         validate_scenario(evidence, 1, noah_carry=True)
         for field, value in (('noah_carry_bad', 1), ('noah_carry_first', 1531),
                              ('noah_player_absent', 1), ('noah_reload_bad', 1),
-                             ('noah_reload_open', 1), ('noah_last_world_x', 999)):
+                             ('noah_reload_open', 1), ('noah_last_world_x', 2999)):
             original = evidence[field]
             evidence[field] = value
             with self.subTest(field=field), self.assertRaisesRegex(ValueError, 'Noah animal pickup'):
@@ -159,8 +159,8 @@ class MesenRuntimeTests(unittest.TestCase):
                         text + 'BADP_LEVEL4_CARRY 2178 0 8268 7 30 0 0 10446 16 2160 1\n',
                         text.replace('BADP_LEVEL5_CARRY 1901 0 10786 5 13 0 0 12687 16 2195 1\n', ''),
                         text + 'BADP_LEVEL5_CARRY 1901 0 10786 5 13 0 0 12687 16 2195 1\n',
-                        text.replace('BADP_NOAH_CARRY 571 0 1530 2 3 0 0 1004\n', ''),
-                        text + 'BADP_NOAH_CARRY 571 0 1530 2 3 0 0 1004\n',
+                        text.replace('BADP_NOAH_CARRY 1771 0 1530 2 3 0 0 3054\n', ''),
+                        text + 'BADP_NOAH_CARRY 1771 0 1530 2 3 0 0 3054\n',
                         text + 'BADP_EXIT_SUMMARY 146 0 7945 7946 16\n',
                         text.replace('BADP_PPU 1 123 42 100 2000 80 1', 'BADP_PPU 1 123 42 341 2000 80 1'),
                         text.replace('BADP_PPU 1 123 42 100 2000 80 1', 'BADP_PPU 1 123 42 100 2004 80 1'),

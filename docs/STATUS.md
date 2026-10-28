@@ -1096,7 +1096,8 @@ clear and restore writes; the maintained comparison checks those writes and
 the continuous animal link. This route does not yet verify animal delivery or
 completion of a Noah level. A separate power-on reference/build replay kept the
 animal linked through frame 3,300 and reached world x=3,054; animal delivery
-remains unverified. The maintained check still stops its carry sampling at 2,100.
+remains unverified. The maintained check now samples the link through frame
+3,300, including the same two verified allocator transients.
 
 The extended Moses replay completed the fifth level on both ROMs. The baby
 remained linked for 1,901 consecutive end-of-frame samples, from frame 10,786
@@ -1109,3 +1110,7 @@ script, record or native instruction gaps; it did not trace inline lookups.
 The maintained roof-route collector reproduced those counts and captured
 86,824 inline lookups without finding sampled local inline bytes.
 The sixth-level spawn does not establish completion of that level or adventure.
+A reference-only search reached the upper staircase near the baby, but its
+bounded beam hit the emulator time limit and a 72-case pickup-timing sweep did
+not observe a linked baby. The attempts remain in local analysis and do not
+rule out other routes or interaction timings.
