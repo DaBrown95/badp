@@ -197,7 +197,7 @@ and simultaneous press/release handling on the reference and build.
 | `make verify-sprite-shapes` | Check observed frame dimension reads. |
 | `make state-table-inventory` | Check state-table indexing and conditional palette read addresses. |
 | `make indexed-jump-inventory` | Check `$F434` index behavior and candidate table reads. |
-| `make native-control-flow` | Inventory reconstructed native transfers and bank alternatives. |
+| `make native-control-flow` | Check native instruction boundaries, transfers and dispatch aliases. |
 | `make native-script-calls` | Classify candidate BOGUS native-call targets in both banks. |
 | `make progress` | Rebuild and update the per-version tracker. |
 | `make position-records` | Decode v1.5 position records to ignored local analysis. |

@@ -2258,3 +2258,78 @@ transcription and focused-build scripts/workspaces were retired after the
 full proof; their decisions, comparative metadata and focused controls remain
 local. These representation gains do not complete the broader source inventory
 or establish builds for the five later targets.
+
+
+## Complete native instruction boundaries and dispatch aliases
+
+The native transfer inventory now derives a disjoint instruction map rather
+than relying on code-owned debug spans alone. Every accepted unit must have a
+source instruction, an official NMOS 6502 opcode with matching mnemonic and
+encoded size, and matching addressing syntax. In particular, immediate versus
+memory operands and ca65's `a:`/`z:` width overrides must agree with the opcode.
+Parent spans and raw byte directives cannot fill an instruction-coverage hole.
+All 21,474 currently source-owned native bytes form 9,853 checked instructions.
+This validates those source forms; it does not establish that every native
+instruction in the game has been discovered or that every unit executes.
+
+`tools/nes6502.py` generates the two regular opcode groups and lists the
+remaining official forms. Each `make native-control-flow` run assembles all
+151 forms as a 321-byte synthetic program with the pinned ca65/ld65 tools and
+compares the complete result. The synthetic source uses invented operands,
+contains no game data, and its temporary files are removed after checking.
+Assembler/linker identities and synthetic hashes are retained with the native
+inventory. Encoded sizes describe source storage, not every bus access; this
+check is not an instruction-timing or physical CPU test. Unofficial opcodes
+are not silently accepted as official source instructions.
+
+Every direct destination into native source and all 197 nominal BOGUS handler
+targets lie on checked instruction boundaries. Both physical copies of the
+NMI, reset and IRQ vectors also point to instruction starts. The two ordinary
+same-bank ownership exceptions remain the reviewed shared reset/NMI mapping
+transitions; each other-bank destination is a checked instruction start. The
+legacy `span_start` fields remain available, while separate instruction-start
+fields carry the stronger result. Candidate native-call targets likewise have
+separate per-bank instruction-boundary flags. Instruction boundaries establish
+neither runtime entry nor which physical bank is selected.
+
+The dispatch and length indices are full bytes, so the native inventory now
+retains all 256 positions instead of reporting only 197 nominal entries. The
+59 additional entries are aliases of the adjacent tables/instructions, not
+newly declared handlers. For bank 0 they lead to eleven checked native starts,
+twelve native-instruction interiors, twelve source-data positions, twenty-two
+addresses outside PRG and two local-asset positions. The latter two both point
+to palette bytes at `$C9DC`. The previously injected `$CA` dispatch points to
+`$A9D8` inside the source-owned position-record stream, not a newly recovered
+native function. These are target classifications, not proof that those byte
+indices arise during ordinary execution.
+
+All 256 length reads agree across the two physical banks. Seven additional
+indices read zero; the helper's copy-before-DEX loop then copies 256 bytes,
+rather than zero. Each row records that effective count without inventing an
+index bound or treating an out-of-table length as a new declared format.
+
+`native_dispatch_lookup_bytes` now preserves these reads in the combined PRG
+inventory and physical audit. The low/high handler tables and both length
+windows contain 1,024 logical byte positions but only 965 distinct physical
+bytes, because the low-table overrun aliases the high table. Of those physical
+bytes, 788 have data-source ownership and 177 have native-code ownership.
+The latter comprise 59 bytes after the nominal high-handler table and 59 bytes
+of each shared record-fetch helper. Code ownership and the lookup-use label
+coexist; this adds no source ownership or code-progress credit. Synthetic tests
+reject mismatched addressing modes and parent-span-only instruction coverage.
+They also check all alias spans and the nonnominal zero-length behavior.
+
+The integration refresh passes the complete matching build and all 2,086 source
+controls. All 362 synthetic tooling tests and six input audits pass. The native
+instruction/transfer inventory, candidate-call inventory, physical audit and
+910-case-per-ROM record probe share the same current proof and source hash.
+The additional-target review is retained in
+`analysis/us-v1.5/additional-dispatch-review.json`, including both physical-bank
+representations. Superseded exploratory metadata was retired after the stronger
+canonical inventory and review were written.
+
+Source ownership and the README metric are unchanged at 45,175 bytes (68.93%
+of physical PRG). The ten local bytes, conditional indexed-script paths,
+non-ROM resource contexts, mapper questions and overall source-inventory review
+remain open; none is cleared by an instruction-boundary check. The other five
+releases still require their own builds and evidence.

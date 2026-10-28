@@ -31,7 +31,7 @@ help:
 	@echo 'make verify-sprite-shapes Check observed frame dimension reads'
 	@echo 'make state-table-inventory Check state-table indexing and palette read plans'
 	@echo 'make indexed-jump-inventory Check the $$F434 index and local table candidates'
-	@echo 'make native-control-flow  Inventory reconstructed native transfers locally'
+	@echo 'make native-control-flow  Check native instructions, transfers and dispatch aliases'
 	@echo 'make native-script-calls  Inventory candidate BOGUS native-call targets'
 	@echo 'make position-records  Decode v1.5 position records to local analysis'
 	@echo 'make script-entries  Inventory v1.5 script entry candidates locally'

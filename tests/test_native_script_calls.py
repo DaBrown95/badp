@@ -35,6 +35,7 @@ class NativeScriptCallTests(unittest.TestCase):
         self.assertEqual(calls[0]['origin']['ownership'], 'local')
         self.assertEqual(calls[0]['bank0_target'], {'ownership': 'code', 'span_start': True})
         self.assertEqual(calls[0]['bank1_target'], {'ownership': 'data', 'span_start': False})
+        self.assertEqual(calls[0]['target_instruction_starts'], {'bank0': True, 'bank1': False})
         self.assertEqual(calls[1]['target_cpu'], '0x0000')
         self.assertEqual(calls[1]['selection'], 'current_mapping')
         self.assertEqual(calls[1]['bank0_target']['ownership'], 'outside_prg')

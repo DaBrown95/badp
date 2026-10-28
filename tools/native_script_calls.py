@@ -20,7 +20,8 @@ from .script_flow import PRIMARY_INDEXED_JUMPS, walk
 
 INVENTORY_INPUTS = ('tools/native_script_calls.py', 'tools/native_control_flow.py',
                     'tools/direct_record_flow.py', 'tools/script_flow.py',
-                    'tools/script_entries.py', 'tools/slot_record_flow.py')
+                    'tools/script_entries.py', 'tools/slot_record_flow.py', 'tools/nes6502.py',
+                    'tools/verify_native_opcodes.py')
 
 
 def origin_statements(debug: str, source: str, addresses: set[tuple[int, int]]) -> dict:
@@ -134,18 +135,21 @@ def inventory(graph: dict, bank0: bytes, bank1: bytes, debug: str, source: str,
               {'ownership': item['ownership'], 'span_start': item['span_start']}
               for item in classified.get('extra_targets', [])}
     origins = origin_statements(debug, source, {(r['origin_bank'], int(r['origin_cpu'], 0)) for r in calls})
+    boundaries = {(item['bank'], int(item['cpu'], 0)): item['instruction_start']
+                  for item in classified.get('extra_targets', [])}
     for row in calls:
         row['source_origin'] = origins[(row['origin_bank'], int(row['origin_cpu'], 0))]
         cpu = int(row['target_cpu'], 0)
         row['origin'] = lookup[(row['origin_bank'], int(row['origin_cpu'], 0))]
         row['bank0_target'] = lookup[(0, cpu)]
         row['bank1_target'] = lookup[(1, cpu)]
+        row['target_instruction_starts'] = {'bank0': boundaries[(0, cpu)], 'bank1': boundaries[(1, cpu)]}
     origin_counts = defaultdict(int)
     for row in calls:
         origin_counts[row['source_origin']['classification']] += 1
     return {'candidate_calls': calls, 'count': len(calls), 'source_origin_counts': dict(sorted(origin_counts.items())),
             'interpretation': 'Candidate graph decodes and physical-bank alternatives only. Span starts '
-                              'refer to code-owned debug spans, not proven instruction boundaries. '
+                              'are legacy debug-span classifications; target_instruction_starts uses the complete checked instruction map. '
                               'Source-origin classification distinguishes declared calls from incidental decodes, without excluding '
                               'conditional execution. Mapper state, call return and runtime reachability are not established.'}
 

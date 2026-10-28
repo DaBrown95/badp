@@ -5,6 +5,7 @@ from pathlib import Path
 import tempfile
 import unittest
 
+from tools.native_control_flow import dispatch_lookup_spans
 from tools.prg_inventory import (_optional_trace, expansion_counts, palette_script_spans,
                                  palette_setup_spans, script_graph_spans, summarize)
 
@@ -18,6 +19,15 @@ class PrgInventoryTests(unittest.TestCase):
         for invalid in ([(-1, 1)], [(0x7fff, 2)], [(True, 1)], [(0, 0)]):
             with self.subTest(invalid=invalid), self.assertRaises(ValueError):
                 expansion_counts([], invalid)
+
+    def test_dispatch_aliases_are_retained_and_physical_bytes_count_once(self):
+        spans = dispatch_lookup_spans()
+        result = summarize({'native_dispatch_lookup_bytes': spans, 'source_code': [(0x570f, 59)]})
+        self.assertEqual(result['category_bytes']['native_dispatch_lookup_bytes'], 965)
+        self.assertEqual(result['source_and_candidate_data_bytes'], 59)
+        self.assertEqual(sum(size for _, size in spans), 1024)
+        overlap = [r for r in result['evidence_spans'] if r['physical_prg_offset'] == 0x570f][0]
+        self.assertEqual(overlap['uses'], ['source_code', 'native_dispatch_lookup_bytes'])
 
     def test_aliases_overlap_and_banks_are_counted_physically_once(self):
         result = summarize({'source_code': [(0, 3), (0, 3)],

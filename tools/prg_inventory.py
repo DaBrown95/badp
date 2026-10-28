@@ -16,6 +16,7 @@ import sys
 from . import (audio_commands, audio_flow, direct_record_flow, map_data, native_event_flow, packed_text, ppu_streams,
                slot_record_flow, sprite_metadata)
 from .build_rom import source_regions
+from .native_control_flow import dispatch_lookup_spans
 from .progress import verify_primary
 from .project import input_path
 from .script_entries import (BANK_SIZE, DESCRIPTORS, DESCRIPTOR_COUNT, ROOT,
@@ -29,13 +30,15 @@ CATEGORIES = ('source_code', 'source_data', 'candidate_map_chunks', 'candidate_m
               'observed_audio_commands', 'candidate_sprite_bytes',
               'candidate_script_bytes', 'candidate_record_bytes', 'candidate_palette_setup_bytes',
               'candidate_audio_commands', 'candidate_ppu_stream_bytes', 'candidate_ppu_control_bytes',
-              'candidate_ppu_payload_bytes', 'candidate_sprite_static_bytes', 'source_fill')
+              'candidate_ppu_payload_bytes', 'candidate_sprite_static_bytes', 'source_fill',
+              'native_dispatch_lookup_bytes')
 INVENTORY_INPUTS = ('tools/prg_inventory.py', 'tools/map_data.py', 'tools/packed_text.py',
                     'tools/script_entries.py', 'tools/script_flow.py', 'tools/slot_record_flow.py',
                     'tools/direct_record_flow.py', 'tools/native_event_flow.py',
                     'tools/audio_commands.py', 'tools/audio_flow.py', 'tools/ppu_streams.py',
                     'tools/sprite_metadata.py', 'tools/setup_mesen.py',
-                    'config/mesence-toolchain.json')
+                    'config/mesence-toolchain.json', 'tools/native_control_flow.py', 'tools/nes6502.py',
+                    'tools/verify_native_opcodes.py')
 
 
 def summarize(spans: dict[str, list[tuple[int, int]]], *, bank_size: int = BANK_SIZE,
@@ -260,6 +263,7 @@ def inventory(root: Path = ROOT) -> dict:
     config = json.loads((root / 'config/source-us-v1.5.json').read_text())
     regions = source_regions(config, target['reference']['prg']['offset'])
     spans: dict[str, list[tuple[int, int]]] = {key: [] for key in CATEGORIES}
+    spans['native_dispatch_lookup_bytes'] = dispatch_lookup_spans()
     for region in regions:
         start = region['bank'] * BANK_SIZE + int(region['cpu'], 0) - 0x8000
         spans['source_' + region['kind']].append((start, region['size']))

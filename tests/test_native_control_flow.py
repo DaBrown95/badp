@@ -70,6 +70,58 @@ class NativeControlFlowTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, 'duplicate extra target'):
             inventory(debug, source, prg, regions, extra_targets=((0, 0x8008), (0, 0x8008)))
 
+    def test_complete_instruction_map_is_disjoint_and_vectors_are_classified(self):
+        debug, source, prg, regions = fixture()
+        changed = bytearray(prg)
+        for bank in (0, 1):
+            for offset in (0x7ffa, 0x7ffc, 0x7ffe):
+                changed[bank * BANK_SIZE + offset:bank * BANK_SIZE + offset + 2] = (0x8008).to_bytes(2, 'little')
+        result = inventory(debug, source, bytes(changed), regions)
+        self.assertEqual((result['instruction_count'], result['instruction_code_bytes']), (4, 9))
+        self.assertEqual([r['size'] for r in result['instructions']], [2, 3, 3, 1])
+        self.assertTrue(all(r['instruction_start'] for r in result['vectors'] if r['bank'] == 0))
+        self.assertFalse(any(r['instruction_start'] for r in result['vectors'] if r['bank'] == 1))
+
+    def test_coarse_parent_spans_and_raw_bytes_cannot_cover_instruction_holes(self):
+        debug, source, prg, regions = fixture()
+        debug += 'span\tid=5,seg=7,start=0,size=9\n'
+        source = source.replace('bne start', '.byte $d0, $fe')
+        with self.assertRaisesRegex(ValueError, 'instruction spans omit'):
+            inventory(debug, source, prg, regions)
+
+    def test_mnemonic_match_alone_does_not_validate_addressing_mode(self):
+        debug, source, prg, regions = fixture()
+        changed = bytearray(prg);changed[:2] = bytes((0xa5, 0x10))
+        for text in ('lda #$10', 'lda a:$10'):
+            with self.subTest(text=text), self.assertRaisesRegex(ValueError, 'instruction spans omit'):
+                inventory(debug, source.replace('bne start', text), bytes(changed), regions)
+        self.assertEqual(inventory(debug, source.replace('bne start', 'lda $10'), bytes(changed), regions)
+                         ['instruction_code_bytes'], 9)
+
+    def test_parent_span_start_is_not_an_instruction_boundary(self):
+        debug, source, prg, regions = fixture()
+        debug += 'span\tid=5,seg=7,start=1,size=1\n'
+        changed = bytearray(prg);changed[3] = 1
+        result = inventory(debug, source, bytes(changed), regions)
+        target = result['same_bank_non_instruction_start_targets'][0]
+        self.assertTrue(target['same_physical_bank']['span_start'])
+        self.assertFalse(target['same_bank_instruction_start'])
+
+    def test_all_byte_dispatch_indices_and_zero_length_copy_are_retained(self):
+        debug, source, prg, regions = fixture()
+        changed = bytearray(prg);index = 0xca
+        changed[0x5585 + index] = 7;changed[0x564a + index] = 0x80
+        result = inventory(debug, source, bytes(changed), regions, include_script_dispatch=True)
+        dispatch = result['script_dispatch']
+        self.assertEqual(len(dispatch['additional_entries']), 59)
+        entry = next(row for row in dispatch['additional_entries'] if row['opcode'] == index)
+        self.assertEqual(entry['effective_fetch_bytes'], 256)
+        self.assertTrue(entry['bank0_instruction_start'])
+        self.assertFalse(entry['bank1_instruction_start'])
+        changed[BANK_SIZE + 0x7da7 + index] = 1
+        with self.assertRaisesRegex(ValueError, 'length tables differ'):
+            inventory(debug, source, bytes(changed), regions, include_script_dispatch=True)
+
     def test_invalid_debug_geometry_and_missing_coverage_are_rejected(self):
         debug, source, prg, regions = fixture()
         with self.assertRaisesRegex(ValueError, 'geometry'):
