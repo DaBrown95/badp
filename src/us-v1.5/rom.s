@@ -170,8 +170,9 @@ compareRangeReturn:
 ; BOGUS command forms below name only the behaviour established by handlers.
 ; Script targets in PRG bank 1 are encoded as offsets below $8000.
 ; Opcode $67 selects a slot, stores relative fields and yields.
+BogusActionOpcode_BogusSelectRelativeSlotAndYield = $67
 .macro BogusSelectRelativeSlotAndYield first, second, selector, match, mode
-    .byte $67, first, second, selector, match, mode
+    .byte BogusActionOpcode_BogusSelectRelativeSlotAndYield, first, second, selector, match, mode
 .endmacro
 ; Fields fetched by opcode $89: state selector, vertical coordinate and base,
 ; followed by two little-endian horizontal coordinate values. Their gameplay
@@ -1338,6 +1339,10 @@ BogusActionOpcode_BogusBranchIfSlot0520AtMost = $22
 BogusActionOpcode_BogusBranchIfSlot0620Bit10 = $20
 BogusActionOpcode_BogusBranchIfSlot0760Equal = $23
 BogusActionOpcode_BogusBranchIfSlotD0Bits = $5F
+BogusActionOpcode_BogusBranchIfSlot0360Above = $93
+BogusActionOpcode_BogusBranchOnDirectionalOffset = $62
+BogusActionOpcode_BogusClearSlot0640PairBits = $B9
+BogusActionOpcode_BogusSetSlot0640PairBits = $BA
 BogusActionOpcode_BogusMarkMatchingSlots = $36
 BogusActionOpcode_BogusMaskSlotValue = $40
 BogusActionOpcode_BogusReadSlotValue = $3F
@@ -1357,6 +1362,25 @@ BogusActionOpcode_BogusSetVoicePointers = $31
 BogusActionOpcode_BogusSetVoicesFromIndexedRecord = $78
 BogusActionOpcode_BogusStoreSlotValueArray = $47
 BogusActionOpcode_BogusWait = $07
+
+; One nine-byte slot record can also contain three command entries. The
+; preceding branch consumes its resource low byte as a comparison operand.
+.macro SlotRecordScriptOverlay resource, script, flags, field69, field6a, field6b, field6c, prior_compare
+    .assert <resource = prior_compare, error, "record/prior branch operand disagreement"
+    .assert >resource = BogusActionOpcode_BogusClearSlot0640PairBits, error, "record/script pair opcode disagreement"
+    .assert flags = BogusActionOpcode_BogusMaskSlotValue, error, "record/script mask opcode disagreement"
+    .assert field6b = BogusActionOpcode_BogusBranchOnDirectionalOffset, error, "record/script branch opcode disagreement"
+    SlotRuntimeRecord resource, script, flags, field69, field6a, field6b, field6c
+.endmacro
+
+; Emit the first eight bytes of a mode-specific record whose first byte is
+; also a candidate branch opcode. The ninth field can be owned separately.
+.macro SlotRecordBranchPrefix resource, script, flags, field69, field6a, field6b
+    .assert <resource = BogusActionOpcode_BogusBranchIfSlot0360Above, error, "record/script branch prefix disagreement"
+    .word resource, script
+    .byte flags, field69, field6a, field6b
+.endmacro
+
 .macro AudioNoteView duration, note, expected
     .assert (duration >= 0) .and (duration <= 4) .and (note >= 0) .and (note <= $1F), error, "invalid audio note"
     .assert (duration * $20 + note) = expected, error, "audio/script byte disagreement"
@@ -18423,7 +18447,17 @@ ContextResourceSentinelD54F:
 ContextScriptPointerD54F:
     .word (LongScriptD98E - BankStart) ; CONTROL_CONTEXT_FIELDS_D551
 .assert (* - BankStart) = $5553, error, "bank 1 candidate record field $D551 end"
-    .incbin "bank1_d553_d562.bin"
+    .incbin "bank1_d553_d558.bin"
+; Candidate mode-zero record for descriptor $D52B and the $D928 load.
+; Alternate entries at $D559, $D55C and $D55F decode as a pair-bit clear,
+; value mask and conditional branch. The preceding $D555 candidate branch
+; also consumes this record's low resource byte. No path is proven to run.
+CandidateRecordD558:
+CandidateScriptD559 = CandidateRecordD558 + 1
+CandidateScriptD55C = CandidateRecordD558 + 4
+CandidateScriptD55F = CandidateRecordD558 + 7
+    SlotRecordScriptOverlay $B927, (RetainedScriptD92A - BankStart), $40, $FE, $45, $62, $31, $27 ; CONTROL_RECORD_SCRIPT_D558
+    .incbin "bank1_d561_d562.bin"
 ; Candidate descriptor-context access; runtime reachability remains unverified.
 ; Resource high byte $FF skips visual fields and low pointer byte.
 ContextResourceSentinelD561:
@@ -19661,7 +19695,14 @@ CompactContextDC17:
 SlotRuntimeDC1A:
     SlotRuntimeRecord $B6D8, (ScriptDC35 - BankStart), $23, $00, $16, $61, $22 ; CONTROL_SLOT_RUNTIME_DC1A
 .assert (* - BankStart) = $5C23, error, "bank 1 slot record DC1A end"
-    .incbin "bank1_dc23_dc2c.bin"
+; Candidate contact record: the skipped resource low byte remains local, and
+; the script-pointer high byte also starts a possible command at $DC26.
+    .incbin "bank1_dc23_dc24.bin"
+ContactRecordDC23HighAndScriptLow:
+    .byte $FF, <(RuntimeScriptE764 - BankStart) ; CONTROL_CONTACT_DC23_FIELDS
+.assert >(RuntimeScriptE764 - BankStart) = BogusActionOpcode_BogusSelectRelativeSlotAndYield, error, "DC26 contact/script opcode disagreement"
+CandidateScriptDC26:
+    BogusSelectRelativeSlotAndYield $40, $FF, $00, $00, $00 ; CONTROL_CONTACT_SCRIPT_DC26
 ; Candidate descriptor $DC1A, script $DCFE, mode $02.
 ModeRecordDC2CResource:
     .word $B6D8 ; CONTROL_MODE_RECORD_DC2C_RESOURCE
@@ -20266,19 +20307,32 @@ SlotRuntimeE07E:
     SlotRuntimeRecord $BCB1, (ScriptE0A2 - BankStart), $00, $FF, $00, $00, $00 ; CONTROL_SLOT_RUNTIME_E07E
 .assert (* - BankStart) = $6087, error, "bank 1 slot record E07E end"
 ; Possible contact entry for descriptor $E07E. The script pointer's high
-; byte also has a candidate script interpretation and remains local.
+; byte also has a candidate script interpretation below.
     .incbin "bank1_e087_e088.bin"
 ContactRecordE087HighAndScriptLow:
     .byte $FF, <(RuntimeScriptE764 - BankStart) ; CONTROL_CONTACT_E087_FIELDS
-    .incbin "bank1_e08a_e098.bin"
+; Its script-pointer high byte also begins this candidate command.
+.assert >(RuntimeScriptE764 - BankStart) = BogusActionOpcode_BogusSelectRelativeSlotAndYield, error, "E08A contact/script opcode disagreement"
+CandidateScriptE08A:
+    BogusSelectRelativeSlotAndYield $40, $FF, $00, $00, $00 ; CONTROL_CONTACT_SCRIPT_E08A
+; Candidate mode-$02 record for descriptor $E07E. Its resource low byte also
+; starts a possible branch, whose operands overlap the remaining prefix.
+ModeRecordE090:
+CandidateScriptE090:
+    SlotRecordBranchPrefix $B693, $FFFF, $00, $FF, $00, $00 ; CONTROL_RECORD_SCRIPT_E090
 ; Last field used by a candidate mode-$02 record based at $E090.
 ModeRecordE090LastField:
     .byte $00 ; CONTROL_MODE_RECORD_E090_LAST
 ; Candidate descriptor $E07E, script $E262, mode $02.
+; Its resource low byte also starts a candidate branch; the two skipped
+; script-pointer bytes supply the branch's high target byte and comparison.
+ModeRecordE099Pointer = $B693 ; CONTROL_MODE_RECORD_E099_RESOURCE
+.assert <ModeRecordE099Pointer = BogusActionOpcode_BogusBranchIfSlot0360Above, error, "E099 record/script opcode disagreement"
 ModeRecordE099Resource:
-    .word $B693 ; CONTROL_MODE_RECORD_E099_RESOURCE
+CandidateScriptE099:
+    .word ModeRecordE099Pointer
 .assert (* - BankStart) = $609B, error, "bank 1 candidate mode record e099 resource end"
-    .incbin "bank1_e09b_e09d.bin"
+    .word $FFFF ; CONTROL_SCRIPT_E099_SUFFIX
 ; Candidate descriptor $E07E, script $E262, mode $02.
 ModeRecordE099Fields:
     .byte $00, $FF, $00, $00, $00 ; CONTROL_MODE_RECORD_E099_FIELDS
@@ -21835,11 +21889,15 @@ ReviewedContactEAF6:
     .word RuntimeScriptE764 - BankStart
 .assert (* - BankStart) = $6AFA, error, "bank 1 candidate contact eaf6 end"
     .incbin "bank1_eafa_eaff.bin"
-; Candidate descriptor $EAED, script $ECE2, mode $02.
+; Candidate descriptor $EAED, script $ECE2, mode $02. The resource high byte
+; also starts a possible pair-bit command using the skipped pointer bytes.
+ModeRecordEAFFPointer = $BAE9 ; CONTROL_MODE_RECORD_EAFF_RESOURCE
+.assert >ModeRecordEAFFPointer = BogusActionOpcode_BogusSetSlot0640PairBits, error, "EB00 record/script opcode disagreement"
 ModeRecordEAFFResource:
-    .word $BAE9 ; CONTROL_MODE_RECORD_EAFF_RESOURCE
+CandidateScriptEB00 = ModeRecordEAFFResource + 1
+    .word ModeRecordEAFFPointer
 .assert (* - BankStart) = $6B01, error, "bank 1 candidate mode record eaff resource end"
-    .incbin "bank1_eb01_eb03.bin"
+    .word $FFFF ; CONTROL_SCRIPT_EB00_OPERANDS
 ; Candidate descriptor $EAED, script $ECE2, mode $02.
 ModeRecordEAFFFields:
     .byte $00, $FF, $00, $00, $00 ; CONTROL_MODE_RECORD_EAFF_FIELDS
@@ -21960,11 +22018,15 @@ SlotRuntimeEB9A:
 SweepRecordEBA3:
     SlotRuntimeRecord $FFFF, (RuntimeScriptE764 - BankStart), $40, $FF, $00, $00, $00 ; CONTROL_SWEEP_RECORD_EBA3
 .assert (* - BankStart) = $6BAC, error, "bank 1 sweep record $EBA3 end"
-; Resource pointer read by the slot-record loader. Unread neighbouring bytes remain local.
+; Resource pointer read by the slot-record loader. Its high byte also starts
+; a possible pair-bit command using the following skipped pointer bytes.
+PartialRecordEBACPointer = $B910 ; CONTROL_PARTIAL_RESOURCE_EBAC
+.assert >PartialRecordEBACPointer = BogusActionOpcode_BogusClearSlot0640PairBits, error, "EBAD record/script opcode disagreement"
 PartialRecordEBACResource:
-    .word $B910 ; CONTROL_PARTIAL_RESOURCE_EBAC
+CandidateScriptEBAD = PartialRecordEBACResource + 1
+    .word PartialRecordEBACPointer
 .assert (* - BankStart) = $6BAE, error, "bank 1 partial record $EBAC end"
-    .incbin "bank1_ebae_ebb0.bin"
+    .word $FFFF ; CONTROL_SCRIPT_EBAD_OPERANDS
 ; Mode-specific flags and fields read by the slot-record loader. Unread neighbouring bytes remain local.
 PartialRecordEBACFields:
     .byte $00, $FF, $00, $00, $00 ; CONTROL_PARTIAL_FIELDS_EBAC

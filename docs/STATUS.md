@@ -344,7 +344,7 @@ in these inventories; that number is not a count of remaining code. The report
 also retains 7,633 possible map/script overlap bytes and 858 possible record/script
 overlap bytes across the combined inventories. The expanded field-setter walk
 introduces many speculative competing decodes; it does not establish their
-reachability. It also reports 7,534 source-owned bytes covered by candidate
+reachability. It also reports 7,553 source-owned bytes covered by candidate
 data uses, which can include compatible uses as well as competing ones. The
 report records its input identities and writes metadata only to
 ignored `analysis/us-v1.5/prg-inventory.json`.
@@ -1294,8 +1294,8 @@ is the already-represented mode-1 field of the overlapping `$DB60` record.
 At `$E055`, a candidate mode-2 access for descriptor `$E043` reads a resource
 pointer and two fields; the following fields have competing candidate script
 uses. At `$E087`, the candidate contact record's resource sentinel and script
-pointer low byte are now represented, while the overlapping high byte remains
-local. The same `$E764` path also gives partial negative-mode records at
+pointer are represented; its high byte also starts the possible `$E08A`
+script command. The same `$E764` path also gives partial negative-mode records at
 `$E040` and `$EB10`; their noncompeting resource or mode bytes are represented
 and their competing script bytes remain local. These associations are static
 candidates, not evidence of execution.
@@ -1337,8 +1337,35 @@ descriptor/path associations remain static candidates.
 
 `make indexed-jump-inventory` now inventories all 128 distinct read positions
 at each of the three predecessor-bounded sites as well as `$F434`. Outside the
-predecessor ranges, 5 of 117 reads at `$B62C` and 41 of 124 at `$D48F` touch
+predecessor ranges, 5 of 117 reads at `$B62C` and 37 of 124 at `$D48F` touch
 locally included bytes; all 120 at `$E71C` read source-owned bytes. Under the
 candidate encoded-bank mapping, some resulting words point into native source,
 script/data source or local regions. These are possible indexed reads and
 candidate targets, not evidence that independent entries or targets execute.
+
+The candidate `$D52B`/`$D912` context can reach a mode-zero record load at
+`$D928`, selecting the nine-byte record at `$D558`. Those bytes also contain
+candidate script entries at `$D559`, `$D55C` and `$D55F`; a candidate branch
+starting at `$D555` uses the record's first byte as an operand. The source now
+emits the record once and checks the shared opcode and operand relationships.
+The surrounding script bytes remain local, and neither interpretation is
+established as executed.
+
+The candidate contact record at `$E087` points to `$E764`. Its encoded
+pointer's high byte is also the opcode of the candidate command at `$E08A`;
+the source asserts this shared byte and emits it once. The contact and script
+entries remain independent possibilities, not observed execution.
+
+The candidate mode-2 records at `$E090` and `$E099` also begin with possible
+branch opcodes. Their prefixes now preserve both interpretations, including
+the otherwise skipped pointer bytes used by the candidate branches. The
+record modes, script entries and resulting branch targets remain unverified.
+
+The `$DC23` contact record and candidate `$DC26` command share a pointer-high
+byte in the same way as `$E087`/`$E08A`. At `$EB00` and `$EBAD`, candidate
+pair-bit commands begin on resource-pointer high bytes and use the otherwise
+skipped script-pointer bytes as operands. The source asserts these shared
+opcodes and leaves execution and descriptor associations provisional.
+The incomplete temporary proof from the smaller interrupted batch was retired
+after the larger matching build and its controls completed. The final controls
+cover the affected regions from that earlier preflight.

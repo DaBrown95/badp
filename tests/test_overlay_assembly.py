@@ -16,7 +16,8 @@ class OverlayAssemblyTests(unittest.TestCase):
         except FileNotFoundError as exc:
             raise unittest.SkipTest(f'pinned assembler unavailable: {exc}') from exc
         source = (ROOT / 'src/us-v1.5/rom.s').read_text()
-        names = ('BogusJumpBank1', 'BogusSetSlotMode', 'BogusSetSlotD0Bits', 'BogusSetDispatchCounter', 'AudioNote',
+        names = ('BogusJumpBank1', 'BogusSetSlotMode', 'BogusSetSlotD0Bits', 'BogusSetDispatchCounter',
+                 'BogusSelectRelativeSlotAndYield', 'AudioNote',
                  'BogusJumpCompactOverlay', 'BogusModeResourceOverlay',
                  'BogusSetJumpRecordOverlay', 'AudioNoteBogusOverlay',
                  'BogusSetSlotC0', 'BogusSetSlot0670Pair', 'BogusMaskSlotValue',
@@ -24,7 +25,7 @@ class OverlayAssemblyTests(unittest.TestCase):
                  'BogusBranchIfMatchingSlotReady', 'BogusMarkMatchingSlots',
                  'BogusSetVoicePointers', 'BogusAddSelectedFieldClamped',
                  'BogusSetInvertedState3B', 'ContactPointerScriptOverlay',
-                 'SlotRuntimeRecord', 'SlotRecordVoiceOverlay',
+                 'SlotRuntimeRecord', 'SlotRecordVoiceOverlay', 'SlotRecordScriptOverlay', 'SlotRecordBranchPrefix',
                  'AudioNoteView', 'AudioScriptByte', 'AudioScriptPair', 'AudioScriptTriple',
                  'AudioScriptWord', 'AudioScriptTarget', 'AudioScriptTargetByte',
                  'AudioScriptTargetTriple', 'AudioScriptQuad', 'AudioScriptFourWords')
@@ -88,6 +89,58 @@ SlotRecordVoiceOverlay $AB31, $1234, $56, $78, $7A, $7B, $7C, $34AB, $5612, $7A7
 ''')
         self.assertEqual(result, 0, error)
         self.assertEqual(output, bytes.fromhex('04 56 13 0a 12 5d 34 04 56 14 25 64 13 31 ab 34 12 56 78 7a 7b 7c'))
+
+    def test_record_script_overlay_preserves_each_shared_opcode(self):
+        good = 'SlotRecordScriptOverlay $B912, $1234, $40, $33, $44, $62, $55, $12'
+        result, error, output = self.assemble(good)
+        self.assertEqual(result, 0, error)
+        self.assertEqual(output, bytes.fromhex('12 b9 34 12 40 33 44 62 55'))
+        failures = (
+            ('SlotRecordScriptOverlay $B912, $1234, $40, $33, $44, $62, $55, $13', 'prior branch'),
+            ('SlotRecordScriptOverlay $B812, $1234, $40, $33, $44, $62, $55, $12', 'pair opcode'),
+            ('SlotRecordScriptOverlay $B912, $1234, $41, $33, $44, $62, $55, $12', 'mask opcode'),
+            ('SlotRecordScriptOverlay $B912, $1234, $40, $33, $44, $63, $55, $12', 'branch opcode'),
+        )
+        for statement, message in failures:
+            with self.subTest(statement=statement):
+                result, error, _ = self.assemble(statement)
+                self.assertNotEqual(result, 0)
+                self.assertIn(message, error)
+
+    def test_contact_pointer_high_byte_can_start_a_script_command(self):
+        statement = '''
+    .assert >$6751 = BogusActionOpcode_BogusSelectRelativeSlotAndYield, error, "contact/script opcode disagreement"
+    BogusSelectRelativeSlotAndYield $01, $02, $03, $04, $05
+'''
+        result, error, output = self.assemble(statement)
+        self.assertEqual(result, 0, error)
+        self.assertEqual(output, bytes.fromhex('67 01 02 03 04 05'))
+        result, error, _ = self.assemble(statement.replace('>$6751', '>$6651'))
+        self.assertNotEqual(result, 0)
+        self.assertIn('contact/script opcode disagreement', error)
+
+    def test_record_prefix_can_share_a_branch_opcode(self):
+        statement = 'SlotRecordBranchPrefix $1293, $3456, $78, $79, $7A, $7B'
+        result, error, output = self.assemble(statement)
+        self.assertEqual(result, 0, error)
+        self.assertEqual(output, bytes.fromhex('93 12 56 34 78 79 7a 7b'))
+        result, error, _ = self.assemble(statement.replace('$1293', '$1292'))
+        self.assertNotEqual(result, 0)
+        self.assertIn('record/script branch prefix disagreement', error)
+
+    def test_resource_high_byte_can_start_pair_bit_command(self):
+        for opcode, action in ((0xB9, 'BogusClearSlot0640PairBits'),
+                               (0xBA, 'BogusSetSlot0640PairBits')):
+            with self.subTest(opcode=opcode):
+                statement = (f'.assert >${opcode:02X}12 = BogusActionOpcode_{action}, error, "record/script opcode disagreement"\n'
+                             f'.word ${opcode:02X}12, $3456')
+                result, error, output = self.assemble(statement)
+                self.assertEqual(result, 0, error)
+                self.assertEqual(output, bytes([0x12, opcode, 0x56, 0x34]))
+                wrong = statement.replace(f'>${opcode:02X}12', '>$BB12')
+                result, error, _ = self.assemble(wrong)
+                self.assertNotEqual(result, 0)
+                self.assertIn('record/script opcode disagreement', error)
 
     def test_multi_byte_audio_script_forms(self):
         # Synthetic commands exercise every operand layout, including target

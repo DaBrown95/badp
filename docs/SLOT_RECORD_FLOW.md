@@ -38,7 +38,7 @@ their assumed descriptor associations and interpretations remain unverified.
 The overlaps do not establish which path actually executes.
 A separate `make direct-record-flow` walk seeds every named bank-1 script
 entry and checks direct `$16` targets against the resulting script graph.
-The latest scan starts from 1,840 named candidate script entries and finds 30
+The latest scan starts from 1,844 named candidate script entries and finds 30
 possible direct-load commands with 28 distinct direct targets. Its widened
 walk contains 10,007 bytes with overlapping script decodes and 76 possible
 record/script overlap bytes. The added entries are candidate contexts, so
