@@ -163,6 +163,7 @@ and simultaneous press/release handling on the reference and build.
 | `make verify-controller` | Compare controller bit order and simultaneous transitions. |
 | `make verify-audio-bank` | Check audio selector and mapper behavior with controlled inputs. |
 | `make verify-record-boundary` | Check record-fetch address wrap with controlled inputs. |
+| `make verify-script-overlap` | Check a controlled ambiguous record and script path. |
 | `make indexed-jump-inventory` | Check `$F434` index behavior and candidate table reads. |
 | `make native-control-flow` | Inventory reconstructed native transfers and bank alternatives. |
 | `make native-script-calls` | Classify candidate BOGUS native-call targets in both banks. |

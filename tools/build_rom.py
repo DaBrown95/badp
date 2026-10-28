@@ -1485,7 +1485,7 @@ MUTATIONS = {
     'sweep_record_ba6c': ('CONTROL_SWEEP_RECORD_BA6C', 'SlotRuntimeRecord $FFFF, (SweepScriptBB20 - BankStart), $00, $FF, $00, $00, $00', 'SlotRuntimeRecord $FFFF, (SweepScriptBB20 - BankStart + 1), $00, $FF, $00, $00, $00'),
     'sweep_record_d3c0': ('CONTROL_SWEEP_RECORD_D3C0', 'SlotRuntimeRecord $BC79, $FFFF, $00, $FF, $00, $00, $00', 'SlotRuntimeRecord $BC78, $FFFF, $00, $FF, $00, $00, $00'),
     'sweep_record_d59f': ('CONTROL_SWEEP_RECORD_D59F', 'SlotRuntimeRecord $FFFF, $FFFF, $00, $FF, $00, $00, $00', 'SlotRuntimeRecord $FFFE, $FFFF, $00, $FF, $00, $00, $00'),
-    'sweep_record_db6f': ('CONTROL_SWEEP_RECORD_DB6F', 'SlotRuntimeRecord $FFFF, (RuntimeScriptE764 - BankStart), $40, $FF, $00, $00, $00', 'SlotRuntimeRecord $FFFF, (RuntimeScriptE764 - BankStart + 1), $40, $FF, $00, $00, $00'),
+    'sweep_record_db6f': ('CONTROL_SWEEP_RECORD_DB6F', 'SlotRuntimeRecord SweepDB6FResource, SweepDB6FScript, $40, $FF, $00, $00, $00', 'SlotRuntimeRecord SweepDB6FResource, SweepDB6FScript, $41, $FF, $00, $00, $00'),
     'sweep_record_def1': ('CONTROL_SWEEP_RECORD_DEF1', 'SlotCompactRecord $C0BB, $00', 'SlotCompactRecord $C0BA, $00'),
     'sweep_record_defd': ('CONTROL_SWEEP_RECORD_DEFD', 'SlotRuntimeRecord $FFFF, (RuntimeScriptE764 - BankStart), $40, $FF, $00, $00, $00', 'SlotRuntimeRecord $FFFF, (RuntimeScriptE764 - BankStart + 1), $40, $FF, $00, $00, $00'),
     'sweep_record_eb97': ('CONTROL_SWEEP_RECORD_EB97', 'SlotCompactRecord $C577, $00', 'SlotCompactRecord $C576, $00'),

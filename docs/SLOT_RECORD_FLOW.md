@@ -107,8 +107,28 @@ the tested path but do not rule out a script use under other conditions; the
 candidate command interpretation remains unaccepted.
 The candidate map-area script originates from associating `$EDFC` with descriptor
 `$1A` or `$1B` (base `$DB4E`): its offset `$1B` would read record `$DB69`,
-whose script pointer is `$00FF`. The `$EDFC` entry was not observed in the
-recorded exploratory inputs, and that descriptor association is unverified.
+whose script pointer is `$00FF`. The candidate `$DB69` record overlaps the
+source-owned `$DB66` and `$DB6F` records. Its alternate field view is now
+expressed by shared assembly symbols and assertions, without crediting new
+bytes. Its resource pointer is `$225B`, in the CPU's mirrored PPU register
+range; the loader reads through that pointer, so the result depends on PPU
+state. The `$EDFC` entry was not observed in the recorded exploratory inputs,
+and that descriptor association is unverified.
+
+`make verify-script-overlap` injects the `$EDFC` command, descriptor `$1A` or
+`$1B`, the bank variables and a chosen busy flag into the pinned emulator.
+For both descriptors with the flag clear, the actual loader installs `$00FF`,
+then the interpreter fetches `$6F` from bank-1 map data and fetches `$CA`
+next. `$CA` is outside the 197-entry command tables: the unchecked length
+and handler lookups read bytes from adjacent source and dispatch to bank-0
+`$A9D8`, inside a position data stream. The check stops at that address. With
+the busy flag set, `$6F` instead enters the wait handler; it does not reach
+the `$CA` dispatch in this probe. One NMI occurred in each of these controlled
+runs. Both the audited reference and matching build produced the same observed
+sequence. These inputs bypass the caller and do not demonstrate a normal-play
+path, intended script, valid position-stream execution or physical hardware
+behaviour. The map bytes remain local and are not counted as script source.
+The local verification receipt is `analysis/us-v1.5/script-overlap-verification.json`.
 
 In the 12,000-frame Noah interaction run, descriptor index `$0E` (base
 `$DA1C`) reached `$EA28` 18 times with slot flag `$D0` equal to `$80`. The

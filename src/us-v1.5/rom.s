@@ -20551,14 +20551,36 @@ CompactContextDB63:
 CandidateRecordDB60Mode1Flag = CompactContextDB63 + 1
     SlotCompactRecord $C3B3, $00 ; CONTROL_RECORD_DB60_MODE1_FLAG
 .assert (* - BankStart) = $5B66, error, "bank 1 overlapping candidate record DB63 end"
-; Descriptor-linked slot record; resource data remains local.
+; Descriptor-linked slot record; resource data remains local. A possible
+; descriptor $1A/$1B association with the $EDFC command reads a second,
+; overlapping zero-mode record starting three bytes into this one. That
+; association is unobserved in normal play; these names express the alternate
+; interpretation without emitting or claiming any additional bytes.
+SlotDB66Script = ScriptDB81 - BankStart
+SlotDB66Flags = $22
+SlotDB66Field69 = $FF
+SlotDB66Field6A = $00
+SlotDB66Field6B = $00
+SlotDB66Field6C = $00
 SlotRuntimeDB66:
-    SlotRuntimeRecord $B876, (ScriptDB81 - BankStart), $22, $FF, $00, $00, $00 ; CONTROL_SLOT_RUNTIME_DB66
+CandidateRecordDB69 = SlotRuntimeDB66 + 3
+    SlotRuntimeRecord $B876, SlotDB66Script, SlotDB66Flags, SlotDB66Field69, SlotDB66Field6A, SlotDB66Field6B, SlotDB66Field6C ; CONTROL_SLOT_RUNTIME_DB66
 .assert (* - BankStart) = $5B6F, error, "bank 1 slot record DB66 end"
-; Zero-mode record; bytes gated by sentinel values may be skipped.
+; Zero-mode record; bytes gated by sentinel values may be skipped. Its first
+; three bytes also supply the last fields of the candidate record at $DB69.
+SweepDB6FResource = $FFFF
+SweepDB6FScript = RuntimeScriptE764 - BankStart
 SweepRecordDB6F:
-    SlotRuntimeRecord $FFFF, (RuntimeScriptE764 - BankStart), $40, $FF, $00, $00, $00 ; CONTROL_SWEEP_RECORD_DB6F
+    SlotRuntimeRecord SweepDB6FResource, SweepDB6FScript, $40, $FF, $00, $00, $00 ; CONTROL_SWEEP_RECORD_DB6F
 .assert (* - BankStart) = $5B78, error, "bank 1 sweep record $DB6F end"
+; Under that alternate interpretation the resource address is in the CPU's
+; mirrored PPU register range, and the script pointer selects bank-1 map data.
+CandidateDB69Resource = (>SlotDB66Script) | (SlotDB66Flags << 8)
+CandidateDB69Script = SlotDB66Field69 | (SlotDB66Field6A << 8)
+.assert CandidateDB69Resource = $225B, error, "candidate DB69 resource"
+.assert CandidateDB69Script = $00FF, error, "candidate DB69 script"
+.assert SlotDB66Field6B = $00 .and SlotDB66Field6C = $00, error, "candidate DB69 flags and first field"
+.assert SweepDB6FResource = $FFFF .and (<SweepDB6FScript) = $64, error, "candidate DB69 overlapping fields"
 ; Candidate descriptor $DB66, command $DBC6, mode $00.
 SlotFlowDB78:
     SlotRuntimeRecord $B86F, $5BDA, $00, $01, $25, $FF, $12 ; CONTROL_SLOT_FLOW_DB78
