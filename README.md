@@ -49,7 +49,7 @@ are not measures of gameplay completion.
 <!-- BEGIN GENERATED PROGRESS -->
 | Version | Reconstructed PRG | Status |
 | --- | ---: | --- |
-| USA v1.5 | **67.26%** (44,079 / 65,536 bytes) | In progress |
+| USA v1.5 | **68.31%** (44,766 / 65,536 bytes) | In progress |
 | USA v1.4 | **0.00%** (0 / 65,536 bytes) | Not started |
 | USA v1.3 | **0.00%** (0 / 65,536 bytes) | Not started |
 | USA v1.2 | **0.00%** (0 / 65,536 bytes) | Not started |
@@ -130,12 +130,14 @@ record's character count and the original one- or two-symbol encoding widths.
 The four bytes also represented by candidate audio commands must stay consistent
 with their source definitions; other edits fail the matching comparison. The
 locally supplied asset data does not count as reconstructed PRG source.
-`make extract-sprite-frames` exports 132 observed v1.5 sprite frames as local
-rows of tile indices and attribute bytes. The build reads those rows when the
-file exists; observed frame dimensions and 42 direct-frame OAM headers are in
-source. The other frame header bytes stay local and fixed. These records refer to CHR graphics, which remain
-a separate local input. Other sprite frames and possible overlapping uses are
-still being investigated. `make extract-menu-tiles`
+`make extract-sprite-frames` exports the 326 frames in the reviewed v1.5 sprite
+layout as local rows of tile indices and attribute bytes. Of those frame starts,
+132 were observed in the existing emulator traces. The build reads the rows
+when the file exists; the 132 observed dimensions, 42 direct-frame OAM headers
+and complete 124-record animation directory are in source. Other frame header
+bytes stay local and fixed. These records refer to CHR graphics, which remain
+a separate local input. Other entry points and overlapping uses remain possible.
+`make extract-menu-tiles`
 exports the fourteen menu display streams locally; their tile bytes are editable,
 while command positions and stream lengths stay fixed. These bytes can also
 have other candidate uses and do not count as source progress.

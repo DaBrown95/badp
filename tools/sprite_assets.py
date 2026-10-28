@@ -1,4 +1,4 @@
-"""Round-trip locally supplied, observed sprite-frame metadata and tile pairs.
+"""Round-trip locally supplied, inventoried sprite-frame metadata and tile pairs.
 
 The address list records emulator observations, not a complete inventory or a
 claim that overlapping interpretations cannot exist. Tile indices and attribute
@@ -25,20 +25,20 @@ def frame_addresses(root: Path) -> list[int]:
             or type(data['schema_version']) is not int or data['schema_version'] != 1 or data['target'] != TARGET
             or type(data['bank']) is not int or data['bank'] != 0
             or not isinstance(data['source'], str) or not isinstance(data['cpu_addresses'], list)):
-        raise ValueError('invalid observed sprite frame inventory')
+        raise ValueError('invalid inventoried sprite frame inventory')
     addresses = []
     for item in data['cpu_addresses']:
         if not isinstance(item, str) or len(item) != 6 or not item.startswith('0x'):
-            raise ValueError('invalid observed sprite frame address')
+            raise ValueError('invalid inventoried sprite frame address')
         try:
             address = int(item, 16)
         except ValueError as exc:
-            raise ValueError('invalid observed sprite frame address') from exc
+            raise ValueError('invalid inventoried sprite frame address') from exc
         if not 0x8000 <= address <= 0xfffd:
-            raise ValueError('observed sprite frame lies outside the PRG window')
+            raise ValueError('inventoried sprite frame lies outside the PRG window')
         addresses.append(address)
     if not addresses or addresses != sorted(set(addresses)):
-        raise ValueError('observed sprite frames must be unique and ordered')
+        raise ValueError('inventoried sprite frames must be unique and ordered')
     return addresses
 
 
@@ -51,10 +51,10 @@ def inventory(root: Path, prg: bytes) -> list[dict]:
         offset = address - 0x8000
         header = decode_frame_header(prg[offset:offset + 2])
         if header['index_wraps'] or offset + 2 + 2 * header['tile_pairs'] > BANK_SIZE:
-            raise ValueError('observed frame index wraps or crosses its PRG bank')
+            raise ValueError('inventoried frame index wraps or crosses its PRG bank')
         size = 2 + 2 * header['tile_pairs']
         if offset < end:
-            raise ValueError('observed sprite frames overlap')
+            raise ValueError('inventoried sprite frames overlap')
         end = offset + size
         frames.append({'offset': offset, 'size': size, 'header': header})
     return frames
@@ -88,7 +88,7 @@ def encode(root: Path, asset: dict, prg: bytes, reference_sha256: str) -> list[t
         raise ValueError('sprite asset identity differs from the reference')
     originals = inventory(root, prg)
     if len(asset['frames']) != len(originals):
-        raise ValueError('sprite frame count differs from the observed inventory')
+        raise ValueError('sprite frame count differs from the declared inventory')
     spans = []
     for item, original in zip(asset['frames'], originals):
         header, start = original['header'], original['offset']
@@ -150,7 +150,7 @@ def verify_control(reference: bytes, candidate: bytes, prg_offset: int, asset: d
     changed = [index for index, (a, b) in enumerate(zip(reference, candidate)) if a != b]
     if (len(expected) != len(set(expected)) or changed != expected
             or any(candidate[index] != (reference[index] ^ 1) for index in expected)):
-        raise ValueError('sprite control did not change exactly one tile per observed frame')
+        raise ValueError('sprite control did not change exactly one tile per inventoried frame')
     return changed
 
 

@@ -1,4 +1,4 @@
-"""Check observed sprite dimensions with controlled frame pointers in MesenCE.
+"""Check inventoried sprite dimensions with controlled frame pointers in MesenCE.
 
 This executes only the dimension read; it does not prove every frame is used
 in all contexts, rendered correctly, or mapped the same on a physical board.
@@ -99,7 +99,7 @@ def main() -> int:
                   'source_sha256': proof['source_sha256'], 'build_proof_sha256': proof_hash,
                   'input_sha256': hashes, 'emulator_core_sha256': emulator['core_sha256'],
                   'system_sdl2_sha256': sdl_hash, 'observations': observations,
-                  'scope': 'injected observed frame pointers; no rendering or physical-hardware claim'}
+                  'scope': 'injected inventoried frame pointers; no rendering or physical-hardware claim'}
         output.write_text(json.dumps(result, indent=2) + '\n')
         print('Saved controlled evidence to analysis/us-v1.5/sprite-shape-verification.json')
     except (OSError, ValueError, KeyError, TypeError, subprocess.SubprocessError) as exc:

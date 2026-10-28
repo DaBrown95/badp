@@ -6998,9 +6998,216 @@ FadeWaitVBlank:
     .byte ((columns << 4) | rows)
 .endmacro
 
-; Observed resource metadata and frame dimensions; unconverted bytes and
-; tile pairs remain local. Other candidate views may overlap.
-    .incbin "bank0_b5d3_b5e7.bin"
+; Complete contiguous animation directory, supported by the frame-layout
+; review and pointer-normalized comparisons in four earlier revisions.
+; Only the previously traced subset has observed runtime entry evidence.
+SpriteFrameBAAF = BankStart + $3AAF
+SpriteFrameBAB7 = BankStart + $3AB7
+SpriteFrameBABD = BankStart + $3ABD
+SpriteFrameBAC3 = BankStart + $3AC3
+SpriteFrameBAC9 = BankStart + $3AC9
+SpriteFrameBACF = BankStart + $3ACF
+SpriteFrameBAD5 = BankStart + $3AD5
+SpriteFrameBAF1 = BankStart + $3AF1
+SpriteFrameBB0D = BankStart + $3B0D
+SpriteFrameBB13 = BankStart + $3B13
+SpriteFrameBB19 = BankStart + $3B19
+SpriteFrameBB1F = BankStart + $3B1F
+SpriteFrameBB23 = BankStart + $3B23
+SpriteFrameBB27 = BankStart + $3B27
+SpriteFrameBB2B = BankStart + $3B2B
+SpriteFrameBB31 = BankStart + $3B31
+SpriteFrameBB37 = BankStart + $3B37
+SpriteFrameBB3D = BankStart + $3B3D
+SpriteFrameBB43 = BankStart + $3B43
+SpriteFrameBB49 = BankStart + $3B49
+SpriteFrameBB4F = BankStart + $3B4F
+SpriteFrameBB59 = BankStart + $3B59
+SpriteFrameBB63 = BankStart + $3B63
+SpriteFrameBB6D = BankStart + $3B6D
+SpriteFrameBB77 = BankStart + $3B77
+SpriteFrameBB81 = BankStart + $3B81
+SpriteFrameBBB7 = BankStart + $3BB7
+SpriteFrameBBBF = BankStart + $3BBF
+SpriteFrameBBC7 = BankStart + $3BC7
+SpriteFrameBBCF = BankStart + $3BCF
+SpriteFrameBBD7 = BankStart + $3BD7
+SpriteFrameBBDF = BankStart + $3BDF
+SpriteFrameBBE7 = BankStart + $3BE7
+SpriteFrameBBEF = BankStart + $3BEF
+SpriteFrameBC5B = BankStart + $3C5B
+SpriteFrameBC61 = BankStart + $3C61
+SpriteFrameBC67 = BankStart + $3C67
+SpriteFrameBC6D = BankStart + $3C6D
+SpriteFrameBC73 = BankStart + $3C73
+SpriteFrameBC93 = BankStart + $3C93
+SpriteFrameBC9B = BankStart + $3C9B
+SpriteFrameBCA3 = BankStart + $3CA3
+SpriteFrameBCAB = BankStart + $3CAB
+SpriteFrameBCB1 = BankStart + $3CB1
+SpriteFrameBCB7 = BankStart + $3CB7
+SpriteFrameBCBD = BankStart + $3CBD
+SpriteFrameBCC1 = BankStart + $3CC1
+SpriteFrameBCC5 = BankStart + $3CC5
+SpriteFrameBCC9 = BankStart + $3CC9
+SpriteFrameBCD1 = BankStart + $3CD1
+SpriteFrameBCD9 = BankStart + $3CD9
+SpriteFrameBCE1 = BankStart + $3CE1
+SpriteFrameBCE9 = BankStart + $3CE9
+SpriteFrameBCF1 = BankStart + $3CF1
+SpriteFrameBCF9 = BankStart + $3CF9
+SpriteFrameBD01 = BankStart + $3D01
+SpriteFrameBD23 = BankStart + $3D23
+SpriteFrameBD45 = BankStart + $3D45
+SpriteFrameBD67 = BankStart + $3D67
+SpriteFrameBD89 = BankStart + $3D89
+SpriteFrameBDAB = BankStart + $3DAB
+SpriteFrameBDCD = BankStart + $3DCD
+SpriteFrameBDEF = BankStart + $3DEF
+SpriteFrameBE09 = BankStart + $3E09
+SpriteFrameBE23 = BankStart + $3E23
+SpriteFrameBE45 = BankStart + $3E45
+SpriteFrameBE5F = BankStart + $3E5F
+SpriteFrameBE79 = BankStart + $3E79
+SpriteFrameBE93 = BankStart + $3E93
+SpriteFrameBE99 = BankStart + $3E99
+SpriteFrameBF0F = BankStart + $3F0F
+SpriteFrameBF1B = BankStart + $3F1B
+SpriteFrameBF45 = BankStart + $3F45
+SpriteFrameBF53 = BankStart + $3F53
+SpriteFrameBF61 = BankStart + $3F61
+SpriteFrameBF6B = BankStart + $3F6B
+SpriteFrameBF75 = BankStart + $3F75
+SpriteFrameBF87 = BankStart + $3F87
+SpriteFrameBF99 = BankStart + $3F99
+SpriteFrameBFD3 = BankStart + $3FD3
+SpriteFrameBFFB = BankStart + $3FFB
+SpriteFrameBFFF = BankStart + $3FFF
+SpriteFrameC049 = BankStart + $4049
+SpriteFrameC04F = BankStart + $404F
+SpriteFrameC055 = BankStart + $4055
+SpriteFrameC05B = BankStart + $405B
+SpriteFrameC061 = BankStart + $4061
+SpriteFrameC067 = BankStart + $4067
+SpriteFrameC06D = BankStart + $406D
+SpriteFrameC075 = BankStart + $4075
+SpriteFrameC07D = BankStart + $407D
+SpriteFrameC08B = BankStart + $408B
+SpriteFrameC099 = BankStart + $4099
+SpriteFrameC0E1 = BankStart + $40E1
+SpriteFrameC0EF = BankStart + $40EF
+SpriteFrameC0F9 = BankStart + $40F9
+SpriteFrameC103 = BankStart + $4103
+SpriteFrameC10D = BankStart + $410D
+SpriteFrameC117 = BankStart + $4117
+SpriteFrameC15D = BankStart + $415D
+SpriteFrameC177 = BankStart + $4177
+SpriteFrameC18D = BankStart + $418D
+SpriteFrameC1A3 = BankStart + $41A3
+SpriteFrameC1B9 = BankStart + $41B9
+SpriteFrameC1CF = BankStart + $41CF
+SpriteFrameC1E5 = BankStart + $41E5
+SpriteFrameC1FB = BankStart + $41FB
+SpriteFrameC201 = BankStart + $4201
+SpriteFrameC207 = BankStart + $4207
+SpriteFrameC20D = BankStart + $420D
+SpriteFrameC213 = BankStart + $4213
+SpriteFrameC219 = BankStart + $4219
+SpriteFrameC21F = BankStart + $421F
+SpriteFrameC225 = BankStart + $4225
+SpriteFrameC233 = BankStart + $4233
+SpriteFrameC241 = BankStart + $4241
+SpriteFrameC24F = BankStart + $424F
+SpriteFrameC255 = BankStart + $4255
+SpriteFrameC25F = BankStart + $425F
+SpriteFrameC269 = BankStart + $4269
+SpriteFrameC2F3 = BankStart + $42F3
+SpriteFrameC2F9 = BankStart + $42F9
+SpriteFrameC2FF = BankStart + $42FF
+SpriteFrameC309 = BankStart + $4309
+SpriteFrameC33B = BankStart + $433B
+SpriteFrameC343 = BankStart + $4343
+SpriteFrameC34B = BankStart + $434B
+SpriteFrameC353 = BankStart + $4353
+SpriteFrameC35B = BankStart + $435B
+SpriteFrameC363 = BankStart + $4363
+SpriteFrameC36B = BankStart + $436B
+SpriteFrameC375 = BankStart + $4375
+SpriteFrameC37F = BankStart + $437F
+SpriteFrameC389 = BankStart + $4389
+SpriteFrameC393 = BankStart + $4393
+SpriteFrameC397 = BankStart + $4397
+SpriteFrameC3B3 = BankStart + $43B3
+SpriteFrameC3BB = BankStart + $43BB
+SpriteFrameC477 = BankStart + $4477
+SpriteFrameC489 = BankStart + $4489
+SpriteFrameC4D7 = BankStart + $44D7
+SpriteFrameC4DD = BankStart + $44DD
+SpriteFrameC4E3 = BankStart + $44E3
+SpriteFrameC4E9 = BankStart + $44E9
+SpriteFrameC4F1 = BankStart + $44F1
+SpriteFrameC4F9 = BankStart + $44F9
+SpriteFrameC501 = BankStart + $4501
+SpriteFrameC50B = BankStart + $450B
+SpriteFrameC515 = BankStart + $4515
+SpriteFrameC51F = BankStart + $451F
+SpriteFrameC529 = BankStart + $4529
+SpriteFrameC537 = BankStart + $4537
+SpriteFrameC53D = BankStart + $453D
+SpriteFrameC543 = BankStart + $4543
+SpriteFrameC549 = BankStart + $4549
+SpriteFrameC567 = BankStart + $4567
+SpriteFrameC587 = BankStart + $4587
+SpriteFrameC595 = BankStart + $4595
+SpriteFrameC5A3 = BankStart + $45A3
+SpriteFrameC5B1 = BankStart + $45B1
+SpriteFrameC5CB = BankStart + $45CB
+SpriteFrameC5D3 = BankStart + $45D3
+SpriteFrameC5E7 = BankStart + $45E7
+SpriteFrameC63B = BankStart + $463B
+SpriteFrameC645 = BankStart + $4645
+SpriteFrameC64F = BankStart + $464F
+SpriteFrameC659 = BankStart + $4659
+SpriteFrameC663 = BankStart + $4663
+SpriteFrameC66D = BankStart + $466D
+SpriteFrameC69B = BankStart + $469B
+SpriteFrameC6AD = BankStart + $46AD
+SpriteFrameC72F = BankStart + $472F
+SpriteFrameC739 = BankStart + $4739
+SpriteFrameC743 = BankStart + $4743
+SpriteFrameC74D = BankStart + $474D
+SpriteFrameC757 = BankStart + $4757
+SpriteFrameC761 = BankStart + $4761
+SpriteFrameC767 = BankStart + $4767
+SpriteFrameC76D = BankStart + $476D
+SpriteFrameC773 = BankStart + $4773
+SpriteFrameC779 = BankStart + $4779
+SpriteFrameC77F = BankStart + $477F
+SpriteFrameC787 = BankStart + $4787
+SpriteFrameC78F = BankStart + $478F
+SpriteFrameC795 = BankStart + $4795
+SpriteFrameC79B = BankStart + $479B
+SpriteFrameC7A1 = BankStart + $47A1
+SpriteFrameC7A7 = BankStart + $47A7
+SpriteFrameC7AD = BankStart + $47AD
+SpriteFrameC7B3 = BankStart + $47B3
+SpriteFrameC7B9 = BankStart + $47B9
+SpriteFrameC7BF = BankStart + $47BF
+SpriteFrameC7C5 = BankStart + $47C5
+SpriteFrameC7D5 = BankStart + $47D5
+SpriteAnimationResourceB5D3:
+    ObservedSpriteAnimationHeader $04, $28 ; CONTROL_SPRITE_RESOURCE_B5D3
+SpriteAnimationResourceB5D3Frames:
+    .word SpriteFrameC177 ; CONTROL_SPRITE_TABLE_B5D3
+    .word SpriteFrameC18D
+    .word SpriteFrameC1A3
+    .word SpriteFrameC18D
+SpriteAnimationResourceB5DE:
+    ObservedSpriteAnimationHeader $03, $0A ; CONTROL_SPRITE_RESOURCE_B5DE
+SpriteAnimationResourceB5DEFrames:
+    .word SpriteFrameC18D ; CONTROL_SPRITE_TABLE_B5DE
+    .word SpriteFrameC1B9
+    .word SpriteFrameC1CF
 ObservedSpriteResourceB5E7:
     ObservedSpriteAnimationHeader $03, $14 ; CONTROL_SPRITE_RESOURCE_B5E7
 ObservedSpriteResourceB5E7Frames:
@@ -7015,14 +7222,66 @@ ObservedSpriteResourceB5F0Frames:
     .word ObservedSpriteFrameBAF9
     .word ObservedSpriteFrameBB03
     .word ObservedSpriteFrameBAF9
-    .incbin "bank0_b5fd_b608.bin"
+SpriteAnimationResourceB5FD:
+    ObservedSpriteAnimationHeader $04, $06 ; CONTROL_SPRITE_RESOURCE_B5FD
+SpriteAnimationResourceB5FDFrames:
+    .word SpriteFrameBABD ; CONTROL_SPRITE_TABLE_B5FD
+    .word SpriteFrameBAC3
+    .word SpriteFrameBAC9
+    .word SpriteFrameBACF
 ObservedSpriteResourceB608:
     ObservedSpriteAnimationHeader $03, $0A ; CONTROL_SPRITE_RESOURCE_B608
 ObservedSpriteResourceB608Frames:
     .word ObservedSpriteFrameBAD9 ; CONTROL_SPRITE_TABLE_B608
     .word ObservedSpriteFrameBAE1
     .word ObservedSpriteFrameBAE9
-    .incbin "bank0_b611_b654.bin"
+SpriteAnimationResourceB611:
+    ObservedSpriteAnimationHeader $02, $0A ; CONTROL_SPRITE_RESOURCE_B611
+SpriteAnimationResourceB611Frames:
+    .word SpriteFrameBB0D ; CONTROL_SPRITE_TABLE_B611
+    .word SpriteFrameBB13
+SpriteAnimationResourceB618:
+    ObservedSpriteAnimationHeader $02, $14 ; CONTROL_SPRITE_RESOURCE_B618
+SpriteAnimationResourceB618Frames:
+    .word SpriteFrameBB1F ; CONTROL_SPRITE_TABLE_B618
+    .word SpriteFrameBB23
+SpriteAnimationResourceB61F:
+    ObservedSpriteAnimationHeader $02, $0A ; CONTROL_SPRITE_RESOURCE_B61F
+SpriteAnimationResourceB61FFrames:
+    .word SpriteFrameBB1F ; CONTROL_SPRITE_TABLE_B61F
+    .word SpriteFrameBB27
+SpriteAnimationResourceB626:
+    ObservedSpriteAnimationHeader $03, $0A ; CONTROL_SPRITE_RESOURCE_B626
+SpriteAnimationResourceB626Frames:
+    .word SpriteFrameBB2B ; CONTROL_SPRITE_TABLE_B626
+    .word SpriteFrameBB31
+    .word SpriteFrameBB37
+SpriteAnimationResourceB62F:
+    ObservedSpriteAnimationHeader $02, $0A ; CONTROL_SPRITE_RESOURCE_B62F
+SpriteAnimationResourceB62FFrames:
+    .word SpriteFrameBB3D ; CONTROL_SPRITE_TABLE_B62F
+    .word SpriteFrameBB49
+SpriteAnimationResourceB636:
+    ObservedSpriteAnimationHeader $02, $0A ; CONTROL_SPRITE_RESOURCE_B636
+SpriteAnimationResourceB636Frames:
+    .word SpriteFrameBB3D ; CONTROL_SPRITE_TABLE_B636
+    .word SpriteFrameBB43
+SpriteAnimationResourceB63D:
+    ObservedSpriteAnimationHeader $02, $14 ; CONTROL_SPRITE_RESOURCE_B63D
+SpriteAnimationResourceB63DFrames:
+    .word SpriteFrameBB4F ; CONTROL_SPRITE_TABLE_B63D
+    .word SpriteFrameBB6D
+SpriteAnimationResourceB644:
+    ObservedSpriteAnimationHeader $03, $14 ; CONTROL_SPRITE_RESOURCE_B644
+SpriteAnimationResourceB644Frames:
+    .word SpriteFrameBB4F ; CONTROL_SPRITE_TABLE_B644
+    .word SpriteFrameBB59
+    .word SpriteFrameBB63
+SpriteAnimationResourceB64D:
+    ObservedSpriteAnimationHeader $02, $16 ; CONTROL_SPRITE_RESOURCE_B64D
+SpriteAnimationResourceB64DFrames:
+    .word SpriteFrameBB77 ; CONTROL_SPRITE_TABLE_B64D
+    .word SpriteFrameBB81
 ObservedSpriteResourceB654:
     ObservedSpriteAnimationHeader $02, $14 ; CONTROL_SPRITE_RESOURCE_B654
 ObservedSpriteResourceB654Frames:
@@ -7034,7 +7293,54 @@ ObservedSpriteResourceB65BFrames:
     .word ObservedSpriteFrameBB8F ; CONTROL_SPRITE_TABLE_B65B
     .word ObservedSpriteFrameBB99
     .word ObservedSpriteFrameBBA3
-    .incbin "bank0_b664_b6ac.bin"
+SpriteAnimationResourceB664:
+    ObservedSpriteAnimationHeader $02, $0A ; CONTROL_SPRITE_RESOURCE_B664
+SpriteAnimationResourceB664Frames:
+    .word SpriteFrameBBCF ; CONTROL_SPRITE_TABLE_B664
+    .word SpriteFrameBBD7
+SpriteAnimationResourceB66B:
+    ObservedSpriteAnimationHeader $06, $03 ; CONTROL_SPRITE_RESOURCE_B66B
+SpriteAnimationResourceB66BFrames:
+    .word SpriteFrameBBBF ; CONTROL_SPRITE_TABLE_B66B
+    .word SpriteFrameBBC7
+    .word SpriteFrameBBBF
+    .word SpriteFrameBBC7
+    .word SpriteFrameBBBF
+    .word SpriteFrameBBC7
+SpriteAnimationResourceB67A:
+    ObservedSpriteAnimationHeader $03, $0A ; CONTROL_SPRITE_RESOURCE_B67A
+SpriteAnimationResourceB67AFrames:
+    .word SpriteFrameBBDF ; CONTROL_SPRITE_TABLE_B67A
+    .word SpriteFrameBBE7
+    .word SpriteFrameBBEF
+SpriteAnimationResourceB683:
+    ObservedSpriteAnimationHeader $02, $0A ; CONTROL_SPRITE_RESOURCE_B683
+SpriteAnimationResourceB683Frames:
+    .word SpriteFrameBC6D ; CONTROL_SPRITE_TABLE_B683
+    .word SpriteFrameBC73
+SpriteAnimationResourceB68A:
+    ObservedSpriteAnimationHeader $03, $0A ; CONTROL_SPRITE_RESOURCE_B68A
+SpriteAnimationResourceB68AFrames:
+    .word SpriteFrameBC5B ; CONTROL_SPRITE_TABLE_B68A
+    .word SpriteFrameBC61
+    .word SpriteFrameBC67
+SpriteAnimationResourceB693:
+    ObservedSpriteAnimationHeader $04, $0A ; CONTROL_SPRITE_RESOURCE_B693
+SpriteAnimationResourceB693Frames:
+    .word SpriteFrameBC93 ; CONTROL_SPRITE_TABLE_B693
+    .word SpriteFrameBC9B
+    .word SpriteFrameBCA3
+    .word SpriteFrameBC9B
+SpriteAnimationResourceB69E:
+    ObservedSpriteAnimationHeader $02, $0A ; CONTROL_SPRITE_RESOURCE_B69E
+SpriteAnimationResourceB69EFrames:
+    .word SpriteFrameBCB1 ; CONTROL_SPRITE_TABLE_B69E
+    .word SpriteFrameBCB7
+SpriteAnimationResourceB6A5:
+    ObservedSpriteAnimationHeader $02, $0A ; CONTROL_SPRITE_RESOURCE_B6A5
+SpriteAnimationResourceB6A5Frames:
+    .word SpriteFrameBCAB ; CONTROL_SPRITE_TABLE_B6A5
+    .word SpriteFrameBCB1
 ObservedSpriteResourceB6AC:
     ObservedSpriteAnimationHeader $04, $04 ; CONTROL_SPRITE_RESOURCE_B6AC
 ObservedSpriteResourceB6ACFrames:
@@ -7042,14 +7348,79 @@ ObservedSpriteResourceB6ACFrames:
     .word ObservedSpriteFrameBA2D
     .word ObservedSpriteFrameBA33
     .word ObservedSpriteFrameBA39
-    .incbin "bank0_b6b7_b715.bin"
+SpriteAnimationResourceB6B7:
+    ObservedSpriteAnimationHeader $03, $0A ; CONTROL_SPRITE_RESOURCE_B6B7
+SpriteAnimationResourceB6B7Frames:
+    .word SpriteFrameBCBD ; CONTROL_SPRITE_TABLE_B6B7
+    .word SpriteFrameBCC1
+    .word SpriteFrameBCC5
+SpriteAnimationResourceB6C0:
+    ObservedSpriteAnimationHeader $06, $0A ; CONTROL_SPRITE_RESOURCE_B6C0
+SpriteAnimationResourceB6C0Frames:
+    .word SpriteFrameBCC9 ; CONTROL_SPRITE_TABLE_B6C0
+    .word SpriteFrameBCD1
+    .word SpriteFrameBCD9
+    .word SpriteFrameBCF1
+    .word SpriteFrameBCE9
+    .word SpriteFrameBCE9
+SpriteAnimationResourceB6CF:
+    ObservedSpriteAnimationHeader $03, $0A ; CONTROL_SPRITE_RESOURCE_B6CF
+SpriteAnimationResourceB6CFFrames:
+    .word SpriteFrameBCD9 ; CONTROL_SPRITE_TABLE_B6CF
+    .word SpriteFrameBCE1
+    .word SpriteFrameBCF9
+SpriteAnimationResourceB6D8:
+    ObservedSpriteAnimationHeader $03, $06 ; CONTROL_SPRITE_RESOURCE_B6D8
+SpriteAnimationResourceB6D8Frames:
+    .word SpriteFrameBCC9 ; CONTROL_SPRITE_TABLE_B6D8
+    .word SpriteFrameBCD1
+    .word SpriteFrameBCD9
+SpriteAnimationResourceB6E1:
+    ObservedSpriteAnimationHeader $02, $0A ; CONTROL_SPRITE_RESOURCE_B6E1
+SpriteAnimationResourceB6E1Frames:
+    .word SpriteFrameBDCD ; CONTROL_SPRITE_TABLE_B6E1
+    .word SpriteFrameBDAB
+SpriteAnimationResourceB6E8:
+    ObservedSpriteAnimationHeader $03, $0F ; CONTROL_SPRITE_RESOURCE_B6E8
+SpriteAnimationResourceB6E8Frames:
+    .word SpriteFrameBD45 ; CONTROL_SPRITE_TABLE_B6E8
+    .word SpriteFrameBD67
+    .word SpriteFrameBD89
+SpriteAnimationResourceB6F1:
+    ObservedSpriteAnimationHeader $02, $0A ; CONTROL_SPRITE_RESOURCE_B6F1
+SpriteAnimationResourceB6F1Frames:
+    .word SpriteFrameBD23 ; CONTROL_SPRITE_TABLE_B6F1
+    .word SpriteFrameBE23
+SpriteAnimationResourceB6F8:
+    ObservedSpriteAnimationHeader $03, $05 ; CONTROL_SPRITE_RESOURCE_B6F8
+SpriteAnimationResourceB6F8Frames:
+    .word SpriteFrameBDEF ; CONTROL_SPRITE_TABLE_B6F8
+    .word SpriteFrameBE45
+    .word SpriteFrameBE5F
+SpriteAnimationResourceB701:
+    ObservedSpriteAnimationHeader $03, $14 ; CONTROL_SPRITE_RESOURCE_B701
+SpriteAnimationResourceB701Frames:
+    .word SpriteFrameBD23 ; CONTROL_SPRITE_TABLE_B701
+    .word SpriteFrameBD01
+    .word SpriteFrameBD23
+SpriteAnimationResourceB70A:
+    ObservedSpriteAnimationHeader $04, $05 ; CONTROL_SPRITE_RESOURCE_B70A
+SpriteAnimationResourceB70AFrames:
+    .word SpriteFrameBF75 ; CONTROL_SPRITE_TABLE_B70A
+    .word SpriteFrameBF87
+    .word SpriteFrameBF99
+    .word SpriteFrameBF75
 ObservedSpriteResourceB715:
     ObservedSpriteAnimationHeader $03, $0A ; CONTROL_SPRITE_RESOURCE_B715
 ObservedSpriteResourceB715Frames:
     .word ObservedSpriteFrameBFAB ; CONTROL_SPRITE_TABLE_B715
     .word ObservedSpriteFrameBFB5
     .word ObservedSpriteFrameBFBF
-    .incbin "bank0_b71e_b725.bin"
+SpriteAnimationResourceB71E:
+    ObservedSpriteAnimationHeader $02, $12 ; CONTROL_SPRITE_RESOURCE_B71E
+SpriteAnimationResourceB71EFrames:
+    .word SpriteFrameBF45 ; CONTROL_SPRITE_TABLE_B71E
+    .word SpriteFrameBF53
 ObservedSpriteResourceB725:
     ObservedSpriteAnimationHeader $02, $0A ; CONTROL_SPRITE_RESOURCE_B725
 ObservedSpriteResourceB725Frames:
@@ -7060,14 +7431,29 @@ ObservedSpriteResourceB72C:
 ObservedSpriteResourceB72CFrames:
     .word ObservedSpriteFrameBFC9 ; CONTROL_SPRITE_TABLE_B72C
     .word ObservedSpriteFrameBFBF
-    .incbin "bank0_b733_b745.bin"
+SpriteAnimationResourceB733:
+    ObservedSpriteAnimationHeader $02, $10 ; CONTROL_SPRITE_RESOURCE_B733
+SpriteAnimationResourceB733Frames:
+    .word ObservedSpriteFrameBFC9 ; CONTROL_SPRITE_TABLE_B733
+    .word ObservedSpriteFrameBF27
+SpriteAnimationResourceB73A:
+    ObservedSpriteAnimationHeader $04, $08 ; CONTROL_SPRITE_RESOURCE_B73A
+SpriteAnimationResourceB73AFrames:
+    .word ObservedSpriteFrameBF27 ; CONTROL_SPRITE_TABLE_B73A
+    .word SpriteFrameBF61
+    .word SpriteFrameBF6B
+    .word ObservedSpriteFrameBF27
 ObservedSpriteResourceB745:
     ObservedSpriteAnimationHeader $03, $0A ; CONTROL_SPRITE_RESOURCE_B745
 ObservedSpriteResourceB745Frames:
     .word ObservedSpriteFrameBF27 ; CONTROL_SPRITE_TABLE_B745
     .word ObservedSpriteFrameBF31
     .word ObservedSpriteFrameBF3B
-    .incbin "bank0_b74e_b755.bin"
+SpriteAnimationResourceB74E:
+    ObservedSpriteAnimationHeader $02, $0A ; CONTROL_SPRITE_RESOURCE_B74E
+SpriteAnimationResourceB74EFrames:
+    .word SpriteFrameBFFB ; CONTROL_SPRITE_TABLE_B74E
+    .word SpriteFrameBFFF
 ObservedSpriteResourceB755:
     ObservedSpriteAnimationHeader $13, $06 ; CONTROL_SPRITE_RESOURCE_B755
 ObservedSpriteResourceB755Frames:
@@ -7090,7 +7476,43 @@ ObservedSpriteResourceB755Frames:
     .word ObservedSpriteFrameC017
     .word ObservedSpriteFrameC00D
     .word ObservedSpriteFrameC003
-    .incbin "bank0_b77e_b7b3.bin"
+SpriteAnimationResourceB77E:
+    ObservedSpriteAnimationHeader $02, $14 ; CONTROL_SPRITE_RESOURCE_B77E
+SpriteAnimationResourceB77EFrames:
+    .word SpriteFrameC04F ; CONTROL_SPRITE_TABLE_B77E
+    .word SpriteFrameC055
+SpriteAnimationResourceB785:
+    ObservedSpriteAnimationHeader $02, $0A ; CONTROL_SPRITE_RESOURCE_B785
+SpriteAnimationResourceB785Frames:
+    .word SpriteFrameC061 ; CONTROL_SPRITE_TABLE_B785
+    .word SpriteFrameC067
+SpriteAnimationResourceB78C:
+    ObservedSpriteAnimationHeader $02, $14 ; CONTROL_SPRITE_RESOURCE_B78C
+SpriteAnimationResourceB78CFrames:
+    .word SpriteFrameC049 ; CONTROL_SPRITE_TABLE_B78C
+    .word SpriteFrameC05B
+SpriteAnimationResourceB793:
+    ObservedSpriteAnimationHeader $02, $0A ; CONTROL_SPRITE_RESOURCE_B793
+SpriteAnimationResourceB793Frames:
+    .word SpriteFrameC06D ; CONTROL_SPRITE_TABLE_B793
+    .word SpriteFrameC075
+SpriteAnimationResourceB79A:
+    ObservedSpriteAnimationHeader $03, $07 ; CONTROL_SPRITE_RESOURCE_B79A
+SpriteAnimationResourceB79AFrames:
+    .word SpriteFrameC07D ; CONTROL_SPRITE_TABLE_B79A
+    .word SpriteFrameC08B
+    .word SpriteFrameC099
+SpriteAnimationResourceB7A3:
+    ObservedSpriteAnimationHeader $02, $0A ; CONTROL_SPRITE_RESOURCE_B7A3
+SpriteAnimationResourceB7A3Frames:
+    .word SpriteFrameC0F9 ; CONTROL_SPRITE_TABLE_B7A3
+    .word SpriteFrameC117
+SpriteAnimationResourceB7AA:
+    ObservedSpriteAnimationHeader $03, $0A ; CONTROL_SPRITE_RESOURCE_B7AA
+SpriteAnimationResourceB7AAFrames:
+    .word SpriteFrameC0F9 ; CONTROL_SPRITE_TABLE_B7AA
+    .word SpriteFrameC103
+    .word SpriteFrameC10D
 ObservedSpriteResourceB7B3:
     ObservedSpriteAnimationHeader $03, $0A ; CONTROL_SPRITE_RESOURCE_B7B3
 ObservedSpriteResourceB7B3Frames:
@@ -7107,7 +7529,11 @@ ObservedSpriteResourceB7C3:
 ObservedSpriteResourceB7C3Frames:
     .word ObservedSpriteFrameC163 ; CONTROL_SPRITE_TABLE_B7C3
     .word ObservedSpriteFrameC16D
-    .incbin "bank0_b7ca_b7d1.bin"
+SpriteAnimationResourceB7CA:
+    ObservedSpriteAnimationHeader $02, $31 ; CONTROL_SPRITE_RESOURCE_B7CA
+SpriteAnimationResourceB7CAFrames:
+    .word ObservedSpriteFrameC121 ; CONTROL_SPRITE_TABLE_B7CA
+    .word SpriteFrameC15D
 ObservedSpriteResourceB7D1:
     ObservedSpriteAnimationHeader $03, $0A ; CONTROL_SPRITE_RESOURCE_B7D1
 ObservedSpriteResourceB7D1Frames:
@@ -7129,7 +7555,53 @@ ObservedSpriteResourceB7EB:
 ObservedSpriteResourceB7EBFrames:
     .word ObservedSpriteFrameC133 ; CONTROL_SPRITE_TABLE_B7EB
     .word ObservedSpriteFrameC14F
-    .incbin "bank0_b7f2_b838.bin"
+SpriteAnimationResourceB7F2:
+    ObservedSpriteAnimationHeader $04, $12 ; CONTROL_SPRITE_RESOURCE_B7F2
+SpriteAnimationResourceB7F2Frames:
+    .word SpriteFrameC1FB ; CONTROL_SPRITE_TABLE_B7F2
+    .word SpriteFrameC201
+    .word SpriteFrameC207
+    .word SpriteFrameC20D
+SpriteAnimationResourceB7FD:
+    ObservedSpriteAnimationHeader $02, $0A ; CONTROL_SPRITE_RESOURCE_B7FD
+SpriteAnimationResourceB7FDFrames:
+    .word SpriteFrameC255 ; CONTROL_SPRITE_TABLE_B7FD
+    .word SpriteFrameC25F
+SpriteAnimationResourceB804:
+    ObservedSpriteAnimationHeader $02, $31 ; CONTROL_SPRITE_RESOURCE_B804
+SpriteAnimationResourceB804Frames:
+    .word SpriteFrameC213 ; CONTROL_SPRITE_TABLE_B804
+    .word SpriteFrameC24F
+SpriteAnimationResourceB80B:
+    ObservedSpriteAnimationHeader $03, $0A ; CONTROL_SPRITE_RESOURCE_B80B
+SpriteAnimationResourceB80BFrames:
+    .word SpriteFrameC225 ; CONTROL_SPRITE_TABLE_B80B
+    .word SpriteFrameC233
+    .word SpriteFrameC241
+SpriteAnimationResourceB814:
+    ObservedSpriteAnimationHeader $06, $0F ; CONTROL_SPRITE_RESOURCE_B814
+SpriteAnimationResourceB814Frames:
+    .word SpriteFrameC213 ; CONTROL_SPRITE_TABLE_B814
+    .word SpriteFrameC219
+    .word SpriteFrameC21F
+    .word SpriteFrameC219
+    .word SpriteFrameC21F
+    .word SpriteFrameC219
+SpriteAnimationResourceB823:
+    ObservedSpriteAnimationHeader $02, $0A ; CONTROL_SPRITE_RESOURCE_B823
+SpriteAnimationResourceB823Frames:
+    .word SpriteFrameC225 ; CONTROL_SPRITE_TABLE_B823
+    .word SpriteFrameC241
+SpriteAnimationResourceB82A:
+    ObservedSpriteAnimationHeader $02, $1E ; CONTROL_SPRITE_RESOURCE_B82A
+SpriteAnimationResourceB82AFrames:
+    .word SpriteFrameC2F3 ; CONTROL_SPRITE_TABLE_B82A
+    .word SpriteFrameC2F9
+SpriteAnimationResourceB831:
+    ObservedSpriteAnimationHeader $02, $05 ; CONTROL_SPRITE_RESOURCE_B831
+SpriteAnimationResourceB831Frames:
+    .word SpriteFrameC2FF ; CONTROL_SPRITE_TABLE_B831
+    .word SpriteFrameC309
 ObservedSpriteResourceB838:
     ObservedSpriteAnimationHeader $02, $14 ; CONTROL_SPRITE_RESOURCE_B838
 ObservedSpriteResourceB838Frames:
@@ -7141,14 +7613,54 @@ ObservedSpriteResourceB83FFrames:
     .word ObservedSpriteFrameC313 ; CONTROL_SPRITE_TABLE_B83F
     .word ObservedSpriteFrameC31D
     .word ObservedSpriteFrameC327
-    .incbin "bank0_b848_b876.bin"
+SpriteAnimationResourceB848:
+    ObservedSpriteAnimationHeader $03, $0A ; CONTROL_SPRITE_RESOURCE_B848
+SpriteAnimationResourceB848Frames:
+    .word SpriteFrameC33B ; CONTROL_SPRITE_TABLE_B848
+    .word SpriteFrameC343
+    .word SpriteFrameC34B
+SpriteAnimationResourceB851:
+    ObservedSpriteAnimationHeader $02, $1C ; CONTROL_SPRITE_RESOURCE_B851
+SpriteAnimationResourceB851Frames:
+    .word SpriteFrameC353 ; CONTROL_SPRITE_TABLE_B851
+    .word SpriteFrameC35B
+SpriteAnimationResourceB858:
+    ObservedSpriteAnimationHeader $02, $0A ; CONTROL_SPRITE_RESOURCE_B858
+SpriteAnimationResourceB858Frames:
+    .word SpriteFrameC353 ; CONTROL_SPRITE_TABLE_B858
+    .word SpriteFrameC363
+SpriteAnimationResourceB85F:
+    ObservedSpriteAnimationHeader $02, $09 ; CONTROL_SPRITE_RESOURCE_B85F
+SpriteAnimationResourceB85FFrames:
+    .word SpriteFrameC36B ; CONTROL_SPRITE_TABLE_B85F
+    .word SpriteFrameC389
+SpriteAnimationResourceB866:
+    ObservedSpriteAnimationHeader $03, $0A ; CONTROL_SPRITE_RESOURCE_B866
+SpriteAnimationResourceB866Frames:
+    .word SpriteFrameC36B ; CONTROL_SPRITE_TABLE_B866
+    .word SpriteFrameC375
+    .word SpriteFrameC37F
+SpriteAnimationResourceB86F:
+    ObservedSpriteAnimationHeader $02, $0A ; CONTROL_SPRITE_RESOURCE_B86F
+SpriteAnimationResourceB86FFrames:
+    .word SpriteFrameC3B3 ; CONTROL_SPRITE_TABLE_B86F
+    .word SpriteFrameC3BB
 ObservedSpriteResourceB876:
     ObservedSpriteAnimationHeader $03, $0A ; CONTROL_SPRITE_RESOURCE_B876
 ObservedSpriteResourceB876Frames:
     .word ObservedSpriteFrameC3A3 ; CONTROL_SPRITE_TABLE_B876
     .word ObservedSpriteFrameC3AB
     .word ObservedSpriteFrameC39B
-    .incbin "bank0_b87f_b88d.bin"
+SpriteAnimationResourceB87F:
+    ObservedSpriteAnimationHeader $02, $14 ; CONTROL_SPRITE_RESOURCE_B87F
+SpriteAnimationResourceB87FFrames:
+    .word SpriteFrameC477 ; CONTROL_SPRITE_TABLE_B87F
+    .word ObservedSpriteFrameC49B
+SpriteAnimationResourceB886:
+    ObservedSpriteAnimationHeader $02, $14 ; CONTROL_SPRITE_RESOURCE_B886
+SpriteAnimationResourceB886Frames:
+    .word SpriteFrameC477 ; CONTROL_SPRITE_TABLE_B886
+    .word SpriteFrameC489
 ObservedSpriteResourceB88D:
     ObservedSpriteAnimationHeader $03, $0A ; CONTROL_SPRITE_RESOURCE_B88D
 ObservedSpriteResourceB88DFrames:
@@ -7189,26 +7701,83 @@ ObservedSpriteResourceB8AFFrames:
     .word ObservedSpriteFrameC4D1
     .word ObservedSpriteFrameC4C5
     .word ObservedSpriteFrameC4BF
-    .incbin "bank0_b8ce_b910.bin"
+SpriteAnimationResourceB8CE:
+    ObservedSpriteAnimationHeader $02, $04 ; CONTROL_SPRITE_RESOURCE_B8CE
+SpriteAnimationResourceB8CEFrames:
+    .word SpriteFrameC4D7 ; CONTROL_SPRITE_TABLE_B8CE
+    .word SpriteFrameC4E3
+SpriteAnimationResourceB8D5:
+    ObservedSpriteAnimationHeader $02, $0A ; CONTROL_SPRITE_RESOURCE_B8D5
+SpriteAnimationResourceB8D5Frames:
+    .word SpriteFrameC4D7 ; CONTROL_SPRITE_TABLE_B8D5
+    .word SpriteFrameC4DD
+SpriteAnimationResourceB8DC:
+    ObservedSpriteAnimationHeader $04, $06 ; CONTROL_SPRITE_RESOURCE_B8DC
+SpriteAnimationResourceB8DCFrames:
+    .word SpriteFrameC515 ; CONTROL_SPRITE_TABLE_B8DC
+    .word SpriteFrameC529
+    .word SpriteFrameC51F
+    .word SpriteFrameC529
+SpriteAnimationResourceB8E7:
+    ObservedSpriteAnimationHeader $03, $0A ; CONTROL_SPRITE_RESOURCE_B8E7
+SpriteAnimationResourceB8E7Frames:
+    .word SpriteFrameC4E9 ; CONTROL_SPRITE_TABLE_B8E7
+    .word SpriteFrameC4F1
+    .word SpriteFrameC4F9
+SpriteAnimationResourceB8F0:
+    ObservedSpriteAnimationHeader $02, $0A ; CONTROL_SPRITE_RESOURCE_B8F0
+SpriteAnimationResourceB8F0Frames:
+    .word SpriteFrameC501 ; CONTROL_SPRITE_TABLE_B8F0
+    .word SpriteFrameC50B
+SpriteAnimationResourceB8F7:
+    ObservedSpriteAnimationHeader $04, $06 ; CONTROL_SPRITE_RESOURCE_B8F7
+SpriteAnimationResourceB8F7Frames:
+    .word SpriteFrameC537 ; CONTROL_SPRITE_TABLE_B8F7
+    .word SpriteFrameC53D
+    .word SpriteFrameC543
+    .word SpriteFrameC53D
+SpriteAnimationResourceB902:
+    ObservedSpriteAnimationHeader $02, $0A ; CONTROL_SPRITE_RESOURCE_B902
+SpriteAnimationResourceB902Frames:
+    .word SpriteFrameC537 ; CONTROL_SPRITE_TABLE_B902
+    .word SpriteFrameC549
+SpriteAnimationResourceB909:
+    ObservedSpriteAnimationHeader $02, $0A ; CONTROL_SPRITE_RESOURCE_B909
+SpriteAnimationResourceB909Frames:
+    .word SpriteFrameC537 ; CONTROL_SPRITE_TABLE_B909
+    .word SpriteFrameC53D
 ObservedSpriteResourceB910:
     ObservedSpriteAnimationHeader $02, $0A ; CONTROL_SPRITE_RESOURCE_B910
 ObservedSpriteResourceB910Frames:
     .word ObservedSpriteFrameC56F ; CONTROL_SPRITE_TABLE_B910
     .word ObservedSpriteFrameC57F
-    .incbin "bank0_b917_b91e.bin"
+SpriteAnimationResourceB917:
+    ObservedSpriteAnimationHeader $02, $0A ; CONTROL_SPRITE_RESOURCE_B917
+SpriteAnimationResourceB917Frames:
+    .word ObservedSpriteFrameC56F ; CONTROL_SPRITE_TABLE_B917
+    .word ObservedSpriteFrameC577
 ObservedSpriteResourceB91E:
     ObservedSpriteAnimationHeader $03, $0A ; CONTROL_SPRITE_RESOURCE_B91E
 ObservedSpriteResourceB91EFrames:
     .word ObservedSpriteFrameC54F ; CONTROL_SPRITE_TABLE_B91E
     .word ObservedSpriteFrameC557
     .word ObservedSpriteFrameC55F
-    .incbin "bank0_b927_b930.bin"
+SpriteAnimationResourceB927:
+    ObservedSpriteAnimationHeader $03, $0A ; CONTROL_SPRITE_RESOURCE_B927
+SpriteAnimationResourceB927Frames:
+    .word SpriteFrameC587 ; CONTROL_SPRITE_TABLE_B927
+    .word SpriteFrameC595
+    .word SpriteFrameC5A3
 ObservedSpriteResourceB930:
     ObservedSpriteAnimationHeader $02, $0A ; CONTROL_SPRITE_RESOURCE_B930
 ObservedSpriteResourceB930Frames:
     .word ObservedSpriteFrameC5C5 ; CONTROL_SPRITE_TABLE_B930
     .word ObservedSpriteFrameC5BF
-    .incbin "bank0_b937_b93e.bin"
+SpriteAnimationResourceB937:
+    ObservedSpriteAnimationHeader $02, $0A ; CONTROL_SPRITE_RESOURCE_B937
+SpriteAnimationResourceB937Frames:
+    .word SpriteFrameC5CB ; CONTROL_SPRITE_TABLE_B937
+    .word SpriteFrameC5D3
 ObservedSpriteResourceB93E:
     ObservedSpriteAnimationHeader $02, $0A ; CONTROL_SPRITE_RESOURCE_B93E
 ObservedSpriteResourceB93EFrames:
@@ -7225,7 +7794,23 @@ ObservedSpriteResourceB94E:
 ObservedSpriteResourceB94EFrames:
     .word ObservedSpriteFrameC61F ; CONTROL_SPRITE_TABLE_B94E
     .word ObservedSpriteFrameC62D
-    .incbin "bank0_b955_b96e.bin"
+SpriteAnimationResourceB955:
+    ObservedSpriteAnimationHeader $03, $0A ; CONTROL_SPRITE_RESOURCE_B955
+SpriteAnimationResourceB955Frames:
+    .word SpriteFrameC63B ; CONTROL_SPRITE_TABLE_B955
+    .word SpriteFrameC645
+    .word SpriteFrameC64F
+SpriteAnimationResourceB95E:
+    ObservedSpriteAnimationHeader $02, $0A ; CONTROL_SPRITE_RESOURCE_B95E
+SpriteAnimationResourceB95EFrames:
+    .word SpriteFrameC659 ; CONTROL_SPRITE_TABLE_B95E
+    .word SpriteFrameC63B
+SpriteAnimationResourceB965:
+    ObservedSpriteAnimationHeader $03, $0A ; CONTROL_SPRITE_RESOURCE_B965
+SpriteAnimationResourceB965Frames:
+    .word SpriteFrameC63B ; CONTROL_SPRITE_TABLE_B965
+    .word SpriteFrameC663
+    .word SpriteFrameC66D
 ObservedSpriteResourceB96E:
     ObservedSpriteAnimationHeader $03, $0A ; CONTROL_SPRITE_RESOURCE_B96E
 ObservedSpriteResourceB96EFrames:
@@ -7246,7 +7831,11 @@ ObservedSpriteResourceB986:
 ObservedSpriteResourceB986Frames:
     .word ObservedSpriteFrameC6A3 ; CONTROL_SPRITE_TABLE_B986
     .word ObservedSpriteFrameC6B7
-    .incbin "bank0_b98d_b994.bin"
+SpriteAnimationResourceB98D:
+    ObservedSpriteAnimationHeader $02, $0A ; CONTROL_SPRITE_RESOURCE_B98D
+SpriteAnimationResourceB98DFrames:
+    .word ObservedSpriteFrameC6A3 ; CONTROL_SPRITE_TABLE_B98D
+    .word SpriteFrameC6AD
 ObservedSpriteResourceB994:
     ObservedSpriteAnimationHeader $04, $0A ; CONTROL_SPRITE_RESOURCE_B994
 ObservedSpriteResourceB994Frames:
@@ -7283,7 +7872,61 @@ ObservedSpriteResourceB9C3:
 ObservedSpriteResourceB9C3Frames:
     .word ObservedSpriteFrameC723 ; CONTROL_SPRITE_TABLE_B9C3
     .word ObservedSpriteFrameC729
-    .incbin "bank0_b9ca_ba1a.bin"
+SpriteAnimationResourceB9CA:
+    ObservedSpriteAnimationHeader $02, $0A ; CONTROL_SPRITE_RESOURCE_B9CA
+SpriteAnimationResourceB9CAFrames:
+    .word SpriteFrameC74D ; CONTROL_SPRITE_TABLE_B9CA
+    .word SpriteFrameC72F
+SpriteAnimationResourceB9D1:
+    ObservedSpriteAnimationHeader $02, $0A ; CONTROL_SPRITE_RESOURCE_B9D1
+SpriteAnimationResourceB9D1Frames:
+    .word SpriteFrameC74D ; CONTROL_SPRITE_TABLE_B9D1
+    .word SpriteFrameC743
+SpriteAnimationResourceB9D8:
+    ObservedSpriteAnimationHeader $03, $0A ; CONTROL_SPRITE_RESOURCE_B9D8
+SpriteAnimationResourceB9D8Frames:
+    .word SpriteFrameC72F ; CONTROL_SPRITE_TABLE_B9D8
+    .word SpriteFrameC739
+    .word SpriteFrameC757
+SpriteAnimationResourceB9E1:
+    ObservedSpriteAnimationHeader $03, $0A ; CONTROL_SPRITE_RESOURCE_B9E1
+SpriteAnimationResourceB9E1Frames:
+    .word SpriteFrameC761 ; CONTROL_SPRITE_TABLE_B9E1
+    .word SpriteFrameC779
+    .word SpriteFrameC761
+SpriteAnimationResourceB9EA:
+    ObservedSpriteAnimationHeader $02, $1E ; CONTROL_SPRITE_RESOURCE_B9EA
+SpriteAnimationResourceB9EAFrames:
+    .word SpriteFrameC761 ; CONTROL_SPRITE_TABLE_B9EA
+    .word SpriteFrameC767
+SpriteAnimationResourceB9F1:
+    ObservedSpriteAnimationHeader $02, $0A ; CONTROL_SPRITE_RESOURCE_B9F1
+SpriteAnimationResourceB9F1Frames:
+    .word SpriteFrameC77F ; CONTROL_SPRITE_TABLE_B9F1
+    .word SpriteFrameC787
+SpriteAnimationResourceB9F8:
+    ObservedSpriteAnimationHeader $02, $1E ; CONTROL_SPRITE_RESOURCE_B9F8
+SpriteAnimationResourceB9F8Frames:
+    .word SpriteFrameC76D ; CONTROL_SPRITE_TABLE_B9F8
+    .word SpriteFrameC773
+SpriteAnimationResourceB9FF:
+    ObservedSpriteAnimationHeader $04, $0A ; CONTROL_SPRITE_RESOURCE_B9FF
+SpriteAnimationResourceB9FFFrames:
+    .word SpriteFrameC7A1 ; CONTROL_SPRITE_TABLE_B9FF
+    .word SpriteFrameC79B
+    .word SpriteFrameC795
+    .word SpriteFrameC78F
+SpriteAnimationResourceBA0A:
+    ObservedSpriteAnimationHeader $03, $1E ; CONTROL_SPRITE_RESOURCE_BA0A
+SpriteAnimationResourceBA0AFrames:
+    .word SpriteFrameC7A7 ; CONTROL_SPRITE_TABLE_BA0A
+    .word SpriteFrameC7AD
+    .word SpriteFrameC7B3
+SpriteAnimationResourceBA13:
+    ObservedSpriteAnimationHeader $02, $1E ; CONTROL_SPRITE_RESOURCE_BA13
+SpriteAnimationResourceBA13Frames:
+    .word SpriteFrameC7A7 ; CONTROL_SPRITE_TABLE_BA13
+    .word SpriteFrameC7B9
 ObservedSpriteResourceBA1A:
     ObservedSpriteAnimationHeader $03, $0A ; CONTROL_SPRITE_RESOURCE_BA1A
 ObservedSpriteResourceBA1AFrames:

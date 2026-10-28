@@ -34,9 +34,9 @@ independent source trees or treat one version's evidence as verifying the rest.
 simultaneous reconstruction. Keep progress and completion evidence per target.
 
 The v1.5 build now assembles and links to the exact reference, with 21,474 bytes
-of source code and 22,605 bytes of structured data across the physical PRG banks.
-It still includes 21,457 local PRG bytes and 65,536 local CHR bytes. A total of
-1,914 independent source-change controls verify every listed reconstructed region.
+of source code and 23,292 bytes of structured data across the physical PRG banks.
+It still includes 20,770 local PRG bytes and 65,536 local CHR bytes. A total of
+2,080 independent source-change controls verify every listed reconstructed region.
 Passing input audits or whole-ROM equality alone is not reconstruction
 completion. The developer identifies BOGUS as the
 state-machine engine in the [Vance Kozik interview](https://www.nesworld.com/kozik.php);
@@ -1860,3 +1860,43 @@ previously unreviewed contexts. Unbounded indexed-script paths, dynamic mapping,
 and candidate decodes of artwork remain explicit review questions. Do not resume
 arbitrary-input or gameplay-route searches without a specific new question;
 use the connected layout evidence and local representation gaps first.
+
+## Complete contiguous sprite representation
+
+The following connected batch replaces the other 83 animation records with
+structured headers and frame pointers, adding 687 source-data bytes. All 124
+records and their 366 pointers are now source; provisional labels for the
+additional frame boundaries preserve bank-0 addresses explicitly. The local
+sprite export now represents all 326 sequential frames, including fixed header
+fields and editable row-ordered tile/attribute pairs. The existing 132 frame
+records were checked for exact preservation before their smaller export was
+retired. No artwork is credited as code or structured source.
+
+A fresh whole-ROM match passes 2,080 independent source controls. The local
+sprite asset control changes one tile index in each of the 326 frames and
+checks exactly those 326 physical byte differences after assembly. The
+controlled dimension probe also passes for all 326 injected addresses on the
+reference and build; only 132 frame starts have ordinary trace observations.
+All 319 synthetic tooling tests pass. The refreshed native and candidate-call
+inventories retain their previous scope and open questions.
+
+The current disjoint PRG accounting is 21,474 native-source bytes, 23,292
+structured-source bytes, 19,372 additional bytes in controlled local asset
+representations, and 1,398 unresolved local bytes. Every region retains its
+competing candidate interpretations. In particular, the wider candidate sprite
+walk still includes conditional cross-bank and non-ROM addresses; the closed
+contiguous layout does not prove those other inputs are unreachable.
+
+A focused static palette review identifies the next connected representation
+task. The 26 source-owned headers at bank 0 `$C7DF-$CA5C` delimit 560 colour
+payload bytes. Eighteen streams are static; eight include trailing four-byte
+groups. The setup copies sixteen bytes, and each later frame replaces the final
+`4 * group_count` bytes, giving a payload extent of
+`16 + (frame_count - 1) * 4 * group_count` for these active streams. Every extent
+ends at the next header or the native entry at `$CA5D`. The reviewed values also
+keep the high-byte Y value zero in the original background copy loop; do not
+silently generalize that property to arbitrary injected headers. This format
+review is retained in `analysis/us-v1.5/palette-layout-review.json`; the payloads
+still need a controlled local asset encoder. Unclassified padding candidates,
+unreferenced map bytes, inventory display payloads and partial record fields
+remain separate work items rather than being credited by a label.

@@ -89,7 +89,7 @@ def asset_spans(root: Path, prg: bytes, reference: str) -> dict[str, list[tuple[
         _, spans, _, _ = module.select(root, prg, reference)
         result[name] = [(bank * BANK_SIZE + offset, len(data)) for bank, offset, data in spans]
     _, spans, _, _ = sprite_assets.select(root, prg, reference)
-    result['observed_sprite_frames'] = [(bank * BANK_SIZE + offset, len(data))
+    result['inventoried_sprite_frames'] = [(bank * BANK_SIZE + offset, len(data))
                                          for bank, offset, data in spans]
     return result
 
