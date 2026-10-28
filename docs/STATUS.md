@@ -170,10 +170,10 @@ SDL2 library hash and operating system version are recorded in the local proof.
 3. Reconstruct connected routines and data formats, retaining changed-source
    negative controls and one current full-build proof. Build the progress map
    from verified ownership with no invented denominator.
-4. Establish repeatable runtime checks for all three adventures and shared
-   menus, controls, rendering, audio and progression. Finish source accounting
-   and gameplay verification for v1.5, then repeat acceptance for each remaining
-   version in the recorded order.
+4. Complete the reviewed source and data inventory for v1.5, then repeat the
+   reconstruction and acceptance for each remaining version in the recorded
+   order. Preserve useful gameplay checks; use further runtime investigation
+   to resolve specific source, data-format or mapping uncertainties.
 
 ## First v1.5 source evidence
 
@@ -1268,3 +1268,12 @@ execution. The observed-index comparison adds 83 candidate script bytes and
 conditional paths. Source aliases and assertions describe the already
 known overlapping entries at `$A9FF`, `$AA01`, `$AA90` and `$AA91` without
 claiming another physical byte or a unique interpretation.
+
+The remaining local `$F354-$F400` region contains candidate menu text and tile
+data; the `$F357` entry is referenced by a BOGUS display command. It remains
+local game data rather than reconstructed code. The `$FC87-$FC9E` bytes follow
+a `$00` record-load command at `$FC85`, but the known `$FC61` contact context
+selects an installable script pointer in its overlapping candidate record, so
+that context does not establish a fallthrough to `$FC87`. Other entries or
+contexts are not excluded. The zero-filled `$FD6A-$FD87` region is also left
+local: zero content alone does not prove padding or exclude another use.
