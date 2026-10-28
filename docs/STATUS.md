@@ -34,9 +34,9 @@ independent source trees or treat one version's evidence as verifying the rest.
 simultaneous reconstruction. Keep progress and completion evidence per target.
 
 The v1.5 build now assembles and links to the exact reference, with 21,474 bytes
-of source code and 19,185 bytes of structured data across the physical PRG banks.
-It still includes 24,877 local PRG bytes and 65,536 local CHR bytes. A total of
-1,228 independent source-change controls verify every listed reconstructed region.
+of source code and 19,245 bytes of structured data across the physical PRG banks.
+It still includes 24,817 local PRG bytes and 65,536 local CHR bytes. A total of
+1,229 independent source-change controls verify every listed reconstructed region.
 Passing input audits or whole-ROM equality alone is not reconstruction
 completion. The developer identifies BOGUS as the
 state-machine engine in the [Vance Kozik interview](https://www.nesworld.com/kozik.php);
@@ -44,7 +44,7 @@ the original source language and toolchain remain unestablished.
 
 ## v1.5 opening-gameplay evidence
 
-`make verify-gameplay` runs 5,700 NTSC frames each for Noah, Moses and David,
+`make verify-gameplay` runs 6,100 NTSC frames each for Noah, Moses and David,
 plus a separate Noah inventory scenario,
 in pinned MesenCE 2.2.1, with zeroed power-on RAM and fixed mapper/alignment
 settings. It compares the audited reference and verified build under the same
@@ -52,9 +52,10 @@ menu and movement inputs. All three reached their opening areas and showed a
 change in scroll and screenshot after rightward input. The Moses sequence also
 presses B to lift the baby, jumps past the first approaching enemy and crosses
 the first water gap. It recovers him after a later collision, backtracks over the
-position trigger, completes the first two levels and enters level three.
-Sampled slot fields show the link, its loss, recovery and carried finish; pinned
-screenshot hashes check both success screens. The fifty-two sampled
+position trigger, completes the first two levels and enters level three. There,
+it picks Moses up after a series of jumps and carries him through another jump
+and movement. Sampled slot fields show the link, its loss, recovery and carried
+finish; pinned screenshot hashes check both success screens. The fifty-seven sampled
 frames, slot fields, state and cycle counts, mapper-write streams, NMI counts, OAM DMA and
 APU-register write streams agreed between the reference and build. Both PRG
 banks appeared in the emulator's mapper-write mapping; every observed write
@@ -77,6 +78,12 @@ instruction starts in local PRG gaps. All 676 observed script pointer/bank
 pairs began inside source-owned regions; this does not verify their complete
 paths or later level-two interactions. The trace remains under
 `analysis/us-v1.5/*stage2-pickup-execution.json`.
+A reference-only trace of the third-level pickup and movement found no native
+instruction starts in local PRG gaps. Its 747 distinct script pointer/bank
+pairs and 49 record pointer/bank/mode combinations all begin in source-owned
+regions under the existing bank mapping. This checks entry addresses, not
+every byte fetched or the mapping on physical hardware. The trace remains in
+`analysis/us-v1.5/stage3-carry-execution.json`.
 The later second-level crossing trace observed 708 distinct script pointer/bank
 pairs, all beginning in source-owned regions, and no native instruction starts
 in local PRG gaps. The slot-record loader read `$36E5` in mode `$02`; a
@@ -289,7 +296,7 @@ either table have not been established.
 map, descriptor-context and direct-target scripts and records, palette setup,
 candidate audio and PPU-stream uses, round-tripped packed text, and optional
 validated audio and sprite traces. It counts physical bytes once while
-retaining overlapping uses. With the current local traces, 2,445 PRG bytes have no use
+retaining overlapping uses. With the current local traces, 2,385 PRG bytes have no use
 in these inventories; that number is not a count of remaining code. The report
 also retains 65 possible map/script overlap bytes and 37 possible record/script
 overlap bytes across the combined inventories. It records its input identities and writes metadata only to
@@ -607,6 +614,13 @@ disabled and yields; a later restore can re-enable a retained slot, but that
 restoration and these particular paths have not been observed in gameplay.
 The direct record may be read in several inherited modes, with byte 2 serving
 as a negative-mode flag or a skipped low byte of a `$FFFF` script sentinel.
+
+Four zero-terminated byte lists at `$FCA7-$FCE2` are structured source. The
+candidate `$FD05` script selects their bases through `$FCE3`, reads each value
+with a two-byte indexed fetch and masks to the low byte. Each nonzero value
+appears as a key in the `$D27E` remap table. Selection, list meaning and the
+relationship between the two scripts remain unverified at runtime; the fetch
+also reads beyond each zero terminator.
 
 The `$B532`, `$BD58`, `$D3C9`, `$DB81`, `$E691`, `$EF7E` and `$F24C`
 continuations are structured source, connecting earlier map selection, slot,

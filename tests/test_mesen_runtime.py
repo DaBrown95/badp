@@ -22,7 +22,7 @@ def synthetic_output(state=1, *, inventory=False):
             scene = 6
         if state == 5 and frame in (5575, 5625, 5650):
             scene = 16
-        elif state == 5 and frame == 5700:
+        elif state == 5 and frame >= 5700:
             scene = 7
         if inventory and frame in (1800, 2100, 2300):
             scene = 16
@@ -35,9 +35,10 @@ def synthetic_output(state=1, *, inventory=False):
         if frame in SLOT_FRAMES:
             link = 255 if frame in (1400, 3250) else 1
             y = 160 if frame == 1400 else 130
-            third_link = 1 if 3900 <= frame <= 5550 else 255
-            lines.append(f'BADP_SLOT {frame} 1 106 {link} 96 {y} 96 144 106 {third_link} 96 80')
-    lines.append('BADP_SUMMARY 2 0 0 1 1 5700 1 1')
+            third_link = 1 if 3900 <= frame <= 5550 or frame in (5950, 6000, 6040, 6100) else 255
+            x = 60 if frame == 6100 else 96
+            lines.append(f'BADP_SLOT {frame} 1 106 {link} 96 {y} {x} 144 106 {third_link} {x} 80')
+    lines.append('BADP_SUMMARY 2 0 0 1 1 6100 1 1')
     lines.append('BADP_PROBE 4 2')
     lines.append(f'BADP_STAGE2_RECORD {int(state == 5)}')
     lines.append('BADP_INVENTORY 1 6 0' if inventory else 'BADP_INVENTORY 0 0 0')
@@ -68,8 +69,8 @@ class MesenRuntimeTests(unittest.TestCase):
 
     def test_missing_duplicate_or_inconsistent_evidence_fails(self):
         text = synthetic_output()
-        for invalid in (text.replace('BADP_SUMMARY 2 0 0 1 1 5700 1 1', ''),
-                        text + 'BADP_SUMMARY 2 0 0 1 1 5700 1 1\n',
+        for invalid in (text.replace('BADP_SUMMARY 2 0 0 1 1 6100 1 1', ''),
+                        text + 'BADP_SUMMARY 2 0 0 1 1 6100 1 1\n',
                         text.replace('BADP_TARGET script 3D21 0\n', ''),
                         text.replace('BADP_INVENTORY 0 0 0\n', ''),
                         text.replace('BADP_STAGE2_RECORD 0\n', ''),
@@ -81,7 +82,7 @@ class MesenRuntimeTests(unittest.TestCase):
                         text.replace('BADP_SLOT 1400 1 106 255 96 160 96 144 106 255 96 80\n', ''),
                         text + 'BADP_SLOT 1400 1 106 255 96 160 96 144 106 255 96 80\n',
                         text.replace('BADP_SLOT 1400 1 106 255', 'BADP_SLOT 1400 1 106 256'),
-                        text.replace('BADP_SUMMARY 2 0 0 1 1 5700 1 1', 'BADP_SUMMARY 2 1 0 1 1 5700 1 1'),
+                        text.replace('BADP_SUMMARY 2 0 0 1 1 6100 1 1', 'BADP_SUMMARY 2 1 0 1 1 6100 1 1'),
                         text.replace('BADP_APU 1 4000 30', 'BADP_APU 1 4014 30'),
                         text.replace('BADP_WRITE 0 FFB7 0C 32767 12', 'BADP_WRITE 0 FFB7 XX 32767 12')):
             with self.subTest(invalid=invalid[:50]), self.assertRaises(ValueError):
@@ -125,7 +126,7 @@ class MesenRuntimeTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, 'pickup, carry and recovery'):
             validate_scenario(evidence, 5)
         for frame, field, value in (('5625', 'screenshot_sha256', 'wrong-screen'),
-                                    ('5700', 'state', 6)):
+                                    ('5700', 'state', 6), ('5950', 'state', 6)):
             broken = synthetic_moses_evidence()
             broken['frames'][frame][field] = value
             with self.subTest(frame=frame, field=field), self.assertRaisesRegex(ValueError, 'pickup, carry and recovery'):
@@ -143,11 +144,21 @@ class MesenRuntimeTests(unittest.TestCase):
                                     ('5200', 'third_y', 144), ('5550', 'third_link', 255),
                                     ('5550', 'third_descriptor', 0), ('5550', 'third_x', 0),
                                     ('5550', 'third_y', 144), ('5700', 'third_link', 1),
-                                    ('5700', 'third_descriptor', 0)):
+                                    ('5700', 'third_descriptor', 0), ('5880', 'third_link', 1),
+                                    ('5950', 'third_link', 255), ('5950', 'third_x', 0),
+                                    ('6000', 'third_descriptor', 0), ('6000', 'third_y', 144),
+                                    ('6040', 'third_link', 255), ('6100', 'third_link', 255)):
             broken = synthetic_moses_evidence()
             broken['slots'][frame][field] = value
             with self.subTest(frame=frame, field=field), self.assertRaisesRegex(ValueError, 'pickup, carry and recovery'):
                 validate_scenario(broken, 5)
+
+    def test_moses_third_level_requires_movement_while_carrying(self):
+        evidence = synthetic_moses_evidence()
+        evidence['slots']['6100']['player_x'] = evidence['slots']['6000']['player_x']
+        evidence['slots']['6100']['third_x'] = evidence['slots']['6100']['player_x']
+        with self.assertRaisesRegex(ValueError, 'pickup, carry and recovery'):
+            validate_scenario(evidence, 5)
 
     def test_difference_summary_handles_missing_fields_and_limits(self):
         self.assertEqual(evidence_difference_paths({'a': {'x': 1}, 'b': [1, 2]},

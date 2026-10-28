@@ -21119,13 +21119,26 @@ CandidateFC6A:
 CandidateFC7E:
     BogusJumpBank1 CandidateFC7E
 .assert (* - BankStart) = $7C81, error, "bank 1 candidate script FC6A end"
-    .incbin "bank1_fc81_fce3.bin"
+    .incbin "bank1_fc81_fca7.bin"
+; Candidate $FD05 walks these zero-terminated byte lists, selecting their base
+; through CandidateListPointersFCE3. Each nonzero value occurs as a key in the
+; $D27E remap table; actual list selection and the values' roles are unverified.
+; The indexed load reads two bytes even on the final zero before masking low.
+CandidateValuesFCA7:
+    .byte $0E, $15, $11, $12, $1C, $1D, $1A, $1B, $2A, $2B, $18, $19, $00 ; CONTROL_CANDIDATE_VALUES_FCA7
+CandidateValuesFCB4:
+    .byte $4E, $4F, $3C, $3D, $3E, $3F, $42, $43, $44, $45, $48, $49, $4A, $4B, $00
+CandidateValuesFCC3:
+    .byte $68, $68, $68, $68, $68, $68, $68, $69, $69, $69, $69, $69, $69, $69, $00
+CandidateValuesFCD2:
+    .byte $2E, $2F, $30, $31, $32, $33, $34, $35, $36, $37, $23, $24, $38, $39, $56, $57, $00
+.assert (* - BankStart) = $7CE3, error, "bank 1 candidate value lists end"
 ; These indexed entries are read by the candidate $FD05 script. The first
-; table points into local bank-1 data; the second contains palette pointers.
+; table points to the value lists; the second contains palette pointers.
 ; The next byte sequence is also read as overlapping two-byte values, and a
 ; read near its end can include bytes of the following slot record.
 CandidateListPointersFCE3:
-    .word $7CA7, $7CA7, $7CB4, $7CC3, $7CD2 ; CONTROL_CANDIDATE_LIST_POINTERS
+    .word CandidateValuesFCA7 - BankStart, CandidateValuesFCA7 - BankStart, CandidateValuesFCB4 - BankStart, CandidateValuesFCC3 - BankStart, CandidateValuesFCD2 - BankStart ; CONTROL_CANDIDATE_LIST_POINTERS
 CandidatePalettePointersFCED:
     .word $C7F2, $C7F2, $C805, $C7F2, $C818 ; CONTROL_CANDIDATE_PALETTE_POINTERS
 CandidateStateValuesFCF7:
