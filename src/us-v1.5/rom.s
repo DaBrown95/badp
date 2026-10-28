@@ -1629,8 +1629,10 @@ ReadControllerBit:
     lda $038D
     sta $0394
 
-; Each carry bit dispatches to a controller handler; the exact button names
-; and gameplay effects remain to be verified at runtime.
+; Serial order makes $038D/$038F bits 0..7 Right, Left, Down, Up, Start,
+; Select, B and A. Dispatch requires at least one changed bit still held.
+; The following shifts use all changed bits, including releases, so an
+; A-to-B or B-to-A transition invokes both action handlers in the same frame.
 DispatchControllerChanges:
     lda $038F
     and $038D

@@ -115,6 +115,7 @@ check exercises the opening of each adventure:
 ```sh
 make setup-mesen
 make verify-gameplay
+make verify-controller
 ```
 
 The check runs the reference and matching build under the same inputs, comparing
@@ -127,7 +128,8 @@ controller actions against their record loads; David's opening also checks a
 native position event against its record load.
 It keeps its evidence in the ignored `reports/us-v1.5/runtime/` directory. These
 short opening scenarios do not establish full gameplay completion or physical
-cartridge behaviour.
+cartridge behaviour. The controller check also compares all eight button bits
+and simultaneous press/release handling on the reference and build.
 
 | Command | Purpose |
 | --- | --- |
@@ -140,6 +142,7 @@ cartridge behaviour.
 | `make audit-all` | Verify all six input identities. |
 | `make build` | Build and compare v1.5; retain source-change controls. |
 | `make verify-gameplay` | Compare v1.5 opening scenarios and inventory in MesenCE. |
+| `make verify-controller` | Compare controller bit order and simultaneous transitions. |
 | `make progress` | Rebuild and update the per-version tracker. |
 | `make position-records` | Decode v1.5 position records to ignored local analysis. |
 | `make script-entries` | Inventory candidate v1.5 script entry points locally. |

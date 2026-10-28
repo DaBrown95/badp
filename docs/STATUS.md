@@ -866,3 +866,19 @@ The successful reference/build comparison recorded 83,159, 139,322, 78,517
 and 84,312 timed PPU events in the Noah, Moses, David and inventory scenarios,
 respectively. None of those scenarios recorded a visible-scanline `$2007`
 write while rendering was enabled. These are sampled emulator results only.
+
+The NES serial input order and the `ROL $038F` loop place Right, Left, Down,
+Up, Start, Select, B and A in bits 0 through 7 of `$038D`. A reference/build
+probe held each button separately and observed the expected eight masks. It
+also found that dispatch gates on `changed AND held` but then rotates the
+unmasked changed byte: releasing A as B is pressed invokes both action entry
+points, as does releasing B as A is pressed. The matching engine preserves
+this original behavior and its source comment labels the quirk. The
+`make verify-controller` command repeats these checks in the pinned emulator;
+they do not establish the timing of a physical controller.
+
+The attributed long reference-only exploratory input described above was
+extended to 65,810 frames. It sampled 484,780 script fetches and 6,566 record
+loads, with no unowned native instruction entries, script extents or consumed
+record fields in this run. It does not reproduce the original movie or finish
+Noah's adventure, and does not establish complete reachability.
