@@ -1496,6 +1496,18 @@
     {"id": "bank1-indexed-state-records-b32e", "bank": 1, "cpu": "0xb32e", "size": 28, "kind": "data", "control": "indexed_state_records_b32e"},
     {"id": "bank1-indexed-voice4-pointers", "bank": 1, "cpu": "0xa6d0", "size": 20, "kind": "data", "control": "indexed_voice4_pointers"},
     {"id": "bank1-indexed-voice-records", "bank": 1, "cpu": "0xa6e4", "size": 16, "kind": "data", "control": "indexed_voice_records"},
+    {"id": "bank1-mode-record-b8f7", "bank": 1, "cpu": "0xb8f7", "size": 9, "kind": "data", "control": "mode_record_b8f7"},
+    {"id": "bank1-compact-e002", "bank": 1, "cpu": "0xe002", "size": 3, "kind": "data", "control": "compact_e002"},
+    {"id": "bank1-compact-e005", "bank": 1, "cpu": "0xe005", "size": 3, "kind": "data", "control": "compact_e005"},
+    {"id": "bank1-compact-e03d", "bank": 1, "cpu": "0xe03d", "size": 3, "kind": "data", "control": "compact_e03d"},
+    {"id": "bank1-mode-record-e055-tail", "bank": 1, "cpu": "0xe05b", "size": 3, "kind": "data", "control": "mode_record_e055_tail"},
+    {"id": "bank1-compact-e078", "bank": 1, "cpu": "0xe078", "size": 3, "kind": "data", "control": "compact_e078"},
+    {"id": "bank1-compact-e07b", "bank": 1, "cpu": "0xe07b", "size": 3, "kind": "data", "control": "compact_e07b"},
+    {"id": "bank1-compact-e0b3", "bank": 1, "cpu": "0xe0b3", "size": 3, "kind": "data", "control": "compact_e0b3"},
+    {"id": "bank1-compact-e0b6", "bank": 1, "cpu": "0xe0b6", "size": 3, "kind": "data", "control": "compact_e0b6"},
+    {"id": "bank1-compact-e0ee", "bank": 1, "cpu": "0xe0ee", "size": 3, "kind": "data", "control": "compact_e0ee"},
+    {"id": "bank1-compact-e0f1", "bank": 1, "cpu": "0xe0f1", "size": 3, "kind": "data", "control": "compact_e0f1"},
+    {"id": "bank1-compact-eb0d", "bank": 1, "cpu": "0xeb0d", "size": 3, "kind": "data", "control": "compact_eb0d"},
     {"id": "bank1-vectors", "bank": 1, "cpu": "0xfffa", "size": 6, "kind": "data", "control": "vectors"}
   ]
 }

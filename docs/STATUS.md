@@ -34,9 +34,9 @@ independent source trees or treat one version's evidence as verifying the rest.
 simultaneous reconstruction. Keep progress and completion evidence per target.
 
 The v1.5 build now assembles and links to the exact reference, with 21,474 bytes
-of source code and 19,813 bytes of structured data across the physical PRG banks.
-It still includes 24,249 local PRG bytes and 65,536 local CHR bytes. A total of
-1,348 independent source-change controls verify every listed reconstructed region.
+of source code and 21,420 bytes of structured data across the physical PRG banks.
+It still includes 22,642 local PRG bytes and 65,536 local CHR bytes. A total of
+1,487 independent source-change controls verify every listed reconstructed region.
 Passing input audits or whole-ROM equality alone is not reconstruction
 completion. The developer identifies BOGUS as the
 state-machine engine in the [Vance Kozik interview](https://www.nesworld.com/kozik.php);
@@ -344,7 +344,7 @@ in these inventories; that number is not a count of remaining code. The report
 also retains 7,633 possible map/script overlap bytes and 858 possible record/script
 overlap bytes across the combined inventories. The expanded field-setter walk
 introduces many speculative competing decodes; it does not establish their
-reachability. It also reports 7,553 source-owned bytes covered by candidate
+reachability. It also reports 7,593 source-owned bytes covered by candidate
 data uses, which can include compatible uses as well as competing ones. The
 report records its input identities and writes metadata only to
 ignored `analysis/us-v1.5/prg-inventory.json`.
@@ -1369,3 +1369,19 @@ opcodes and leaves execution and descriptor associations provisional.
 The incomplete temporary proof from the smaller interrupted batch was retired
 after the larger matching build and its controls completed. The final controls
 cover the affected regions from that earlier preflight.
+
+The candidate `$B900` descriptor script can select the mode-2 record at
+`$B8F7`; its otherwise skipped pointer bytes also supply operands to the
+possible `$B8F6` branch. The source now represents that record and the shared
+opcodes in the preceding descriptor. The mode-2 fields at `$E05B-$E05D`
+also overlap possible record-load commands.
+
+The candidate `$E764` path identifies negative-mode compact records at
+`$E002`, `$E005`, `$E03D`, `$E078`, `$E07B`, `$E0B3`, `$E0B6`, `$E0EE`,
+`$E0F1` and `$EB0D`. Their bytes also participate in possible BOGUS commands,
+including the voice command at `$E002` and the add-fields command at `$EB0D`.
+The source emits each physical byte once and asserts shared opcodes; record
+associations, candidate commands and their execution remain provisional.
+The record low byte at `$E040` remains local. This replaces 42 local PRG
+bytes with structured source and does not establish original names or prove
+which overlapping interpretations execute.

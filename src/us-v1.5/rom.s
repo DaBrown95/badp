@@ -1326,7 +1326,13 @@ ResetEntry:
     .byte value
 .endmacro
 
-; A multi-byte BOGUS command can also be a sequence of audio notes.
+; Named action opcodes bind overlapping BOGUS, record and audio views.
+BogusActionOpcode_BogusBranchIfSlotCoordinates01 = $01
+BogusActionOpcode_BogusRelinkToLastRelatedSlot = $B8
+BogusActionOpcode_BogusBranchIfSlot0630Bit02 = $C2
+BogusActionOpcode_BogusFollowLinkedSlotsAndYield = $B6
+BogusActionOpcode_BogusMarkRelatedSlotAtDepth = $BC
+BogusActionOpcode_BogusBranchIfSlot0620Bit10Clear = $BB
 BogusActionOpcode_BogusAddSlotFields00 = $08
 BogusActionOpcode_BogusAddSlotValue = $42
 BogusActionOpcode_BogusAddSelectedFieldClamped = $38
@@ -17066,10 +17072,18 @@ ScriptB8E8:
     BogusJumpBank1 ScriptB8D8
 .assert (* - BankStart) = $38EE, error, "bank 1 script B89C end"
 ; Descriptor-linked slot record; resource data remains local.
+SlotRuntimeB8EEResource = $B9FF ; CONTROL_SLOT_RUNTIME_B8EE
+.assert >SlotRuntimeB8EEResource = BogusActionOpcode_BogusClearSlot0640PairBits, error, "B8EF record/script opcode disagreement"
 SlotRuntimeB8EE:
-    SlotRuntimeRecord $B9FF, (ScriptB900 - BankStart), $22, $00, $20, $01, $01 ; CONTROL_SLOT_RUNTIME_B8EE
+CandidateScriptB8EF = SlotRuntimeB8EE + 1
+CandidateScriptB8F2 = SlotRuntimeB8EE + 4
+CandidateScriptB8F6 = SlotRuntimeB8EE + 8
+    SlotRuntimeRecord SlotRuntimeB8EEResource, (ScriptB900 - BankStart), BogusActionOpcode_BogusBranchIfSlot0520AtMost, $00, $20, $01, BogusActionOpcode_BogusBranchIfSlotCoordinates01
 .assert (* - BankStart) = $38F7, error, "bank 1 slot record B8EE end"
-    .incbin "bank1_b8f7_b900.bin"
+; B900's mode-$02 load can select this record. Candidate script B8F6 also
+; consumes its first four bytes as branch operands; execution is unverified.
+ModeRecordB8F7:
+    SlotRuntimeRecord $B9FF, $FFFF, $00, $FF, $00, $00, $00 ; CONTROL_MODE_RECORD_B8F7
 ; Descriptor-derived script. Nonzero record mode preserves the command pointer;
 ; the record-loading helper's gameplay effects remain provisional.
 ScriptB900:
@@ -20206,7 +20220,21 @@ SlotFlowDFFC:
 SlotFlowDFFF:
     SlotCompactRecord $B831, $00
 .assert (* - BankStart) = $6002, error, "bank 1 slot record flow DFF9 end"
-    .incbin "bank1_e002_e008.bin"
+; Candidate negative-mode records for E008 via the E764 path. Their bytes
+; also form a possible voice command at E002, with entries at E003 and E006.
+; None of these competing paths is established as executed.
+CompactE002Resource = $B831
+.assert <CompactE002Resource = BogusActionOpcode_BogusSetVoicePointers, error, "E002 record/voice opcode disagreement"
+.assert >CompactE002Resource = BogusActionOpcode_BogusRelinkToLastRelatedSlot, error, "E003 record/script opcode disagreement"
+CompactE002:
+CandidateScriptE002 = CompactE002
+CandidateScriptE003 = CompactE002 + 1
+    SlotCompactRecord CompactE002Resource, $00 ; CONTROL_COMPACT_E002
+CompactE005Resource = $C2F9 ; CONTROL_COMPACT_E005
+.assert >CompactE005Resource = BogusActionOpcode_BogusBranchIfSlot0630Bit02, error, "E006 record/script opcode disagreement"
+CompactE005:
+CandidateScriptE006 = CompactE005 + 1
+    SlotCompactRecord CompactE005Resource, $00
 ; Descriptor-linked slot record; resource data remains local.
 SlotRuntimeE008:
     SlotRuntimeRecord $B82A, (ScriptE02C - BankStart), $00, $FF, $00, $00, $00 ; CONTROL_SLOT_RUNTIME_E008
@@ -20250,10 +20278,20 @@ SlotFlowE034:
 SlotFlowE037:
     SlotCompactRecord $B9EA, $00
 ; Candidate descriptor $E043, command $E172, mode $FF.
+SlotFlowE03AResource = $B9F8
+.assert >SlotFlowE03AResource = BogusActionOpcode_BogusClearSlot0640PairBits, error, "E03B record/script opcode disagreement"
 SlotFlowE03A:
-    SlotCompactRecord $B9F8, $00
+CandidateScriptE03B = SlotFlowE03A + 1
+    SlotCompactRecord SlotFlowE03AResource, $00
 .assert (* - BankStart) = $603D, error, "bank 1 slot record flow E034 end"
-    .incbin "bank1_e03d_e041.bin"
+; A second candidate compact record shares a pair-bit opcode with E03E;
+; its resource low byte is also the last operand of the E03B command.
+CompactE03DResource = $B9F1 ; CONTROL_COMPACT_E03D
+.assert >CompactE03DResource = BogusActionOpcode_BogusClearSlot0640PairBits, error, "E03E record/script opcode disagreement"
+CompactE03D:
+CandidateScriptE03E = CompactE03D + 1
+    SlotCompactRecord CompactE03DResource, $00
+    .incbin "bank1_e040_e041.bin"
 ; Candidate negative-mode record for descriptor $E043 and the $E764 path.
 ; The resource low byte has a competing script interpretation and stays local.
 CompactContextE040HighAndMode:
@@ -20276,7 +20314,12 @@ ModeRecordE055Resource:
     .incbin "bank1_e057_e059.bin"
 ModeRecordE055Fields:
     .byte $00, $FF ; CONTROL_MODE_RECORD_E055_FIELDS
-    .incbin "bank1_e05b_e05e.bin"
+; Mode-$02 fields and two candidate zero-opcode script entries overlap.
+ModeRecordE055Tail:
+CandidateScriptE05B = ModeRecordE055Tail
+CandidateScriptE05C = ModeRecordE055Tail + 1
+    .byte BogusOpcodeLoadRecordAndClearSavedState, BogusOpcodeLoadRecordAndClearSavedState
+    .byte $00 ; CONTROL_MODE_RECORD_E055_TAIL
 ; Candidate descriptor $E043, script $E262, mode $02.
 ModeRecordE05EResource:
     .word $B9F1 ; CONTROL_MODE_RECORD_E05E_RESOURCE
@@ -20298,10 +20341,21 @@ SlotFlowE06F:
 SlotFlowE072:
     SlotCompactRecord $B69E, $00
 ; Candidate descriptor $E07E, command $E172, mode $FF.
+SlotFlowE075Resource = $B69E
+.assert >SlotFlowE075Resource = BogusActionOpcode_BogusFollowLinkedSlotsAndYield, error, "E075 record/script opcode disagreement"
 SlotFlowE075:
-    SlotCompactRecord $B69E, $00
+CandidateScriptE076 = SlotFlowE075 + 1
+    SlotCompactRecord SlotFlowE075Resource, $00
 .assert (* - BankStart) = $6078, error, "bank 1 slot record flow E06F end"
-    .incbin "bank1_e078_e07e.bin"
+; Candidate negative-mode records also supply operands to possible BOGUS
+; commands entering in the preceding compact records. Execution is unverified.
+CompactE078:
+    SlotCompactRecord $B6A5, $00 ; CONTROL_COMPACT_E078
+CompactE07BResource = $BCB1 ; CONTROL_COMPACT_E07B
+.assert >CompactE07BResource = BogusActionOpcode_BogusMarkRelatedSlotAtDepth, error, "E07B record/script opcode disagreement"
+CompactE07B:
+CandidateScriptE07C = CompactE07B + 1
+    SlotCompactRecord CompactE07BResource, $00
 ; Descriptor-linked slot record; resource data remains local.
 SlotRuntimeE07E:
     SlotRuntimeRecord $BCB1, (ScriptE0A2 - BankStart), $00, $FF, $00, $00, $00 ; CONTROL_SLOT_RUNTIME_E07E
@@ -20349,10 +20403,21 @@ SlotFlowE0AA:
 SlotFlowE0AD:
     SlotCompactRecord $B61F, $00
 ; Candidate descriptor $E0B9, command $E172, mode $FF.
+SlotFlowE0B0Resource = $B618
+.assert >SlotFlowE0B0Resource = BogusActionOpcode_BogusFollowLinkedSlotsAndYield, error, "E0B0 record/script opcode disagreement"
 SlotFlowE0B0:
-    SlotCompactRecord $B618, $00
+CandidateScriptE0B1 = SlotFlowE0B0 + 1
+    SlotCompactRecord SlotFlowE0B0Resource, $00
 .assert (* - BankStart) = $60B3, error, "bank 1 slot record flow E0AA end"
-    .incbin "bank1_e0b3_e0b9.bin"
+; Candidate negative-mode records also supply operands to possible BOGUS
+; commands entering in the preceding compact records. Execution is unverified.
+CompactE0B3:
+    SlotCompactRecord $B611, $00 ; CONTROL_COMPACT_E0B3
+CompactE0B6Resource = $BB1F ; CONTROL_COMPACT_E0B6
+.assert >CompactE0B6Resource = BogusActionOpcode_BogusBranchIfSlot0620Bit10Clear, error, "E0B6 record/script opcode disagreement"
+CompactE0B6:
+CandidateScriptE0B7 = CompactE0B6 + 1
+    SlotCompactRecord CompactE0B6Resource, $00
 ; Descriptor-linked slot record; resource data remains local.
 SlotRuntimeE0B9:
     SlotRuntimeRecord $BB1F, (ScriptE0DD - BankStart), $00, $FF, $00, $00, $00 ; CONTROL_SLOT_RUNTIME_E0B9
@@ -20391,13 +20456,24 @@ ScriptE0DD:
 SlotFlowE0E5:
     SlotCompactRecord $BB43, $00 ; CONTROL_SLOT_FLOW_E0E5
 ; Candidate descriptor $E0F4, command $E19A, mode $FF.
+SlotFlowE0E8Resource = $B62F
+.assert >SlotFlowE0E8Resource = BogusActionOpcode_BogusFollowLinkedSlotsAndYield, error, "E0E8 record/script opcode disagreement"
 SlotFlowE0E8:
-    SlotCompactRecord $B62F, $00
+CandidateScriptE0E9 = SlotFlowE0E8 + 1
+    SlotCompactRecord SlotFlowE0E8Resource, $00
 ; Candidate descriptor $E0F4, command $E172, mode $FF.
 SlotFlowE0EB:
     SlotCompactRecord $B62F, $00
 .assert (* - BankStart) = $60EE, error, "bank 1 slot record flow E0E5 end"
-    .incbin "bank1_e0ee_e0f4.bin"
+; Candidate negative-mode records also supply operands to possible BOGUS
+; commands entering in the preceding compact records. Execution is unverified.
+CompactE0EEResource = $B626 ; CONTROL_COMPACT_E0EE
+.assert >CompactE0EEResource = BogusActionOpcode_BogusFollowLinkedSlotsAndYield, error, "E0EF record/script opcode disagreement"
+CompactE0EE:
+CandidateScriptE0EF = CompactE0EE + 1
+    SlotCompactRecord CompactE0EEResource, $00
+CompactE0F1:
+    SlotCompactRecord $BB3D, $00 ; CONTROL_COMPACT_E0F1
 ; Descriptor-linked slot record; resource data remains local.
 SlotRuntimeE0F4:
     SlotRuntimeRecord $BB3D, (ScriptE118 - BankStart), $00, $FF, $00, $00, $00 ; CONTROL_SLOT_RUNTIME_E0F4
@@ -21907,7 +21983,13 @@ ModeRecordEAFFFields:
 SlotFlowEB0A:
     SlotCompactRecord $B608, $22 ; CONTROL_SLOT_FLOW_EB0A
 .assert (* - BankStart) = $6B0D, error, "bank 1 slot record flow EB0A end"
-    .incbin "bank1_eb0d_eb10.bin"
+; The same three bytes are a compact record and a candidate add-fields
+; command; its operands are the resource high byte and mode respectively.
+CompactEB0DResource = $B608 ; CONTROL_COMPACT_EB0D
+.assert <CompactEB0DResource = BogusActionOpcode_BogusAddSlotFields00, error, "EB0D record/script opcode disagreement"
+CompactEB0D:
+CandidateScriptEB0D = CompactEB0D
+    SlotCompactRecord CompactEB0DResource, $22
 ; Candidate negative-mode record for descriptor $EB13 and the $E764 path.
 ; Its following mode byte has a competing script interpretation.
 CompactContextEB10Resource:

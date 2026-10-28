@@ -25,7 +25,7 @@ class OverlayAssemblyTests(unittest.TestCase):
                  'BogusBranchIfMatchingSlotReady', 'BogusMarkMatchingSlots',
                  'BogusSetVoicePointers', 'BogusAddSelectedFieldClamped',
                  'BogusSetInvertedState3B', 'ContactPointerScriptOverlay',
-                 'SlotRuntimeRecord', 'SlotRecordVoiceOverlay', 'SlotRecordScriptOverlay', 'SlotRecordBranchPrefix',
+                 'SlotRuntimeRecord', 'SlotCompactRecord', 'BogusAddSlotFields00', 'SlotRecordVoiceOverlay', 'SlotRecordScriptOverlay', 'SlotRecordBranchPrefix',
                  'AudioNoteView', 'AudioScriptByte', 'AudioScriptPair', 'AudioScriptTriple',
                  'AudioScriptWord', 'AudioScriptTarget', 'AudioScriptTargetByte',
                  'AudioScriptTargetTriple', 'AudioScriptQuad', 'AudioScriptFourWords')
@@ -141,6 +141,18 @@ SlotRecordVoiceOverlay $AB31, $1234, $56, $78, $7A, $7B, $7C, $34AB, $5612, $7A7
                 result, error, _ = self.assemble(wrong)
                 self.assertNotEqual(result, 0)
                 self.assertIn('record/script opcode disagreement', error)
+
+    def test_compact_record_and_command_share_all_synthetic_bytes(self):
+        record = ".assert <$A108 = BogusActionOpcode_BogusAddSlotFields00, error, \"opcode disagreement\"\nSlotCompactRecord $A108, $27"
+        command = "BogusAddSlotFields00 $A1, $27"
+        result, error, record_bytes = self.assemble(record)
+        self.assertEqual(result, 0, error)
+        result, error, command_bytes = self.assemble(command)
+        self.assertEqual(result, 0, error)
+        self.assertEqual(record_bytes, command_bytes)
+        result, error, _ = self.assemble(record.replace("$A108", "$A109"))
+        self.assertNotEqual(result, 0)
+        self.assertIn("opcode disagreement", error)
 
     def test_multi_byte_audio_script_forms(self):
         # Synthetic commands exercise every operand layout, including target
