@@ -115,9 +115,13 @@ cartridge and program behaviour. Input audits do not establish a working build.
 ROM and its components, and runs the source-change controls. Output and proof:
 `build/us-v1.5/bible-adventures.nes` and `build/us-v1.5/proof.json`. They remain
 local, along with the extracted inputs and control builds. The optional
-`make extract-map-chunks` command exports the 145 referenced map chunks as editable
-local tile and attribute rows under `extracted/`. If present, the build encodes
-that file; otherwise it derives the same local input from the audited ROM. The
+`make extract-chr-tiles` exports all 4,096 physical CHR tiles locally as eight
+rows of palette indices 0–3. The build encodes that file when present, otherwise
+it decodes the audited reference. This describes 2bpp pixels, not their PPU
+mapping, palette choices or use in the game. CHR is an asset, excluded from PRG
+source progress. The optional `make extract-map-chunks` command exports the 145
+referenced map chunks as editable local tile and attribute rows under
+`extracted/`. If present, the build encodes that file; otherwise it derives the same local input from the audited ROM. The
 one unreferenced slot stays opaque. `make extract-map-layouts` similarly exports
 the 14 map grids locally; their dimensions remain in tracked source. Changing a
 tile or grid cell makes the matching comparison fail. `make extract-packed-text`
@@ -198,6 +202,7 @@ and simultaneous press/release handling on the reference and build.
 | `make extract-sprite-frames` | Export observed sprite tile and attribute rows locally. |
 | `make extract-menu-tiles` | Export menu display tile streams locally. |
 | `make map-data` | Decode candidate map layouts and chunks to local analysis. |
+| `make extract-chr-tiles` | Export editable physical CHR tiles to ignored local storage. |
 | `make extract-map-chunks` | Export editable map chunks to ignored local storage. |
 | `make extract-map-layouts` | Export editable map grids to ignored local storage. |
 | `make extract-packed-text` | Export editable packed messages to ignored local storage. |

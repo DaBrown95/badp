@@ -6,7 +6,7 @@ import json
 from pathlib import Path
 import sys
 
-from . import map_assets, map_layout_assets, menu_assets, sprite_assets, text_assets
+from . import chr_assets, map_assets, map_layout_assets, menu_assets, sprite_assets, text_assets
 from .build_rom import (MUTATIONS, PROOF_INPUTS, SYMBOL_CONTROLS, digest, mutate_include, mutate_source,
                         source_regions, verify_control, verify_symbol_control)
 from .identify_rom import inspect_rom
@@ -222,6 +222,30 @@ def verify_primary(root: Path, target: dict) -> dict:
             or menu_control.get("changed_offsets") != menu_assets.verify_control(reference, menu_candidate,
                                                                                      prg_offset, menu)):
         raise ValueError("menu source-change control is stale or invalid")
+    chr_offset = parsed["chr"]["offset"]
+    reference_chr = reference[chr_offset:chr_offset + parsed["chr"]["size"]]
+    chr_asset, chr_payload, chr_source, chr_hash = chr_assets.select(root, reference_chr, digest(reference))
+    chr_evidence = proof.get("chr_assets", {})
+    if (chr_evidence.get("source") != chr_source or chr_evidence.get("input_sha256") != chr_hash
+            or chr_evidence.get("payload_sha256") != digest(chr_payload)
+            or (directory / "inputs/chr-tiles.json").read_bytes() != chr_assets.serialize(chr_asset)
+            or (directory / "inputs/chr.bin").read_bytes() != chr_payload):
+        raise ValueError("CHR asset build evidence is stale")
+    changed_chr = chr_assets.changed_asset(chr_asset)
+    changed_chr_json = chr_assets.serialize(changed_chr)
+    changed_chr_payload = chr_assets.encode(changed_chr, digest(reference))
+    chr_dir = directory / "controls/chr_asset"
+    chr_candidate = (chr_dir / "candidate.nes").read_bytes()
+    chr_control = chr_evidence.get("control", {})
+    if ((chr_dir / "rom.s").read_bytes() != source_bytes
+            or (chr_dir / "chr-tiles.json").read_bytes() != changed_chr_json
+            or (chr_dir / "chr.bin").read_bytes() != changed_chr_payload
+            or chr_control.get("asset_sha256") != digest(changed_chr_json)
+            or chr_control.get("payload_sha256") != digest(changed_chr_payload)
+            or chr_control.get("candidate_sha256") != digest(chr_candidate)
+            or chr_control.get("changed_offsets") != chr_assets.verify_control(reference, chr_candidate, chr_offset)):
+        raise ValueError("CHR asset control is stale or invalid")
+
     code = sum(region["size"] for region in regions if region["kind"] == "code")
     data = sum(region["size"] for region in regions if region["kind"] == "data")
     counts = proof["counts"]

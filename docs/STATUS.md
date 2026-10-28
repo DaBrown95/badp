@@ -1767,3 +1767,13 @@ experiment supports the candidate interpretation and the original arithmetic;
 it does not show those slot values occur during play, establish sound output,
 or verify physical cartridge behavior. Its metadata stays under ignored
 `analysis/us-v1.5/indexed-audio-verification.json`.
+
+The 65,536 local CHR bytes can now be exported as 4,096 physical-order NES
+2bpp tiles with `make extract-chr-tiles`. Each tile has eight rows of eight
+palette indices, encoded back into the original two bitplanes by the build.
+The build uses an edited local export when present or derives the same pixels
+from the audited reference; a separate retained control changes one pixel in
+each physical 8 KiB interval and verifies the corresponding eight ROM-byte
+changes after assembly. Pixel data remains in ignored local files and receives
+no source progress credit. Physical tile order alone does not identify PPU bank
+mapping, palettes, sprites, backgrounds or animation.

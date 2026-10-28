@@ -11,7 +11,7 @@ import subprocess
 import sys
 import tempfile
 
-from . import map_assets, map_layout_assets, menu_assets, sprite_assets, text_assets
+from . import chr_assets, map_assets, map_layout_assets, menu_assets, sprite_assets, text_assets
 from .identify_rom import inspect_rom
 from .project import IDENTITY_PARTS, load_target
 from .setup import verified_tools
@@ -20,7 +20,7 @@ from .setup import verified_tools
 ROOT = Path(__file__).resolve().parents[1]
 TARGET = "us-v1.5"
 PROOF_INPUTS = ("tools/build_rom.py", "tools/identify_rom.py", "tools/project.py",
-                "tools/setup.py", "tools/map_assets.py", "tools/map_layout_assets.py", "tools/menu_assets.py", "tools/sprite_assets.py", "tools/sprite_metadata.py", "tools/text_assets.py",
+                "tools/setup.py", "tools/chr_assets.py", "tools/map_assets.py", "tools/map_layout_assets.py", "tools/menu_assets.py", "tools/sprite_assets.py", "tools/sprite_metadata.py", "tools/text_assets.py",
                 "tools/map_data.py", "tools/packed_text.py", "tools/script_entries.py",
                 "config/cc65-toolchain.json", "config/sprite-frames-us-v1.5.json")
 
@@ -1905,7 +1905,10 @@ def build() -> dict:
         (work / "source/rom.s").write_text(source)
         (work / "source/nes.inc").write_bytes(include)
         (work / "source/link.cfg").write_bytes(linker)
-        gaps = extract_gaps(prg, chr_data, regions, work / "inputs")
+        chr_asset, chr_payload, chr_source, chr_input_hash = chr_assets.select(
+            ROOT, chr_data, parsed["file"]["sha256"])
+        gaps = extract_gaps(prg, chr_payload, regions, work / "inputs")
+        (work / "inputs/chr-tiles.json").write_bytes(chr_assets.serialize(chr_asset))
         asset, asset_payload, asset_source, asset_input_hash = map_assets.select(ROOT, prg, parsed["file"]["sha256"])
         asset_input = work / "inputs" / map_assets.GAP_NAME
         if not asset_input.is_file() or len(asset_input.read_bytes()) != map_assets.REGION_SIZE:
@@ -2129,6 +2132,28 @@ def build() -> dict:
                          "control": {"asset_sha256": digest(changed_menu_json),
                                      "gap_sha256": {name: digest(changed_menu_gaps[name]) for name in menu_changed_names},
                                      "candidate_sha256": digest(menu_candidate), "changed_offsets": menu_changed}}
+        # Mutate a pixel in each physical 8 KiB CHR interval before assembly.
+        chr_control_dir = work / "controls/chr_asset"
+        chr_control_dir.mkdir(parents=True)
+        (chr_control_dir / "rom.s").write_text(source)
+        changed_chr = chr_assets.changed_asset(chr_asset)
+        changed_chr_json = chr_assets.serialize(changed_chr)
+        changed_chr_payload = chr_assets.encode(changed_chr, parsed["file"]["sha256"])
+        (chr_control_dir / "chr-tiles.json").write_bytes(changed_chr_json)
+        (chr_control_dir / "chr.bin").write_bytes(changed_chr_payload)
+        shutil.copytree(work / "inputs", chr_control_dir / "inputs")
+        (chr_control_dir / "inputs/chr.bin").write_bytes(changed_chr_payload)
+        chr_control_rom = assemble(work, tool_paths, Path("controls/chr_asset/rom.s"),
+                                   Path("controls/chr_asset/candidate"), Path("controls/chr_asset/inputs"))
+        chr_candidate = chr_control_rom.read_bytes()
+        chr_changed = chr_assets.verify_control(reference, chr_candidate, parsed["chr"]["offset"])
+        retire_control_intermediates(chr_control_dir)
+        shutil.rmtree(chr_control_dir / "inputs")
+        chr_evidence = {"source": chr_source, "input_sha256": chr_input_hash,
+                        "payload_sha256": digest(chr_payload),
+                        "control": {"asset_sha256": digest(changed_chr_json),
+                                    "payload_sha256": digest(changed_chr_payload),
+                                    "candidate_sha256": digest(chr_candidate), "changed_offsets": chr_changed}}
         counts = {kind: sum(r["size"] for r in regions if r["kind"] == kind)
                   for kind in ("code", "data")}
         pin = json.loads((ROOT / "config/cc65-toolchain.json").read_text())
@@ -2146,7 +2171,7 @@ def build() -> dict:
             "verification_input_sha256": {name: digest((ROOT / name).read_bytes()) for name in PROOF_INPUTS},
             "source_regions": regions, "local_prg_gaps": gaps, "map_assets": asset_evidence,
             "layout_assets": layout_evidence, "text_assets": text_evidence, "sprite_assets": sprite_evidence,
-            "menu_assets": menu_evidence,
+            "menu_assets": menu_evidence, "chr_assets": chr_evidence,
             "counts": {"matching_code_bytes": counts["code"], "structured_data_bytes": counts["data"],
                        "local_prg_bytes": sum(g["size"] for g in gaps),
                        "local_chr_bytes": len(chr_data), "container_header_bytes": 16},

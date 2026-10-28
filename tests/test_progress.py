@@ -11,7 +11,7 @@ from unittest.mock import patch
 from test_build import synthetic_map
 from test_map_assets import synthetic_prg
 from test_menu_assets import synthetic_menu_prg
-from tools import map_assets, map_layout_assets, menu_assets, packed_text, sprite_assets, text_assets
+from tools import chr_assets, map_assets, map_layout_assets, menu_assets, packed_text, sprite_assets, text_assets
 from tools.build_rom import (MUTATIONS, PROOF_INPUTS, SYMBOL_CONTROLS, digest, mutate_include,
                              mutate_source, source_regions)
 from tools.identify_rom import inspect_rom
@@ -298,6 +298,27 @@ class ProofFreshnessTests(unittest.TestCase):
                          "control": {"asset_sha256": digest(changed_menu_json),
                                      "gap_sha256": {name: digest(changed_menu_gaps[name]) for name in menu_names},
                                      "candidate_sha256": digest(menu_candidate), "changed_offsets": menu_offsets}}
+        chr_offset = parsed["chr"]["offset"]
+        reference_chr = reference[chr_offset:chr_offset + parsed["chr"]["size"]]
+        chr_asset, chr_payload, chr_source, chr_hash = chr_assets.select(self.root, reference_chr, digest(reference))
+        (inputs / "chr.bin").write_bytes(chr_payload)
+        (inputs / "chr-tiles.json").write_bytes(chr_assets.serialize(chr_asset))
+        changed_chr = chr_assets.changed_asset(chr_asset)
+        changed_chr_json = chr_assets.serialize(changed_chr)
+        changed_chr_payload = chr_assets.encode(changed_chr, digest(reference))
+        chr_candidate = reference[:chr_offset] + changed_chr_payload
+        chr_offsets = chr_assets.verify_control(reference, chr_candidate, chr_offset)
+        chr_dir = self.proof_dir / "controls/chr_asset"
+        chr_dir.mkdir(parents=True)
+        (chr_dir / "rom.s").write_bytes(source)
+        (chr_dir / "chr-tiles.json").write_bytes(changed_chr_json)
+        (chr_dir / "chr.bin").write_bytes(changed_chr_payload)
+        (chr_dir / "candidate.nes").write_bytes(chr_candidate)
+        chr_evidence = {"source": chr_source, "input_sha256": chr_hash,
+                        "payload_sha256": digest(chr_payload),
+                        "control": {"asset_sha256": digest(changed_chr_json),
+                                    "payload_sha256": digest(changed_chr_payload),
+                                    "candidate_sha256": digest(chr_candidate), "changed_offsets": chr_offsets}}
         controls = []
         for name in MUTATIONS:
             selected = [r for r in regions if r["control"] == name]
@@ -342,7 +363,7 @@ class ProofFreshnessTests(unittest.TestCase):
             "output_sha256": digest(reference), "reference_sha256": digest(reference),
             "component_matches": {p: True for p in IDENTITY_PARTS}, "source_regions": regions,
             "map_assets": asset_evidence, "layout_assets": layout_evidence, "text_assets": text_evidence,
-            "sprite_assets": sprite_evidence, "menu_assets": menu_evidence,
+            "sprite_assets": sprite_evidence, "menu_assets": menu_evidence, "chr_assets": chr_evidence,
             "counts": {"matching_code_bytes": code, "structured_data_bytes": data,
                        "local_prg_bytes": 65536 - code - data, "local_chr_bytes": 65536},
             "controls": controls, "symbol_controls": symbol_controls,
@@ -375,6 +396,29 @@ class ProofFreshnessTests(unittest.TestCase):
         self.proof["symbol_controls"].pop()
         self.save_proof()
         with self.assertRaisesRegex(ValueError, "controls are incomplete"):
+            self.verify()
+
+    def test_changed_chr_asset_or_control_is_rejected(self):
+        path = self.root / chr_assets.ASSET_PATH
+        path.parent.mkdir(parents=True)
+        raw = (self.proof_dir / "inputs/chr-tiles.json").read_bytes()
+        asset = json.loads(raw)
+        path.write_bytes(raw)
+        with self.assertRaisesRegex(ValueError, "CHR asset build evidence is stale"):
+            self.verify()
+        self.proof["chr_assets"]["source"] = "local"
+        self.proof["chr_assets"]["input_sha256"] = digest(raw)
+        self.save_proof()
+        self.verify()
+        path.write_bytes(chr_assets.serialize(chr_assets.changed_asset(asset)))
+        with self.assertRaisesRegex(ValueError, "CHR asset build evidence is stale"):
+            self.verify()
+        path.unlink()
+        self.proof["chr_assets"]["source"] = "reference"
+        self.proof["chr_assets"]["input_sha256"] = digest(raw)
+        self.save_proof()
+        (self.proof_dir / "controls/chr_asset/chr.bin").write_bytes(b"changed")
+        with self.assertRaisesRegex(ValueError, "CHR asset control"):
             self.verify()
 
     def test_changed_menu_asset_or_control_is_rejected(self):
