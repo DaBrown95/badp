@@ -19,7 +19,9 @@ from .project import input_path
 from .script_entries import BANK_SIZE, ROOT, _locate, _location, load_audited_banks
 
 _CALL = re.compile(r'^\s*(BogusSetVoicePointers|BogusStartVoice4|BogusRestartVoice4|AudioPointerEntry|AudioVoicePointerRecord)\s+([^;]+)')
+_OVERLAY_CALL = re.compile(r'^\s*(AudioScript\w+|SlotRecordVoiceOverlay)\s+([^;]+)')
 _WORD = re.compile(r'\$[0-9a-fA-F]{4}\Z')
+_BYTE = re.compile(r'\$[0-9a-fA-F]{2}\Z')
 FLOW_INPUTS = ('tools/audio_flow.py', 'tools/audio_commands.py', 'tools/script_entries.py')
 
 
@@ -27,10 +29,69 @@ def _digest(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
+def _notes_match(parts: list[str], expected: list[int]) -> bool:
+    """Check literal duration/note pairs against the shared command bytes."""
+    if len(parts) != 2 * len(expected) or any(not _BYTE.fullmatch(p) for p in parts):
+        return False
+    notes = [int(p[1:], 16) for p in parts]
+    return all(0 <= notes[2 * i] <= 4 and 0 <= notes[2 * i + 1] <= 31
+               and notes[2 * i] * 32 + notes[2 * i + 1] == value
+               for i, value in enumerate(expected))
+
+
+def _overlay_pointers(name: str, parts: list[str]) -> list[int]:
+    """Read voice starts from the maintained shared script/data forms."""
+    if name == 'SlotRecordVoiceOverlay':
+        if (len(parts) != 11 or not _WORD.fullmatch(parts[0]) or not _WORD.fullmatch(parts[1])
+                or any(not _BYTE.fullmatch(p) for p in parts[2:7])
+                or any(not _WORD.fullmatch(p) for p in parts[7:])):
+            raise ValueError('unsupported audio pointer expression in record/voice overlay')
+        resource, script = (int(p[1:], 16) for p in parts[:2])
+        flags, field69, field6a, field6b, field6c = (int(p[1:], 16) for p in parts[2:7])
+        voices = [int(p[1:], 16) for p in parts[7:]]
+        expected = [(resource >> 8) | ((script & 0xff) << 8),
+                    (script >> 8) | (flags << 8), field69 | (field6a << 8),
+                    field6b | (field6c << 8)]
+        if resource & 0xff != 0x31 or voices != expected:
+            raise ValueError('inconsistent record/voice overlay')
+        return voices
+
+    action = parts[0] if parts else ''
+    if action not in ('BogusSetVoicePointers', 'BogusStartVoice4', 'BogusRestartVoice4'):
+        return []
+    opcode = {'BogusSetVoicePointers': 0x31, 'BogusStartVoice4': 0x50,
+              'BogusRestartVoice4': 0x49}[action]
+    if action == 'BogusSetVoicePointers':
+        if name != 'AudioScriptFourWords' or len(parts) != 24:
+            raise ValueError('unsupported audio pointer expression in script overlay')
+        pointer_parts, note_parts = parts[2:6], parts[6:]
+    else:
+        if name != 'AudioScriptWord' or len(parts) != 9:
+            raise ValueError('unsupported audio pointer expression in script overlay')
+        pointer_parts, note_parts = parts[2:3], parts[3:]
+    if (not _BYTE.fullmatch(parts[1]) or int(parts[1][1:], 16) != opcode
+            or any(not _WORD.fullmatch(p) for p in pointer_parts)):
+        raise ValueError('unsupported audio pointer expression in script overlay')
+    pointers = [int(p[1:], 16) for p in pointer_parts]
+    encoded = [opcode]
+    for pointer in pointers:
+        encoded.extend((pointer & 0xff, pointer >> 8))
+    if not _notes_match(note_parts, encoded):
+        raise ValueError('inconsistent audio/script overlay')
+    return pointers
+
+
 def literal_seeds(source: str) -> list[int]:
     """Read literal starts, indexed table pointers and the native opcode-$18 start."""
     starts = set()
     for line in source.splitlines():
+        overlay = _OVERLAY_CALL.match(line)
+        if overlay:
+            name, operands = overlay.groups()
+            for pointer in _overlay_pointers(name, [part.strip() for part in operands.split(',')]):
+                if pointer >> 8 not in (0, 0xff):
+                    starts.add(pointer)
+            continue
         match = _CALL.match(line)
         if not match:
             continue

@@ -1461,6 +1461,17 @@ BogusOpcodeMarkSlotAndYield = $2E
     AudioNote duration, note
 .endmacro
 
+; A mode-specific slot record can also be an opcode-$31 voice command.
+; Assertions preserve both views without choosing a reachable interpretation.
+.macro SlotRecordVoiceOverlay resource, script_pointer, flags, field69, field6a, field6b, field6c, voice0, voice1, voice2, voice3
+    .assert <resource = $31, error, "record/voice opcode disagreement"
+    .assert voice0 = ((>resource) + ((<script_pointer) * $100)), error, "record/voice 0 disagreement"
+    .assert voice1 = ((>script_pointer) + (flags * $100)), error, "record/voice 1 disagreement"
+    .assert voice2 = (field69 + (field6a * $100)), error, "record/voice 2 disagreement"
+    .assert voice3 = (field6b + (field6c * $100)), error, "record/voice 3 disagreement"
+    SlotRuntimeRecord resource, script_pointer, flags, field69, field6a, field6b, field6c
+.endmacro
+
 ; A contact script pointer can also be a two-byte BOGUS command.
 ; The pointer and command share both bytes; reachability remains unresolved.
 .macro ContactPointerScriptOverlay target, value
@@ -20149,7 +20160,19 @@ CandidateScriptE013:
 CandidateScriptE015:
     BogusMaskSlotValue $00FF ; CONTROL_CANDIDATE_SCRIPT_E015
 .assert (* - BankStart) = $6018, error, "bank 1 candidate script e015 end"
-    .incbin "bank1_e018_e02c.bin"
+    .incbin "bank1_e018_e01a.bin"
+; Candidate mode-$02 record and voice command share these bytes.
+; Other possible script entries overlap; execution is unverified.
+CandidateRecordE01A:
+CandidateScriptE01A:
+    SlotRecordVoiceOverlay $B831, $FFFF, $00, $FF, $00, $00, $00, $FFB8, $00FF, $00FF, $0000 ; CONTROL_RECORD_VOICE_E01A
+.assert (* - BankStart) = $6023, error, "bank 1 record/voice overlay e01a end"
+; Candidate mode-$02 record and voice command share these bytes.
+; Other possible script entries overlap; execution is unverified.
+CandidateRecordE023:
+CandidateScriptE023:
+    SlotRecordVoiceOverlay $B831, $FFFF, $00, $FF, $00, $00, $00, $FFB8, $00FF, $00FF, $0000 ; CONTROL_RECORD_VOICE_E023
+.assert (* - BankStart) = $602C, error, "bank 1 record/voice overlay e023 end"
 ; Four entry points choose slot flags before entering the shared $E120 path.
 ScriptE02C:
     BogusSetSlotD0Bits $03       ; CONTROL_BOGUS_E02C
@@ -20295,7 +20318,17 @@ CandidateScriptE0FF:
 CandidateScriptE101:
     BogusMaskSlotValue $00FF ; CONTROL_CANDIDATE_SCRIPT_E101
 .assert (* - BankStart) = $6104, error, "bank 1 candidate script e101 end"
-    .incbin "bank1_e104_e10f.bin"
+    .incbin "bank1_e104_e106.bin"
+; Candidate descriptor $E0F4, scripts $E1DC/$E207/$E232, mode $02.
+; A separate possible script command starts at $E105 and overlaps this field.
+CandidateRecordE106Resource:
+    .word $B626 ; CONTROL_RECORD_E106_RESOURCE
+.assert (* - BankStart) = $6108, error, "bank 1 candidate record E106 resource end"
+    .incbin "bank1_e108_e10a.bin"
+; Mode-$02 fields from the same candidate record; intervening bytes stay local.
+CandidateRecordE106Fields:
+    .byte $00, $FF, $00, $00, $00 ; CONTROL_RECORD_E106_FIELDS
+.assert (* - BankStart) = $610F, error, "bank 1 candidate record E106 fields end"
 ; Candidate descriptor $E0F4, script $E262, mode $02.
 ModeRecordE10FResource:
     .word $B626 ; CONTROL_MODE_RECORD_E10F_RESOURCE

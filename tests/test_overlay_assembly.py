@@ -24,6 +24,7 @@ class OverlayAssemblyTests(unittest.TestCase):
                  'BogusBranchIfMatchingSlotReady', 'BogusMarkMatchingSlots',
                  'BogusSetVoicePointers', 'BogusAddSelectedFieldClamped',
                  'BogusSetInvertedState3B', 'ContactPointerScriptOverlay',
+                 'SlotRuntimeRecord', 'SlotRecordVoiceOverlay',
                  'AudioNoteView', 'AudioScriptByte', 'AudioScriptPair', 'AudioScriptTriple',
                  'AudioScriptWord', 'AudioScriptTarget', 'AudioScriptTargetByte',
                  'AudioScriptTargetTriple', 'AudioScriptQuad', 'AudioScriptFourWords')
@@ -70,9 +71,10 @@ BogusModeResourceOverlay $12, $120A
 BogusSetJumpRecordOverlay $34, $9456, $345D, $5604, $14
 AudioNoteBogusOverlay $01, $05, $25
 ContactPointerScriptOverlay $9364, $13
+SlotRecordVoiceOverlay $AB31, $1234, $56, $78, $7A, $7B, $7C, $34AB, $5612, $7A78, $7C7B
 ''')
         self.assertEqual(result, 0, error)
-        self.assertEqual(output, bytes.fromhex('04 56 13 0a 12 5d 34 04 56 14 25 64 13'))
+        self.assertEqual(output, bytes.fromhex('04 56 13 0a 12 5d 34 04 56 14 25 64 13 31 ab 34 12 56 78 7a 7b 7c'))
 
     def test_multi_byte_audio_script_forms(self):
         # Synthetic commands exercise every operand layout, including target
@@ -114,6 +116,11 @@ ContactPointerScriptOverlay $9364, $13
 
     def test_mismatched_views_fail_assembly_or_link(self):
         cases = (
+            ('SlotRecordVoiceOverlay $AB30, $1234, $56, $78, $7A, $7B, $7C, $34AB, $5612, $7A78, $7C7B', 'record/voice opcode'),
+            ('SlotRecordVoiceOverlay $AB31, $1234, $56, $78, $7A, $7B, $7C, $34AA, $5612, $7A78, $7C7B', 'record/voice 0'),
+            ('SlotRecordVoiceOverlay $AB31, $1234, $56, $78, $7A, $7B, $7C, $34AB, $5613, $7A78, $7C7B', 'record/voice 1'),
+            ('SlotRecordVoiceOverlay $AB31, $1234, $56, $78, $7A, $7B, $7C, $34AB, $5612, $7A79, $7C7B', 'record/voice 2'),
+            ('SlotRecordVoiceOverlay $AB31, $1234, $56, $78, $7A, $7B, $7C, $34AB, $5612, $7A78, $7C7A', 'record/voice 3'),
             ('ContactPointerScriptOverlay $9365, $13', 'contact/script opcode'),
             ('ContactPointerScriptOverlay $9364, $12', 'contact/script operand'),
             ('AudioNoteBogusOverlay $01, $05, $24', 'audio/script opcode'),

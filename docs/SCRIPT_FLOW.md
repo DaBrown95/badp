@@ -130,3 +130,7 @@ The possible `$EC20` command sequence branches to the existing `$EC2B` script.
 Its known predecessors arise in speculative static paths, including possible
 script decodes over native-code bytes. The sequence is represented as a
 candidate; no runtime entry or descriptor association is established.
+
+At `$E01A` and `$E023`, two possible nine-byte voice-pointer commands share
+bytes with candidate mode-2 slot records. The source checks both layouts and
+also records the unresolved alternative script boundaries inside those ranges.

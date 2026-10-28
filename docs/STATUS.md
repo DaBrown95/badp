@@ -351,7 +351,7 @@ ignored `analysis/us-v1.5/prg-inventory.json`.
 `make audio-flow` follows literal voice starts in reconstructed commands and the
 native opcode-$18 start. It models both loop outcomes, stops at voice-stop
 commands and follows the restore-to-start-plus-one path. The current static
-walk has 47 starts, 851 command contexts and 1,443 distinct physical bytes,
+walk has 52 starts, 1,303 command contexts and 1,677 distinct physical bytes,
 with no conflicting decodes or five-byte fetches crossing a bank. All 706 bytes
 used by the existing audio trace also occur in these candidate paths.
 Indexed or otherwise dynamic starts and unobserved playback remain open; the
@@ -1221,3 +1221,21 @@ including paths through bytes otherwise represented as native code; no runtime
 entry is established. Its command forms and emitted bytes are represented,
 but this is weaker evidence than an observed script entry. Each added extent
 has a changed-source control.
+
+Two candidate mode-2 slot records at `$E01A` and `$E023` share all nine bytes
+with possible BOGUS voice-pointer commands. The source asserts the word layout
+of both interpretations. Other possible script starts within those bytes
+remain unresolved, including `$E01B`, `$E020` and `$E029`. For candidate record
+`$E106`, only the resource pointer and five mode-2 fields are represented;
+the intervening two bytes remain local. All three associations are static
+candidates, not evidence of execution. The added source has per-extent
+changed-source controls and synthetic consistency checks.
+
+The audio inventory now reads voice pointers from the shared audio/script and
+record/voice forms as well as direct commands. It validates each overlay's
+fields and note encoding before accepting its literal starts. Five additional
+starts add 234 candidate audio bytes: 230 overlap existing source around
+`$B12C-$B1BE` and `$B835-$B887`, while four at `$CA3F-$CA42` overlap locally
+supplied packed-text data. These are conditional static decodes, not evidence
+of audio playback or of a particular bank mapping. No additional bytes are
+credited as reconstructed source by the inventory change.

@@ -38,7 +38,7 @@ their assumed descriptor associations and interpretations remain unverified.
 The overlaps do not establish which path actually executes.
 A separate `make direct-record-flow` walk seeds every named bank-1 script
 entry and checks direct `$16` targets against the resulting script graph.
-The latest scan starts from 1,836 named candidate script entries and finds 28
+The latest scan starts from 1,838 named candidate script entries and finds 28
 possible direct-load commands with 26 distinct direct targets. Its widened
 walk contains 9,072 bytes with overlapping script decodes and 72 possible
 record/script overlap bytes. The added entries are candidate contexts, so
@@ -189,3 +189,9 @@ last three visual fields overlap the existing `$DA46` record. Candidate
 contact pointers at `$DA50`, `$E012` and `$E0FE` also decode as BOGUS commands,
 and the source asserts both interpretations. The `$DB64` mode-1 flag is
 represented separately. These static descriptor associations remain unverified.
+
+The candidate mode-2 records at `$E01A` and `$E023` can also decode as BOGUS
+voice-pointer commands. Their source asserts both nine-byte layouts; additional
+possible script entry points inside them remain unresolved. The `$E106` record
+represents only fields read in mode 2, leaving the two intervening bytes local.
+Descriptor associations and execution are unverified.
