@@ -78,6 +78,11 @@ and unreviewed handlers stop their paths. The walker rejects malformed lengths,
 records that cross the physical bank boundary and invalid input, and reports
 physical-byte overlaps and any nodes left by its traversal limit.
 
+`make indexed-jump-inventory` also records the 128 possible physical-bank-1
+read positions for `$B62C`, `$D48F` and `$E71C`, with predecessor-scoped entries
+and candidate target ownership separated. The physical mapping and any use of
+independent-entry indices remain unproven.
+
 An earlier bounded walk of the pinned v1.5 input found 1,941 candidate commands
 starting from the descriptor-derived entries, with 38 nodes stopping at dynamic
 or unreviewed handlers and no physical-byte overlaps. Those are static candidates,

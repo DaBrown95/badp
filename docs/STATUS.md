@@ -344,7 +344,7 @@ in these inventories; that number is not a count of remaining code. The report
 also retains 7,633 possible map/script overlap bytes and 858 possible record/script
 overlap bytes across the combined inventories. The expanded field-setter walk
 introduces many speculative competing decodes; it does not establish their
-reachability. It also reports 7,529 source-owned bytes covered by candidate
+reachability. It also reports 7,534 source-owned bytes covered by candidate
 data uses, which can include compatible uses as well as competing ones. The
 report records its input identities and writes metadata only to
 ignored `analysis/us-v1.5/prg-inventory.json`.
@@ -1326,3 +1326,19 @@ The graph's `$B62C`, `$D48F` and `$E71C` index counts are now explicitly
 marked as predecessor-conditioned and incomplete for independent entry. The
 same table bytes and candidate edges remain in the inventory; this change does
 not claim that other targets execute or add source ownership.
+
+The candidate `$F00F` interaction path can also reach the negative-mode load
+at `$F009` with descriptor base `$EF48`. Its target `$EF45` is now represented
+as a compact record; the `$0000` resource pointer may select map data. The
+same interaction path's `$F156` command can read one field each at `$EED9`
+and `$EF1B` from candidate records based at `$EED2` and `$EF14`; those bytes
+are also skipped low bytes of neighboring contact records. All of these
+descriptor/path associations remain static candidates.
+
+`make indexed-jump-inventory` now inventories all 128 distinct read positions
+at each of the three predecessor-bounded sites as well as `$F434`. Outside the
+predecessor ranges, 5 of 117 reads at `$B62C` and 41 of 124 at `$D48F` touch
+locally included bytes; all 120 at `$E71C` read source-owned bytes. Under the
+candidate encoded-bank mapping, some resulting words point into native source,
+script/data source or local regions. These are possible indexed reads and
+candidate targets, not evidence that independent entries or targets execute.

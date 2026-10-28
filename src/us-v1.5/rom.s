@@ -22438,7 +22438,10 @@ OverlayScriptEECD:
 SlotRuntimeEED0:
     SlotRuntimeRecord $C7D5, $6EE2, $00, $00, $20, $D9, $11 ; CONTROL_SLOT_RUNTIME_EED0
 .assert (* - BankStart) = $6ED9, error, "bank 1 slot record EED0 end"
-    .incbin "bank1_eed9_eeda.bin"
+; Candidate mode-zero record at $EED2 reads this field; it is also the
+; skipped low resource byte of the adjacent contact record.
+CandidateRecordEED2Field6B:
+    .byte $FF ; CONTROL_RECORD_EED2_FIELD6B
 ; Possible contact for descriptor base $EED0; execution remains unverified.
 ReviewedContactEED9:
     .byte $FF ; CONTROL_REVIEWED_CONTACT_EED9
@@ -22493,7 +22496,10 @@ ContextRecordEF0F:
 SlotRuntimeEF12:
     SlotRuntimeRecord $C397, (ScriptEFE9 - BankStart), $00, $FF, $00, $00, $00 ; CONTROL_SLOT_RUNTIME_EF12
 .assert (* - BankStart) = $6F1B, error, "bank 1 slot record EF12 end"
-    .incbin "bank1_ef1b_ef1c.bin"
+; Candidate mode-zero record at $EF14 reads this field; it is also the
+; skipped low resource byte of the adjacent contact record.
+CandidateRecordEF14Field6B:
+    .byte $FF ; CONTROL_RECORD_EF14_FIELD6B
 ; Possible contact for descriptor base $EF12; execution remains unverified.
 ReviewedContactEF1B:
     .byte $FF ; CONTROL_REVIEWED_CONTACT_EF1B
@@ -22531,7 +22537,11 @@ ReviewedContactEF3F:
     .byte $FF ; CONTROL_REVIEWED_CONTACT_EF3F
     .word InteractionScriptF00F - BankStart
 .assert (* - BankStart) = $6F43, error, "bank 1 candidate contact ef3f end"
-    .incbin "bank1_ef43_ef48.bin"
+    .incbin "bank1_ef43_ef45.bin"
+; Candidate negative-mode load at $F009 for descriptor $EF48. The resource
+; pointer can also select map data; neither use is established by this path.
+CompactContextEF45:
+    SlotCompactRecord $0000, $00 ; CONTROL_COMPACT_CONTEXT_EF45
 ; Descriptor-linked slot record; resource data remains local.
 SlotRuntimeEF48:
     SlotRuntimeRecord $BA23, (ScriptEF87 - BankStart), $00, $00, $20, $D9, $11 ; CONTROL_SLOT_RUNTIME_EF48

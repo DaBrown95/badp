@@ -1,7 +1,7 @@
 """Synthetic checks for the controlled indexed-jump inventory."""
 import unittest
 
-from tools.indexed_jump_inventory import field_value, indexed_address, inspect_entries, parse_probe
+from tools.indexed_jump_inventory import field_value, indexed_address, inspect_entries, parse_probe, summarize_entries
 
 
 def observations(kind):
@@ -58,12 +58,38 @@ class IndexedJumpInventoryTests(unittest.TestCase):
         self.assertEqual(rows[0]['cpu_read'], '0x8100')
         self.assertEqual(rows[0]['physical_prg_offset'], 0x8100)
         self.assertEqual(rows[0]['encoded_target'], '0x1234')
+        self.assertEqual(rows[0]['candidate_target_location']['bank'], 1)
+        self.assertEqual(rows[0]['candidate_target_source_kind'], 'local')
         self.assertEqual(rows[0]['source_kinds'], ['data'])
-        self.assertTrue(rows[0]['within_three_source_entries'])
+        self.assertTrue(rows[0]['within_structured_entries'])
         self.assertEqual(rows[1]['candidate_map_layout_bytes'], 2)
         self.assertEqual(rows[1]['source_kinds'], ['local'])
-        self.assertTrue(rows[31]['preceded_by_selector_candidate'])
-        self.assertFalse(rows[32]['preceded_by_selector_candidate'])
+        self.assertTrue(rows[31]['within_predecessor_scope'])
+        self.assertFalse(rows[32]['within_predecessor_scope'])
+        other = inspect_entries(bytes(bank), regions, [(0x102, 2)], base=0x100,
+                                predecessor_count=2, source_entry_count=1, chunks=((0x102, 2),))
+        self.assertTrue(other[1]['within_predecessor_scope'])
+        self.assertFalse(other[2]['within_predecessor_scope'])
+        self.assertFalse(other[1]['within_structured_entries'])
+        self.assertEqual(other[1]['candidate_map_chunk_bytes'], 2)
+        bank[0x104:0x106] = bytes([0x02, 0x81])
+        other = inspect_entries(bytes(bank), regions, [], base=0x100)
+        self.assertEqual(other[2]['candidate_target_location']['bank'], 0)
+        self.assertEqual(other[2]['candidate_target_source_kind'], 'code')
+        summary = summarize_entries(other)
+        self.assertEqual(summary['outside_predecessor_entries'], 96)
+        self.assertEqual(sum(summary['outside_candidate_target_kinds'].values()), 96)
+        with self.assertRaisesRegex(ValueError, 'incomplete'):
+            summarize_entries(other[:-1])
+        for count in (0, 129, True):
+            with self.subTest(count=count), self.assertRaises(ValueError):
+                inspect_entries(bytes(bank), [], [], predecessor_count=count)
+        for count in (-1, 129, True):
+            with self.subTest(count=count), self.assertRaises(ValueError):
+                inspect_entries(bytes(bank), [], [], source_entry_count=count)
+        for span in ((-1, 1), (0x7fff, 2), (0, 0), (True, 1)):
+            with self.subTest(span=span), self.assertRaisesRegex(ValueError, 'map span'):
+                inspect_entries(bytes(bank), [], [span])
         with self.assertRaises(ValueError):
             inspect_entries(bytes(bank), [], [], base=0x7fff)
         with self.assertRaises(ValueError):
