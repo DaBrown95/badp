@@ -24,6 +24,21 @@ INVENTORY_INPUTS = ('tools/native_script_calls.py', 'tools/native_control_flow.p
                     'tools/verify_native_opcodes.py')
 
 
+def call_contract(operand: int) -> dict:
+    """Conditional wrapper contract; neither mapper inputs nor helper return is proven.
+
+    The pushed high byte is ORed before RTS increments the complete address.
+    The low encoded form selects the secondary mapping, including $7FFF.
+    A helper returning normally reaches RestoreDefaultBank before its caller.
+    """
+    if type(operand) is not int or not 0 <= operand <= 0xffff:
+        raise ValueError('invalid encoded native-call operand')
+    return {'target_cpu': f'0x{((operand | 0x8000) + 1) & 0xffff:04x}',
+            'target_bank_rule': ('secondary_mapper_write' if operand < 0x8000 else 'current_mapping'),
+            'normal_return_bank_rule': 'default_mapper_write',
+            'requires_normal_helper_return': True}
+
+
 def origin_statements(debug: str, source: str, addresses: set[tuple[int, int]]) -> dict:
     """Find the smallest source-associated span containing each candidate opcode.
 
@@ -119,11 +134,13 @@ def inventory(graph: dict, bank0: bytes, bank1: bytes, debug: str, source: str,
         operand = raw[1] | raw[2] << 8
         # The wrapper sets bit 7 of the high byte, pushes the address and
         # executes RTS. Increment after the OR, including the $FFFF wrap.
-        target = ((operand | 0x8000) + 1) & 0xffff
+        contract = call_contract(operand)
+        target = int(contract['target_cpu'], 0)
         calls.append({'script_pointer': f'0x{encoded:04x}', 'origin_bank': bank,
                       'origin_cpu': f'0x{cpu:04x}', 'encoded_operand': f'0x{operand:04x}',
                       'target_cpu': f'0x{target:04x}',
                       'selection': 'secondary_write' if operand < 0x8000 else 'current_mapping',
+                      'conditional_wrapper_contract': contract,
                       'graph_status': node['status'],
                       'parents': [{'script_pointer': p, 'edge': k}
                                   for p, k in sorted(parents[node['encoded_pointer']])]})
@@ -151,7 +168,9 @@ def inventory(graph: dict, bank0: bytes, bank1: bytes, debug: str, source: str,
             'interpretation': 'Candidate graph decodes and physical-bank alternatives only. Span starts '
                               'are legacy debug-span classifications; target_instruction_starts uses the complete checked instruction map. '
                               'Source-origin classification distinguishes declared calls from incidental decodes, without excluding '
-                              'conditional execution. Mapper state, call return and runtime reachability are not established.'}
+                              'conditional execution. Each wrapper contract states the selection and normal-return rules, '
+                              'conditional on mapper inputs and an ordinary helper RTS. Actual mapper state, helper return '
+                              'and runtime reachability for a candidate are not established.'}
 
 
 def main() -> int:

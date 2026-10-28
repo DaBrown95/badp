@@ -2333,3 +2333,49 @@ of physical PRG). The ten local bytes, conditional indexed-script paths,
 non-ROM resource contexts, mapper questions and overall source-inventory review
 remain open; none is cleared by an instruction-boundary check. The other five
 releases still require their own builds and evidence.
+
+## Conditional banked native-call return contract
+
+The candidate-call inventory now separates the wrapper's conditional rules
+from the unresolved state of each candidate. An encoded high byte below `$80`
+causes a secondary mapper write before the call; a high byte at least `$80`
+keeps the current mapping. The wrapper pushes the high byte ORed with `$80`
+and the low byte, then RTS increments the complete address. Both `$7FFF` and
+`$FFFF` therefore target CPU `$0000`, with different selection rules. The
+synthetic contract test checks all 65,536 operands, including these aliases.
+It does not infer that every operand occurs in play or that a wrapped target
+contains native code.
+
+After an ordinary helper RTS, execution continues through the shared wrapper
+and writes the configured default mapper value. It does not generally restore
+the mapping from which the wrapper was entered. The 25 declared candidate
+calls still name two targets: 24 retain the current mapping for the bank-0
+palette fade at `$B51C`, and one requests the secondary mapping for the bank-1
+packed-text decoder at `$BEEA`. Those source associations do not by themselves
+prove the mapping when a candidate executes. The ten incidental `$9B` decodes
+remain visible alongside these declared calls.
+
+`make verify-native-calls` injects 192 cases: both entry banks, both default
+and secondary mappings, both encoded forms of both named helper destinations
+and the wrapped target, two stack depths, and both helper-return mappings.
+At the computed target it substitutes a synthetic RAM mapper-write/RTS stub.
+The probe checks the target mapping, return-address stack bytes, continuation
+in either physical wrapper copy, mapper write addresses/values/ROM bytes,
+final default mapping, stack balance and preservation of the operand and
+script-pointer pair. No helper body is executed; this does not establish
+ordinary reachability, interrupt behavior or physical cartridge behavior.
+
+The proposed extra-column explanation for the first map's two suffix bytes
+was rejected by source review. `QueueMapTileRow` limits its length to the
+remaining map width before applying the 33-tile maximum. At the maximum valid
+horizontal viewport start, only 32 tiles remain. That argument does not
+justify treating `$F623-$F624` as extra grid cells. Existing lookahead evidence
+and comparative contexts remain useful, but their storage role stays open.
+
+This batch is closed at that scope. The 192 cases pass on each ROM, the full
+build passes all 2,086 source controls, and the 367-test suite plus final
+focused native-call tests pass. All six reference audits pass. The native
+inventory, candidate-call inventory, new probe and physical audit share the
+current proof. Source ownership and the five unresolved storage groups are
+unchanged. No further native-call probe expansion is required for acceptance
+unless a concrete reconstruction gap is identified.

@@ -7,6 +7,7 @@ export BADP_ROM = $(ROM)
 
 .PHONY: help setup setup-mesen targets identify audit audit-all build progress verify-gameplay verify-controller verify-audio-bank verify-record-boundary verify-record-overlaps verify-script-overlap verify-indexed-audio verify-sprite-shapes state-table-inventory indexed-jump-inventory native-control-flow native-script-calls position-records script-entries script-flow slot-record-flow contact-record-flow native-event-flow direct-record-flow packed-text ppu-streams trace-audio trace-audio-route audio-inventory audio-flow trace-sprites sprite-inventory map-data trace-map extract-chr-tiles extract-map-chunks extract-map-layouts extract-packed-text extract-sprite-frames extract-menu-tiles prg-inventory trace-runtime-extents runtime-extents test
 help:
+	@echo 'make verify-native-calls Check conditional native-call mapping and wrapper returns'
 	@echo 'make verify-orphan-loop Check injected movement, sound and loop branches'
 	@echo 'make verify-normal-records Check declared and fragmented views in their loader modes'
 	@echo 'make verify-script-only-records Check record-sentinel reads and skipped fields'
@@ -229,3 +230,7 @@ test:
 .PHONY: verify-orphan-loop
 verify-orphan-loop:
 	$(PYTHON) -m tools.verify_orphan_loop
+
+.PHONY: verify-native-calls
+verify-native-calls:
+	$(PYTHON) -m tools.verify_native_calls

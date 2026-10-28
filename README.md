@@ -177,8 +177,14 @@ short opening scenarios do not establish full gameplay completion or physical
 cartridge behaviour. The controller check also compares all eight button bits
 and simultaneous press/release handling on the reference and build.
 
+`make verify-native-calls` checks the banked native-call wrapper with injected
+operands, mappings and stack depths. It substitutes a mapper write and RTS at
+each computed target to check returns in either bank. It does not run the helper bodies
+or establish that those inputs occur during gameplay.
+
 | Command | Purpose |
 | --- | --- |
+| `make verify-native-calls` | Check injected native-call mapping, RTS targets and wrapper returns. |
 | `make help` | Show available commands. |
 | `make setup` | Download and build the pinned cc65 tools locally. |
 | `make setup-mesen` | Download the pinned optional MesenCE emulator locally. |
