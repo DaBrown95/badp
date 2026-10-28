@@ -8,6 +8,7 @@ from __future__ import annotations
 
 from collections import Counter
 import json
+import os
 from pathlib import Path
 import sys
 
@@ -20,7 +21,7 @@ from .progress import verify_primary
 from .project import IDENTITY_PARTS, load_project, load_target
 from .script_entries import BANK_SIZE, ROOT, load_audited_banks
 
-INPUTS = ('tools/source_audit.py', 'tools/map_assets.py', 'tools/map_layout_assets.py',
+INPUTS = ('tools/source_audit.py', 'tools/map_assets.py', 'tools/map_layout_assets.py', 'tools/asset_paths.py',
           'tools/inventory_review.py', 'config/inventory-review-us-v1.5.json',
           'tools/menu_assets.py', 'tools/palette_assets.py', 'tools/ppu_assets.py', 'tools/ppu_streams.py', 'config/ppu-streams-us-v1.5.json', 'config/palettes-us-v1.5.json', 'tools/sprite_assets.py', 'tools/text_assets.py',
           'config/sprite-frames-us-v1.5.json')
@@ -150,6 +151,17 @@ def compare_regions(primary: bytes, others: dict[str, bytes], regions: list[dict
 
 def main() -> int:
     try:
+        selected = os.environ.get('BADP_TARGET') or 'us-v1.5'
+        if selected != 'us-v1.5':
+            from .verify_variant import verify
+            from .variant_inventory import review
+            target = load_target(ROOT, selected)
+            verify(ROOT, target)
+            proof = json.loads((ROOT / 'build' / selected / 'proof.json').read_text())
+            result = review(ROOT, target, proof, (ROOT / target['input_path']).read_bytes())
+            print(json.dumps({'target': selected, 'representation_bytes': result['representation_bytes'],
+                              'inventory_review': result['inventory_review']}, indent=2))
+            return 0
         hashes = {name: digest((ROOT / name).read_bytes()) for name in INPUTS}
         combined = inventory()
         target, bank0, bank1, _ = load_audited_banks()

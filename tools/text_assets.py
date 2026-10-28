@@ -10,6 +10,7 @@ from __future__ import annotations
 import hashlib
 import json
 from pathlib import Path
+from .asset_paths import asset_path
 import sys
 
 from . import packed_text
@@ -31,11 +32,11 @@ def _records(prg: bytes) -> tuple[list[dict], bytes, bytes]:
     return records, primary, secondary
 
 
-def capture(prg: bytes, reference_sha256: str) -> dict:
+def capture(prg: bytes, reference_sha256: str, *, target: str = TARGET) -> dict:
     if not isinstance(reference_sha256, str) or len(reference_sha256) != 64:
         raise ValueError('invalid reference identity')
     records, _, _ = _records(prg)
-    return {'schema_version': 1, 'target': TARGET, 'reference_sha256': reference_sha256,
+    return {'schema_version': 1, 'target': target, 'reference_sha256': reference_sha256,
             'records': [{'index': r['index'], 'cpu': r['cpu_address'], 'text': r['text'],
                          'encoding_slots': r['tokens'], 'padding_bits': r['padding_bits'],
                          'padding_value': r['padding_value']} for r in records]}
@@ -73,10 +74,10 @@ def _edited_tokens(text: str, slots: list[dict], primary: bytes, secondary: byte
     return result
 
 
-def encode(asset: dict, prg: bytes, reference_sha256: str) -> list[tuple[int, int, bytes]]:
+def encode(asset: dict, prg: bytes, reference_sha256: str, *, target: str = TARGET) -> list[tuple[int, int, bytes]]:
     """Return 52 physical payload spans, leaving source-owned headers alone."""
     if (not isinstance(asset, dict) or set(asset) != {'schema_version', 'target', 'reference_sha256', 'records'}
-            or asset['schema_version'] != 1 or asset['target'] != TARGET
+            or asset['schema_version'] != 1 or asset['target'] != target
             or asset['reference_sha256'] != reference_sha256 or not isinstance(asset['records'], list)):
         raise ValueError('packed-text asset identity differs from the reference')
     originals, primary, secondary = _records(prg)
@@ -105,8 +106,8 @@ def serialize(asset: dict) -> bytes:
     return (json.dumps(asset, ensure_ascii=True, indent=2) + '\n').encode('utf-8')
 
 
-def select(root: Path, prg: bytes, reference_sha256: str) -> tuple[dict, list[tuple[int, int, bytes]], str, str]:
-    path = root / ASSET_PATH
+def select(root: Path, prg: bytes, reference_sha256: str, *, target: str = TARGET) -> tuple[dict, list[tuple[int, int, bytes]], str, str]:
+    path = root / asset_path(target, ASSET_PATH.name)
     if (root / 'extracted').is_symlink() or path.parent.is_symlink() or path.is_symlink():
         raise ValueError('refusing a symlinked packed-text input')
     if path.exists():
@@ -114,10 +115,10 @@ def select(root: Path, prg: bytes, reference_sha256: str) -> tuple[dict, list[tu
         asset = json.loads(raw)
         source = 'local'
     else:
-        asset = capture(prg, reference_sha256)
+        asset = capture(prg, reference_sha256, target=target)
         raw = serialize(asset)
         source = 'reference'
-    spans = encode(asset, prg, reference_sha256)
+    spans = encode(asset, prg, reference_sha256, target=target)
     return asset, spans, source, hashlib.sha256(raw).hexdigest()
 
 

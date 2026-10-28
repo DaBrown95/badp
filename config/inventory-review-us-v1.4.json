@@ -1,0 +1,468 @@
+{
+  "target": "us-v1.4",
+  "reference_sha256": "056b09204b785b1d8d1554af9c084312a7c33c6f88c75f190c42315dff44e86d",
+  "source_sha256": "2e2648953a5d6baf5fe683f513fa01d8634ef5419981e320abe73d84f74b49b4",
+  "source_map_sha256": "bcbf53c5515c9060b707d64d65b5ca34de8acb2da0b03bfb09f0ea6061dbbd39",
+  "schema_version": 1,
+  "review_input_sha256": {
+    "tools/variant_inventory.py": "faf55b243e144b8bb0267ee095c5618ac880e019463be4d2777e282eace4d400",
+    "tools/inventory_review.py": "a7a8329a8271f42e3adaf38dd96448b38198f9ca6d0cbaa880e341834270cb53",
+    "tools/source_audit.py": "c6e273f6dc095677c221879967104f212283f5db59b22b9da48ebf3bd04b9450",
+    "tools/prg_inventory.py": "d40cc9dca05ea5a95806cbf03d8f7a09bac9812cf45f46f5b3d4a43340635546",
+    "tools/direct_record_flow.py": "82d87c19801e45c45986a1da79ee12d35dbb6cac474a385af282bb6e5a7dcb32",
+    "tools/native_script_calls.py": "28daa83579d7ba99e7baace71f1b2e0d3474b92605ecb79e669b17bd5e932db1",
+    "tools/native_control_flow.py": "e7656e17a3f91182b6a7ee5b748beddbdd1cc00b3886f0aa962c6b4f3fb26b5c",
+    "tools/nes6502.py": "13cf9f639b839e06175dc3070cbd9c665baa443e6ee63d725a58b5af51441d8a",
+    "tools/record_views.py": "6a8d70478c75469016b417a2a80f74592a825e8f51b11d8d4d4fd483853d16f3",
+    "tools/script_entries.py": "46617bbb7c8147c3ec974ddcaa617d0352678c6df5a2b9376fb1f31d6870605a",
+    "tools/script_flow.py": "efb7d6e5c9ffb6fda65b929f49b51e958b35fe3e9962855b596e239f1832db35",
+    "tools/slot_record_flow.py": "224fe323e97fdd25e57a34dc8b9be9e130ef25da8fc9d2490982bde4495e3f7e",
+    "tools/audio_flow.py": "a50201f6c9c74f6625cd99b18284478b9107e4cc810c3a69cc74f220116d6e50",
+    "tools/audio_commands.py": "c3f348c5d70e9575a66a6be30e1e8f37dd3299df1120628fa5289e8ea3fa7d88"
+  },
+  "decisions": [
+    {
+      "id": "native-entry-and-transfers",
+      "kind": "mechanism",
+      "state": "closed",
+      "location": "Both PRG banks; vectors, direct transfers, dispatch and encoded RTS calls",
+      "unknown": "Original names and arbitrary RAM-generated destinations are not established.",
+      "completion_effect": "No missing routine is identified by the supported-entry inventory.",
+      "close_when": "All supported native entries and transfer mechanisms have readable matching implementations; classify concrete target gaps.",
+      "decision": "Closed: the target has 9,845 checked native instructions, all nominal handler and vector entries, and source for every physical code region. The reset prefix is an explicit variant. Declared calls have supported physical instruction starts; incidental calls and extra dispatch indices retain conditional interpretations rather than creating invented routines.",
+      "evidence": [
+        {
+          "path": "analysis/us-v1.4/review-evidence/proof.json",
+          "sha256": "21fd2bdd7a94993846af25d4587e1803f4c2bc944b6c96e912cc504f613e4d3b",
+          "scope": "Own complete decoded-asset build, all source/symbol controls and eight asset edits."
+        },
+        {
+          "path": "analysis/us-v1.4/review-evidence/inventory-development.json",
+          "sha256": "540a374822739ece6619cdae632daf6309404385edc00353a5e5cf151def571f",
+          "scope": "Own complete physical partition with source, local assets and competing script/record/audio uses."
+        },
+        {
+          "path": "analysis/us-v1.4/review-evidence/native-inventory.json",
+          "sha256": "052f21a38d6ce586e67a526fd797a2454692f757b4d8f03d64c0de2ade61206a",
+          "scope": "All target instructions, entry boundaries, vectors and direct transfers."
+        },
+        {
+          "path": "analysis/us-v1.4/review-evidence/dispatch-inventory.json",
+          "sha256": "becab4be045a30be74c528dda6fb6516e74156b1df548a2ecd83ee3edac78d46",
+          "scope": "All 197 nominal dispatch destinations and all 256 conditional indices in the actual target."
+        },
+        {
+          "path": "analysis/us-v1.4/review-evidence/native-script-calls.json",
+          "sha256": "7bae56e984f83b7b871fa6addb31d4f79cb7020e113508bb1ee99f563434395f",
+          "scope": "25 declared calls versus incidental record/script interpretations; actual target operands and bank boundaries."
+        }
+      ]
+    },
+    {
+      "id": "bank-transitions",
+      "kind": "mechanism",
+      "state": "closed",
+      "location": "Shared reset/NMI/copy/native-call tails; mapper write table",
+      "unknown": "Physical cartridge details beyond the pinned evidence remain provisional.",
+      "completion_effect": "No missing source is exposed by measured transitions.",
+      "close_when": "Represent bank-selection writes, conflicts, reset and interrupt transitions; retain unsupported hardware uncertainty.",
+      "decision": "Closed for reconstruction: the shared wrapper/copy/loader/mapper/reset-tail code is byte-identical to the reviewed rules, while v1.4 reset and NMI destinations have their own source and target control evidence. No primary gameplay result is credited to v1.4. Physical-cartridge details remain provisional.",
+      "evidence": [
+        {
+          "path": "analysis/us-v1.4/review-evidence/proof.json",
+          "sha256": "21fd2bdd7a94993846af25d4587e1803f4c2bc944b6c96e912cc504f613e4d3b",
+          "scope": "Own complete decoded-asset build, all source/symbol controls and eight asset edits."
+        },
+        {
+          "path": "analysis/us-v1.4/review-evidence/inventory-development.json",
+          "sha256": "540a374822739ece6619cdae632daf6309404385edc00353a5e5cf151def571f",
+          "scope": "Own complete physical partition with source, local assets and competing script/record/audio uses."
+        },
+        {
+          "path": "analysis/us-v1.4/review-evidence/acceptance-context.json",
+          "sha256": "cc17283235eb30d1a038207838d9a6a0a104e556e56b0c36d079c357f04ae4db",
+          "scope": "Twenty byte-identical shared wrapper, mapper, copy, record-fetch and reset-tail regions; scope excludes relocated NMI target operands."
+        },
+        {
+          "path": "analysis/us-v1.4/review-evidence/native-inventory.json",
+          "sha256": "052f21a38d6ce586e67a526fd797a2454692f757b4d8f03d64c0de2ade61206a",
+          "scope": "Own NMI target operands, cross-bank transfers and all mapper-writing instructions."
+        },
+        {
+          "path": "src/variants/reset-us-v1.4.inc",
+          "sha256": "d420ea22d3a4b29c9220ed1b1a3488c48715c1759a22a2686d0a3ae95f40df9e",
+          "scope": "Own readable reset state flow, self-ROM mapper writes and preserved original countdown bug."
+        },
+        {
+          "path": "docs/CARTRIDGE_EVIDENCE.md",
+          "sha256": "e01fc42161cca3792191eb5f03cd69b89dd532e6fbdaf6f9cf06c4b8a116234c",
+          "scope": "Hardware evidence and uncertainty boundaries; no hardware conclusion from the header alone."
+        }
+      ]
+    },
+    {
+      "id": "bogus-successors",
+      "kind": "mechanism",
+      "state": "closed",
+      "location": "197 nominal handlers; declared scripts, slot/event roots and indexed successors",
+      "unknown": "Dynamic restored pointers, indexed stack writes and independent arbitrary-state entries remain conditional.",
+      "completion_effect": "These mechanisms have reconstructed implementations; candidate-only paths do not identify an opaque executable inclusion.",
+      "close_when": "Account for each handler and supported successor mechanism, and reconstruct any concrete newly identified executable region.",
+      "decision": "Closed: source-declared roots, 197 implemented handler mechanisms and target successor/record relationships are represented. The finite target graph has no unprocessed nodes. Dynamic and out-of-table candidate decodes remain conditional and expose no opaque source region. Eight relocated primary incidental aliases are explicitly not promoted to v1.4 command entries.",
+      "evidence": [
+        {
+          "path": "analysis/us-v1.4/review-evidence/proof.json",
+          "sha256": "21fd2bdd7a94993846af25d4587e1803f4c2bc944b6c96e912cc504f613e4d3b",
+          "scope": "Own complete decoded-asset build, all source/symbol controls and eight asset edits."
+        },
+        {
+          "path": "analysis/us-v1.4/review-evidence/inventory-development.json",
+          "sha256": "540a374822739ece6619cdae632daf6309404385edc00353a5e5cf151def571f",
+          "scope": "Own complete physical partition with source, local assets and competing script/record/audio uses."
+        },
+        {
+          "path": "analysis/us-v1.4/review-evidence/script-flow.json",
+          "sha256": "ef38967f929213fd13892796c8754f1d49a88d4bc0cc4084bb6ff1c1f5a2dac0",
+          "scope": "Own candidate decodes from relocated logical source roots, including explicit dynamic stops and successor mechanisms."
+        },
+        {
+          "path": "analysis/us-v1.4/review-evidence/direct-record-flow.json",
+          "sha256": "add4dcc6681e00815d47da6c005a27210765a0808d44460b77f49ea1cceebcec",
+          "scope": "Actual direct record operands and conditional relationships."
+        },
+        {
+          "path": "analysis/us-v1.4/review-evidence/script-entries.json",
+          "sha256": "6322dcaaf1d00e2d6b9c9043f7c835d8adc9acbcb37555eebc55ae42f85af7c2",
+          "scope": "Actual 114 descriptors and 84 record entries."
+        },
+        {
+          "path": "tools/script_flow.py",
+          "sha256": "efb7d6e5c9ffb6fda65b929f49b51e958b35fe3e9962855b596e239f1832db35",
+          "scope": "Shared native-backed command and successor rules, with explicit conditional limits."
+        },
+        {
+          "path": "tools/source_variants.py",
+          "sha256": "24515a9a87c09651a0d568fdd08e4e1e6b672bc532dd0642b09f735519e5a616",
+          "scope": "Typed source relocation and the primary incidental opcode assertions not transferred."
+        }
+      ]
+    },
+    {
+      "id": "slot-resources",
+      "kind": "mechanism",
+      "state": "closed",
+      "location": "Descriptors, normal/script-only/compact records, position streams and sprite directories",
+      "unknown": "Object roles and ordinary reachability of every candidate resource are unproven.",
+      "completion_effect": "No missing resource format is identified by out-of-range or non-ROM arbitrary contexts.",
+      "close_when": "Represent supported record field selection and resource formats; identify a concrete unrepresented valid resource if any.",
+      "decision": "Closed: the target record fields, descriptor references, sprite directory and frame extents are represented and re-encoded at their actual locations. Typed resource relocations preserve both compact records at the six-byte DA40 prefix; the zero-mode normal view remains conditional. An old opcode assertion is not carried where its resource byte changes.",
+      "evidence": [
+        {
+          "path": "analysis/us-v1.4/review-evidence/proof.json",
+          "sha256": "21fd2bdd7a94993846af25d4587e1803f4c2bc944b6c96e912cc504f613e4d3b",
+          "scope": "Own complete decoded-asset build, all source/symbol controls and eight asset edits."
+        },
+        {
+          "path": "analysis/us-v1.4/review-evidence/inventory-development.json",
+          "sha256": "540a374822739ece6619cdae632daf6309404385edc00353a5e5cf151def571f",
+          "scope": "Own complete physical partition with source, local assets and competing script/record/audio uses."
+        },
+        {
+          "path": "analysis/us-v1.4/review-evidence/record-views.json",
+          "sha256": "0529a7e5e27b8abe9118aaabe24ce7f7ece5c86a46108a8c9ee1e4651cefff2e",
+          "scope": "Own 382 supported normal/compact record views, including fragmented and overlapping interpretations."
+        },
+        {
+          "path": "analysis/us-v1.4/review-evidence/script-entries.json",
+          "sha256": "6322dcaaf1d00e2d6b9c9043f7c835d8adc9acbcb37555eebc55ae42f85af7c2",
+          "scope": "Actual descriptor/resource relationships."
+        },
+        {
+          "path": "tools/variant_assets.py",
+          "sha256": "70920dfc9172539734f51ca2cc208dc18723910eaa8b1855f79e4b9740bb165b",
+          "scope": "Typed target locations for validated sprite directory/frame and palette/PPU format manifests."
+        },
+        {
+          "path": "tools/source_variants.py",
+          "sha256": "24515a9a87c09651a0d568fdd08e4e1e6b672bc532dd0642b09f735519e5a616",
+          "scope": "Resource pointer namespace and split/paired compact-record relocation; absolute text, RAM and PPU addresses remain distinct."
+        }
+      ]
+    },
+    {
+      "id": "audio",
+      "kind": "mechanism",
+      "state": "closed",
+      "location": "Voice state, command decoder, tables and isolated streams",
+      "unknown": "Musical intent and every possible injected voice pointer are not established.",
+      "completion_effect": "No concrete missing audio executable is identified.",
+      "close_when": "Represent the command engine and supported audio streams, keeping data/command overlaps.",
+      "decision": "Closed: the actual target audio engine, tables, command forms and candidate streams have readable source and complete byte controls. The primary voice-opcode interpretations at E01A/E023 no longer hold after resource relocation; the actual record representation is retained. Arbitrary injected voice pointers do not identify a missing implementation.",
+      "evidence": [
+        {
+          "path": "analysis/us-v1.4/review-evidence/proof.json",
+          "sha256": "21fd2bdd7a94993846af25d4587e1803f4c2bc944b6c96e912cc504f613e4d3b",
+          "scope": "Own complete decoded-asset build, all source/symbol controls and eight asset edits."
+        },
+        {
+          "path": "analysis/us-v1.4/review-evidence/inventory-development.json",
+          "sha256": "540a374822739ece6619cdae632daf6309404385edc00353a5e5cf151def571f",
+          "scope": "Own complete physical partition with source, local assets and competing script/record/audio uses."
+        },
+        {
+          "path": "analysis/us-v1.4/review-evidence/audio-flow.json",
+          "sha256": "69052603e6d9f5df199ec2386a38fe4ba72867cc5763d4a766b0608a1ae2d4b1",
+          "scope": "Actual target audio bytes from 52 supported literal starts; 1,303 candidate nodes, no unprocessed nodes or crossing fetches."
+        },
+        {
+          "path": "tools/audio_commands.py",
+          "sha256": "c3f348c5d70e9575a66a6be30e1e8f37dd3299df1120628fa5289e8ea3fa7d88",
+          "scope": "Shared decoded command forms and widths."
+        },
+        {
+          "path": "tools/audio_flow.py",
+          "sha256": "a50201f6c9c74f6625cd99b18284478b9107e4cc810c3a69cc74f220116d6e50",
+          "scope": "Successor and loop rules; ordinary reachability is not asserted."
+        }
+      ]
+    },
+    {
+      "id": "asset-formats",
+      "kind": "mechanism",
+      "state": "closed",
+      "location": "CHR and local map/text/menu/palette/PPU/sprite assets",
+      "unknown": "Artistic meaning and exclusive use are not requirements.",
+      "completion_effect": "All local asset bytes have controlled deterministic encodings; five storage groups remain separate.",
+      "close_when": "Account for each necessary local input with understood encoding and meaningful edit control, without code credit.",
+      "decision": "Closed: all 20,234 local PRG bytes and all CHR bytes rebuild through the eight shared decoded formats using the actual target geometry. No raw-gap fallback is used by the full build. Meaningful edits are assembled and rejected. Assets receive no source credit; retained storage is separate.",
+      "evidence": [
+        {
+          "path": "analysis/us-v1.4/review-evidence/proof.json",
+          "sha256": "21fd2bdd7a94993846af25d4587e1803f4c2bc944b6c96e912cc504f613e4d3b",
+          "scope": "Own complete decoded-asset build, all source/symbol controls and eight asset edits."
+        },
+        {
+          "path": "analysis/us-v1.4/review-evidence/inventory-development.json",
+          "sha256": "540a374822739ece6619cdae632daf6309404385edc00353a5e5cf151def571f",
+          "scope": "Own complete physical partition with source, local assets and competing script/record/audio uses."
+        },
+        {
+          "path": "tools/variant_assets.py",
+          "sha256": "70920dfc9172539734f51ca2cc208dc18723910eaa8b1855f79e4b9740bb165b",
+          "scope": "Every local gap is encoded from validated formats, rejecting uncovered bytes and conflicting overlapping views."
+        },
+        {
+          "path": "tools/verify_variant.py",
+          "sha256": "7a2ff399a56be67d8594721ec98db67df314afe90e6538e965a9a3accfeb9efa",
+          "scope": "Current positive build and all source/symbol/asset control artifacts must remain valid."
+        },
+        {
+          "path": "config/variants/us-v1.4.json",
+          "sha256": "22dbccd325d3de74a0be088ce783317e6cda6ea96e07476d6a0c912ce02bf810",
+          "scope": "Explicit physical geometry and menu extent differences; local inputs have their own target identity."
+        }
+      ]
+    },
+    {
+      "id": "storage-d75d",
+      "kind": "storage",
+      "state": "closed",
+      "location": "Bank 1 $D75D-$D75D",
+      "unknown": "Original intended use remains unknown. The accepted representation assigns no padding, artwork, extra-field or instruction format.",
+      "completion_effect": "Closed: explicit retained data outside the bounded adjacent command/payload/grid; no opaque executable inclusion identified.",
+      "close_when": "Use consumers and comparative context to adopt an explicit supported storage representation, or identify and reconstruct a real alternate use.",
+      "decision": "Accept retained script-adjacent storage, not a one-byte command. The two-byte load consumes only D75B-D75C; reviewed descriptor contexts install script $00FF, and D75E is the next known entry. The same eleven-byte command/trailer/context survives v1.1-v1.4. Independent arbitrary-state entry remains conditional and does not identify a missing implementation. This v1.4 decision uses its own assembled representation, consumer boundaries and preserved local context; no v1.5 gameplay observation is transferred.",
+      "evidence": [
+        {
+          "path": "analysis/us-v1.4/review-evidence/proof.json",
+          "sha256": "21fd2bdd7a94993846af25d4587e1803f4c2bc944b6c96e912cc504f613e4d3b",
+          "scope": "Own complete decoded-asset build, all source/symbol controls and eight asset edits."
+        },
+        {
+          "path": "analysis/us-v1.4/review-evidence/inventory-development.json",
+          "sha256": "540a374822739ece6619cdae632daf6309404385edc00353a5e5cf151def571f",
+          "scope": "Own complete physical partition with source, local assets and competing script/record/audio uses."
+        },
+        {
+          "path": "analysis/us-v1.4/review-evidence/acceptance-context.json",
+          "sha256": "cc17283235eb30d1a038207838d9a6a0a104e556e56b0c36d079c357f04ae4db",
+          "scope": "Own exact storage values and adjacent context; separately scoped unchanged native consumer rules."
+        },
+        {
+          "path": "analysis/us-v1.4/review-evidence/record-views.json",
+          "sha256": "0529a7e5e27b8abe9118aaabe24ce7f7ece5c86a46108a8c9ee1e4651cefff2e",
+          "scope": "Actual normal and compact boundaries; conditional uses remain visible."
+        },
+        {
+          "path": "tools/variant_assets.py",
+          "sha256": "70920dfc9172539734f51ca2cc208dc18723910eaa8b1855f79e4b9740bb165b",
+          "scope": "Actual menu and map extents derived from the target command/table operands."
+        }
+      ],
+      "bank": 1,
+      "cpu": 55133,
+      "size": 1
+    },
+    {
+      "id": "storage-eb08",
+      "kind": "storage",
+      "state": "closed",
+      "location": "Bank 1 $EB08-$EB09",
+      "unknown": "Original purpose of the two retained bytes is unknown; no extra record-field semantics are claimed.",
+      "completion_effect": "Closed: storage is explicit source data, separate from both adjacent records; no opaque executable inclusion remains here.",
+      "close_when": "Use consumers and comparative context to adopt an explicit supported storage representation, or identify and reconstruct a real alternate use.",
+      "decision": "Accept separate retained record-tail storage. Existing loader evidence establishes nine selected bytes plus first-byte lookahead; comparative v1.1-v1.4 contexts preserve both bytes between independently identified records after resource relocation. Do not label padding or extend the record to eleven bytes. Conditional script overlaps remain visible. This v1.4 decision uses its own assembled representation, consumer boundaries and preserved local context; no v1.5 gameplay observation is transferred.",
+      "evidence": [
+        {
+          "path": "analysis/us-v1.4/review-evidence/proof.json",
+          "sha256": "21fd2bdd7a94993846af25d4587e1803f4c2bc944b6c96e912cc504f613e4d3b",
+          "scope": "Own complete decoded-asset build, all source/symbol controls and eight asset edits."
+        },
+        {
+          "path": "analysis/us-v1.4/review-evidence/inventory-development.json",
+          "sha256": "540a374822739ece6619cdae632daf6309404385edc00353a5e5cf151def571f",
+          "scope": "Own complete physical partition with source, local assets and competing script/record/audio uses."
+        },
+        {
+          "path": "analysis/us-v1.4/review-evidence/acceptance-context.json",
+          "sha256": "cc17283235eb30d1a038207838d9a6a0a104e556e56b0c36d079c357f04ae4db",
+          "scope": "Own exact storage values and adjacent context; separately scoped unchanged native consumer rules."
+        },
+        {
+          "path": "analysis/us-v1.4/review-evidence/record-views.json",
+          "sha256": "0529a7e5e27b8abe9118aaabe24ce7f7ece5c86a46108a8c9ee1e4651cefff2e",
+          "scope": "Actual normal and compact boundaries; conditional uses remain visible."
+        },
+        {
+          "path": "tools/variant_assets.py",
+          "sha256": "70920dfc9172539734f51ca2cc208dc18723910eaa8b1855f79e4b9740bb165b",
+          "scope": "Actual menu and map extents derived from the target command/table operands."
+        }
+      ],
+      "bank": 1,
+      "cpu": 60168,
+      "size": 2
+    },
+    {
+      "id": "storage-eb8f",
+      "kind": "storage",
+      "state": "closed",
+      "location": "Bank 1 $EB8F-$EB90",
+      "unknown": "Original purpose of the two retained bytes is unknown; no extra record-field semantics are claimed.",
+      "completion_effect": "Closed: storage is explicit source data, separate from both adjacent records; no opaque executable inclusion remains here.",
+      "close_when": "Use consumers and comparative context to adopt an explicit supported storage representation, or identify and reconstruct a real alternate use.",
+      "decision": "Accept separate retained record-tail storage. Existing loader evidence establishes nine selected bytes plus first-byte lookahead; comparative v1.1-v1.4 contexts preserve both bytes between independently identified records after resource relocation. Do not label padding or extend the record to eleven bytes. Conditional script overlaps remain visible. This v1.4 decision uses its own assembled representation, consumer boundaries and preserved local context; no v1.5 gameplay observation is transferred.",
+      "evidence": [
+        {
+          "path": "analysis/us-v1.4/review-evidence/proof.json",
+          "sha256": "21fd2bdd7a94993846af25d4587e1803f4c2bc944b6c96e912cc504f613e4d3b",
+          "scope": "Own complete decoded-asset build, all source/symbol controls and eight asset edits."
+        },
+        {
+          "path": "analysis/us-v1.4/review-evidence/inventory-development.json",
+          "sha256": "540a374822739ece6619cdae632daf6309404385edc00353a5e5cf151def571f",
+          "scope": "Own complete physical partition with source, local assets and competing script/record/audio uses."
+        },
+        {
+          "path": "analysis/us-v1.4/review-evidence/acceptance-context.json",
+          "sha256": "cc17283235eb30d1a038207838d9a6a0a104e556e56b0c36d079c357f04ae4db",
+          "scope": "Own exact storage values and adjacent context; separately scoped unchanged native consumer rules."
+        },
+        {
+          "path": "analysis/us-v1.4/review-evidence/record-views.json",
+          "sha256": "0529a7e5e27b8abe9118aaabe24ce7f7ece5c86a46108a8c9ee1e4651cefff2e",
+          "scope": "Actual normal and compact boundaries; conditional uses remain visible."
+        },
+        {
+          "path": "tools/variant_assets.py",
+          "sha256": "70920dfc9172539734f51ca2cc208dc18723910eaa8b1855f79e4b9740bb165b",
+          "scope": "Actual menu and map extents derived from the target command/table operands."
+        }
+      ],
+      "bank": 1,
+      "cpu": 60303,
+      "size": 2
+    },
+    {
+      "id": "storage-f354",
+      "kind": "storage",
+      "state": "closed",
+      "location": "Bank 1 $F354-$F356",
+      "unknown": "Original intended use remains unknown. The accepted representation assigns no padding, artwork, extra-field or instruction format.",
+      "completion_effect": "Closed: explicit retained data outside the bounded adjacent command/payload/grid; no opaque executable inclusion identified.",
+      "close_when": "Use consumers and comparative context to adopt an explicit supported storage representation, or identify and reconstruct a real alternate use.",
+      "decision": "Accept retained menu-prefix storage, separate from tile assets. The preceding known script ends in an unconditional jump; all fourteen menu consumers start at F357 or later. All six revisions preserve the prefix with the first payload. No PPU-command or artwork interpretation is needed or claimed; unknown intended use is not a missing format required by a consumer. This v1.4 decision uses its own assembled representation, consumer boundaries and preserved local context; no v1.5 gameplay observation is transferred.",
+      "evidence": [
+        {
+          "path": "analysis/us-v1.4/review-evidence/proof.json",
+          "sha256": "21fd2bdd7a94993846af25d4587e1803f4c2bc944b6c96e912cc504f613e4d3b",
+          "scope": "Own complete decoded-asset build, all source/symbol controls and eight asset edits."
+        },
+        {
+          "path": "analysis/us-v1.4/review-evidence/inventory-development.json",
+          "sha256": "540a374822739ece6619cdae632daf6309404385edc00353a5e5cf151def571f",
+          "scope": "Own complete physical partition with source, local assets and competing script/record/audio uses."
+        },
+        {
+          "path": "analysis/us-v1.4/review-evidence/acceptance-context.json",
+          "sha256": "cc17283235eb30d1a038207838d9a6a0a104e556e56b0c36d079c357f04ae4db",
+          "scope": "Own exact storage values and adjacent context; separately scoped unchanged native consumer rules."
+        },
+        {
+          "path": "analysis/us-v1.4/review-evidence/record-views.json",
+          "sha256": "0529a7e5e27b8abe9118aaabe24ce7f7ece5c86a46108a8c9ee1e4651cefff2e",
+          "scope": "Actual normal and compact boundaries; conditional uses remain visible."
+        },
+        {
+          "path": "tools/variant_assets.py",
+          "sha256": "70920dfc9172539734f51ca2cc208dc18723910eaa8b1855f79e4b9740bb165b",
+          "scope": "Actual menu and map extents derived from the target command/table operands."
+        }
+      ],
+      "bank": 1,
+      "cpu": 62292,
+      "size": 3
+    },
+    {
+      "id": "storage-f623",
+      "kind": "storage",
+      "state": "closed",
+      "location": "Bank 1 $F621-$F622",
+      "unknown": "Original intended use remains unknown. The accepted representation assigns no padding, artwork, extra-field or instruction format.",
+      "completion_effect": "Closed: explicit retained data outside the bounded adjacent command/payload/grid; no opaque executable inclusion identified.",
+      "close_when": "Use consumers and comparative context to adopt an explicit supported storage representation, or identify and reconstruct a real alternate use.",
+      "decision": "Accept retained map-suffix storage, separate from the nominal grid and next header. The first byte is fetched as discarded high-byte lookahead; the width clamp does not support an extra cell. All six preserve the neighboring context; v1.1-v1.4 preserve the complete v1.5 header/grid/suffix. Original purpose is not inferred. In v1.4 this suffix is at F621-F622 after the shorter brand payload; the actual map layout and adjacent header are validated separately.",
+      "evidence": [
+        {
+          "path": "analysis/us-v1.4/review-evidence/proof.json",
+          "sha256": "21fd2bdd7a94993846af25d4587e1803f4c2bc944b6c96e912cc504f613e4d3b",
+          "scope": "Own complete decoded-asset build, all source/symbol controls and eight asset edits."
+        },
+        {
+          "path": "analysis/us-v1.4/review-evidence/inventory-development.json",
+          "sha256": "540a374822739ece6619cdae632daf6309404385edc00353a5e5cf151def571f",
+          "scope": "Own complete physical partition with source, local assets and competing script/record/audio uses."
+        },
+        {
+          "path": "analysis/us-v1.4/review-evidence/acceptance-context.json",
+          "sha256": "cc17283235eb30d1a038207838d9a6a0a104e556e56b0c36d079c357f04ae4db",
+          "scope": "Own exact storage values and adjacent context; separately scoped unchanged native consumer rules."
+        },
+        {
+          "path": "analysis/us-v1.4/review-evidence/record-views.json",
+          "sha256": "0529a7e5e27b8abe9118aaabe24ce7f7ece5c86a46108a8c9ee1e4651cefff2e",
+          "scope": "Actual normal and compact boundaries; conditional uses remain visible."
+        },
+        {
+          "path": "tools/variant_assets.py",
+          "sha256": "70920dfc9172539734f51ca2cc208dc18723910eaa8b1855f79e4b9740bb165b",
+          "scope": "Actual menu and map extents derived from the target command/table operands."
+        }
+      ],
+      "bank": 1,
+      "cpu": 63009,
+      "size": 2
+    }
+  ],
+  "reuse_note": "Source, geometry, entry/transfer tables, script/record/audio candidates and decoded assets are checked against this target. Shared native consumer rules are reused only for the twenty exact unchanged instruction regions in acceptance-context.json; reset/NMI differences have own source and boundaries. No primary gameplay trace verifies v1.4. Unknown names, intent and arbitrary-state reachability are not reconstruction blockers."
+}

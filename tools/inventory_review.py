@@ -44,7 +44,7 @@ def apply_review(result: dict, ledger: dict, root: Path) -> dict:
     # Bind the interpretation inputs as well as emitted source. The ledger's
     # own hash is omitted to avoid a circular fingerprint.
     inputs = {**result.get('inventory_input_sha256', {}), **result.get('audit_input_sha256', {})}
-    inputs.pop('config/inventory-review-us-v1.5.json', None)
+    inputs.pop(f'config/inventory-review-{result.get("target")}.json', None)
     bound = bound and ledger.get('review_input_sha256') == inputs
     decisions = ledger.get('decisions')
     if not isinstance(decisions, list):

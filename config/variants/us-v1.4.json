@@ -1,0 +1,15 @@
+{
+  "schema_version": 1,
+  "target": "us-v1.4",
+  "canonical_target": "us-v1.5",
+  "canonical_source": "src/us-v1.5/rom.s",
+  "canonical_map": "config/source-us-v1.5.json",
+  "reset_source": "src/variants/reset-us-v1.4.inc",
+  "layout": [
+    {"bank": 0, "start": "0x817b", "end": "0xfd88", "delta": -22},
+    {"bank": 1, "start": "0xf3c5", "end": "0xfd88", "delta": -2}
+  ],
+  "menu_brand_count_delta": -2,
+  "primary_only_candidate_aliases": ["E002", "E099", "EB0D", "EBAD", "E01A", "E023", "E090", "B077"],
+  "scope": "Shared-source v1.4 adaptation. Reset instructions differ; most bank-0 content relocates by 22 bytes. A shorter brand payload shifts later bank-1 content by two bytes. Primary incidental opcode views of relocated record pointers are not carried forward. Full target control and asset verification remains required."
+}

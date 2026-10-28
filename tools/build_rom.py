@@ -19,7 +19,7 @@ from .setup import verified_tools
 
 ROOT = Path(__file__).resolve().parents[1]
 TARGET = "us-v1.5"
-PROOF_INPUTS = ("tools/build_rom.py", "tools/identify_rom.py", "tools/project.py",
+PROOF_INPUTS = ("tools/build_rom.py", "tools/identify_rom.py", "tools/project.py", "tools/asset_paths.py",
                 "tools/setup.py", "tools/chr_assets.py", "tools/map_assets.py", "tools/map_layout_assets.py", "tools/menu_assets.py", "tools/palette_assets.py", "config/palettes-us-v1.5.json", "tools/ppu_assets.py", "tools/ppu_streams.py", "config/ppu-streams-us-v1.5.json", "tools/sprite_assets.py", "tools/sprite_metadata.py", "tools/text_assets.py",
                 "tools/map_data.py", "tools/packed_text.py", "tools/script_entries.py",
                 "config/cc65-toolchain.json", "config/sprite-frames-us-v1.5.json", "config/sprite-resources-us-v1.5.json")
@@ -2307,8 +2307,12 @@ def retire_control_intermediates(directory: Path) -> None:
 
 
 def build() -> dict:
-    if os.environ.get("BADP_TARGET") not in (None, "", TARGET):
-        raise ValueError("only us-v1.5 has a ROM build; select TARGET=us-v1.5")
+    selected = os.environ.get("BADP_TARGET") or TARGET
+    if selected != TARGET:
+        from .build_variant_source import build as build_source
+        from .build_variant import build as build_variant
+        build_source(selected, all_controls=True)
+        return build_variant(selected)
     tool_paths = verified_tools()
     target = load_target(ROOT, TARGET)
     input_path = ROOT / (os.environ.get("BADP_ROM") or target["input_path"])
@@ -2712,10 +2716,12 @@ def main() -> int:
     except (OSError, ValueError, KeyError, TypeError, subprocess.CalledProcessError) as exc:
         print(f"ROM build failed: {exc}", file=sys.stderr)
         return 1
-    print(json.dumps({"target": TARGET, "match": proof["match"],
-                      "output": f"build/{TARGET}/bible-adventures.nes",
-                      "proof": f"build/{TARGET}/proof.json",
-                      "counts": proof["counts"], "controls_passed": len(proof["controls"])}, indent=2))
+    selected = proof['target']
+    print(json.dumps({"target": selected, "match": proof["match"],
+                      "output": f"build/{selected}/bible-adventures.nes",
+                      "proof": f"build/{selected}/proof.json",
+                      "counts": proof["counts"],
+                      "controls_passed": len(proof['controls']) if selected == TARGET else proof['source_controls']}, indent=2))
     return 0
 
 

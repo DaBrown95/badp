@@ -9,6 +9,7 @@ import hashlib
 import json
 import os
 from pathlib import Path
+from .asset_paths import asset_path
 import sys
 
 from .identify_rom import inspect_rom
@@ -51,19 +52,19 @@ def encode_tile(rows: list[str]) -> bytes:
     return bytes(low + high)
 
 
-def capture(chr_data: bytes, reference_sha256: str) -> dict:
+def capture(chr_data: bytes, reference_sha256: str, *, target: str = TARGET) -> dict:
     if len(chr_data) != CHR_SIZE or not isinstance(reference_sha256, str) or len(reference_sha256) != 64:
         raise ValueError('invalid CHR input or reference identity')
-    return {'schema_version': 1, 'target': TARGET, 'reference_sha256': reference_sha256,
+    return {'schema_version': 1, 'target': target, 'reference_sha256': reference_sha256,
             'format': 'nes-2bpp-physical-order',
             'tiles': [decode_tile(chr_data[i:i + TILE_SIZE]) for i in range(0, CHR_SIZE, TILE_SIZE)]}
 
 
-def encode(asset: dict, reference_sha256: str) -> bytes:
+def encode(asset: dict, reference_sha256: str, *, target: str = TARGET) -> bytes:
     if (not isinstance(asset, dict)
             or set(asset) != {'schema_version', 'target', 'reference_sha256', 'format', 'tiles'}
             or type(asset['schema_version']) is not int or asset['schema_version'] != 1
-            or asset['target'] != TARGET or asset['reference_sha256'] != reference_sha256
+            or asset['target'] != target or asset['reference_sha256'] != reference_sha256
             or asset['format'] != 'nes-2bpp-physical-order' or not isinstance(asset['tiles'], list)
             or len(asset['tiles']) != TILE_COUNT):
         raise ValueError('CHR asset identity or physical tile count differs')
@@ -74,17 +75,17 @@ def serialize(asset: dict) -> bytes:
     return (json.dumps(asset, separators=(',', ':')) + '\n').encode('utf-8')
 
 
-def select(root: Path, chr_data: bytes, reference_sha256: str) -> tuple[dict, bytes, str, str]:
-    path = root / ASSET_PATH
+def select(root: Path, chr_data: bytes, reference_sha256: str, *, target: str = TARGET) -> tuple[dict, bytes, str, str]:
+    path = root / asset_path(target, ASSET_PATH.name)
     if (root / 'extracted').is_symlink() or path.parent.is_symlink() or path.is_symlink():
         raise ValueError('refusing a symlinked CHR asset input')
     if path.exists():
         raw = path.read_bytes()
         asset, source = json.loads(raw), 'local'
     else:
-        asset, source = capture(chr_data, reference_sha256), 'reference'
+        asset, source = capture(chr_data, reference_sha256, target=target), 'reference'
         raw = serialize(asset)
-    return asset, encode(asset, reference_sha256), source, hashlib.sha256(raw).hexdigest()
+    return asset, encode(asset, reference_sha256, target=target), source, hashlib.sha256(raw).hexdigest()
 
 
 def changed_asset(asset: dict) -> dict:

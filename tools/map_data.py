@@ -77,10 +77,14 @@ def encode_layout(layout: dict) -> bytes:
     return bytes([width, height, *values])
 
 
-def inventory(bank0: bytes, bank1: bytes) -> dict:
+def inventory(bank0: bytes, bank1: bytes, *, state_table_offset: int = STATE_TABLE_OFFSET,
+              chunk_table_offset: int = CHUNK_TABLE_OFFSET) -> dict:
     if len(bank0) != BANK_SIZE or len(bank1) != BANK_SIZE:
         raise ValueError('expected two full PRG banks')
-    offsets = [int.from_bytes(bank0[CHUNK_TABLE_OFFSET + 2*i:CHUNK_TABLE_OFFSET + 2*i + 2], 'little')
+    if any(type(offset) is not int or not 0 <= offset <= BANK_SIZE - 2 * count
+           for offset, count in ((state_table_offset, STATE_COUNT), (chunk_table_offset, CHUNK_INDEX_COUNT))):
+        raise ValueError('map pointer table leaves its physical bank')
+    offsets = [int.from_bytes(bank0[chunk_table_offset + 2*i:chunk_table_offset + 2*i + 2], 'little')
                for i in range(CHUNK_INDEX_COUNT)]
     chunks = {}
     for index, offset in enumerate(offsets):
@@ -111,7 +115,7 @@ def inventory(bank0: bytes, bank1: bytes) -> dict:
     layouts = {}
     states = []
     for index in range(STATE_COUNT):
-        pos = STATE_TABLE_OFFSET + 2 * index
+        pos = state_table_offset + 2 * index
         pointer = int.from_bytes(bank0[pos:pos + 2], 'little')
         bank, offset = _locate(pointer)
         key = (bank, offset)

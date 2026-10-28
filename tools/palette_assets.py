@@ -8,6 +8,7 @@ from __future__ import annotations
 import hashlib
 import json
 from pathlib import Path
+from .asset_paths import asset_path
 import sys
 
 from .script_entries import BANK_SIZE, ROOT, load_audited_banks
@@ -17,12 +18,12 @@ MANIFEST = Path('config/palettes-us-v1.5.json')
 ASSET_PATH = Path('extracted/us-v1.5/palettes.json')
 
 
-def inventory(root: Path, prg: bytes) -> list[dict]:
-    manifest = json.loads((root / MANIFEST).read_text())
+def inventory(root: Path, prg: bytes, *, target: str = TARGET, manifest: dict | None = None) -> list[dict]:
+    manifest = json.loads((root / MANIFEST).read_text()) if manifest is None else manifest
     if (len(prg) != 2 * BANK_SIZE or not isinstance(manifest, dict)
             or set(manifest) != {'schema_version', 'target', 'source', 'bank', 'cpu_addresses', 'end_cpu'}
             or type(manifest['schema_version']) is not int or manifest['schema_version'] != 1
-            or manifest['target'] != TARGET or type(manifest['bank']) is not int or manifest['bank'] != 0
+            or manifest['target'] != target or type(manifest['bank']) is not int or manifest['bank'] != 0
             or not isinstance(manifest['source'], str) or not isinstance(manifest['cpu_addresses'], list)):
         raise ValueError('invalid palette layout manifest')
     addresses = []
@@ -52,30 +53,32 @@ def inventory(root: Path, prg: bytes) -> list[dict]:
     return streams
 
 
-def capture(root: Path, prg: bytes, reference_sha256: str) -> dict:
+def capture(root: Path, prg: bytes, reference_sha256: str, *, target: str = TARGET,
+            manifest: dict | None = None) -> dict:
     if not isinstance(reference_sha256, str) or len(reference_sha256) != 64:
         raise ValueError('invalid palette reference identity')
     streams = []
-    for stream in inventory(root, prg):
+    for stream in inventory(root, prg, target=target, manifest=manifest):
         start = stream['offset'] + 3
         width = stream['group_count'] * 4
         streams.append({key: stream[key] for key in ('cpu', 'group_count', 'frame_count', 'ticks')} |
                        {'initial': list(prg[start:start + 16]),
                         'updates': [list(prg[p:p + width])
                                     for p in range(start + 16, start + stream['size'] - 3, width or 1)]})
-    return {'schema_version': 1, 'target': TARGET, 'reference_sha256': reference_sha256,
+    return {'schema_version': 1, 'target': target, 'reference_sha256': reference_sha256,
             'bank': 0, 'streams': streams}
 
 
-def encode(root: Path, asset: dict, prg: bytes, reference_sha256: str) -> list[tuple[int, int, bytes]]:
+def encode(root: Path, asset: dict, prg: bytes, reference_sha256: str, *, target: str = TARGET,
+           manifest: dict | None = None) -> list[tuple[int, int, bytes]]:
     if (not isinstance(asset, dict)
             or set(asset) != {'schema_version', 'target', 'reference_sha256', 'bank', 'streams'}
             or type(asset['schema_version']) is not int or asset['schema_version'] != 1
-            or asset['target'] != TARGET or asset['reference_sha256'] != reference_sha256
+            or asset['target'] != target or asset['reference_sha256'] != reference_sha256
             or type(asset['bank']) is not int or asset['bank'] != 0
             or not isinstance(asset['streams'], list)):
         raise ValueError('palette asset identity differs from reference')
-    originals = inventory(root, prg)
+    originals = inventory(root, prg, target=target, manifest=manifest)
     if len(asset['streams']) != len(originals):
         raise ValueError('palette asset stream count differs')
     spans = []
@@ -103,17 +106,18 @@ def serialize(asset: dict) -> bytes:
     return (json.dumps(asset, indent=2) + '\n').encode('utf-8')
 
 
-def select(root: Path, prg: bytes, reference_sha256: str) -> tuple[dict, list[tuple[int, int, bytes]], str, str]:
-    path = root / ASSET_PATH
+def select(root: Path, prg: bytes, reference_sha256: str, *, target: str = TARGET,
+           manifest: dict | None = None) -> tuple[dict, list[tuple[int, int, bytes]], str, str]:
+    path = root / asset_path(target, ASSET_PATH.name)
     if (root / 'extracted').is_symlink() or path.parent.is_symlink() or path.is_symlink():
         raise ValueError('refusing a symlinked palette input')
     if path.exists():
         raw = path.read_bytes()
         asset, source = json.loads(raw), 'local'
     else:
-        asset = capture(root, prg, reference_sha256)
+        asset = capture(root, prg, reference_sha256, target=target, manifest=manifest)
         raw, source = serialize(asset), 'reference'
-    return asset, encode(root, asset, prg, reference_sha256), source, hashlib.sha256(raw).hexdigest()
+    return asset, encode(root, asset, prg, reference_sha256, target=target, manifest=manifest), source, hashlib.sha256(raw).hexdigest()
 
 
 def changed_asset(asset: dict) -> dict:

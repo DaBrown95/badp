@@ -10,6 +10,7 @@ from __future__ import annotations
 import hashlib
 import json
 from pathlib import Path
+from .asset_paths import asset_path
 import sys
 
 from .map_data import CHUNK_INDEX_COUNT, CHUNK_SIZE, CHUNK_TABLE_OFFSET, decode_chunk, encode_chunk
@@ -25,10 +26,12 @@ DUPLICATE_OF = 134
 CONTROL_TILES = ((0, 0, 0), (DUPLICATE_SLOT, 0, 1), (DUPLICATE_OF, 0, 2))
 
 
-def slots_for_reference(prg: bytes) -> set[int]:
+def slots_for_reference(prg: bytes, *, chunk_table_offset: int = CHUNK_TABLE_OFFSET) -> set[int]:
     if len(prg) != 2 * BANK_SIZE:
         raise ValueError('expected two complete PRG banks')
-    table = prg[CHUNK_TABLE_OFFSET:CHUNK_TABLE_OFFSET + 2 * CHUNK_INDEX_COUNT]
+    if type(chunk_table_offset) is not int or not 0 <= chunk_table_offset <= BANK_SIZE - 2 * CHUNK_INDEX_COUNT:
+        raise ValueError('chunk pointer table leaves its physical bank')
+    table = prg[chunk_table_offset:chunk_table_offset + 2 * CHUNK_INDEX_COUNT]
     offsets = [int.from_bytes(table[i:i + 2], 'little') for i in range(0, len(table), 2)]
     if len(offsets) != CHUNK_INDEX_COUNT or any(x % CHUNK_SIZE or x >= REGION_SIZE for x in offsets):
         raise ValueError('map chunk table has an invalid or unaligned offset')
@@ -38,9 +41,9 @@ def slots_for_reference(prg: bytes) -> set[int]:
     return slots
 
 
-def duplicate_slot(prg: bytes) -> int:
+def duplicate_slot(prg: bytes, *, chunk_table_offset: int = CHUNK_TABLE_OFFSET) -> int:
     """Validate the reviewed physical relation without claiming table use."""
-    slots_for_reference(prg)
+    slots_for_reference(prg, chunk_table_offset=chunk_table_offset)
     start = BANK_SIZE + DUPLICATE_SLOT * CHUNK_SIZE
     other = BANK_SIZE + DUPLICATE_OF * CHUNK_SIZE
     if prg[start:start + CHUNK_SIZE] != prg[other:other + CHUNK_SIZE]:
@@ -48,11 +51,12 @@ def duplicate_slot(prg: bytes) -> int:
     return DUPLICATE_SLOT
 
 
-def capture(prg: bytes, reference_sha256: str) -> dict:
+def capture(prg: bytes, reference_sha256: str, *, target: str = TARGET,
+            chunk_table_offset: int = CHUNK_TABLE_OFFSET) -> dict:
     if not isinstance(reference_sha256, str) or len(reference_sha256) != 64:
         raise ValueError('invalid reference identity')
-    referenced = slots_for_reference(prg)
-    duplicate_slot(prg)
+    referenced = slots_for_reference(prg, chunk_table_offset=chunk_table_offset)
+    duplicate_slot(prg, chunk_table_offset=chunk_table_offset)
     blob = prg[BANK_SIZE:BANK_SIZE + REGION_SIZE]
     slots = []
     for index in range(SLOT_COUNT):
@@ -63,19 +67,20 @@ def capture(prg: bytes, reference_sha256: str) -> dict:
         else:
             slots.append({'index': index, 'kind': 'unreferenced_duplicate_chunk',
                           'reference_duplicate_of': DUPLICATE_OF, **decode_chunk(raw)})
-    return {'schema_version': 2, 'target': TARGET, 'reference_sha256': reference_sha256,
+    return {'schema_version': 2, 'target': target, 'reference_sha256': reference_sha256,
             'chunk_size': CHUNK_SIZE, 'slots': slots}
 
 
-def encode(asset: dict, prg: bytes, reference_sha256: str) -> bytes:
+def encode(asset: dict, prg: bytes, reference_sha256: str, *, target: str = TARGET,
+           chunk_table_offset: int = CHUNK_TABLE_OFFSET) -> bytes:
     """Encode an editable local view, enforcing geometry and the reviewed duplicate identity."""
     if (not isinstance(asset, dict) or set(asset) != {'schema_version', 'target', 'reference_sha256', 'chunk_size', 'slots'}
-            or asset['schema_version'] != 2 or asset['target'] != TARGET
+            or asset['schema_version'] != 2 or asset['target'] != target
             or asset['reference_sha256'] != reference_sha256 or asset['chunk_size'] != CHUNK_SIZE
             or not isinstance(asset['slots'], list) or len(asset['slots']) != SLOT_COUNT):
         raise ValueError('map asset identity or geometry differs from the reference')
-    referenced = slots_for_reference(prg)
-    duplicate_slot(prg)
+    referenced = slots_for_reference(prg, chunk_table_offset=chunk_table_offset)
+    duplicate_slot(prg, chunk_table_offset=chunk_table_offset)
     output = bytearray()
     for index, slot in enumerate(asset['slots']):
         if not isinstance(slot, dict) or type(slot.get('index')) is not int or slot['index'] != index:
@@ -99,9 +104,10 @@ def serialize(asset: dict) -> bytes:
     return (json.dumps(asset, indent=2) + '\n').encode('utf-8')
 
 
-def select(root: Path, prg: bytes, reference_sha256: str) -> tuple[dict, bytes, str, str]:
+def select(root: Path, prg: bytes, reference_sha256: str, *, target: str = TARGET,
+           chunk_table_offset: int = CHUNK_TABLE_OFFSET) -> tuple[dict, bytes, str, str]:
     """Use an optional edited local file, or decode the fixed reference."""
-    path = root / ASSET_PATH
+    path = root / asset_path(target, ASSET_PATH.name)
     if (root / 'extracted').is_symlink() or path.parent.is_symlink() or path.is_symlink():
         raise ValueError('refusing a symlinked map asset input')
     if path.exists():
@@ -109,10 +115,10 @@ def select(root: Path, prg: bytes, reference_sha256: str) -> tuple[dict, bytes, 
         asset = json.loads(raw)
         source = 'local'
     else:
-        asset = capture(prg, reference_sha256)
+        asset = capture(prg, reference_sha256, target=target, chunk_table_offset=chunk_table_offset)
         raw = serialize(asset)
         source = 'reference'
-    payload = encode(asset, prg, reference_sha256)
+    payload = encode(asset, prg, reference_sha256, target=target, chunk_table_offset=chunk_table_offset)
     return asset, payload, source, hashlib.sha256(raw).hexdigest()
 
 

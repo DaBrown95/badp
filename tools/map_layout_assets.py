@@ -9,6 +9,7 @@ from __future__ import annotations
 import hashlib
 import json
 from pathlib import Path
+from .asset_paths import asset_path
 import sys
 
 from . import map_data
@@ -18,35 +19,36 @@ TARGET = 'us-v1.5'
 ASSET_PATH = Path('extracted/us-v1.5/map-layouts.json')
 
 
-def _inventory(prg: bytes) -> list[dict]:
+def _inventory(prg: bytes, geometry: dict | None = None) -> list[dict]:
     if len(prg) != 2 * BANK_SIZE:
         raise ValueError('expected two complete PRG banks')
-    inventory = map_data.inventory(prg[:BANK_SIZE], prg[BANK_SIZE:])
+    inventory = map_data.inventory(prg[:BANK_SIZE], prg[BANK_SIZE:], **(geometry or {}))
     if (len(inventory['layouts']) != 14 or inventory['overlapping_layout_bytes']
             or inventory['layout_chunk_overlap_bytes']):
         raise ValueError('map layouts do not match the reviewed distinct non-overlapping inventory')
     return sorted(inventory['layouts'], key=lambda x: (x['location']['bank'], x['location']['bank_offset']))
 
 
-def capture(prg: bytes, reference_sha256: str) -> dict:
+def capture(prg: bytes, reference_sha256: str, *, target: str = TARGET, geometry: dict | None = None) -> dict:
     if not isinstance(reference_sha256, str) or len(reference_sha256) != 64:
         raise ValueError('invalid reference identity')
     layouts = []
-    for layout in _inventory(prg):
+    for layout in _inventory(prg, geometry):
         decoded, location = layout['decoded'], layout['location']
         layouts.append({'bank': location['bank'], 'cpu': location['cpu_address'],
                         'width_chunks': decoded['width_chunks'], 'height_chunks': decoded['height_chunks'],
                         'chunk_rows': decoded['chunk_rows']})
-    return {'schema_version': 1, 'target': TARGET, 'reference_sha256': reference_sha256, 'layouts': layouts}
+    return {'schema_version': 1, 'target': target, 'reference_sha256': reference_sha256, 'layouts': layouts}
 
 
-def encode(asset: dict, prg: bytes, reference_sha256: str) -> list[tuple[int, int, bytes]]:
+def encode(asset: dict, prg: bytes, reference_sha256: str, *, target: str = TARGET,
+           geometry: dict | None = None) -> list[tuple[int, int, bytes]]:
     """Return physical-bank grid spans, without changing tracked headers."""
     if (not isinstance(asset, dict) or set(asset) != {'schema_version', 'target', 'reference_sha256', 'layouts'}
-            or asset['schema_version'] != 1 or asset['target'] != TARGET
+            or asset['schema_version'] != 1 or asset['target'] != target
             or asset['reference_sha256'] != reference_sha256 or not isinstance(asset['layouts'], list)):
         raise ValueError('map layout asset identity differs from the reference')
-    expected = _inventory(prg)
+    expected = _inventory(prg, geometry)
     if len(asset['layouts']) != len(expected):
         raise ValueError('map layout count differs from the reviewed inventory')
     result = []
@@ -70,8 +72,9 @@ def serialize(asset: dict) -> bytes:
     return (json.dumps(asset, indent=2) + '\n').encode('utf-8')
 
 
-def select(root: Path, prg: bytes, reference_sha256: str) -> tuple[dict, list[tuple[int, int, bytes]], str, str]:
-    path = root / ASSET_PATH
+def select(root: Path, prg: bytes, reference_sha256: str, *, target: str = TARGET,
+           geometry: dict | None = None) -> tuple[dict, list[tuple[int, int, bytes]], str, str]:
+    path = root / asset_path(target, ASSET_PATH.name)
     if (root / 'extracted').is_symlink() or path.parent.is_symlink() or path.is_symlink():
         raise ValueError('refusing a symlinked map layout input')
     if path.exists():
@@ -79,10 +82,10 @@ def select(root: Path, prg: bytes, reference_sha256: str) -> tuple[dict, list[tu
         asset = json.loads(raw)
         source = 'local'
     else:
-        asset = capture(prg, reference_sha256)
+        asset = capture(prg, reference_sha256, target=target, geometry=geometry)
         raw = serialize(asset)
         source = 'reference'
-    spans = encode(asset, prg, reference_sha256)
+    spans = encode(asset, prg, reference_sha256, target=target, geometry=geometry)
     return asset, spans, source, hashlib.sha256(raw).hexdigest()
 
 

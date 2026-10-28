@@ -353,13 +353,17 @@ def verify_primary(root: Path, target: dict) -> dict:
 
 
 def accepted_primary(root: Path, target: dict, verified: dict) -> bool:
+    return accepted_target(root, target, verified, PRIMARY)
+
+
+def accepted_target(root: Path, target: dict, verified: dict, target_id: str) -> bool:
     """Accept only a current physical audit whose evidence-backed gates close.
 
     This reads a completed audit, never turns a source percentage into an
     acceptance decision and never substitutes an old proof for a new build.
     """
-    audit_path = root / 'analysis/us-v1.5/source-audit.json'
-    ledger_path = root / 'config/inventory-review-us-v1.5.json'
+    audit_path = root / f'analysis/{target_id}/source-audit.json'
+    ledger_path = root / f'config/inventory-review-{target_id}.json'
     if not audit_path.is_file() or not ledger_path.is_file():
         return False
     try:
@@ -367,13 +371,13 @@ def accepted_primary(root: Path, target: dict, verified: dict) -> bool:
         audit, ledger = json.loads(audit_path.read_text()), json.loads(ledger_path.read_text())
         if (audit['reference_sha256'] != target['reference']['file']['sha256']
                 or any(audit[k] != verified[k] for k in ('source_sha256', 'source_map_sha256'))
-                or audit['build_proof_sha256'] != digest((root / 'build/us-v1.5/proof.json').read_bytes())
+                or audit['build_proof_sha256'] != digest((root / f'build/{target_id}/proof.json').read_bytes())
                 or audit['prg_bytes'] != target['reference']['prg']['size']
                 or any(audit['representation_bytes'].get(kind, 0) != verified[key] for kind, key in
                        (('source_code', 'code_bytes'), ('source_data', 'data_bytes'), ('source_fill', 'fill_bytes')))):
             return False
         inputs = {**audit['inventory_input_sha256'], **audit['audit_input_sha256']}
-        if ('config/inventory-review-us-v1.5.json' not in inputs
+        if (f'config/inventory-review-{target_id}.json' not in inputs
                 or any(digest((root / name).read_bytes()) != value for name, value in inputs.items())):
             return False
         return apply_review(audit, ledger, root)['complete_executable_inventory']
@@ -392,6 +396,10 @@ def progress_data(root: Path) -> dict:
         if target_id == PRIMARY:
             verified = verify_primary(root, target)
             status = "Accepted" if accepted_primary(root, target, verified) else "In progress"
+        elif (root / f'config/variants/{target_id}.json').is_file():
+            from .verify_variant import verify
+            verified = verify(root, target)
+            status = "Accepted" if accepted_target(root, target, verified, target_id) else "In progress"
         else:
             if target["reconstruction_status"] != "unstarted" or (root / "config" / f"source-{target_id}.json").exists():
                 raise ValueError(f"{target_id}: add target-specific verified progress support before reporting it")
@@ -406,7 +414,7 @@ def progress_data(root: Path) -> dict:
                         "code_bytes": verified["code_bytes"], "structured_data_bytes": verified["data_bytes"],
                         "fill_bytes": verified.get("fill_bytes", 0),
                         "reference_sha256": target["reference"]["file"]["sha256"],
-                        "evidence": verified if target_id == PRIMARY else None})
+                        "evidence": verified if status != "Not started" else None})
     return {"schema_version": 1, "metric": "verified reconstructed PRG bytes / total physical PRG bytes",
             "complete_code_inventory": all(row['status'] == 'Accepted' for row in targets),
             "chr_included": False, "targets": targets}

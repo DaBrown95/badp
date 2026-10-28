@@ -9,6 +9,7 @@ from __future__ import annotations
 import hashlib
 import json
 from pathlib import Path
+from .asset_paths import asset_path
 import sys
 
 from .script_entries import BANK_SIZE, ROOT, load_audited_banks
@@ -19,10 +20,10 @@ MANIFEST = Path('config/sprite-frames-us-v1.5.json')
 ASSET_PATH = Path('extracted/us-v1.5/sprite-frames.json')
 
 
-def frame_addresses(root: Path) -> list[int]:
-    data = json.loads((root / MANIFEST).read_text())
+def frame_addresses(root: Path, *, target: str = TARGET, manifest: dict | None = None) -> list[int]:
+    data = json.loads((root / MANIFEST).read_text()) if manifest is None else manifest
     if (not isinstance(data, dict) or set(data) != {'schema_version', 'target', 'source', 'bank', 'cpu_addresses'}
-            or type(data['schema_version']) is not int or data['schema_version'] != 1 or data['target'] != TARGET
+            or type(data['schema_version']) is not int or data['schema_version'] != 1 or data['target'] != target
             or type(data['bank']) is not int or data['bank'] != 0
             or not isinstance(data['source'], str) or not isinstance(data['cpu_addresses'], list)):
         raise ValueError('invalid inventoried sprite frame inventory')
@@ -42,12 +43,12 @@ def frame_addresses(root: Path) -> list[int]:
     return addresses
 
 
-def inventory(root: Path, prg: bytes) -> list[dict]:
+def inventory(root: Path, prg: bytes, *, target: str = TARGET, manifest: dict | None = None) -> list[dict]:
     if len(prg) != 2 * BANK_SIZE:
         raise ValueError('expected two complete PRG banks')
     frames = []
     end = 0
-    for address in frame_addresses(root):
+    for address in frame_addresses(root, target=target, manifest=manifest):
         offset = address - 0x8000
         header = decode_frame_header(prg[offset:offset + 2])
         if header['index_wraps'] or offset + 2 + 2 * header['tile_pairs'] > BANK_SIZE:
@@ -60,11 +61,12 @@ def inventory(root: Path, prg: bytes) -> list[dict]:
     return frames
 
 
-def capture(root: Path, prg: bytes, reference_sha256: str) -> dict:
+def capture(root: Path, prg: bytes, reference_sha256: str, *, target: str = TARGET,
+            manifest: dict | None = None) -> dict:
     if not isinstance(reference_sha256, str) or len(reference_sha256) != 64:
         raise ValueError('invalid reference identity')
     frames = []
-    for frame in inventory(root, prg):
+    for frame in inventory(root, prg, target=target, manifest=manifest):
         start, h = frame['offset'], frame['header']
         rows = []
         for row in range(h['rows']):
@@ -76,17 +78,18 @@ def capture(root: Path, prg: bytes, reference_sha256: str) -> dict:
         frames.append({'cpu': f'0x{start + 0x8000:04x}', 'oam_base_index': h['oam_base_index'],
                        'large_sprites': h['large_sprites'], 'columns': h['columns'], 'rows': h['rows'],
                        'tile_rows': rows})
-    return {'schema_version': 1, 'target': TARGET, 'reference_sha256': reference_sha256, 'bank': 0,
+    return {'schema_version': 1, 'target': target, 'reference_sha256': reference_sha256, 'bank': 0,
             'frames': frames}
 
 
-def encode(root: Path, asset: dict, prg: bytes, reference_sha256: str) -> list[tuple[int, int, bytes]]:
+def encode(root: Path, asset: dict, prg: bytes, reference_sha256: str, *, target: str = TARGET,
+           manifest: dict | None = None) -> list[tuple[int, int, bytes]]:
     """Return frame spans with stable headers and locally editable tile pairs."""
     if (not isinstance(asset, dict) or set(asset) != {'schema_version', 'target', 'reference_sha256', 'bank', 'frames'}
-            or asset['schema_version'] != 1 or asset['target'] != TARGET or asset['reference_sha256'] != reference_sha256
+            or asset['schema_version'] != 1 or asset['target'] != target or asset['reference_sha256'] != reference_sha256
             or type(asset['bank']) is not int or asset['bank'] != 0 or not isinstance(asset['frames'], list)):
         raise ValueError('sprite asset identity differs from the reference')
-    originals = inventory(root, prg)
+    originals = inventory(root, prg, target=target, manifest=manifest)
     if len(asset['frames']) != len(originals):
         raise ValueError('sprite frame count differs from the declared inventory')
     spans = []
@@ -119,17 +122,18 @@ def serialize(asset: dict) -> bytes:
     return (json.dumps(asset, indent=2) + '\n').encode('utf-8')
 
 
-def select(root: Path, prg: bytes, reference_sha256: str) -> tuple[dict, list[tuple[int, int, bytes]], str, str]:
-    path = root / ASSET_PATH
+def select(root: Path, prg: bytes, reference_sha256: str, *, target: str = TARGET,
+           manifest: dict | None = None) -> tuple[dict, list[tuple[int, int, bytes]], str, str]:
+    path = root / asset_path(target, ASSET_PATH.name)
     if (root / 'extracted').is_symlink() or path.parent.is_symlink() or path.is_symlink():
         raise ValueError('refusing a symlinked sprite asset input')
     if path.exists():
         raw = path.read_bytes()
         asset, source = json.loads(raw), 'local'
     else:
-        asset = capture(root, prg, reference_sha256)
+        asset = capture(root, prg, reference_sha256, target=target, manifest=manifest)
         raw, source = serialize(asset), 'reference'
-    return asset, encode(root, asset, prg, reference_sha256), source, hashlib.sha256(raw).hexdigest()
+    return asset, encode(root, asset, prg, reference_sha256, target=target, manifest=manifest), source, hashlib.sha256(raw).hexdigest()
 
 
 def changed_asset(asset: dict) -> dict:

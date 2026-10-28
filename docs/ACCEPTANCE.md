@@ -27,9 +27,31 @@ and hypothetical execution under arbitrary RAM state are not independent gates.
 A concrete new source/format gap must be named before adding an investigation.
 
 Acceptance also requires a current byte-identical full build and meaningful
-source/asset controls. The five storage groups now have supported retained-data
-representations. Once the current full build and derived audit accept v1.5,
-continue directly to v1.4, v1.3,
-v1.2, v1.1 and the unversioned release, sharing source and retaining each
-version's own identity, layout, build and review evidence. None of those five
-versions is rebuilt or accepted yet.
+source/asset controls. v1.5 has no remaining reconstruction blocker in this
+checklist and is accepted by its current build and derived audit.
+
+## v1.4 adaptation
+
+`config/inventory-review-us-v1.4.json` applies the same six mechanism gates and
+five storage decisions to its own reference, generated source, physical regions
+and evidence. The last storage group is at `$F621-$F622`; the other four retain
+their primary addresses. Its reset prefix is separately readable assembly,
+including the original unused `$0F` load / uninitialized `$00` countdown bug.
+Bank-0 resource addresses relocate by 22 bytes and the shorter brand payload
+moves later bank-1 data by two bytes. Packed-text CPU addresses, PPU addresses
+and RAM/arithmetic constants keep their own namespaces.
+
+The full target build encodes every local gap through the shared asset formats,
+then checks whole-ROM equality, every source and symbol control, and eight
+asset edits. Its own native entries, dispatch tables, script successors, record
+views and audio starts are inventoried. Eight primary incidental script aliases
+are not carried over when their relocated resource bytes no longer support the
+opcode. This preserves the actual data and the conditional interpretation; it
+does not invent another missing routine. Primary gameplay observations are not
+credited to v1.4. Scoped wrapper/loader rules are reused where their code is
+unchanged, with target operands and boundaries checked separately.
+
+v1.4 is accepted: its current full build and evidence-bound review close every
+gate, with zero opaque PRG bytes and no remaining source/format blocker. Continue
+directly to v1.3, v1.2, v1.1 and the unversioned release, sharing source and
+retaining each version's own identity, layout, build and review evidence.

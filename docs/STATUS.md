@@ -1,7 +1,7 @@
 # Reference identities and version strategy
 
 Current acceptance decisions and remaining work are maintained in
-[ACCEPTANCE.md](ACCEPTANCE.md) and `config/inventory-review-us-v1.5.json`.
+[ACCEPTANCE.md](ACCEPTANCE.md) and the target-specific `config/inventory-review-*.json` ledgers.
 The chronological checkpoints below preserve earlier evidence and may describe
 blockers that the current checklist has closed.
 
@@ -47,6 +47,25 @@ Passing input audits or whole-ROM equality alone is not reconstruction
 completion. The developer identifies BOGUS as the
 state-machine engine in the [Vance Kozik interview](https://www.nesworld.com/kozik.php);
 the original source language and toolchain remain unestablished.
+
+## v1.4 acceptance checkpoint
+
+v1.5 and v1.4 are accepted by separate current full builds and evidence-backed
+inventories. Both have zero opaque PRG bytes. v1.4 uses shared source plus an
+explicit 340-byte reset variant, typed resource relocations and a two-byte
+shorter brand payload. Its 21,452 native and 23,711 data bytes are source;
+20,234 PRG asset bytes and all CHR remain local decoded inputs. The reset
+countdown bug is preserved, and eight primary incidental opcode views are not
+carried where relocated record bytes no longer support them.
+
+All 2,091 source, 57 symbol and eight asset controls pass for each release.
+The target build rejects unrepresented local gaps, conflicting overlapping
+asset views and stale compiler inputs. Identical negative compiler inputs may
+reuse pinned-tool results, but every retained negative ROM is compared against
+its own target and current physical source regions. Changed renderer, control
+catalogue, source, include, linker, tool or payload inputs invalidate that scope.
+The tooling integration passes 388 synthetic tests and all six reference audits.
+No runtime matrix was enlarged. Next: v1.3, then v1.2, v1.1 and unversioned.
 
 ## v1.5 opening-gameplay evidence
 

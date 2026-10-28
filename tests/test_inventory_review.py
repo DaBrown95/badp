@@ -35,6 +35,14 @@ class InventoryReviewTests(unittest.TestCase):
             self.assertEqual(result['regions'][0]['evidence_uses'], audit['regions'][0]['evidence_uses'])
             self.assertNotIn('exclusive_use_reviewed', result['regions'][0])
 
+    def test_each_target_excludes_only_its_own_ledger_fingerprint(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp);audit, ledger = self.fixture(root)
+            audit['audit_input_sha256'] = {'config/inventory-review-synthetic.json': 'd' * 64}
+            self.assertTrue(apply_review(audit, ledger, root)['complete_executable_inventory'])
+            audit['audit_input_sha256']['config/inventory-review-us-v1.5.json'] = 'e' * 64
+            self.assertFalse(apply_review(audit, ledger, root)['complete_executable_inventory'])
+
     def test_open_missing_and_stale_reviews_block_acceptance(self):
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp);audit, ledger = self.fixture(root)
@@ -84,6 +92,7 @@ class InventoryReviewTests(unittest.TestCase):
     def test_progress_acceptance_recomputes_gates_and_requires_current_proof(self):
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp);audit, ledger = self.fixture(root)
+            audit['target'] = ledger['target'] = 'us-v1.5'
             for name in ('build/us-v1.5', 'analysis/us-v1.5', 'config'):
                 (root / name).mkdir(parents=True)
             proof = root / 'build/us-v1.5/proof.json';proof.write_text('synthetic proof')

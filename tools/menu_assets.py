@@ -8,6 +8,7 @@ from __future__ import annotations
 import hashlib
 import json
 from pathlib import Path
+from .asset_paths import asset_path
 import sys
 
 from .script_entries import BANK_SIZE, ROOT, load_audited_banks
@@ -24,54 +25,63 @@ COMMANDS = (('tile_row_0', 0xf187), ('tile_row_1', 0xf18e), ('tile_row_2', 0xf19
 REGION_START, REGION_END = 0x7357, 0x7401
 
 
-def inventory(prg: bytes) -> list[dict]:
+def inventory(prg: bytes, *, region_start: int = REGION_START, region_end: int = REGION_END,
+              commands: tuple = COMMANDS) -> list[dict]:
     """Derive bounded, disjoint streams from audited BOGUS command bytes."""
     if len(prg) != 2 * BANK_SIZE:
         raise ValueError('expected two complete PRG banks')
+    if (any(type(n) is not int for n in (region_start, region_end))
+            or not 0 <= region_start < region_end <= BANK_SIZE or not commands
+            or len({name for name, _ in commands}) != len(commands)
+            or len({cpu for _, cpu in commands}) != len(commands)
+            or any(not isinstance(name, str) or not name or type(cpu) is not int
+                   or not 0x8000 <= cpu <= 0xfff9 for name, cpu in commands)):
+        raise ValueError('invalid menu layout geometry')
     bank = prg[BANK_SIZE:]
     result = []
-    for name, cpu in COMMANDS:
+    for name, cpu in commands:
         offset = cpu - 0x8000
         command = bank[offset:offset + 7]
         if len(command) != 7 or command[0] != 0x6e:
             raise ValueError('menu display command is missing or truncated')
         pointer = int.from_bytes(command[1:3], 'little')
         row, column, selector, count = command[3:7]
-        if not count or not REGION_START <= pointer < pointer + count <= REGION_END:
+        if not count or not region_start <= pointer < pointer + count <= region_end:
             raise ValueError('menu display stream leaves the reviewed region')
         result.append({'name': name, 'command_cpu': cpu, 'pointer': pointer, 'row': row,
                        'column': column, 'selector': selector, 'count': count})
-    expected = REGION_START
+    expected = region_start
     for item in sorted(result, key=lambda x: x['pointer']):
         if item['pointer'] != expected:
             raise ValueError('menu display streams overlap or leave a gap')
         expected += item['count']
-    if expected != REGION_END:
+    if expected != region_end:
         raise ValueError('menu display streams do not cover the reviewed region')
     return result
 
 
-def capture(prg: bytes, reference_sha256: str) -> dict:
+def capture(prg: bytes, reference_sha256: str, *, target: str = TARGET, geometry: dict | None = None) -> dict:
     if not isinstance(reference_sha256, str) or len(reference_sha256) != 64:
         raise ValueError('invalid reference identity')
     entries = []
-    for item in inventory(prg):
+    for item in inventory(prg, **(geometry or {})):
         start = BANK_SIZE + item['pointer']
         entries.append({'name': item['name'], 'command_cpu': f"0x{item['command_cpu']:04x}",
                         'source_cpu': f"0x{item['pointer'] + 0x8000:04x}", 'row': item['row'],
                         'column': item['column'], 'selector': item['selector'],
                         'tiles': list(prg[start:start + item['count']])})
-    return {'schema_version': 1, 'target': TARGET, 'reference_sha256': reference_sha256,
+    return {'schema_version': 1, 'target': target, 'reference_sha256': reference_sha256,
             'bank': 1, 'streams': entries}
 
 
-def encode(asset: dict, prg: bytes, reference_sha256: str) -> list[tuple[int, int, bytes]]:
+def encode(asset: dict, prg: bytes, reference_sha256: str, *, target: str = TARGET,
+           geometry: dict | None = None) -> list[tuple[int, int, bytes]]:
     if (not isinstance(asset, dict) or set(asset) != {'schema_version', 'target', 'reference_sha256', 'bank', 'streams'}
             or type(asset['schema_version']) is not int or asset['schema_version'] != 1
-            or asset['target'] != TARGET or asset['reference_sha256'] != reference_sha256
+            or asset['target'] != target or asset['reference_sha256'] != reference_sha256
             or type(asset['bank']) is not int or asset['bank'] != 1 or not isinstance(asset['streams'], list)):
         raise ValueError('menu asset identity differs from the reference')
-    originals = inventory(prg)
+    originals = inventory(prg, **(geometry or {}))
     if len(asset['streams']) != len(originals):
         raise ValueError('menu stream count differs from the reviewed commands')
     spans = []
@@ -91,17 +101,18 @@ def serialize(asset: dict) -> bytes:
     return (json.dumps(asset, indent=2) + '\n').encode('utf-8')
 
 
-def select(root: Path, prg: bytes, reference_sha256: str) -> tuple[dict, list[tuple[int, int, bytes]], str, str]:
-    path = root / ASSET_PATH
+def select(root: Path, prg: bytes, reference_sha256: str, *, target: str = TARGET,
+           geometry: dict | None = None) -> tuple[dict, list[tuple[int, int, bytes]], str, str]:
+    path = root / asset_path(target, ASSET_PATH.name)
     if (root / 'extracted').is_symlink() or path.parent.is_symlink() or path.is_symlink():
         raise ValueError('refusing a symlinked menu asset input')
     if path.exists():
         raw = path.read_bytes()
         asset, source = json.loads(raw), 'local'
     else:
-        asset = capture(prg, reference_sha256)
+        asset = capture(prg, reference_sha256, target=target, geometry=geometry)
         raw, source = serialize(asset), 'reference'
-    return asset, encode(asset, prg, reference_sha256), source, hashlib.sha256(raw).hexdigest()
+    return asset, encode(asset, prg, reference_sha256, target=target, geometry=geometry), source, hashlib.sha256(raw).hexdigest()
 
 
 def changed_asset(asset: dict) -> dict:
