@@ -17,9 +17,11 @@ from .project import load_target
 from .setup_mesen import ROOT, digest_file, spec, verify_emulator
 
 FRAMES = (240, 650, 1200, 1400, 1496, 1511, 1550, 1700, 1800, 2100, 2150, 2300,
-          2400, 2600, 2800, 3000, 3100, 3200, 3250, 3300, 3350, 3400, 3450, 3650, 3700, 3750)
+          2400, 2600, 2800, 3000, 3100, 3200, 3250, 3300, 3350, 3400, 3450, 3650, 3700, 3750,
+          3800, 3825, 3850, 3900, 4050, 4150, 4300)
 SLOT_FRAMES = (1400, 1496, 1511, 1550, 1700, 1800, 2100, 2150, 2300,
-               2400, 2600, 2800, 3000, 3100, 3200, 3250, 3300, 3350, 3400, 3450, 3650, 3700, 3750)
+               2400, 2600, 2800, 3000, 3100, 3200, 3250, 3300, 3350, 3400, 3450, 3650, 3700, 3750,
+               3800, 3825, 3850, 3900, 4050, 4150, 4300)
 # Pinned emulator screenshot of the first-level success screen for the audited v1.5 input.
 MOSES_SUCCESS_SCREEN_SHA256 = 'c3d483860076f9e782d92de0913c671d4ed1aef84f8ce81688423cad40c19346'
 SCENARIOS = (('noah', 1), ('moses', 5), ('david', 11), ('inventory', 1))
@@ -104,13 +106,14 @@ def parse_output(output: str) -> tuple[dict, dict[int, bytes], dict[str, bytes]]
             images[frame] = image
         elif line.startswith('BADP_SLOT '):
             parts = line.split()
-            if len(parts) != 9:
+            if len(parts) != 13:
                 raise ValueError('malformed slot evidence')
             frame, *values = map(int, parts[1:])
             if frame not in SLOT_FRAMES or frame in slots or any(not 0 <= value <= 255 for value in values):
                 raise ValueError('unexpected, duplicated or out-of-range slot evidence')
             slots[frame] = dict(zip(('player_descriptor', 'object_descriptor', 'object_link',
-                                     'object_x', 'object_y', 'player_x', 'player_y'), values))
+                                     'object_x', 'object_y', 'player_x', 'player_y', 'third_descriptor',
+                                     'third_link', 'third_x', 'third_y'), values))
         elif line.startswith('BADP_SUMMARY '):
             if reported is not None:
                 raise ValueError('duplicate mapper summary')
@@ -199,8 +202,16 @@ def validate_scenario(evidence: dict, expected_state: int, *, inventory: bool = 
                 or frames['3350']['scroll_x'] < frames['3200']['scroll_x']
                 or any(frames[str(frame)]['state'] != 16 for frame in (3400, 3450, 3650))
                 or frames['3450']['screenshot_sha256'] != MOSES_SUCCESS_SCREEN_SHA256
-                or any(frames[str(frame)]['state'] != 6 for frame in (3700, 3750))
-                or frames['3750']['screenshot_sha256'] == frames['3450']['screenshot_sha256']):
+                or any(frames[str(frame)]['state'] != 6 for frame in (3700, 3750, 3800, 3825, 3850, 3900, 4050, 4150, 4300))
+                or frames['3750']['screenshot_sha256'] == frames['3450']['screenshot_sha256']
+                or slots['3750']['third_descriptor'] != 0x6a or slots['3750']['third_link'] != 0xff
+                or slots['3900']['third_descriptor'] != 0x6a or slots['3900']['third_link'] != 1
+                or slots['3900']['third_x'] != slots['3900']['player_x']
+                or slots['3900']['third_y'] >= slots['3900']['player_y']
+                or frames['4050']['scroll_x'] < 128 or frames['4300']['scroll_x'] < 450
+                or slots['4300']['third_descriptor'] != 0x6a or slots['4300']['third_link'] != 1
+                or slots['4300']['third_x'] != slots['4300']['player_x']
+                or slots['4300']['third_y'] >= slots['4300']['player_y']):
             raise ValueError('Moses pickup, carry and recovery observations did not match')
     if (evidence['mapper_value_mismatches'] or evidence['unmapped_mapper_writes']
             or evidence['physical_prg_banks_seen'] != [0, 1]):

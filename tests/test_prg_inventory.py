@@ -37,6 +37,21 @@ class PrgInventoryTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             summarize({'unknown': [(0, 1)]}, bank_size=8, bank_count=2)
 
+    def test_candidate_audio_remains_distinct_from_runtime_observations(self):
+        result = summarize({'observed_audio_commands': [(0, 2)],
+                            'candidate_audio_commands': [(1, 3)]}, bank_size=8, bank_count=1)
+        self.assertEqual(result['observed_and_candidate_audio_bytes'], 1)
+        self.assertEqual(result['uncatalogued_bytes'], 4)
+        self.assertEqual(result['category_bytes']['observed_audio_commands'], 2)
+        self.assertEqual(result['category_bytes']['candidate_audio_commands'], 3)
+
+    def test_ppu_stream_overlap_is_not_silently_assigned_exclusively(self):
+        result = summarize({'candidate_script_bytes': [(2, 3)],
+                            'candidate_ppu_stream_bytes': [(4, 2)]}, bank_size=8, bank_count=1)
+        groups = {tuple(g['uses']): g['bytes'] for g in result['use_combinations']}
+        self.assertEqual(groups[('candidate_script_bytes', 'candidate_ppu_stream_bytes')], 1)
+        self.assertEqual(result['uncatalogued_bytes'], 4)
+
     def test_trace_identity_and_missing_trace(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)

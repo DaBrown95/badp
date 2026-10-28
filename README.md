@@ -120,7 +120,7 @@ make verify-gameplay
 The check runs the reference and matching build under the same inputs, comparing
 screenshots, state, mapper writes, NMI, OAM DMA and audio-register writes. The
 Moses sequence carries and recovers the baby, completes the first level and
-enters the second. A
+picks him up again in the second, then crosses two water gaps. A
 separate Noah sequence opens and closes the inventory and checks its table reads.
 It keeps its evidence in the ignored `reports/us-v1.5/runtime/` directory. These
 short opening scenarios do not establish full gameplay completion or physical
@@ -143,8 +143,10 @@ cartridge behaviour.
 | `make script-flow` | Trace reviewed v1.5 script paths to local analysis. |
 | `make direct-record-flow` | Check direct record targets for possible script overlaps. |
 | `make packed-text` | Decode v1.5 packed text to local analysis. |
+| `make ppu-streams` | Inventory candidate PPU command streams without exporting text. |
 | `make trace-audio` | Capture audio-command reads during extended v1.5 emulator inputs. |
 | `make audio-inventory` | Validate and decode the local audio trace; payloads remain local. |
+| `make audio-flow` | Trace candidate audio-command paths from literal voice starts. |
 | `make trace-sprites` | Capture sprite resource and frame entries during extended v1.5 inputs. |
 | `make sprite-inventory` | Validate and decode the local sprite trace; payloads remain local. |
 | `make map-data` | Decode candidate map layouts and chunks to local analysis. |

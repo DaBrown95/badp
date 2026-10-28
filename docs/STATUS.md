@@ -44,7 +44,7 @@ the original source language and toolchain remain unestablished.
 
 ## v1.5 opening-gameplay evidence
 
-`make verify-gameplay` runs 3,750 NTSC frames each for Noah, Moses and David,
+`make verify-gameplay` runs 4,300 NTSC frames each for Noah, Moses and David,
 plus a separate Noah inventory scenario,
 in pinned MesenCE 2.2.1, with zeroed power-on RAM and fixed mapper/alignment
 settings. It compares the audited reference and verified build under the same
@@ -52,9 +52,10 @@ menu and movement inputs. All three reached their opening areas and showed a
 change in scroll and screenshot after rightward input. The Moses sequence also
 presses B to lift the baby, jumps past the first approaching enemy and crosses
 the first water gap. It recovers him after a later collision, backtracks over the
-position trigger, reaches the first-level success screen and enters level two.
+position trigger, reaches the first-level success screen and picks him up again
+in level two before crossing two water gaps.
 Sampled slot fields show the link, its loss and recovery; a pinned screenshot
-hash checks the success screen. The twenty-six sampled
+hash checks the success screen. The thirty-three sampled
 frames, slot fields, state and cycle counts, mapper-write streams, NMI counts, OAM DMA and
 APU-register write streams agreed between the reference and build. Both PRG
 banks appeared in the emulator's mapper-write mapping; every observed write
@@ -72,6 +73,11 @@ observed no instruction starts in the source map's remaining local PRG gaps.
 This covers only the exercised path and does not classify every byte or establish
 the behaviour of paths that were not reached. Its local trace remains in
 `analysis/us-v1.5/unowned-carry-execution.json`.
+A reference-only trace through the level-two pickup likewise found no native
+instruction starts in local PRG gaps. All 676 observed script pointer/bank
+pairs began inside source-owned regions; this does not verify their complete
+paths or later level-two interactions. The trace remains under
+`analysis/us-v1.5/*stage2-pickup-execution.json`.
 Local jump-timing explorations beyond frame 2,800 lost the baby before the
 frame-3,000 samples; the attempts and screenshots remain under
 `analysis/us-v1.5/moses-second-*`. They are exploratory reference runs, not
@@ -263,13 +269,26 @@ supplied map-chunk data. The offset table and state-indexed vertical-base seeds
 are source; map layouts and chunk contents remain local. Runtime bounds on
 either table have not been established.
 `make prg-inventory` combines the current verified source map with candidate
-map, script, record and palette-setup uses, round-tripped packed text, and
+map, script, record, palette-setup, candidate audio and PPU-stream uses, round-tripped packed text, and
 optional validated audio and sprite traces. It counts physical bytes once while
-retaining overlapping uses. With the current local traces, 6,394 PRG bytes have no use
+retaining overlapping uses. With the current local traces, 5,277 PRG bytes have no use
 in these inventories; that number is not a count of remaining code. The report
 also retains 65 possible map/script overlap bytes and 29 possible record/script
 overlap bytes. It records its input identities and writes metadata only to
 ignored `analysis/us-v1.5/prg-inventory.json`.
+`make audio-flow` follows literal voice starts in reconstructed commands and the
+native opcode-$18 start. It models both loop outcomes, stops at voice-stop
+commands and follows the restore-to-start-plus-one path. The current static
+walk has 36 starts, 790 command contexts and 1,293 distinct physical bytes,
+with no conflicting decodes or five-byte fetches crossing a bank. Of the 706
+bytes used by the existing audio trace, 605 also occur in these candidate paths.
+Indexed or otherwise dynamic starts and unobserved playback remain open; the
+decoded audio payloads stay local and do not count as reconstructed code.
+`make ppu-streams` decodes 19 candidate inventory PPU streams from literal queues,
+pointer tables and remap cases. Their logical commands cover 429 physical bytes;
+the current candidates have no overlapping streams or possible bank-crossing
+lookahead. Queue timing, other starts and reachability remain unverified, and
+the text payloads remain local.
 `make map-data` decodes 22 state-table entries into 14 distinct candidate
 layouts and 146 chunk-table entries into 145 distinct referenced chunks. The
 layouts and chunks round-trip to their local bytes; none of the decoded grid

@@ -12,7 +12,7 @@ import os
 from pathlib import Path
 import sys
 
-from . import audio_commands, map_data, packed_text, slot_record_flow, sprite_metadata
+from . import audio_commands, audio_flow, map_data, packed_text, ppu_streams, slot_record_flow, sprite_metadata
 from .build_rom import source_regions
 from .progress import verify_primary
 from .project import input_path
@@ -23,10 +23,12 @@ from .setup_mesen import spec
 
 CATEGORIES = ('source_code', 'source_data', 'candidate_map_chunks', 'candidate_map_layouts',
               'packed_text_records', 'observed_audio_commands', 'candidate_sprite_bytes',
-              'candidate_script_bytes', 'candidate_record_bytes', 'candidate_palette_setup_bytes')
+              'candidate_script_bytes', 'candidate_record_bytes', 'candidate_palette_setup_bytes',
+              'candidate_audio_commands', 'candidate_ppu_stream_bytes')
 INVENTORY_INPUTS = ('tools/prg_inventory.py', 'tools/map_data.py', 'tools/packed_text.py',
                     'tools/script_entries.py', 'tools/script_flow.py', 'tools/slot_record_flow.py',
-                    'tools/audio_commands.py', 'tools/sprite_metadata.py', 'tools/setup_mesen.py',
+                    'tools/audio_commands.py', 'tools/audio_flow.py', 'tools/ppu_streams.py',
+                    'tools/sprite_metadata.py', 'tools/setup_mesen.py',
                     'config/mesence-toolchain.json')
 
 
@@ -74,6 +76,8 @@ def summarize(spans: dict[str, list[tuple[int, int]]], *, bank_size: int = BANK_
     map_mask = ((1 << CATEGORIES.index('candidate_map_chunks'))
                 | (1 << CATEGORIES.index('candidate_map_layouts')))
     record_mask = 1 << CATEGORIES.index('candidate_record_bytes')
+    observed_audio_mask = 1 << CATEGORIES.index('observed_audio_commands')
+    candidate_audio_mask = 1 << CATEGORIES.index('candidate_audio_commands')
     return {'prg_bytes': size, 'category_bytes': counts, 'use_combinations': groups,
             'uncatalogued_bytes': combinations.get(0, 0),
             'source_and_candidate_data_bytes': sum(bool(mask & source_mask) and bool(mask & data_mask)
@@ -84,6 +88,8 @@ def summarize(spans: dict[str, list[tuple[int, int]]], *, bank_size: int = BANK_
                                                   for mask in masks),
             'record_and_candidate_script_bytes': sum(bool(mask & record_mask) and bool(mask & script_mask)
                                                      for mask in masks),
+            'observed_and_candidate_audio_bytes': sum(bool(mask & observed_audio_mask)
+                                                      and bool(mask & candidate_audio_mask) for mask in masks),
             'uncatalogued_spans': unknown}
 
 
@@ -180,6 +186,16 @@ def inventory(root: Path = ROOT) -> dict:
             spans['candidate_record_bytes'].extend((start + offset, 1)
                 for offset in slot_record_flow.record_used_offsets(reference_entry))
 
+    source = (root / config['source']).read_text()
+    audio_graph = audio_flow.walk(bank0, bank1, audio_flow.literal_seeds(source))
+    if audio_graph['unprocessed']:
+        raise ValueError('candidate audio flow reached its node limit')
+    spans['candidate_audio_commands'] = [(node['location']['physical_prg_offset'], node['length'])
+                                          for node in audio_graph['nodes'] if 'length' in node]
+    ppu_graph = ppu_streams.inventory(bank0, bank1, ppu_streams.literal_seeds(source, bank1))
+    spans['candidate_ppu_stream_bytes'] = [(stream['location']['physical_prg_offset'], stream['size'])
+                                           for stream in ppu_graph['streams']]
+
     analysis_root = root / 'analysis'
     analysis = analysis_root / 'us-v1.5'
     if (analysis_root.is_symlink() or analysis.is_symlink()
@@ -233,8 +249,13 @@ def inventory(root: Path = ROOT) -> dict:
                     'build_proof_sha256': build_proof_sha256, 'inventory_input_sha256': inventory_inputs,
                     'optional_traces': {name: trace_hashes.get(name) for name, _, _ in trace_specs},
                     'sprite_offsets_crossing_bank': crossing_sprite_offsets,
+                    'audio_fetches_crossing_bank': audio_graph['crossing_fetches'],
+                    'audio_overlapping_decode_bytes': audio_graph['overlapping_decode_bytes'],
+                    'ppu_lookahead_crossing_streams': ppu_graph['lookahead_crossing_streams'],
+                    'ppu_overlapping_stream_bytes': ppu_graph['overlapping_stream_bytes'],
                     'interpretation': 'Overlapping evidence is retained; uncatalogued does not mean code. '
-                                      'Candidate script and record paths are descriptor-derived and may be unreachable; '
+                                      'Candidate script and record paths are descriptor-derived; audio paths use literal starts. '
+                                      'Audio and PPU streams may be unreachable or incomplete; '
                                       'candidate map, sprite and palette ranges do not prove exclusive data use.'})
     return summary
 
@@ -255,6 +276,7 @@ def main() -> int:
                           'source_and_candidate_data_bytes': result['source_and_candidate_data_bytes'],
                           'map_and_candidate_script_bytes': result['map_and_candidate_script_bytes'],
                           'record_and_candidate_script_bytes': result['record_and_candidate_script_bytes'],
+                          'observed_and_candidate_audio_bytes': result['observed_and_candidate_audio_bytes'],
                           'optional_traces_present': [k for k, v in result['optional_traces'].items() if v],
                           'output': 'analysis/us-v1.5/prg-inventory.json'}, indent=2))
     except (OSError, ValueError, KeyError, TypeError) as exc:
