@@ -17,7 +17,8 @@ class OverlayAssemblyTests(unittest.TestCase):
             raise unittest.SkipTest(f'pinned assembler unavailable: {exc}') from exc
         source = (ROOT / 'src/us-v1.5/rom.s').read_text()
         names = ('BogusJumpBank1', 'BogusSetSlotMode', 'BogusSetSlotD0Bits', 'BogusSetDispatchCounter',
-                 'BogusSelectRelativeSlotAndYield', 'AudioNote',
+                 'BogusSelectRelativeSlotAndYield', 'AudioNote', 'AudioLoop', 'AudioWriteFive',
+                 'AudioWriteRegister', 'BogusOrSlotValue', 'BogusSetSlot07F0',
                  'BogusJumpCompactOverlay', 'BogusModeResourceOverlay',
                  'BogusSetJumpRecordOverlay', 'AudioNoteBogusOverlay',
                  'BogusSetSlotC0', 'BogusSetSlot0670Pair', 'BogusMaskSlotValue',
@@ -30,6 +31,7 @@ class OverlayAssemblyTests(unittest.TestCase):
                  'AudioScriptWord', 'AudioScriptTarget', 'AudioScriptTargetByte',
                  'AudioScriptTargetTriple', 'AudioScriptQuad', 'AudioScriptFourWords')
         cls.macros = '\n'.join(re.findall(r'^BogusActionOpcode_\w+ = \$[0-9A-F]{2}$', source, re.MULTILINE)) + '\n'
+        cls.macros += '\n'.join(re.findall(r'^AudioOpcode\w+ = \$[0-9A-F]{2}$', source, re.MULTILINE)) + '\n'
         cls.macros += '\n'.join(re.findall(r'^BogusOpcodeLoadRecordAndClearSavedState = \$[0-9A-F]{2}$', source, re.MULTILINE)) + '\n'
         for name in names:
             match = re.search(r'^\.macro ' + name + r'\b[^\n]*\n.*?^\.endmacro\n',
@@ -153,6 +155,35 @@ SlotRecordVoiceOverlay $AB31, $1234, $56, $78, $7A, $7B, $7C, $34AB, $5612, $7A7
         result, error, _ = self.assemble(record.replace("$A108", "$A109"))
         self.assertNotEqual(result, 0)
         self.assertIn("opcode disagreement", error)
+
+    def test_audio_loop_prefix_and_overlapping_script_commands(self):
+        statements = """
+.assert AudioOpcodeLoop = BogusActionOpcode_BogusOrSlotValue, error, "loop opcode disagreement"
+.assert >$2C52 = BogusActionOpcode_BogusSetDispatchCounter, error, "dispatch opcode disagreement"
+AudioLoop $03, $2C52
+AudioWriteFive $71, $72, $73, $74
+"""
+        result, error, audio = self.assemble(statements)
+        self.assertEqual(result, 0, error)
+        result, error, first = self.assemble('BogusOrSlotValue $5203')
+        self.assertEqual(result, 0, error)
+        result, error, second = self.assemble('BogusSetDispatchCounter $F9')
+        self.assertEqual(result, 0, error)
+        self.assertEqual(audio[:3], first)
+        self.assertEqual(audio[3:5], second)
+        result, error, _ = self.assemble(statements.replace('>$2C52', '>$2D52'))
+        self.assertNotEqual(result, 0)
+        self.assertIn('dispatch opcode disagreement', error)
+
+    def test_audio_register_value_can_start_a_script_command(self):
+        result, error, audio = self.assemble("""
+AudioWriteRegister $01, BogusActionOpcode_BogusSetSlot07F0
+AudioWriteRegister $02, $67
+""")
+        self.assertEqual(result, 0, error)
+        result, error, script = self.assemble('BogusSetSlot07F0 $EE')
+        self.assertEqual(result, 0, error)
+        self.assertEqual(audio[1:3], script)
 
     def test_multi_byte_audio_script_forms(self):
         # Synthetic commands exercise every operand layout, including target

@@ -200,15 +200,17 @@ BogusActionOpcode_BogusSelectRelativeSlotAndYield = $67
 .macro AudioDelay duration
     .byte $FB, duration
 .endmacro
+AudioOpcodeLoop = $C0
 .macro AudioLoop count, target
-    .byte $C0, count
+    .byte AudioOpcodeLoop, count
     .word target
 .endmacro
 .macro AudioSelectChannel channel
     .byte ($E0 | channel)
 .endmacro
+AudioOpcodeStopVoice = $E8
 .macro AudioStopVoice
-    .byte $E8
+    .byte AudioOpcodeStopVoice
 .endmacro
 .macro AudioRestorePointer
     .byte $E4
@@ -1327,6 +1329,17 @@ ResetEntry:
 .endmacro
 
 ; Named action opcodes bind overlapping BOGUS, record and audio views.
+BogusActionOpcode_BogusOrSlotValue = $C0
+BogusActionOpcode_BogusJumpBank1 = $04
+BogusActionOpcode_BogusAdvanceAndBranchState1B = $05
+BogusActionOpcode_BogusBranchIfOffsetProbe = $02
+BogusActionOpcode_BogusSetSlot07F0 = $4C
+BogusActionOpcode_BogusBranchIfSlotValueAtLeast = $41
+BogusActionOpcode_BogusBranchIfSlotD0BitsClear = $60
+BogusActionOpcode_BogusBranchIfSelectedFlags = $15
+BogusActionOpcode_BogusLoadSlotRecordAtPointer = $16
+BogusActionOpcode_BogusSaveStateAndPlaceSlots = $98
+BogusActionOpcode_BogusBranchIfState07ZeroAndClear = $3D
 BogusActionOpcode_BogusBranchIfSlotCoordinates01 = $01
 BogusActionOpcode_BogusRelinkToLastRelatedSlot = $B8
 BogusActionOpcode_BogusBranchIfSlot0630Bit02 = $C2
@@ -14133,7 +14146,11 @@ AudioObservedA77A:
 AudioCandidateA78C:
     AudioSelectChannel $00 ; CONTROL_AUDIO_CANDIDATE_A78C
 .assert (* - BankStart) = $278D, error, "bank 1 audio candidate A78C end"
-    .incbin "bank1_a78d_a792.bin"
+    .incbin "bank1_a78d_a790.bin"
+; A candidate record-load command shares the final two operands of an audio
+; register-write command. Its context and execution remain unverified.
+CandidateScriptA790:
+    BogusLoadRecordAndClearSavedState $99 ; CONTROL_AUDIO_SCRIPT_A790
 ; Candidate audio flow under bank-1 selection; reachability is unverified.
 AudioCandidateA792:
     AudioDelay $18 ; CONTROL_AUDIO_CANDIDATE_A792
@@ -14150,7 +14167,13 @@ AudioCandidateA792:
     AudioSelectChannel $00
     AudioWriteFive $A0, $8B, $00, $03
 .assert (* - BankStart) = $27AF, error, "bank 1 audio candidate A792 end"
-    .incbin "bank1_a7af_a7b3.bin"
+; The delay operand is a possible add-fields opcode; the following audio
+; commands supply its two operands. These script entries are unverified.
+AudioOverlapA7AF:
+CandidateScriptA7B0 = AudioOverlapA7AF + 1
+    AudioDelay BogusActionOpcode_BogusAddSlotFields00
+    AudioStopVoice
+    AudioSelectChannel $01 ; CONTROL_AUDIO_SCRIPT_A7AF
 ; Partial audio commands observed in reference playback.
 AudioObservedA7B3:
     AudioWriteFive $1E, $92, $EF, $28 ; CONTROL_AUDIO_OBSERVED_A7B3
@@ -14202,7 +14225,19 @@ AudioObservedA81D:
     AudioSelectChannel $03 ; CONTROL_AUDIO_OBSERVED_A81D
     AudioWriteFive $00, $00, $00, $00
 .assert (* - BankStart) = $2823, error, "bank 1 observed audio A81D end"
-    .incbin "bank1_a823_a82c.bin"
+; The delay operand starts a possible jump, with its target bytes also audio
+; commands. The following audio operands contain two further script entries.
+AudioOverlapA823:
+CandidateScriptA824 = AudioOverlapA823 + 1
+CandidateScriptA828 = AudioOverlapA823 + 5
+CandidateScriptA829 = AudioOverlapA823 + 6
+CandidateScriptA824Target = $E1E8
+.assert <CandidateScriptA824Target = AudioOpcodeStopVoice, error, "A824 audio/jump low disagreement"
+.assert >CandidateScriptA824Target = ($E0 | $01), error, "A824 audio/jump high disagreement"
+    AudioDelay BogusActionOpcode_BogusJumpBank1
+    AudioStopVoice
+    AudioSelectChannel $01
+    AudioWriteFive BogusActionOpcode_BogusSaveStateAndPlaceSlots, BogusActionOpcode_BogusBranchIfSlot0620Bit10Clear, $D0, $BB ; CONTROL_AUDIO_SCRIPT_A823
 ; Partial audio commands observed in reference playback.
 AudioObservedA82C:
     AudioDelay $03 ; CONTROL_AUDIO_OBSERVED_A82C
@@ -14293,7 +14328,18 @@ AudioCandidateA8B9:
     AudioWriteRegister $03, $2A
     AudioWriteRegister $00, $42
 .assert (* - BankStart) = $28C5, error, "bank 1 audio candidate A8B9 end"
-    .incbin "bank1_a8c5_a8d1.bin"
+; Candidate BOGUS entries share values and operands with audio register
+; writes. The audio and script interpretations and their paths are distinct.
+AudioOverlapA8C5:
+CandidateScriptA8C6 = AudioOverlapA8C5 + 1
+CandidateScriptA8C8 = AudioOverlapA8C5 + 3
+CandidateScriptA8CC = AudioOverlapA8C5 + 7
+    AudioWriteRegister $01, BogusActionOpcode_BogusSetSlot07F0
+    AudioWriteRegister $02, BogusActionOpcode_BogusBranchIfSlotD0Bits
+    AudioWriteRegister $03, $73 ; CONTROL_AUDIO_SCRIPT_A8C5
+    AudioWriteRegister $00, BogusActionOpcode_BogusBranchIfSlotValueAtLeast
+    AudioWriteRegister $01, $4C
+    AudioWriteRegister $02, $5F
 ; Candidate audio flow under bank-1 selection; reachability is unverified.
 AudioCandidateA8D1:
     AudioWriteRegister $03, $73 ; CONTROL_AUDIO_CANDIDATE_A8D1
@@ -14320,7 +14366,22 @@ AudioCandidateA8D1:
     AudioWriteRegister $00, $1B
     AudioWriteRegister $01, $4C
 .assert (* - BankStart) = $28FF, error, "bank 1 audio candidate A8D1 end"
-    .incbin "bank1_a8ff_a90d.bin"
+; Candidate BOGUS entries share values and operands with audio register
+; writes. The audio and script interpretations and their paths are distinct.
+AudioOverlapA8FF:
+CandidateScriptA900 = AudioOverlapA8FF + 1
+CandidateScriptA902 = AudioOverlapA8FF + 3
+CandidateScriptA904 = AudioOverlapA8FF + 5
+CandidateScriptA906 = AudioOverlapA8FF + 7
+CandidateScriptA908 = AudioOverlapA8FF + 9
+CandidateScriptA90C = AudioOverlapA8FF + 13
+    AudioWriteRegister $02, BogusActionOpcode_BogusBranchIfSlotD0Bits
+    AudioWriteRegister $03, $73
+    AudioWriteRegister $00, BogusActionOpcode_BogusSetSlot0360
+    AudioWriteRegister $01, BogusActionOpcode_BogusSetSlot07F0
+    AudioWriteRegister $02, BogusActionOpcode_BogusBranchIfSlotD0Bits
+    AudioWriteRegister $03, $73 ; CONTROL_AUDIO_SCRIPT_A8FF
+    AudioWriteRegister $00, $19
 ; Candidate audio flow under bank-1 selection; reachability is unverified.
 AudioCandidateA90D:
     AudioWriteRegister $01, $4C ; CONTROL_AUDIO_CANDIDATE_A90D
@@ -14333,7 +14394,27 @@ AudioCandidateA90D:
     AudioWriteRegister $00, $17
     AudioWriteRegister $01, $4C
 .assert (* - BankStart) = $291F, error, "bank 1 audio candidate A90D end"
-    .incbin "bank1_a91f_a935.bin"
+; Candidate BOGUS entries share values and operands with audio register
+; writes. The audio and script interpretations and their paths are distinct.
+AudioOverlapA91F:
+CandidateScriptA920 = AudioOverlapA91F + 1
+CandidateScriptA924 = AudioOverlapA91F + 5
+CandidateScriptA926 = AudioOverlapA91F + 7
+CandidateScriptA928 = AudioOverlapA91F + 9
+CandidateScriptA92C = AudioOverlapA91F + 13
+CandidateScriptA930 = AudioOverlapA91F + 17
+CandidateScriptA934 = AudioOverlapA91F + 21
+    AudioWriteRegister $02, BogusActionOpcode_BogusBranchIfSlotD0Bits
+    AudioWriteRegister $03, $73 ; CONTROL_AUDIO_SCRIPT_A91F
+    AudioWriteRegister $00, BogusActionOpcode_BogusLoadSlotRecordAtPointer
+    AudioWriteRegister $01, BogusActionOpcode_BogusSetSlot07F0
+    AudioWriteRegister $02, BogusActionOpcode_BogusBranchIfSlotD0Bits
+    AudioWriteRegister $03, $73
+    AudioWriteRegister $00, BogusActionOpcode_BogusBranchIfSelectedFlags
+    AudioWriteRegister $01, $4C
+    AudioWriteRegister $02, BogusActionOpcode_BogusBranchIfSlotD0Bits
+    AudioWriteRegister $03, $73
+    AudioWriteRegister $00, $14
 ; Candidate audio flow under bank-1 selection; reachability is unverified.
 AudioCandidateA935:
     AudioWriteRegister $01, $4C ; CONTROL_AUDIO_CANDIDATE_A935
@@ -14640,7 +14721,28 @@ AudioScriptAA21:
 AudioScriptAA25:
     AudioScriptByte BogusWait, $07, $05, $00, $07, $00, $05
 .assert (* - BankStart) = $2A27, error, "bank 1 audio/script command aa0f end"
-    .incbin "bank1_aa27_aa35.bin"
+; Interleaved candidate branches and audio notes. Alternative entries within
+; branch operands are shown as aliases; the over-approximate paths are unproven.
+AudioScriptAA27Target = $0502
+.assert >AudioScriptAA27Target = BogusActionOpcode_BogusAdvanceAndBranchState1B, error, "AA29 alternate opcode disagreement"
+AudioScriptAA27:
+CandidateScriptAA29 = AudioScriptAA27 + 2
+CandidateScriptAA2A = AudioScriptAA27 + 3
+    AudioScriptTargetByte BogusBranchIfDirectionalOffsetClear, $03, AudioScriptAA27Target, BogusActionOpcode_BogusBranchIfDirectionalOffsetClear, $00, $03, $00, $02, $00, $05, $00, $03
+AudioScriptAA2BTarget = $0503
+.assert >AudioScriptAA2BTarget = BogusActionOpcode_BogusAdvanceAndBranchState1B, error, "AA2D alternate opcode disagreement"
+AudioScriptAA2B:
+CandidateScriptAA2D = AudioScriptAA2B + 2
+CandidateScriptAA2E = AudioScriptAA2B + 3
+    AudioScriptTargetByte BogusBranchIfOffsetProbe, $02, AudioScriptAA2BTarget, BogusActionOpcode_BogusBranchIfDirectionalOffsetClear, $00, $02, $00, $03, $00, $05, $00, $03
+AudioScriptAA2FTarget = $0300
+.assert >AudioScriptAA2FTarget = BogusActionOpcode_BogusBranchIfDirectionalOffsetClear, error, "AA31 alternate opcode disagreement"
+AudioScriptAA2F:
+CandidateScriptAA31 = AudioScriptAA2F + 2
+CandidateScriptAA32 = AudioScriptAA2F + 3
+    AudioScriptTargetByte BogusBranchIfOffsetProbe, $02, AudioScriptAA2FTarget, BogusOpcodeMarkSlotAndYield, $00, $02, $00, $00, $00, $03, $01, $0E
+AudioScriptAA33:
+    AudioScriptByte BogusSetDispatchCounter, $2C, $2B, $01, $0C, $01, $0B ; CONTROL_AUDIO_SCRIPT_AA27
 ; Candidate BOGUS commands and audio-note sequence share these bytes.
 ; Script context, bank selection and execution remain unverified.
 AudioScriptAA35:
@@ -14687,7 +14789,11 @@ AudioObservedAA58:
     AudioNote $01, $18
     AudioNote $01, $18
 .assert (* - BankStart) = $2A64, error, "bank 1 observed audio AA58 end"
-    .incbin "bank1_aa64_aa6b.bin"
+; Observed audio notes and candidate branch/add commands share these bytes.
+AudioScriptAA64:
+    AudioScriptTarget BogusBranchIfState07ZeroAndClear, $3D, $3D3C, $01, $1D, $01, $1C, $01, $1D ; CONTROL_AUDIO_SCRIPT_AA64
+AudioScriptAA67:
+    AudioScriptTriple BogusAddSelectedFieldClamped, $38, $35, $31, $33, $01, $18, $01, $15, $01, $11, $01, $13
 ; Candidate BOGUS commands and audio-note sequence share these bytes.
 ; Script context, bank selection and execution remain unverified.
 AudioScriptAA6B:
@@ -14712,7 +14818,16 @@ AudioCandidateAA78:
     AudioNote $01, $16
     AudioNote $01, $16
 .assert (* - BankStart) = $2A85, error, "bank 1 audio candidate AA78 end"
-    .incbin "bank1_aa85_aa8b.bin"
+; AA85 enters the shared add-field handler for opcode $3A; AA87 and AA88
+; are competing candidate add and branch entries through its operands.
+BogusOpcodeAddSelectedField3A = $3A
+AudioScriptAA85:
+    AudioNoteBogusOverlay $01, $1A, BogusOpcodeAddSelectedField3A
+    AudioNote $01, $18
+AudioScriptAA87:
+CandidateScriptAA88 = AudioScriptAA87 + 1
+.assert BogusActionOpcode_BogusBranchIfState07ZeroAndClear = $3D, error, "AA88 alternate opcode disagreement"
+    AudioScriptTriple BogusAddSelectedFieldClamped, $38, BogusActionOpcode_BogusBranchIfState07ZeroAndClear, $3C, $3D, $01, $18, $01, $1D, $01, $1C, $01, $1D ; CONTROL_AUDIO_SCRIPT_AA85
 ; Candidate BOGUS command and audio notes share these bytes.
 ; Script context, bank selection and execution remain unverified.
 AudioScriptAA8B:
@@ -14790,7 +14905,11 @@ AudioObservedAAD8:
     AudioWriteFive $60, $00, $A1, $02
     AudioDelay $0B
 .assert (* - BankStart) = $2B0B, error, "bank 1 observed audio AAD8 end"
-    .incbin "bank1_ab0b_ab10.bin"
+; The observed audio write contains candidate branch and record-load entries.
+AudioOverlapAB0B:
+CandidateScriptAB0C = AudioOverlapAB0B + 1
+CandidateScriptAB0D = AudioOverlapAB0B + 2
+    AudioWriteFive BogusActionOpcode_BogusBranchIfSlotD0BitsClear, BogusOpcodeLoadRecordAndClearSavedState, $7E, $02 ; CONTROL_AUDIO_SCRIPT_AB0B
 ; All 88 commands below were observed in Noah, Moses and David reference runs.
 ; This is a partial stream: its neighboring data and other entry points stay local.
 AudioObservedAB10:
@@ -14884,7 +15003,16 @@ AudioObservedLoopAC10:
     AudioWriteFive $60, $00, $37, $02
     AudioDelay $0B
 .assert (* - BankStart) = $2C40, error, "bank 1 observed audio AB10 end"
-    .incbin "bank1_ac40_ac49.bin"
+; The observed loop and following write also form candidate OR, dispatch and
+; branch commands. The loop target's high byte is the dispatch opcode.
+AudioScriptAC40Target = $2C39
+.assert AudioOpcodeLoop = BogusActionOpcode_BogusOrSlotValue, error, "AC40 audio/script opcode disagreement"
+.assert >AudioScriptAC40Target = BogusActionOpcode_BogusSetDispatchCounter, error, "AC43 audio/script opcode disagreement"
+AudioScriptAC40:
+CandidateScriptAC43 = AudioScriptAC40 + 3
+CandidateScriptAC45 = AudioScriptAC40 + 5
+    AudioLoop $06, AudioScriptAC40Target ; CONTROL_AUDIO_SCRIPT_AC40
+    AudioWriteFive BogusActionOpcode_BogusBranchIfSlotD0BitsClear, BogusOpcodeLoadRecordAndClearSavedState, $AB, $01
 ; Partial audio commands observed in reference playback.
 AudioObservedAC49:
     AudioDelay $17 ; CONTROL_AUDIO_OBSERVED_AC49

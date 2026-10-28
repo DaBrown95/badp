@@ -34,9 +34,9 @@ independent source trees or treat one version's evidence as verifying the rest.
 simultaneous reconstruction. Keep progress and completion evidence per target.
 
 The v1.5 build now assembles and links to the exact reference, with 21,474 bytes
-of source code and 21,420 bytes of structured data across the physical PRG banks.
-It still includes 22,642 local PRG bytes and 65,536 local CHR bytes. A total of
-1,487 independent source-change controls verify every listed reconstructed region.
+of source code and 21,524 bytes of structured data across the physical PRG banks.
+It still includes 22,538 local PRG bytes and 65,536 local CHR bytes. A total of
+1,498 independent source-change controls verify every listed reconstructed region.
 Passing input audits or whole-ROM equality alone is not reconstruction
 completion. The developer identifies BOGUS as the
 state-machine engine in the [Vance Kozik interview](https://www.nesworld.com/kozik.php);
@@ -344,7 +344,7 @@ in these inventories; that number is not a count of remaining code. The report
 also retains 7,633 possible map/script overlap bytes and 858 possible record/script
 overlap bytes across the combined inventories. The expanded field-setter walk
 introduces many speculative competing decodes; it does not establish their
-reachability. It also reports 7,593 source-owned bytes covered by candidate
+reachability. It also reports 7,697 source-owned bytes covered by candidate
 data uses, which can include compatible uses as well as competing ones. The
 report records its input identities and writes metadata only to
 ignored `analysis/us-v1.5/prg-inventory.json`.
@@ -1385,3 +1385,22 @@ associations, candidate commands and their execution remain provisional.
 The record low byte at `$E040` remains local. This replaces 42 local PRG
 bytes with structured source and does not establish original names or prove
 which overlapping interpretations execute.
+
+The audio/script overlap review now represents 104 further bytes at `$A790`,
+`$A7AF-$A7B2`, `$A823-$A82B`, `$A8C5-$A8D0`, `$A8FF-$A90C`,
+`$A91F-$A934`, `$AA27-$AA34`, `$AA64-$AA6A`, `$AA85-$AA8A`,
+`$AB0B-$AB0F` and `$AC40-$AC48`. The source describes audio register
+writes, notes, loop and delay forms as well as candidate BOGUS entries that
+share their opcodes or operands. The branches at `$AA27-$AA34` have several
+competing entries, expressed as aliases and checked opcode relationships.
+The audio at `$A823-$A82B`, `$AA64-$AA67`, `$AB0B-$AB0F` and
+`$AC40-$AC48` was present in the retained emulator audio observations; those
+observations do not establish the candidate BOGUS execution, physical board
+mapping or unobserved audio paths. The other audio and script views are static
+candidates. The first three bytes of the audio command at `$A78D` remain local;
+only its two operands also decoded as a possible record load are represented.
+
+The 73 bytes at bank-0 `$FD3F-$FD87`, between the controller mode gate and
+the shared native-call wrapper, are all zero in the pinned v1.5 reference.
+There is no established use or padding boundary for that span; it remains a
+local inclusion and is not credited as code or structured data.

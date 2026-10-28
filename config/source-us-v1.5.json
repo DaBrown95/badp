@@ -1508,6 +1508,17 @@
     {"id": "bank1-compact-e0ee", "bank": 1, "cpu": "0xe0ee", "size": 3, "kind": "data", "control": "compact_e0ee"},
     {"id": "bank1-compact-e0f1", "bank": 1, "cpu": "0xe0f1", "size": 3, "kind": "data", "control": "compact_e0f1"},
     {"id": "bank1-compact-eb0d", "bank": 1, "cpu": "0xeb0d", "size": 3, "kind": "data", "control": "compact_eb0d"},
+    {"id": "bank1-audio-script-a790", "bank": 1, "cpu": "0xa790", "size": 2, "kind": "data", "control": "audio_script_a790"},
+    {"id": "bank1-audio-script-a7af", "bank": 1, "cpu": "0xa7af", "size": 4, "kind": "data", "control": "audio_script_a7af"},
+    {"id": "bank1-audio-script-a823", "bank": 1, "cpu": "0xa823", "size": 9, "kind": "data", "control": "audio_script_a823"},
+    {"id": "bank1-audio-script-a8c5", "bank": 1, "cpu": "0xa8c5", "size": 12, "kind": "data", "control": "audio_script_a8c5"},
+    {"id": "bank1-audio-script-a8ff", "bank": 1, "cpu": "0xa8ff", "size": 14, "kind": "data", "control": "audio_script_a8ff"},
+    {"id": "bank1-audio-script-a91f", "bank": 1, "cpu": "0xa91f", "size": 22, "kind": "data", "control": "audio_script_a91f"},
+    {"id": "bank1-audio-script-aa27", "bank": 1, "cpu": "0xaa27", "size": 14, "kind": "data", "control": "audio_script_aa27"},
+    {"id": "bank1-audio-script-aa64", "bank": 1, "cpu": "0xaa64", "size": 7, "kind": "data", "control": "audio_script_aa64"},
+    {"id": "bank1-audio-script-aa85", "bank": 1, "cpu": "0xaa85", "size": 6, "kind": "data", "control": "audio_script_aa85"},
+    {"id": "bank1-audio-script-ab0b", "bank": 1, "cpu": "0xab0b", "size": 5, "kind": "data", "control": "audio_script_ab0b"},
+    {"id": "bank1-audio-script-ac40", "bank": 1, "cpu": "0xac40", "size": 9, "kind": "data", "control": "audio_script_ac40"},
     {"id": "bank1-vectors", "bank": 1, "cpu": "0xfffa", "size": 6, "kind": "data", "control": "vectors"}
   ]
 }
