@@ -51,6 +51,10 @@ class NativeEventFlowTests(unittest.TestCase):
             inventory_events(bytes(b0), bytes(b1), bytes(lengths), records, max_rounds=1)
         with self.assertRaisesRegex(ValueError, 'invalid native event'):
             inventory_events(bytes(b0), bytes(b1), bytes(lengths), records, limit=0)
+        with self.assertRaisesRegex(ValueError, 'node limit'):
+            inventory_events(bytes(b0), bytes(b1), bytes(lengths), records, graph_limit=1)
+        with self.assertRaisesRegex(ValueError, 'invalid native event'):
+            inventory_events(bytes(b0), bytes(b1), bytes(lengths), records, graph_limit=65537)
 
     def test_cross_bank_event_record_is_reported_without_a_script_seed(self):
         b0, b1, lengths, records = fixture()

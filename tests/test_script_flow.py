@@ -14,6 +14,17 @@ def by_pointer(result):
 
 
 class ScriptFlowTests(unittest.TestCase):
+    def test_slot_07c0_comparison_has_target_and_fallthrough(self):
+        b0, b1, lengths = fixture()
+        lengths[0x45] = 4
+        b1[0x10:0x15] = bytes([0x45, 0x30, 0, 0x12, 0x16])
+        b1[0x30] = 0x16
+        nodes = by_pointer(walk(bytes(b0), bytes(b1), bytes(lengths), [0x10]))
+        self.assertEqual(nodes['0x0010']['status'], 'reviewed_conditional')
+        self.assertEqual(nodes['0x0010']['successors'], [
+            {'kind': 'target', 'encoded_pointer': '0x0030'},
+            {'kind': 'fallthrough', 'encoded_pointer': '0x0014'}])
+
     def test_slot_field_and_stack_buffer_normal_return_paths(self):
         b0, b1, lengths = fixture()
         lengths[0x76] = lengths[0x8a] = lengths[0x84] = 2
@@ -360,10 +371,10 @@ class ScriptFlowTests(unittest.TestCase):
         nodes = by_pointer(walk(bytes(b0), bytes(b1), bytes(lengths), [0x10, 0x40]))
         self.assertEqual(nodes['0x0010']['status'], 'reviewed_fallthrough')
         self.assertEqual(nodes['0x0014']['status'], 'reviewed_fallthrough')
-        # The $45 branch handler is known, but following it in every
-        # speculative context exceeded the inventory's traversal limit.
-        self.assertEqual(nodes['0x0016']['status'], 'unreviewed_or_dynamic_handler')
-        self.assertEqual(nodes['0x0016']['successors'], [])
+        self.assertEqual(nodes['0x0016']['status'], 'reviewed_conditional')
+        self.assertEqual(nodes['0x0016']['successors'], [
+            {'kind': 'target', 'encoded_pointer': '0x0030'},
+            {'kind': 'fallthrough', 'encoded_pointer': '0x001a'}])
         self.assertEqual(nodes['0x0040']['successors'], [
             {'kind': 'possible_retry', 'encoded_pointer': '0x0040'},
             {'kind': 'possible_next', 'encoded_pointer': '0x0043'}])

@@ -192,7 +192,7 @@ def inventory(root: Path = ROOT) -> dict:
     source = (root / config['source']).read_text()
     direct_seeds = direct_record_flow.source_script_seeds(source, config['regions'])
     direct_graph = walk(bank0, bank1, lengths, direct_seeds, indexed_jumps=PRIMARY_INDEXED_JUMPS,
-                        limit=25000)
+                        limit=65536)
     if flow['unprocessed_contexts'] or graph['unprocessed'] or direct_graph['unprocessed']:
         raise ValueError('candidate script context inventory is incomplete')
     direct = direct_record_flow.direct_inventory(bank0, bank1, direct_graph)

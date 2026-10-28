@@ -114,6 +114,14 @@ slot selection, resumption or execution.
 A further 65 candidate multi-byte BOGUS commands share 177 bytes with possible
 single-byte audio notes. Their source emits the reviewed script form and
 asserts the note values for every byte, including little-endian branch and
-voice-pointer operands. The candidate inventory found no other script boundary
-or catalogued data use in these selected extents. The two interpretations and
-bank selection remain conditional, not evidence that either path executes.
+voice-pointer operands. The candidate inventory at that checkpoint found no
+other script boundary or catalogued data use in those selected extents. The
+later `$45` expansion found alternate candidate boundaries within eight of
+those bytes. The interpretations and bank selection remain conditional, not
+evidence that either path executes.
+
+Opcode `$45` conditionally branches using its first two operand bytes after
+comparing the third with `$07C0,x`; the walk records both target and
+fallthrough. The widened walk also finds three further four-byte script/audio
+overlays and alternative candidate boundaries at `$A9FF`, `$AA01`, `$AA90`
+and `$AA91`. This is conservative static evidence, not proof of reachability.

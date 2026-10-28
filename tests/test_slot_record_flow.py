@@ -10,6 +10,29 @@ def fixture():
 
 
 class SlotRecordFlowTests(unittest.TestCase):
+    def test_script_limit_is_separate_from_context_limit(self):
+        b0, b1, lengths = fixture()
+        b1[0x20:0x23] = bytes([0x13, 0x13, 0x16])
+        result = trace(bytes(b0), bytes(b1), bytes(lengths), [(0x100, 0x20)], graph_limit=1)
+        self.assertEqual(result['contexts'][0]['unprocessed_script_nodes'], 1)
+        self.assertEqual(len(result['merged_script_flow']['unprocessed']), 1)
+        self.assertEqual(result['graph_limit'], 1)
+        complete = trace(bytes(b0), bytes(b1), bytes(lengths), [(0x100, 0x20)], graph_limit=3)
+        self.assertFalse(complete['merged_script_flow']['unprocessed'])
+        for invalid in (0, 65537, True):
+            with self.subTest(invalid=invalid), self.assertRaisesRegex(ValueError, 'graph limit'):
+                trace(bytes(b0), bytes(b1), bytes(lengths), [], graph_limit=invalid)
+
+    def test_default_graph_limit_handles_more_than_ten_thousand_nodes(self):
+        b0, b1, lengths = fixture()
+        start, count = 0x20, 10001
+        b1[start:start + count] = bytes([0x13]) * count
+        b1[start + count] = 0x16
+        result = trace(bytes(b0), bytes(b1), bytes(lengths), [(0x7000, start)])
+        self.assertEqual(len(result['merged_script_flow']['nodes']), count + 1)
+        self.assertFalse(result['merged_script_flow']['unprocessed'])
+        self.assertEqual(result['contexts'][0]['unprocessed_script_nodes'], 0)
+
     def test_add_subtract_and_compact_flag(self):
         b0, b1, _ = fixture()
         b1[0x120:0x12a] = bytes([0x34, 0x81, 0x78, 0x56, 0x40, 1, 2, 3, 4, 5])

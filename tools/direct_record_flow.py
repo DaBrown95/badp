@@ -72,7 +72,7 @@ def main() -> int:
         regions = json.loads((ROOT / 'config/source-us-v1.5.json').read_text())['regions']
         seeds = source_script_seeds(source, regions)
         graph = walk(bank0, bank1, lengths, seeds, indexed_jumps=PRIMARY_INDEXED_JUMPS,
-                     limit=25000)
+                     limit=65536)
         if graph['unprocessed']:
             raise ValueError('script graph reached its node limit')
         result = direct_inventory(bank0, bank1, graph)

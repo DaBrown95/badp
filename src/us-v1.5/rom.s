@@ -1308,9 +1308,27 @@ ResetEntry:
     .word NmiHandler, ResetEntry, IrqHandler ; CONTROL_VECTORS
 .endmacro
 
+; Newly reviewed handlers preserve the encoded branch and ignored operand.
+.macro BogusBranchIfSlot0770Equal target, value
+    .byte $2A
+    .word target - $8000
+    .byte value
+.endmacro
+.macro BogusAddSelectedFieldClamped selector, delta, unused
+    .byte $38, selector, delta, unused
+.endmacro
+.macro BogusBranchIfSlot07C0Equal target, value
+    .byte $45
+    .word target - $8000
+    .byte value
+.endmacro
+
 ; A multi-byte BOGUS command can also be a sequence of audio notes.
 BogusActionOpcode_BogusAddSlotFields00 = $08
 BogusActionOpcode_BogusAddSlotValue = $42
+BogusActionOpcode_BogusAddSelectedFieldClamped = $38
+BogusActionOpcode_BogusBranchIfSlot0770Equal = $2A
+BogusActionOpcode_BogusBranchIfSlot07C0Equal = $45
 BogusActionOpcode_BogusBranchAndClearSlot0620Bit08 = $27
 BogusActionOpcode_BogusBranchIfDirectionalOffsetClear = $03
 BogusActionOpcode_BogusBranchIfMatchingSlotReady = $35
@@ -1357,6 +1375,15 @@ BogusActionOpcode_BogusWait = $07
     AudioNoteView duration1, note1, first
     AudioNoteView duration2, note2, second
     action first, second
+.endmacro
+
+.macro AudioScriptTriple action, opcode, first, second, third, duration0, note0, duration1, note1, duration2, note2, duration3, note3
+    .assert opcode = .ident(.concat("BogusActionOpcode_", .string(action))), error, "BOGUS action opcode disagreement"
+    AudioNoteView duration0, note0, opcode
+    AudioNoteView duration1, note1, first
+    AudioNoteView duration2, note2, second
+    AudioNoteView duration3, note3, third
+    action first, second, third
 .endmacro
 
 .macro AudioScriptWord action, opcode, encoded, duration0, note0, duration1, note1, duration2, note2
@@ -14514,6 +14541,7 @@ AudioCandidateA9F6:
     AudioNote $01, $09
 .assert (* - BankStart) = $2A00, error, "bank 1 audio candidate A9F6 end"
 ; Candidate BOGUS commands and audio-note sequence share these bytes.
+; Alternate candidate script entries begin at $A9FF and $AA01.
 ; Script context, bank selection and execution remain unverified.
 AudioScriptAA00:
     AudioScriptTarget BogusBranchAndClearSlot0620Bit08, $27, $292C, $01, $07, $01, $0C, $01, $09 ; CONTROL_AUDIO_COMMAND_AA00
@@ -14524,7 +14552,11 @@ AudioScriptAA06:
 AudioScriptAA09:
     AudioScriptByte BogusSetSpriteAttribute20, $29, $22, $01, $09, $01, $02
 .assert (* - BankStart) = $2A0B, error, "bank 1 audio/script command aa00 end"
-    .incbin "bank1_aa0b_aa0f.bin"
+; Candidate BOGUS command and audio notes share these bytes.
+; Script context, bank selection and execution remain unverified.
+AudioScriptAA0B:
+    AudioScriptTargetByte BogusBranchIfSlot0770Equal, $2A, $0709, $29, $01, $0A, $00, $09, $00, $07, $01, $09 ; CONTROL_AUDIO_COMMAND_AA0B
+.assert (* - BankStart) = $2A0F, error, "bank 1 audio/script command aa0b end"
 ; Candidate BOGUS commands and audio-note sequence share these bytes.
 ; Script context, bank selection and execution remain unverified.
 AudioScriptAA0F:
@@ -14620,8 +14652,14 @@ AudioCandidateAA78:
     AudioNote $01, $16
     AudioNote $01, $16
 .assert (* - BankStart) = $2A85, error, "bank 1 audio candidate AA78 end"
-    .incbin "bank1_aa85_aa8f.bin"
+    .incbin "bank1_aa85_aa8b.bin"
+; Candidate BOGUS command and audio notes share these bytes.
+; Script context, bank selection and execution remain unverified.
+AudioScriptAA8B:
+    AudioScriptTriple BogusAddSelectedFieldClamped, $38, $35, $31, $33, $01, $18, $01, $15, $01, $11, $01, $13 ; CONTROL_AUDIO_COMMAND_AA8B
+.assert (* - BankStart) = $2A8F, error, "bank 1 audio/script command aa8b end"
 ; Candidate BOGUS commands and audio-note sequence share these bytes.
+; Alternate candidate script entries begin at $AA90 and $AA91.
 ; Script context, bank selection and execution remain unverified.
 AudioScriptAA8F:
     AudioScriptTargetTriple BogusBranchIfMatchingSlotReady, $35, $382E, $36, $35, $33, $01, $15, $01, $0E, $01, $18, $01, $16, $01, $15, $01, $13 ; CONTROL_AUDIO_COMMAND_AA8F
@@ -14842,7 +14880,11 @@ AudioObservedAC70:
 AudioScriptAC7F:
     AudioScriptPair BogusAddSlotFields00, $08, $0A, $08, $00, $08, $00, $0A, $00, $08 ; CONTROL_AUDIO_COMMAND_AC7F
 .assert (* - BankStart) = $2C82, error, "bank 1 audio/script command ac7f end"
-    .incbin "bank1_ac82_ac86.bin"
+; Candidate BOGUS command and audio notes share these bytes.
+; Script context, bank selection and execution remain unverified.
+AudioScriptAC82:
+    AudioScriptTargetByte BogusBranchIfSlot07C0Equal, $45, $253F, $45, $02, $05, $01, $1F, $01, $05, $02, $05 ; CONTROL_AUDIO_COMMAND_AC82
+.assert (* - BankStart) = $2C86, error, "bank 1 audio/script command ac82 end"
 ; Audio commands observed during the extended Moses route.
 AudioObservedAC86:
     AudioNote $02, $05 ; CONTROL_AUDIO_OBSERVED_AC86

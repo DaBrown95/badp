@@ -339,9 +339,9 @@ either table have not been established.
 map, descriptor-context, native-event and direct-target scripts and records, palette setup,
 candidate audio and PPU-stream uses, round-tripped packed text, and optional
 validated audio and sprite traces. It counts physical bytes once while
-retaining overlapping uses. With the current local traces, 909 PRG bytes have no use
+retaining overlapping uses. With the current local traces, 811 PRG bytes have no use
 in these inventories; that number is not a count of remaining code. The report
-also retains 4,561 possible map/script overlap bytes and 516 possible record/script
+also retains 6,434 possible map/script overlap bytes and 706 possible record/script
 overlap bytes across the combined inventories. The expanded field-setter walk
 introduces many speculative competing decodes; it does not establish their
 reachability. It also reports 4,386 source-owned bytes covered by candidate
@@ -1175,8 +1175,8 @@ boundaries remain unresolved.
 Sixty-five further candidate BOGUS commands occupy 177 bytes that also decode
 as individual audio notes, across sixteen source extents. The script forms use
 reviewed handler macros, while note duration and pitch values are checked
-against every command byte. Selection required a unique candidate script
-boundary and excluded other catalogued data uses. Both script context and
+against every command byte. At that checkpoint selection required a unique
+candidate script boundary and excluded other catalogued data uses. Both script context and
 bank-1 audio execution remain provisional; the assertions establish compatible
 encodings, not reachability. Synthetic assembler checks cover the operand
 layouts and reject inconsistent notes, and each extent has a separate
@@ -1187,5 +1187,22 @@ walk to 1,822 seeds, 7,942 candidate nodes, 25 possible direct commands and
 23 distinct direct targets. It now reports 2,784 bytes with overlapping script
 decodes and 36 possible record/script overlap bytes. These are conservative
 static possibilities, not evidence of execution. The combined PRG inventory's
-physical script and record coverage did not expand, and all 177 selected bytes
-retain only the two stated catalogued views in that inventory.
+physical script and record coverage did not expand at that checkpoint. A later
+handler review exposes additional script boundaries, as described below.
+
+The `$45` handler compares the supplied value to slot field `$07C0` and can
+branch to its supplied pointer or continue. Modelling both possibilities raised
+the merged native-event walk to 11,382 nodes. Graph traversal now has a
+separate 65,536-node limit, covering the encoded 16-bit address space, and the
+inventory rejects incomplete per-context walks as well as incomplete merged
+walks. The broader walk finds alternative candidate script boundaries at
+`$A9FF/$AA01` and `$AA90/$AA91`, overlapping eight bytes in the previously
+represented `$AA00` and `$AA8F` extents. Those bytes still match, but their
+script interpretation is no longer unique. No additional catalogued data
+category covers the previously selected 177 bytes.
+
+Three additional four-byte script commands at `$AA0B`, `$AA8B` and `$AC82`
+are represented alongside their possible audio-note views. The `$38` command
+preserves its third operand even though the shared handler does not inspect it.
+Candidate contexts and bank selection remain unverified; changed-source
+controls and the whole-ROM comparison verify the emitted bytes.

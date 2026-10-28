@@ -22,7 +22,8 @@ class OverlayAssemblyTests(unittest.TestCase):
                  'BogusSetSlotC0', 'BogusSetSlot0670Pair', 'BogusMaskSlotValue',
                  'BogusBranchAndClearSlot0620Bit08', 'BogusBranchIfSlot0520AtMost',
                  'BogusBranchIfMatchingSlotReady', 'BogusMarkMatchingSlots',
-                 'BogusSetVoicePointers', 'AudioNoteView', 'AudioScriptByte', 'AudioScriptPair',
+                 'BogusSetVoicePointers', 'BogusAddSelectedFieldClamped',
+                 'AudioNoteView', 'AudioScriptByte', 'AudioScriptPair', 'AudioScriptTriple',
                  'AudioScriptWord', 'AudioScriptTarget', 'AudioScriptTargetByte',
                  'AudioScriptTargetTriple', 'AudioScriptQuad', 'AudioScriptFourWords')
         cls.macros = '\n'.join(re.findall(r'^BogusActionOpcode_\w+ = \$[0-9A-F]{2}$', source, re.MULTILINE)) + '\n'
@@ -77,6 +78,7 @@ AudioNoteBogusOverlay $01, $05, $25
         examples = (
             ('Byte', 'BogusSetSlotC0', 0x09, ('$12',), bytes([0x09, 0x12])),
             ('Pair', 'BogusSetSlot0670Pair', 0x0c, ('$22', '$34'), bytes([0x0c, 0x22, 0x34])),
+            ('Triple', 'BogusAddSelectedFieldClamped', 0x38, ('$12', '$34', '$56'), bytes([0x38, 0x12, 0x34, 0x56])),
             ('Word', 'BogusMaskSlotValue', 0x40, ('$1256',), bytes([0x40, 0x56, 0x12])),
             ('Target', 'BogusBranchAndClearSlot0620Bit08', 0x27, ('$3456',), bytes([0x27, 0x56, 0x34])),
             ('TargetByte', 'BogusBranchIfSlot0520AtMost', 0x22, ('$3456', '$12'), bytes([0x22, 0x56, 0x34, 0x12])),

@@ -30,9 +30,10 @@ EVENTS = (('contact', 9, 1, False), ('position', 27, 4, False),
 
 def inventory_events(bank0: bytes, bank1: bytes, lengths: bytes, records: list[dict],
                      *, indexed_jumps: dict | None = None, limit: int = 10000,
-                     max_rounds: int = 32) -> dict:
+                     graph_limit: int = 65536, max_rounds: int = 32) -> dict:
     """Expand possible event records from descriptor-associated script contexts."""
-    if type(limit) is not int or limit <= 0 or type(max_rounds) is not int or max_rounds <= 0:
+    if (type(limit) is not int or limit <= 0 or type(max_rounds) is not int or max_rounds <= 0
+            or type(graph_limit) is not int or not 1 <= graph_limit <= 65536):
         raise ValueError('invalid native event inventory limit')
     seeds: set[tuple[int, int]] = set()
     controlled_bases: set[int] = set()
@@ -52,14 +53,17 @@ def inventory_events(bank0: bytes, bank1: bytes, lengths: bytes, records: list[d
     cache: dict[int, dict] = {}
     events: dict[tuple[str, int], dict] = {}
     for round_number in range(1, max_rounds + 1):
-        flow = trace(bank0, bank1, lengths, sorted(seeds), indexed_jumps=indexed_jumps, limit=limit)
-        if flow['unprocessed_contexts'] or flow['merged_script_flow']['unprocessed']:
+        flow = trace(bank0, bank1, lengths, sorted(seeds), indexed_jumps=indexed_jumps,
+                     limit=limit, graph_limit=graph_limit)
+        if (flow['unprocessed_contexts'] or flow['merged_script_flow']['unprocessed']
+                or any(c['unprocessed_script_nodes'] for c in flow['contexts'])):
             raise ValueError('native event context inventory reached its node limit')
         previous = len(seeds)
         for context in flow['contexts']:
             base, entry = int(context['base'], 16), int(context['entry'], 16)
             if entry not in cache:
-                cache[entry] = walk(bank0, bank1, lengths, [entry], indexed_jumps=indexed_jumps)
+                cache[entry] = walk(bank0, bank1, lengths, [entry], indexed_jumps=indexed_jumps,
+                                    limit=graph_limit)
             graph = cache[entry]
             if graph['unprocessed']:
                 raise ValueError('native event eligibility graph reached its node limit')

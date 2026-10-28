@@ -101,7 +101,8 @@ def record_script_overlaps(references: list[dict], graph: dict) -> dict:
 
 
 def trace(bank0: bytes, bank1: bytes, lengths: bytes, seeds: list[tuple[int, int]],
-          indexed_jumps: dict[int, int | tuple[int, ...]] | None = None, limit: int = 10000) -> dict:
+          indexed_jumps: dict[int, int | tuple[int, ...]] | None = None, limit: int = 10000,
+          graph_limit: int = 65536) -> dict:
     """Explore candidate (descriptor base, script entry) contexts with a hard limit."""
     if len(bank0) != BANK_SIZE or len(bank1) != BANK_SIZE:
         raise ValueError('expected two full 32 KiB banks')
@@ -109,6 +110,8 @@ def trace(bank0: bytes, bank1: bytes, lengths: bytes, seeds: list[tuple[int, int
         raise ValueError('invalid command lengths')
     if type(limit) is not int or limit <= 0:
         raise ValueError('invalid context limit')
+    if type(graph_limit) is not int or not 1 <= graph_limit <= 65536:
+        raise ValueError('invalid script graph limit')
     pending: deque[tuple[int, int]] = deque()
     queued: set[tuple[int, int]] = set()
     for base, entry in seeds:
@@ -127,7 +130,7 @@ def trace(bank0: bytes, bank1: bytes, lengths: bytes, seeds: list[tuple[int, int
         base, entry = pending.popleft()
         flow = cached_flows.get(entry)
         if flow is None:
-            flow = walk(bank0, bank1, lengths, [entry], indexed_jumps=indexed_jumps)
+            flow = walk(bank0, bank1, lengths, [entry], indexed_jumps=indexed_jumps, limit=graph_limit)
             cached_flows[entry] = flow
         contexts.append({'base': f'0x{base:04x}', 'entry': f'0x{entry:04x}',
                          'unprocessed_script_nodes': len(flow['unprocessed']),
@@ -208,7 +211,7 @@ def trace(bank0: bytes, bank1: bytes, lengths: bytes, seeds: list[tuple[int, int
     # their union to expose those cross-context overlaps explicitly.
     merged = walk(bank0, bank1, lengths,
                   sorted({int(context['entry'], 16) for context in contexts}),
-                  indexed_jumps=indexed_jumps)
+                  indexed_jumps=indexed_jumps, limit=graph_limit)
     overlaps = record_script_overlaps(references, merged)
     return {'contexts': contexts, 'references': references,
             'possible_retained_pointer_resumes': possible_retained_pointer_resumes,
@@ -217,7 +220,8 @@ def trace(bank0: bytes, bank1: bytes, lengths: bytes, seeds: list[tuple[int, int
             'merged_script_flow': merged,
             'record_script_overlaps': overlaps,
             'unprocessed_contexts': [{'base': f'0x{base:04x}', 'entry': f'0x{entry:04x}'}
-                                     for base, entry in pending], 'context_limit': limit}
+                                     for base, entry in pending], 'context_limit': limit,
+            'graph_limit': graph_limit}
 
 
 def main() -> int:

@@ -38,9 +38,9 @@ their assumed descriptor associations and interpretations remain unverified.
 The overlaps do not establish which path actually executes.
 A separate `make direct-record-flow` walk seeds every named bank-1 script
 entry and checks direct `$16` targets against the resulting script graph.
-The latest scan starts from 1,822 named candidate script entries and finds 25
-possible direct-load commands with 23 distinct direct targets. Its widened
-walk contains 2,784 bytes with overlapping script decodes and 36 possible
+The latest scan starts from 1,825 named candidate script entries and finds 28
+possible direct-load commands with 26 distinct direct targets. Its widened
+walk contains 9,072 bytes with overlapping script decodes and 72 possible
 record/script overlap bytes. The added entries are candidate contexts, so
 these counts do not establish execution or mutually incompatible behavior. The
 possible record at `$B077` overlaps two candidate script bytes; both views are
@@ -178,3 +178,8 @@ The source asserts that each pair of interpretations has identical byte values,
 but does not resolve descriptor associations, access modes or reachability.
 The `$D57C` record's later fields overlap the previously represented compact
 record at `$D581`; the overlay itself claims only the preceding five bytes.
+
+The context and script graph limits are separate. Each context walk and the
+merged walk use the same 65,536-node default; the native-event inventory
+rejects incomplete individual and merged graphs. The limit bounds the 16-bit
+encoded pointer space, not a claim that all possible game behavior is known.
