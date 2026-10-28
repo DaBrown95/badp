@@ -122,22 +122,21 @@ def select(root: Path, prg: bytes, reference_sha256: str) -> tuple[dict, list[tu
 
 
 def changed_asset(asset: dict, prg: bytes) -> dict:
-    """Change one encodable primary character in every record."""
+    """Change the first and last encodable primary character in every record."""
     changed = json.loads(json.dumps(asset))
     _, primary, _ = _records(prg)
     for record in changed['records']:
         chars = list(record['text'])
-        for index, slot in enumerate(record['encoding_slots']):
-            if slot['kind'] != 'primary':
-                continue
+        positions = [index for index, slot in enumerate(record['encoding_slots']) if slot['kind'] == 'primary']
+        if not positions:
+            raise ValueError('record has no mutable primary character')
+        for index in dict.fromkeys((positions[0], positions[-1])):
             alternatives = [chr(value) for i, value in enumerate(primary)
                             if i not in RESERVED and chr(value) != chars[index] and chr(value) != '\n']
-            if alternatives:
-                chars[index] = alternatives[0]
-                record['text'] = ''.join(chars)
-                break
-        else:
-            raise ValueError('record has no mutable primary character')
+            if not alternatives:
+                raise ValueError('record has no mutable primary character')
+            chars[index] = alternatives[0]
+        record['text'] = ''.join(chars)
     return changed
 
 

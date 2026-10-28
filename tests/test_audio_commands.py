@@ -40,6 +40,12 @@ class AudioCommandTests(unittest.TestCase):
             with self.subTest(op=op):
                 self.assertEqual(decode_command(bytes([op]))['kind'], kind)
 
+    def test_restore_command_retains_all_low_bit_encodings(self):
+        for opcode in range(0xE4, 0xE8):
+            with self.subTest(opcode=opcode):
+                self.assertEqual(decode_command(bytes([opcode])),
+                                 {'kind': 'restore_pointer', 'opcode': opcode, 'size': 1})
+
 
 class AudioInventoryTests(unittest.TestCase):
     def setUp(self):

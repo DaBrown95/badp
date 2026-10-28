@@ -63,6 +63,26 @@ class MapLayoutAssetTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, 'overlapping'):
             layouts.gap_payloads(self.prg, [], spans + [(bank, offset, grid)])
 
+    def test_optional_owned_overlap_splits_gap_and_rejects_conflicting_edits(self):
+        spans = layouts.encode(self.asset, self.prg, self.reference)
+        bank, offset, grid = spans[0]
+        regions = [{'bank': bank, 'cpu': hex(0x8000 + offset + 3), 'size': 2}]
+        gaps = layouts.gap_payloads(self.prg, regions, spans, allow_owned=True)
+        left = f'bank{bank}_8000_{0x8000 + offset + 3:04x}.bin'
+        right = f'bank{bank}_{0x8000 + offset + 5:04x}_10000.bin'
+        self.assertEqual(gaps[left][offset:offset + 3], grid[:3])
+        self.assertEqual(gaps[right][:len(grid) - 5], grid[5:])
+        edited = bytearray(grid)
+        edited[3] ^= 1
+        with self.assertRaisesRegex(ValueError, 'source-owned'):
+            layouts.gap_payloads(self.prg, regions, [(bank, offset, bytes(edited))], allow_owned=True)
+        with self.assertRaisesRegex(ValueError, 'overlapping'):
+            layouts.gap_payloads(self.prg, regions, spans + [(bank, offset + 3, grid[3:5])],
+                                 allow_owned=True)
+        with self.assertRaisesRegex(ValueError, 'bank boundary'):
+            layouts.gap_payloads(self.prg, regions, [(bank, layouts.BANK_SIZE - 1, b'123')],
+                                 allow_owned=True)
+
     def test_export_preserves_existing_edits(self):
         target = {'reference': {'file': {'sha256': self.reference}}}
         banks = (target, self.prg[:layouts.BANK_SIZE], self.prg[layouts.BANK_SIZE:], b'')

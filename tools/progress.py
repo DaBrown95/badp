@@ -136,7 +136,7 @@ def verify_primary(root: Path, target: dict) -> dict:
                                                                                              prg_offset, layouts)):
         raise ValueError("map layout source-change control is stale or invalid")
     text, text_spans, text_source, text_input_hash = text_assets.select(root, prg, digest(reference))
-    text_gaps = map_layout_assets.gap_payloads(prg, regions, text_spans)
+    text_gaps = map_layout_assets.gap_payloads(prg, regions, text_spans, allow_owned=True)
     if map_assets.GAP_NAME in text_gaps or set(text_gaps) & set(layout_gaps):
         raise ValueError("packed text and map assets share an input gap")
     text_evidence = proof.get("text_assets", {})
@@ -148,7 +148,7 @@ def verify_primary(root: Path, target: dict) -> dict:
     changed_text = text_assets.changed_asset(text, prg)
     changed_text_json = text_assets.serialize(changed_text)
     changed_text_spans = text_assets.encode(changed_text, prg, digest(reference))
-    changed_text_gaps = map_layout_assets.gap_payloads(prg, regions, changed_text_spans)
+    changed_text_gaps = map_layout_assets.gap_payloads(prg, regions, changed_text_spans, allow_owned=True)
     text_changed_names = [name for name in text_gaps if changed_text_gaps[name] != text_gaps[name]]
     if not text_changed_names or set(text_changed_names) != set(text_gaps):
         raise ValueError("packed-text control does not affect every input gap")

@@ -1567,3 +1567,27 @@ This is a bounded static classification, not proof that the candidates are
 unreachable or that the inventory finds every asset use. The reviewed addresses,
 source associations and proof identity remain in ignored
 `analysis/us-v1.5/exclusive-script-candidates.json`.
+
+The four bytes at bank 1 `$CA3F-$CA42` are now expressed as candidate audio
+commands while retaining their overlapping packed-text interpretation. The
+candidate pointer comes from an already represented possible BOGUS voice
+command; neither that path nor audio playback is established. The final restore
+command uses the `$E6` encoding, whose low bits the dispatcher ignores; it is
+not the canonical `$E4` encoding. The build checks the local text against the
+source-owned overlap, and its text control changes the first and last primary
+characters in each record to exercise all 53 local text gaps. Conflicting
+edits to the shared bytes are rejected. Each of the four source bytes has an
+independent changed-source control.
+
+The default and secondary mapper value/index fields now have provisional RAM
+names and independent operand-change controls, alongside the existing NMI save
+fields. `ConfigureBanksFromValue` produces an even default value and an even
+index from zero through 30. Indices above 15 address bytes beyond `BankValues`; two
+of those ROM bytes differ between the physical banks. On both the reference and
+matching build, a controlled MesenCE probe tested every selector byte with both
+incoming carry states and applied each default write from both PRG banks: all
+1,024 writes per ROM selected PRG bank 0. This observation is specific to the
+emulator's mapper model and those controlled producer values. It does not
+establish physical cartridge wiring, CHR mapping, arbitrary RAM values, or
+execution of the NMI path. In particular, startup clears the default value but does not by itself
+prove the index is initialized before every possible interrupt.

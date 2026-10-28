@@ -27,6 +27,9 @@ PROOF_INPUTS = ("tools/build_rom.py", "tools/identify_rom.py", "tools/project.py
 # Each shared RAM symbol gets an independent operand-change control. Counts
 # are physical instruction operands, not claims about runtime reachability.
 SYMBOL_CONTROLS = {
+    "DefaultBankValue": (0x03C0, 5), "DefaultBankIndex": (0x03C1, 4),
+    "SecondaryBankValue": (0x03C2, 16), "SecondaryBankIndex": (0x03C3, 16),
+    "NmiSavedValue": (0x03C4, 4), "NmiSavedIndex": (0x03C5, 4),
     "ScrollAxisOrder": (0x0398, 3), "MapTileXLow": (0x039A, 41),
     "MapTileXHigh": (0x039B, 21), "MapTileY": (0x039C, 33),
     "MapWidthTilesLow": (0x039E, 7), "MapWidthTilesHigh": (0x039F, 6),
@@ -50,7 +53,7 @@ MUTATIONS = {
     "enable_nmi": ("CONTROL_ENABLE_NMI", "ora #$80", "ora #$40"),
     "ppu_flush": ("CONTROL_PPU_FLUSH", "ldx #$00", "ldx #$01"),
     "oam_init": ("CONTROL_OAM_INIT", "ldy #$00", "ldy #$01"),
-    "restore_bank": ("CONTROL_RESTORE_BANK", "lda $03C0", "ldx $03C0"),
+    "restore_bank": ("CONTROL_RESTORE_BANK", "lda DefaultBankValue", "ldx DefaultBankValue"),
     "record_fetch": ("CONTROL_RECORD_FETCH", "lda a:$54", "ldx a:$54"),
     "script_step": ("CONTROL_SCRIPT_STEP", "ldx #$00", "ldx #$01"),
     "script_dispatch": ("CONTROL_SCRIPT_DISPATCH", "ldy $60", "ldx $60"),
@@ -916,6 +919,10 @@ MUTATIONS = {
     "audio_candidate_ac87": ("CONTROL_AUDIO_CANDIDATE_AC87", "AudioStopVoice", "AudioRestorePointer"),
     "audio_candidate_ac95": ("CONTROL_AUDIO_CANDIDATE_AC95", "AudioNote $03, $0E", "AudioNote $03, $0F"),
     "audio_candidate_ac9e": ("CONTROL_AUDIO_CANDIDATE_AC9E", "AudioNote $03, $07", "AudioNote $03, $08"),
+    "audio_candidate_ca3f": ("CONTROL_AUDIO_CANDIDATE_CA3F", "AudioInstrument $14", "AudioInstrument $15"),
+    "audio_candidate_ca40": ("CONTROL_AUDIO_CANDIDATE_CA40", "AudioInstrument $13", "AudioInstrument $12"),
+    "audio_candidate_ca41": ("CONTROL_AUDIO_CANDIDATE_CA41", "AudioNote $00, $0D", "AudioNote $00, $0C"),
+    "audio_candidate_ca42": ("CONTROL_AUDIO_CANDIDATE_CA42", "AudioRestorePointerVariant $02", "AudioRestorePointerVariant $01"),
     "audio_observed_ab10": ("CONTROL_AUDIO_OBSERVED_AB10", "AudioDelay $0B", "AudioDelay $0A"),
     "runtime_compact_d581": ("CONTROL_RUNTIME_COMPACT_D581", "$B965", "$B964"),
     "slot_runtime_d584": ("CONTROL_SLOT_RUNTIME_D584", "$C5F5", "$C5F4"),
@@ -1852,7 +1859,7 @@ def build() -> dict:
             path.write_bytes(payload)
         (work / "inputs/map-layouts.json").write_bytes(map_layout_assets.serialize(layouts))
         text, text_spans, text_source, text_input_hash = text_assets.select(ROOT, prg, parsed["file"]["sha256"])
-        text_gaps = map_layout_assets.gap_payloads(prg, regions, text_spans)
+        text_gaps = map_layout_assets.gap_payloads(prg, regions, text_spans, allow_owned=True)
         if map_assets.GAP_NAME in text_gaps or set(text_gaps) & set(layout_gaps):
             raise ValueError("packed text and map assets share an input gap")
         for name, payload in text_gaps.items():
@@ -1959,7 +1966,7 @@ def build() -> dict:
         changed_text = text_assets.changed_asset(text, prg)
         changed_text_json = text_assets.serialize(changed_text)
         changed_text_spans = text_assets.encode(changed_text, prg, parsed["file"]["sha256"])
-        changed_text_gaps = map_layout_assets.gap_payloads(prg, regions, changed_text_spans)
+        changed_text_gaps = map_layout_assets.gap_payloads(prg, regions, changed_text_spans, allow_owned=True)
         text_changed_names = [name for name in text_gaps if changed_text_gaps[name] != text_gaps[name]]
         if not text_changed_names or set(text_changed_names) != set(text_gaps):
             raise ValueError("packed-text control must affect every text input gap")

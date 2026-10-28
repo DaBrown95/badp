@@ -222,6 +222,11 @@ AudioOpcodeRestorePointer = $E4
 .macro AudioRestorePointer
     .byte AudioOpcodeRestorePointer
 .endmacro
+; The dispatcher ignores the low two bits for this command class.
+.macro AudioRestorePointerVariant low_bits
+    .assert (low_bits >= 0) .and (low_bits <= 3), error, "invalid audio restore variant"
+    .byte (AudioOpcodeRestorePointer | low_bits)
+.endmacro
 .macro AudioRestartChannel
     .byte $F0
 .endmacro
@@ -1083,8 +1088,8 @@ FetchVariableRecord:
     bmi RecordBankReady
     ora #$80
     sta a:$54
-    lda $03C2
-    ldy $03C3
+    lda SecondaryBankValue
+    ldy SecondaryBankIndex
     jsr SwitchBank
 RecordBankReady:
     ldy #$00
@@ -1106,8 +1111,8 @@ RecordCopyLoop:
     bmi SharedReturn
     sta a:$54
 RestoreDefaultBank:
-    lda $03C0                    ; CONTROL_RESTORE_BANK
-    ldy $03C1
+    lda DefaultBankValue                    ; CONTROL_RESTORE_BANK
+    ldy DefaultBankIndex
     jmp SwitchBank
 SharedReturn:
     rts                           ; Also reached from an earlier unresolved routine.
@@ -1122,8 +1127,8 @@ CopyToStack:
     bmi StackCopyReady
     ora #$80
     sta a:$FF
-    lda $03C2
-    ldy $03C3
+    lda SecondaryBankValue
+    ldy SecondaryBankIndex
     jsr SwitchBank
 StackCopyReady:
     ldy #$00
@@ -1148,8 +1153,8 @@ CopyStridedToBuffer:
     bmi StridedCopyReady
     ora #$80
     sta a:$F7
-    lda $03C2
-    ldy $03C3
+    lda SecondaryBankValue
+    ldy SecondaryBankIndex
     jsr SwitchBank
 StridedCopyReady:
     clc
@@ -1186,8 +1191,8 @@ CopyIndexedToState:
     bmi IndexedCopyReady
     ora #$80
     sta a:$F7
-    lda $03C2
-    ldy $03C3
+    lda SecondaryBankValue
+    ldy SecondaryBankIndex
     jsr SwitchBank
 IndexedCopyReady:
     ldy #$00
@@ -1206,8 +1211,8 @@ CopyLinearToBuffer:
     bmi LinearCopyReady
     ora #$80
     sta a:$F7
-    lda $03C2
-    ldy $03C3
+    lda SecondaryBankValue
+    ldy SecondaryBankIndex
     jsr SwitchBank
 LinearCopyReady:
     clc
@@ -1234,8 +1239,8 @@ CopyBitsToBuffer:
     bmi BitCopyReady
     ora #$80
     sta a:$F7
-    lda $03C2
-    ldy $03C3
+    lda SecondaryBankValue
+    ldy SecondaryBankIndex
     jsr SwitchBank
 BitCopyReady:
     ldy #$00
@@ -1269,8 +1274,8 @@ BitCopyAdvanceDone:
 CallScriptNativeBanked:
     lda a:$62                    ; CONTROL_SCRIPT_NATIVE_CALL
     bmi CallScriptNativeReady
-    lda $03C2
-    ldy $03C3
+    lda SecondaryBankValue
+    ldy SecondaryBankIndex
     jsr SwitchBank
 CallScriptNativeReady:
     jsr CallScriptNativeOperand
@@ -1292,8 +1297,8 @@ SwitchBank:
     sta BankValues,y             ; CONTROL_SWITCH
     rts
 
-; Each byte selects a CHR bank and PRG bank. The matching byte at the write
-; address also prevents conflicting values from being driven on the ROM bus.
+; For the table entries, the ROM byte at the write address matches the mapper
+; value. A larger index can address bytes beyond this table instead.
 BankValues:
     .repeat 8, chrBank
         .byte ($0C | (chrBank << 4)), ($0D | (chrBank << 4)) ; CONTROL_TABLE
@@ -1898,7 +1903,7 @@ ClearPalette:
     sta $03BC
     sta $03BE
     sta $03BB
-    sta $03C0
+    sta DefaultBankValue
     sta $03BD
     lda #$04
     sta $0391
@@ -7330,13 +7335,13 @@ ConfigureBanksSkipSaved:
     and #$F0
     pha
     jsr ComputeBankSelection
-    sta $03C0
-    stx $03C1
+    sta DefaultBankValue
+    stx DefaultBankIndex
     pla
     ora #$01
     jsr ComputeBankSelection
-    sta $03C2
-    stx $03C3
+    sta SecondaryBankValue
+    stx SecondaryBankIndex
 ConfigureBanksReturn:
     rts
 
@@ -14156,7 +14161,7 @@ ScriptRecordLengths:
 .assert (* - BankStart) = $7E6C, error, "bank 0 common helpers offset"
     BankHelpers
 .assert (* - BankStart) = $7FB3, error, "bank 0 tail offset"
-    BankTail $03C0, $03C1, "bank0_fff4_fffa.bin"
+    BankTail DefaultBankValue, DefaultBankIndex, "bank0_fff4_fffa.bin"
 .assert (* - BankStart) = $8000, error, "bank 0 size"
 .endscope
 
@@ -18472,7 +18477,15 @@ TextCandidateCaseC9F8 = TextHeaderC9F9 - 1
 ; Candidate inline lookup(s) from $C653 also consume header bytes.
 TextHeaderC9F9:
     PackedTextDestination $2143 ; CONTROL_TEXT_DESTINATION_C9F9
-    .incbin "bank1_c9fb_ca51.bin"
+    .incbin "bank1_c9fb_ca3f.bin"
+; Also part of the packed text above. A candidate voice pointer at $AAB6
+; reaches this sequence if bank 1 is selected; playback is not established.
+AudioCandidateCA3F:
+    AudioInstrument $14 ; CONTROL_AUDIO_CANDIDATE_CA3F
+    AudioInstrument $13 ; CONTROL_AUDIO_CANDIDATE_CA40
+    AudioNote $00, $0D ; CONTROL_AUDIO_CANDIDATE_CA41
+    AudioRestorePointerVariant $02 ; CONTROL_AUDIO_CANDIDATE_CA42
+    .incbin "bank1_ca43_ca51.bin"
 TextCandidateCaseCA50 = TextHeaderCA51 - 1
 ; Candidate inline lookup(s) from $C653 also consume header bytes.
 TextHeaderCA51:
@@ -24412,7 +24425,7 @@ ScriptRecordLengths:
 .assert (* - BankStart) = $7E6C, error, "bank 1 common helpers offset"
     BankHelpers
 .assert (* - BankStart) = $7FB3, error, "bank 1 tail offset"
-    BankTail $03C2, $03C3, "bank1_fff4_fffa.bin"
+    BankTail SecondaryBankValue, SecondaryBankIndex, "bank1_fff4_fffa.bin"
 .assert (* - BankStart) = $8000, error, "bank 1 size"
 .endscope
 

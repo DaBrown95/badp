@@ -8,7 +8,7 @@ import unittest
 from unittest.mock import patch
 
 from test_map_assets import synthetic_prg
-from tools import text_assets
+from tools import map_layout_assets, text_assets
 
 
 class TextAssetTests(unittest.TestCase):
@@ -28,6 +28,8 @@ class TextAssetTests(unittest.TestCase):
         original = text_assets.encode(self.asset, self.prg, self.reference)
         changed = text_assets.changed_asset(self.asset, self.prg)
         edited = text_assets.encode(changed, self.prg, self.reference)
+        for before, after in zip(self.asset['records'], changed['records']):
+            self.assertEqual(sum(a != b for a, b in zip(before['text'], after['text'])), 2)
         self.assertTrue(all(a[2] != b[2] for a, b in zip(original, edited)))
         reference = bytes(16) + self.prg + bytes(65536)
         candidate = bytearray(reference)
@@ -59,6 +61,19 @@ class TextAssetTests(unittest.TestCase):
                          [{'kind': 'primary', 'index': 1}])
         with self.assertRaisesRegex(ValueError, 'two-symbol'):
             text_assets._edited_tokens('Y', [{'kind': 'secondary', 'index': 1}], bytes(primary), bytes(secondary))
+
+    def test_control_changes_both_gaps_of_a_source_overlapped_record(self):
+        original = text_assets.encode(self.asset, self.prg, self.reference)
+        edited = text_assets.encode(text_assets.changed_asset(self.asset, self.prg), self.prg, self.reference)
+        regions = [{'bank': bank, 'cpu': hex(0x8000 + start - 2), 'size': 2}
+                   for bank, start, _ in original]
+        bank, start, payload = original[0]
+        regions.append({'bank': bank, 'cpu': hex(0x8000 + start + len(payload) // 2), 'size': 1})
+        before = map_layout_assets.gap_payloads(self.prg, regions, original, allow_owned=True)
+        after = map_layout_assets.gap_payloads(self.prg, regions, edited, allow_owned=True)
+        self.assertEqual(len(before), 53)
+        self.assertEqual(set(before), set(after))
+        self.assertTrue(all(before[name] != after[name] for name in before))
 
     def test_identity_shape_metadata_and_unencodable_edits_fail(self):
         for kind in ('identity', 'length', 'glyph', 'slots', 'padding'):

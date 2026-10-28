@@ -8,7 +8,12 @@ PPUDATA   = $2007
 OAMDMA    = $4014
 JOY1      = $4016
 
-; Provisional RAM names: NMI saves the mapper value and lookup index for return.
+; Provisional mapper selection names, based on their producers and consumers.
+; The secondary selection does not always map physical bank 1.
+DefaultBankValue = $03C0
+DefaultBankIndex = $03C1
+SecondaryBankValue = $03C2
+SecondaryBankIndex = $03C3
 NmiSavedValue = $03C4
 NmiSavedIndex = $03C5
 

@@ -46,7 +46,7 @@ are not measures of gameplay completion.
 <!-- BEGIN GENERATED PROGRESS -->
 | Version | Reconstructed PRG | Status |
 | --- | ---: | --- |
-| USA v1.5 | **66.20%** (43,386 / 65,536 bytes) | In progress |
+| USA v1.5 | **66.21%** (43,390 / 65,536 bytes) | In progress |
 | USA v1.4 | **0.00%** (0 / 65,536 bytes) | Not started |
 | USA v1.3 | **0.00%** (0 / 65,536 bytes) | Not started |
 | USA v1.2 | **0.00%** (0 / 65,536 bytes) | Not started |
@@ -119,9 +119,10 @@ one unreferenced slot stays opaque. `make extract-map-layouts` similarly exports
 the 14 map grids locally; their dimensions remain in tracked source. Changing a
 tile or grid cell makes the matching comparison fail. `make extract-packed-text`
 exports the 52 decoded messages locally. Character edits must preserve each
-record's character count and the original one- or two-symbol encoding widths;
-the matching build rejects changed messages. These local assets do not count as
-reconstructed PRG source.
+record's character count and the original one- or two-symbol encoding widths.
+The four bytes also represented by candidate audio commands must stay consistent
+with their source definitions; other edits fail the matching comparison. The
+locally supplied asset data does not count as reconstructed PRG source.
 
 On macOS with Apple silicon and Homebrew's SDL2 installed, an optional emulator
 check exercises the opening of each adventure:

@@ -86,8 +86,9 @@ def select(root: Path, prg: bytes, reference_sha256: str) -> tuple[dict, list[tu
     return asset, spans, source, hashlib.sha256(raw).hexdigest()
 
 
-def gap_payloads(prg: bytes, regions: list[dict], spans: list[tuple[int, int, bytes]]) -> dict[str, bytes]:
-    """Assemble local gap inputs from reference pieces and supplied data spans."""
+def gap_payloads(prg: bytes, regions: list[dict], spans: list[tuple[int, int, bytes]],
+                 *, allow_owned: bool = False) -> dict[str, bytes]:
+    """Assemble gap inputs, optionally checking overlapping source-owned bytes."""
     if len(prg) != 2 * BANK_SIZE:
         raise ValueError('expected two complete PRG banks')
     gaps = []
@@ -102,14 +103,30 @@ def gap_payloads(prg: bytes, regions: list[dict], spans: list[tuple[int, int, by
             cursor = start + size
     grouped: dict[str, list[tuple[int, bytes]]] = {}
     locations = {name: (bank, start, end) for bank, start, end, name in gaps}
+    occupied: set[tuple[int, int]] = set()
     for bank, start, grid in spans:
         if bank not in (0, 1) or type(start) is not int or not isinstance(grid, bytes) or not grid:
             raise ValueError('invalid local data span')
-        matches = [name for gb, begin, end, name in gaps
-                   if gb == bank and begin <= start and start + len(grid) <= end]
-        if len(matches) != 1:
-            raise ValueError('data span is not entirely within one local gap')
-        grouped.setdefault(matches[0], []).append((start, grid))
+        if start < 0 or start + len(grid) > BANK_SIZE:
+            raise ValueError('local data span crosses a bank boundary')
+        for pos in range(start, start + len(grid)):
+            if (bank, pos) in occupied:
+                raise ValueError('overlapping local data spans')
+            occupied.add((bank, pos))
+        intersections = [(name, max(start, begin), min(start + len(grid), end))
+                         for gb, begin, end, name in gaps
+                         if gb == bank and start < end and start + len(grid) > begin]
+        local_size = sum(end - begin for _, begin, end in intersections)
+        if local_size != len(grid):
+            if not allow_owned:
+                raise ValueError('data span is not entirely within one local gap')
+            for offset, value in enumerate(grid):
+                pos = start + offset
+                if not any(begin <= pos < end for _, begin, end in intersections):
+                    if value != prg[bank * BANK_SIZE + pos]:
+                        raise ValueError('local data changes a source-owned byte')
+        for name, begin, end in intersections:
+            grouped.setdefault(name, []).append((begin, grid[begin - start:end - start]))
     result = {}
     for name, pieces in grouped.items():
         bank, start, end = locations[name]

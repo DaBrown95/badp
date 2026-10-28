@@ -29,20 +29,22 @@ def parse_selector(output: str, bank0: bytes, bank1: bytes) -> dict:
         if not parts:
             continue
         if parts[0] == 'SELECT':
-            if len(parts) != 7:
+            if len(parts) != 12:
                 raise ValueError('malformed selector observation')
             try:
                 a, carry = int(parts[1], 16), int(parts[2])
-                value, index, expected, expected_index = (int(item, 16) for item in parts[3:])
+                value, index, expected, expected_index, default_value, default_index, fromzero, forced, restored = (int(item, 16) for item in parts[3:])
             except ValueError as exc:
                 raise ValueError('invalid selector observation') from exc
             case = len(selected)
-            wanted_a, wanted_carry = case % 128, case // 128
+            wanted_a, wanted_carry = case % 256, case // 256
             high = ((wanted_a % 32) // 2)
             wanted_value, wanted_index = 0x0D + high * 0x10, 1 + high * 2
-            if (case >= 256 or (a, carry) != (wanted_a, wanted_carry)
+            if (case >= 512 or (a, carry) != (wanted_a, wanted_carry)
                     or (value, index, expected, expected_index)
-                    != (wanted_value, wanted_index, wanted_value, wanted_index)):
+                    != (wanted_value, wanted_index, wanted_value, wanted_index)
+                    or (default_value, default_index, fromzero, forced, restored)
+                    != (wanted_value - 1, wanted_index - 1, 0, 0x8000, 0)):
                 raise ValueError('selector value or order differs from the reconstructed routine')
             selected.append((a, carry, value, index))
         elif parts[0] == 'CONFLICT':
@@ -53,7 +55,7 @@ def parse_selector(output: str, bank0: bytes, bank1: bytes) -> dict:
                 value, index, rom = (int(item, 16) for item in parts[3:])
             except ValueError as exc:
                 raise ValueError('invalid selector conflict') from exc
-            if (not 0 <= a < 128 or carry not in (0, 1) or not 0 <= index < 32
+            if (not 0 <= a < 256 or carry not in (0, 1) or not 0 <= index < 32
                     or bank0[0x7FB7 + index] != rom or bank1[0x7FB7 + index] != rom
                     or value == rom or (a, carry, value, index) in conflicts):
                 raise ValueError('selector conflict is inconsistent with the audited banks')
@@ -63,10 +65,10 @@ def parse_selector(output: str, bank0: bytes, bank1: bytes) -> dict:
                 raise ValueError('malformed selector summary')
             done = tuple(map(int, parts[1:]))
     expected_conflicts = {entry for entry in selected if bank0[0x7FB7 + entry[3]] != entry[2]}
-    if (len(selected) != 256 or len(conflicts) != len(expected_conflicts)
-            or set(conflicts) != expected_conflicts or done != (256, 0, len(expected_conflicts))):
+    if (len(selected) != 512 or len(conflicts) != len(expected_conflicts)
+            or set(conflicts) != expected_conflicts or done != (512, 0, len(expected_conflicts))):
         raise ValueError('selector observations are incomplete')
-    return {'cases': len(selected), 'table_mismatches': len(conflicts)}
+    return {'cases': len(selected), 'default_bank0_transitions': 2 * len(selected), 'table_mismatches': len(conflicts)}
 
 
 def parse_mapping(output: str, bank0: bytes, bank1: bytes) -> dict:

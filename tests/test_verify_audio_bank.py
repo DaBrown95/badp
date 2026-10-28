@@ -14,16 +14,16 @@ def synthetic_banks():
 def selector_output(bank):
     lines = []
     conflicts = 0
-    for case in range(256):
-        a, carry = case % 128, case // 128
+    for case in range(512):
+        a, carry = case % 256, case // 256
         n = (a % 32) // 2
         value, index = 0x0D + n * 0x10, 1 + n * 2
         rom = bank[0x7FB7 + index]
         if rom != value:
             conflicts += 1
             lines.append(f'CONFLICT {a:02X} {carry} {value:02X} {index:02X} {rom:02X}')
-        lines.append(f'SELECT {a:02X} {carry} {value:02X} {index:02X} {value:02X} {index:02X}')
-    lines.append(f'DONE 256 0 {conflicts}')
+        lines.append(f'SELECT {a:02X} {carry} {value:02X} {index:02X} {value:02X} {index:02X} {value - 1:02X} {index - 1:02X} 00000 08000 00000')
+    lines.append(f'DONE 512 0 {conflicts}')
     return '\n'.join(lines)
 
 
@@ -43,10 +43,14 @@ def mapping_output(bank):
 class AudioBankEvidenceTests(unittest.TestCase):
     def test_selector_requires_all_cases_and_consistent_conflicts(self):
         bank0, bank1 = synthetic_banks();output = selector_output(bank0)
-        self.assertEqual(parse_selector(output, bank0, bank1), {'cases': 256, 'table_mismatches': 128})
-        for invalid in (output.replace('SELECT 00 0 0D 01 0D 01\n', ''),
+        self.assertEqual(parse_selector(output, bank0, bank1), {'cases': 512, 'default_bank0_transitions': 1024, 'table_mismatches': 256})
+        for invalid in (output.replace('SELECT 00 0 0D 01 0D 01 0C 00 00000 08000 00000\n', ''),
                         output.replace('SELECT 00 0 0D 01 0D 01', 'SELECT 00 0 1D 01 0D 01'),
-                        output.replace('DONE 256 0 128', 'DONE 256 0 127')):
+                        output.replace('SELECT 00 0 0D 01 0D 01 0C 00 00000 08000 00000',
+                                       'SELECT 00 0 0D 01 0D 01 0C 00 00000 08000 08000'),
+                        output.replace('SELECT 00 0 0D 01 0D 01 0C 00 00000 08000 00000',
+                                       'SELECT 00 0 0D 01 0D 01 0C 00 08000 08000 00000'),
+                        output.replace('DONE 512 0 256', 'DONE 512 0 255')):
             with self.subTest(invalid=invalid[:60]), self.assertRaises(ValueError):
                 parse_selector(invalid, bank0, bank1)
 
