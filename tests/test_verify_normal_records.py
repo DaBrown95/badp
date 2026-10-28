@@ -21,6 +21,17 @@ class NormalRecordVerificationTests(unittest.TestCase):
             with self.subTest(bad=bad[-20:]), self.assertRaises(ValueError):
                 parse_output(bad, expected, 2)
 
+    def test_negative_mode_reads_compact_flags_without_installing_script(self):
+        bank = bytearray(0x8000)
+        bank[0x100:0x10a] = bytes([0x10, 0x81, 0x45, 0x23, 0x67, 0x89, 0xab, 0xcd, 0xef, 0x7e])
+        expected = expected_events(bytes(bank), [0x100], (0xff,))
+        self.assertIn('RESULT 0 F184 45 55 55 55 55 55 34 12 34 12 0', expected)
+        self.assertIn('READ 0 2 45', expected)
+        self.assertNotIn('READ 0 3 23', expected)
+        self.assertEqual(parse_output('\n'.join(expected), expected, 1, (0xff,))['cases'], 1)
+        with self.assertRaises(ValueError):
+            expected_events(bytes(bank), [0x100], (3,))
+
     def test_mode_template_remains_distinct_from_single_mode_probe(self):
         template = '{{RECORD_CASES}} {{SCRIPT_LOW_BASE}} {{SCRIPT_HIGH_BASE}}'
         self.assertEqual(render_script(template, [0x100], (0x5b0, 0x5c0), (0, 1, 2)),

@@ -34,10 +34,10 @@ independent source trees or treat one version's evidence as verifying the rest.
 simultaneous reconstruction. Keep progress and completion evidence per target.
 
 The v1.5 build now assembles and links to the exact reference, with 21,474 bytes
-of source code and 23,595 bytes of structured data across the physical PRG banks.
+of source code and 23,652 bytes of structured data across the physical PRG banks.
 Another 115 bytes are explicit alignment fill, excluded from reconstructed-source
-progress. It still includes 20,352 local PRG bytes and 65,536 local CHR bytes. A
-total of 2,053 independent source-change controls verify the current source regions.
+progress. It still includes 20,295 local PRG bytes and 65,536 local CHR bytes. A
+total of 2,078 independent source-change controls verify the current source regions.
 Passing input audits or whole-ROM equality alone is not reconstruction
 completion. The developer identifies BOGUS as the
 state-machine engine in the [Vance Kozik interview](https://www.nesworld.com/kozik.php);
@@ -2089,3 +2089,85 @@ PRG bytes remain unresolved. These counts do not close the conditional indexed
 paths, dynamic mapping or overall executable/script inventory. The four old
 audio gap inputs are retired by the fresh build; their comparative findings and
 the map schema migration evidence remain local.
+
+
+## Record storage and declared loader-view inventory
+
+The three otherwise unreferenced nine-byte groups at `$DA2E`, `$DA58` and
+`$DA8B` now use provisional `SlotRuntimeRecord` declarations. Each resource
+pointer selects a previously decoded sprite frame, and all three script
+pointers select `$E8F2`. In v1.1 through v1.4, relocating the sprite pointer
+by the independently matched complete frame-region displacement and the
+script pointer by its independently matched script displacement produces one
+exact occurrence of each complete record. The script match relocates only its
+two internal branch pointers, preserving every other byte. It also finds a
+unique counterpart in the unversioned release, where the complete sprite
+region has not been matched, so no normalized record match is claimed there.
+`analysis/us-v1.5/orphan-record-relocations.json` retains these comparisons.
+They support the inferred record layout without establishing an ordinary-play
+entry or excluding another use. `$DA2E` is not a frame of its primary record's
+animation; the other two select their respective primary animations' first
+frames. The relationships remain explicit rather than silently generalized.
+
+Fourteen previously incomplete normal-record views now retain their missing
+resource-low, script-sentinel or skipped visual fields. Their existing BOGUS
+commands, compact-record statements, entry labels and controls remain in place.
+The source also retains the skipped pointer-low bytes at `$D546`/`$D548` and
+flags/first-visual-field pair at `$D553`, completing the overlapping `$D546`
+position and `$D54F` zero-mode views. The compact views at `$E040` and `$EB10`
+retain their missing resource-low and flags bytes respectively; these bytes
+also supply a script operand and a candidate record-load opcode. No conflicting
+interpretation was erased to construct a contiguous record statement. Together
+with the three inferred records this adds 57 structured-source bytes in 25
+controlled extents.
+
+`tools/record_views.py` locates every explicit `SlotRuntimeRecord`,
+`SlotScriptOnlyRecord` and `SlotCompactRecord` invocation inside the bank-1
+source scope using the authenticated assembler debug map. It requires an
+unambiguous extent of the declared size for every source invocation. Eighteen
+fragmented/overlapping views are listed separately in `loader_views` in the
+source map; their fields span existing statements, so a contiguous macro is
+not required. Every physical byte of each view must already have data-source
+ownership. Missing debug extents, duplicate views, incorrect banks/sizes and
+partly local or native/fill-owned views are rejected by synthetic tests.
+Macro definitions, comments and parent debug spans do not create declarations.
+This inventories these maintained source forms and explicit overlays, not all
+possible records from arbitrary dynamic pointers.
+
+`make verify-normal-records` now checks 263 normal/script-only views in modes
+0, 1 and 2, plus 116 compact views in mode `$FF`: 905 cases per ROM. The
+standard declarations account for 222 normal records (including the three
+new inferred layouts), 25 script-only records and 114 compact records; the
+explicit fragmented views add sixteen normal and two compact entries. The
+initial exploratory debug count included three nested macro expansions; the
+maintained inventory instead counts source-scope invocations and lists its
+exact views with their source lines. Each case verifies ten mapped fetches,
+the copy's ten indexed-store dummy reads, selected buffer reads, script-pointer
+preservation/installation, flags and visual-field updates. For a nonsentinel resource, negative mode reads flags from byte 2 and
+preserves the script pointer and normal visual fields.
+The probe stops at the resource-read boundary or the resource sentinel return;
+it does not establish rendering, script execution, mapping on a cartridge,
+ordinary-play entry or the validity of an arbitrary dynamic pointer.
+
+The full integration matches the complete reference ROM and passes all 2,078
+source controls, 350 synthetic tooling tests and all six input audits. Both
+ROMs pass all 905 record-mode cases. The refreshed native transfer and call
+inventories and physical audit share that same current proof and source hash.
+The accounting is 21,474 native-source bytes, 23,652 structured-source bytes,
+115 separate fill bytes, 20,236 additional local asset bytes and 59 unresolved
+local bytes. Source ownership is 45,126 bytes (68.86% of physical PRG).
+The temporary transcription/development scripts and their assembly workspaces
+were retired after verification; integration decisions, comparisons and focused
+control metadata remain local alongside the latest complete build proof.
+
+The remaining worklist is retained in
+`analysis/us-v1.5/remaining-after-record-storage.json`. It includes the small
+script trailers at `$B030`, `$B0B0` and `$D75D`, orphan groups around `$EB08`,
+`$EB31`, `$EB40`, `$EB8F` and `$EC1A`, menu prefix `$F354`, map suffix `$F623`
+and the previously parked `$FC87` block. Exact searches now find the complete
+472-byte first-map header, nominal grid and two-byte suffix as one block in
+v1.1 through v1.4; the unversioned release has the same final context but not
+the same whole block. These observations are retained in
+`analysis/us-v1.5/map-first-grid-tail-comparison.json` and do not assign a role
+to the suffix or prove it unused. The broader indexed-path, mapping and
+executable/script inventory questions and all five later builds remain open.

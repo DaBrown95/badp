@@ -7,6 +7,31 @@
   "source": "src/us-v1.5/rom.s",
   "linker_config": "config/link-us-v1.5.cfg",
   "regions": [
+    {"id": "bank1-record-storage-d225", "bank": 1, "cpu": "0xd225", "size": 1, "kind": "data", "control": "record_storage_d225"},
+    {"id": "bank1-record-storage-da4f", "bank": 1, "cpu": "0xda4f", "size": 1, "kind": "data", "control": "record_storage_da4f"},
+    {"id": "bank1-record-storage-db1b", "bank": 1, "cpu": "0xdb1b", "size": 1, "kind": "data", "control": "record_storage_db1b"},
+    {"id": "bank1-record-storage-dc23", "bank": 1, "cpu": "0xdc23", "size": 1, "kind": "data", "control": "record_storage_dc23"},
+    {"id": "bank1-record-storage-e011", "bank": 1, "cpu": "0xe011", "size": 1, "kind": "data", "control": "record_storage_e011"},
+    {"id": "bank1-record-storage-e087", "bank": 1, "cpu": "0xe087", "size": 1, "kind": "data", "control": "record_storage_e087"},
+    {"id": "bank1-record-storage-e0fd", "bank": 1, "cpu": "0xe0fd", "size": 1, "kind": "data", "control": "record_storage_e0fd"},
+    {"id": "bank1-record-storage-ee8b", "bank": 1, "cpu": "0xee8b", "size": 1, "kind": "data", "control": "record_storage_ee8b"},
+    {"id": "bank1-record-storage-ee9d", "bank": 1, "cpu": "0xee9d", "size": 1, "kind": "data", "control": "record_storage_ee9d"},
+    {"id": "bank1-record-storage-ef09", "bank": 1, "cpu": "0xef09", "size": 1, "kind": "data", "control": "record_storage_ef09"},
+    {"id": "bank1-record-storage-ee8f", "bank": 1, "cpu": "0xee8f", "size": 2, "kind": "data", "control": "record_storage_ee8f"},
+    {"id": "bank1-record-storage-eea1", "bank": 1, "cpu": "0xeea1", "size": 2, "kind": "data", "control": "record_storage_eea1"},
+    {"id": "bank1-record-storage-eeb3", "bank": 1, "cpu": "0xeeb3", "size": 2, "kind": "data", "control": "record_storage_eeb3"},
+    {"id": "bank1-record-storage-ef0d", "bank": 1, "cpu": "0xef0d", "size": 2, "kind": "data", "control": "record_storage_ef0d"},
+    {"id": "bank1-record-storage-ef1f", "bank": 1, "cpu": "0xef1f", "size": 2, "kind": "data", "control": "record_storage_ef1f"},
+    {"id": "bank1-record-storage-ef31", "bank": 1, "cpu": "0xef31", "size": 2, "kind": "data", "control": "record_storage_ef31"},
+    {"id": "bank1-record-storage-e057", "bank": 1, "cpu": "0xe057", "size": 2, "kind": "data", "control": "record_storage_e057"},
+    {"id": "bank1-record-storage-d546", "bank": 1, "cpu": "0xd546", "size": 1, "kind": "data", "control": "record_storage_d546"},
+    {"id": "bank1-record-storage-d548", "bank": 1, "cpu": "0xd548", "size": 1, "kind": "data", "control": "record_storage_d548"},
+    {"id": "bank1-record-storage-d553", "bank": 1, "cpu": "0xd553", "size": 2, "kind": "data", "control": "record_storage_d553"},
+    {"id": "bank1-record-storage-e040", "bank": 1, "cpu": "0xe040", "size": 1, "kind": "data", "control": "record_storage_e040"},
+    {"id": "bank1-record-storage-eb12", "bank": 1, "cpu": "0xeb12", "size": 1, "kind": "data", "control": "record_storage_eb12"},
+    {"id": "bank1-complete-record-da2e", "bank": 1, "cpu": "0xda2e", "size": 9, "kind": "data", "control": "complete_record_da2e"},
+    {"id": "bank1-complete-record-da58", "bank": 1, "cpu": "0xda58", "size": 9, "kind": "data", "control": "complete_record_da58"},
+    {"id": "bank1-complete-record-da8b", "bank": 1, "cpu": "0xda8b", "size": 9, "kind": "data", "control": "complete_record_da8b"},
     {"id": "bank1-audio-fragment-a6f6", "bank": 1, "cpu": "0xa6f6", "size": 3, "kind": "data", "control": "audio_fragment_a6f6"},
     {"id": "bank1-audio-fragment-a757", "bank": 1, "cpu": "0xa757", "size": 9, "kind": "data", "control": "audio_fragment_a757"},
     {"id": "bank1-audio-fragment-a8a4", "bank": 1, "cpu": "0xa8a4", "size": 9, "kind": "data", "control": "audio_fragment_a8a4"},
@@ -2120,5 +2145,151 @@
     {"id": "bank1-map-header-fa5c", "bank": 1, "cpu": "0xfa5c", "size": 2, "kind": "data", "control": "map_header_fa5c"},
     {"id": "bank1-map-header-fb53", "bank": 1, "cpu": "0xfb53", "size": 2, "kind": "data", "control": "map_header_fb53"},
     {"id": "bank1-vectors", "bank": 1, "cpu": "0xfffa", "size": 6, "kind": "data", "control": "vectors"}
+  ],
+  "loader_views": [
+    {
+      "id": "contact-overlay-d225",
+      "bank": 1,
+      "cpu": "0xd225",
+      "size": 9,
+      "kind": "normal",
+      "basis": "native-contact view; existing script and compact interpretations retained"
+    },
+    {
+      "id": "contact-overlay-da4f",
+      "bank": 1,
+      "cpu": "0xda4f",
+      "size": 9,
+      "kind": "normal",
+      "basis": "native-contact view; existing script and compact interpretations retained"
+    },
+    {
+      "id": "contact-overlay-db1b",
+      "bank": 1,
+      "cpu": "0xdb1b",
+      "size": 9,
+      "kind": "normal",
+      "basis": "native-contact view; existing script and compact interpretations retained"
+    },
+    {
+      "id": "contact-overlay-dc23",
+      "bank": 1,
+      "cpu": "0xdc23",
+      "size": 9,
+      "kind": "normal",
+      "basis": "native-contact view; existing script and compact interpretations retained"
+    },
+    {
+      "id": "contact-overlay-e011",
+      "bank": 1,
+      "cpu": "0xe011",
+      "size": 9,
+      "kind": "normal",
+      "basis": "native-contact view; existing script and compact interpretations retained"
+    },
+    {
+      "id": "contact-overlay-e087",
+      "bank": 1,
+      "cpu": "0xe087",
+      "size": 9,
+      "kind": "normal",
+      "basis": "native-contact view; existing script and compact interpretations retained"
+    },
+    {
+      "id": "contact-overlay-e0fd",
+      "bank": 1,
+      "cpu": "0xe0fd",
+      "size": 9,
+      "kind": "normal",
+      "basis": "native-contact view; existing script and compact interpretations retained"
+    },
+    {
+      "id": "contact-overlay-ee8b",
+      "bank": 1,
+      "cpu": "0xee8b",
+      "size": 9,
+      "kind": "normal",
+      "basis": "native-contact view; existing script and compact interpretations retained"
+    },
+    {
+      "id": "contact-overlay-ee9d",
+      "bank": 1,
+      "cpu": "0xee9d",
+      "size": 9,
+      "kind": "normal",
+      "basis": "native-contact view; existing script and compact interpretations retained"
+    },
+    {
+      "id": "contact-overlay-eeaf",
+      "bank": 1,
+      "cpu": "0xeeaf",
+      "size": 9,
+      "kind": "normal",
+      "basis": "native-contact view; existing script and compact interpretations retained"
+    },
+    {
+      "id": "contact-overlay-ef09",
+      "bank": 1,
+      "cpu": "0xef09",
+      "size": 9,
+      "kind": "normal",
+      "basis": "native-contact view; existing script and compact interpretations retained"
+    },
+    {
+      "id": "contact-overlay-ef1b",
+      "bank": 1,
+      "cpu": "0xef1b",
+      "size": 9,
+      "kind": "normal",
+      "basis": "native-contact view; existing script and compact interpretations retained"
+    },
+    {
+      "id": "contact-overlay-ef2d",
+      "bank": 1,
+      "cpu": "0xef2d",
+      "size": 9,
+      "kind": "normal",
+      "basis": "native-contact view; existing script and compact interpretations retained"
+    },
+    {
+      "id": "normal-overlay-e055",
+      "bank": 1,
+      "cpu": "0xe055",
+      "size": 9,
+      "kind": "normal",
+      "basis": "mode-02 record with script-pointer sentinel"
+    },
+    {
+      "id": "normal-overlay-d546",
+      "bank": 1,
+      "cpu": "0xd546",
+      "size": 9,
+      "kind": "normal",
+      "basis": "position-event view"
+    },
+    {
+      "id": "normal-overlay-d54f",
+      "bank": 1,
+      "cpu": "0xd54f",
+      "size": 9,
+      "kind": "normal",
+      "basis": "overlapping zero-mode record view"
+    },
+    {
+      "id": "compact-overlay-e040",
+      "bank": 1,
+      "cpu": "0xe040",
+      "size": 3,
+      "kind": "compact",
+      "basis": "negative-mode descriptor context; script interpretation retained"
+    },
+    {
+      "id": "compact-overlay-eb10",
+      "bank": 1,
+      "cpu": "0xeb10",
+      "size": 3,
+      "kind": "compact",
+      "basis": "negative-mode descriptor context; script interpretation retained"
+    }
   ]
 }

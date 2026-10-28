@@ -1,4 +1,4 @@
--- Inject complete record pointers in modes 0, 1 and 2; stop before resource reads.
+-- Inject source-owned record views in their loader modes; stop before resource reads.
 -- This does not establish that every descriptor/event context occurs in play.
 local cases={{RECORD_CASES}}
 local scriptLow={{SCRIPT_LOW_BASE}};local scriptHigh={{SCRIPT_HIGH_BASE}}
