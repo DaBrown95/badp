@@ -24,6 +24,7 @@ TRACE = 'analysis/us-v1.5/stage3-upper-carry-execution.json'
 PAIR = re.compile(r'^([0-9A-Fa-f]{4}):([0-9A-Fa-f]{2})$')
 RECORD = re.compile(r'^([0-9A-Fa-f]{4}):([0-9A-Fa-f]{2}):([0-9A-Fa-f]{2})$')
 CODE = re.compile(r'^[0-9A-Fa-f]{5}$')
+INLINE = re.compile(r'^(95|B1):([0-9A-Fa-f]{5})$')
 
 
 def _spans(offsets: set[int]) -> list[dict]:
@@ -57,12 +58,21 @@ def coverage(bank0: bytes, bank1: bytes, lengths: bytes, gaps: set[int], trace: 
     if not isinstance(trace, dict):
         raise ValueError('trace must be a mapping')
     results = trace.get('results')
-    if not isinstance(results, dict) or set(results) != {'code', 'scripts', 'records'}:
+    if not isinstance(results, dict) or set(results) != {'code', 'scripts', 'records', 'inline'}:
         raise ValueError('trace result categories are incomplete')
     scripts = _items(results['scripts'], PAIR)
     records = _items(results['records'], RECORD)
+    inline = _items(results['inline'], INLINE)
     if not scripts or not records:
         raise ValueError('trace has no script or record entries')
+    inline_summary = trace.get('inline_summary')
+    if (not isinstance(inline_summary, list) or len(inline_summary) != 4
+            or any(type(value) is not int or value < 0 for value in inline_summary)
+            or inline_summary[1] or inline_summary[3]
+            or sum(count for _, count in inline) + inline_summary[2] != 4 * inline_summary[0]):
+        raise ValueError('inline lookup trace is incomplete or inconsistent')
+    if any(address >= 2 * BANK_SIZE for (_, address), _ in inline):
+        raise ValueError('inline lookup physical address is outside PRG')
     code = results['code']
     if not isinstance(code, dict):
         raise ValueError('invalid native instruction-gap trace')
@@ -97,12 +107,17 @@ def coverage(bank0: bytes, bank1: bytes, lengths: bytes, gaps: set[int], trace: 
 
     missing_scripts = script_bytes & gaps
     missing_records = record_bytes & gaps
+    inline_bytes = {address for (_, address), _ in inline}
+    missing_inline = inline_bytes & gaps
     return {'script_pointer_bank_pairs': len(scripts), 'script_fetches': sum(count for _, count in scripts),
             'script_physical_bytes': len(script_bytes), 'script_local_bytes': len(missing_scripts),
             'script_local_spans': _spans(missing_scripts),
             'record_pointer_bank_modes': len(records), 'record_loads': sum(count for _, count in records),
             'record_used_physical_bytes': len(record_bytes), 'record_local_bytes': len(missing_records),
             'record_local_spans': _spans(missing_records),
+            'inline_fetches': inline_summary[0], 'inline_non_prg_reads': inline_summary[2],
+            'inline_physical_bytes': len(inline_bytes), 'inline_local_bytes': len(missing_inline),
+            'inline_local_spans': _spans(missing_inline),
             'native_gap_instruction_starts': len(code),
             'native_gap_instruction_executions': sum(code.values())}
 

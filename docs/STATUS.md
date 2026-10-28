@@ -99,10 +99,12 @@ The later 6,740-frame Moses reference trace records 748 script pointer/bank
 pairs and 49 record pointer/bank/mode combinations. Under the recorded emulator
 bank selection, their fixed-length command extents cover 2,147 source-owned
 physical bytes, and fields selected by the record loader cover 280 source-owned
-bytes. No native instruction starts were observed in local PRG gaps. The check
-does not include variable-length inline script tables or every byte in the
-loader's ten-byte fetch, and it does not establish unobserved paths or physical
-cartridge mapping. `make trace-runtime-extents` captures the route;
+bytes. It also traces the actual `$95` and `$B1` inline lookup fetches; the
+sampled `$95` fetches cover 180 source-owned physical bytes, including
+terminator lookahead. No `$B1` fetch was observed. No native instruction starts
+were observed in local PRG gaps. The check does not account for every byte in
+the loader's ten-byte fetch, and it does not establish unobserved paths or
+physical cartridge mapping. `make trace-runtime-extents` captures the route;
 `make runtime-extents` checks its current trace against the matching source map.
 The later second-level crossing trace observed 708 distinct script pointer/bank
 pairs, all beginning in source-owned regions, and no native instruction starts
@@ -130,6 +132,10 @@ Two further reference-only sweeps tried 143 short left/jump combinations and
 carrying Moses, rather than retaining the upper-platform height. Their scripts
 and results remain in `analysis/us-v1.5/stage3-targeted-jump.*` and
 `analysis/us-v1.5/stage3-ladder-sweep.*`.
+A separate 243-case steering sweep from frame 6,500 found 59 carried positions
+at frame 6,660; a 243-case continuation from one of them did not retain Moses
+through frame 6,820. Those attempts remain local in
+`analysis/us-v1.5/stage3-platform-brake.*` and `stage3-brake-second.*`.
 The first 4,900-frame reference/build attempt reported differing Moses
 runtime evidence without identifying a field. A subsequent focused comparison
 matched; the cause of the initial discrepancy remains unestablished. The failure

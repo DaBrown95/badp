@@ -11,7 +11,8 @@ import tempfile
 from .mesen_runtime import FLAGS, RUNTIME_INPUTS, parse_output, validate_scenario
 from .progress import verify_primary
 from .project import input_path, load_target
-from .runtime_extents import TRACE
+from .runtime_extents import TRACE, coverage
+from .script_entries import load_audited_banks
 from .setup_mesen import ROOT, digest_file, spec, verify_emulator
 
 
@@ -54,10 +55,41 @@ emu.addMemoryCallback(function()
   local key=string.format('%04X:%02X:%02X',ptr,bank,mode);records[key]=(records[key] or 0)+1
  end
 end,emu.callbackType.exec,0xF10C,0xF10C)
+local inline=nil;local inline_counts={};local inline_done=0;local inline_bad=0;local inline_nonrom=0
+local function begin_inline(kind, expected)
+ local state=emu.getState();local m=emu.convertAddress(state['cpu.pc'],emu.memType.nesMemory)
+ if not m or m.memType~=emu.memType.nesPrgRom or m.address~=expected then return end
+ if inline then inline_bad=inline_bad+1 end
+ -- The JSR and the fetch helper's PHA leave three bytes on the stack.
+ inline={kind=kind,sp=(state['cpu.sp']-3)%256,reads=0}
+end
+emu.addMemoryCallback(function() begin_inline(0x95,0x662E) end,emu.callbackType.exec,0xE62E,0xE62E)
+emu.addMemoryCallback(function() begin_inline(0xB1,0x691E) end,emu.callbackType.exec,0xE91E,0xE91E)
+emu.addMemoryCallback(function()
+ if not inline then return end
+ local state=emu.getState();if state['cpu.sp']~=inline.sp then return end
+ local y=state['cpu.y'];if y>=4 then inline_bad=inline_bad+1;return end
+ local ptr=emu.read(0x53,emu.memType.nesDebug)+256*emu.read(0x54,emu.memType.nesDebug)
+ local m=emu.convertAddress((ptr+y)%65536,emu.memType.nesMemory)
+ if m and m.memType==emu.memType.nesPrgRom then
+  local key=string.format('%02X:%05X',inline.kind,m.address);inline_counts[key]=(inline_counts[key] or 0)+1
+ else inline_nonrom=inline_nonrom+1 end
+ inline.reads=inline.reads+1
+end,emu.callbackType.exec,0xFE90,0xFE90)
+local function end_inline(kind, expected)
+ local state=emu.getState();local m=emu.convertAddress(state['cpu.pc'],emu.memType.nesMemory)
+ if not m or m.memType~=emu.memType.nesPrgRom or m.address~=expected then return end
+ if not inline or inline.kind~=kind or inline.reads~=4 then inline_bad=inline_bad+1 else inline_done=inline_done+1 end
+ inline=nil
+end
+emu.addMemoryCallback(function() end_inline(0x95,0x6631) end,emu.callbackType.exec,0xE631,0xE631)
+emu.addMemoryCallback(function() end_inline(0xB1,0x6921) end,emu.callbackType.exec,0xE921,0xE921)
 '''
     ending = '''for p,n in pairs(code) do print(string.format('CODE_GAP %05X %d',p,n)) end
 for k,n in pairs(scripts) do print(string.format('SCRIPT_EXEC %s %d',k,n)) end
 for k,n in pairs(records) do print(string.format('RECORD_EXEC %s %d',k,n)) end
+for k,n in pairs(inline_counts) do print(string.format('INLINE_READ %s %d',k,n)) end
+print(string.format('INLINE_SUMMARY %d %d %d %d',inline_done,inline_bad,inline_nonrom,inline and 1 or 0))
 '''
     if template.count('  emu.stop(0)') != 1:
         raise ValueError('gameplay stop marker is ambiguous')
@@ -77,16 +109,29 @@ for k,n in pairs(records) do print(string.format('RECORD_EXEC %s %d',k,n)) end
                               cwd=ROOT, capture_output=True, text=True, timeout=240, check=True)
     evidence, _, _ = parse_output(proc.stdout)
     validate_scenario(evidence, 5)
-    results: dict[str, dict[str, int]] = {'code': {}, 'scripts': {}, 'records': {}}
-    names = {'CODE_GAP': 'code', 'SCRIPT_EXEC': 'scripts', 'RECORD_EXEC': 'records'}
+    results: dict[str, dict[str, int]] = {'code': {}, 'scripts': {}, 'records': {}, 'inline': {}}
+    names = {'CODE_GAP': 'code', 'SCRIPT_EXEC': 'scripts', 'RECORD_EXEC': 'records', 'INLINE_READ': 'inline'}
+    inline_summary = None
     for line in proc.stdout.splitlines():
         parts = line.split()
         if parts and parts[0] in names:
             if len(parts) != 3 or parts[1] in results[names[parts[0]]]:
                 raise ValueError('malformed or duplicate trace output')
             results[names[parts[0]]][parts[1]] = int(parts[2])
+        elif parts and parts[0] == 'INLINE_SUMMARY':
+            if inline_summary is not None or len(parts) != 5:
+                raise ValueError('malformed or duplicate inline summary')
+            inline_summary = [int(value) for value in parts[1:]]
     if not results['scripts'] or not results['records']:
         raise ValueError('missing sampled script or record events')
+    if (inline_summary is None or any(value < 0 for value in inline_summary)
+            or not inline_summary[0] or inline_summary[1] or inline_summary[3]
+            or not any(key.startswith('95:') for key in results['inline'])
+            or sum(results['inline'].values()) + inline_summary[2] != 4 * inline_summary[0]):
+        raise ValueError('inline lookup trace is incomplete or inconsistent')
+    _, bank0, bank1, lengths = load_audited_banks()
+    gap_offsets = {position for start, size in ranges for position in range(start, start + size)}
+    coverage(bank0, bank1, lengths, gap_offsets, {'inline_summary': inline_summary, 'results': results})
     if (digest_file(rom) != reference or digest_file(proof_path) != proof_sha
             or digest_file(ROOT / 'src/us-v1.5/rom.s') != verified['source_sha256']
             or digest_file(ROOT / 'config/source-us-v1.5.json') != verified['source_map_sha256']
@@ -97,7 +142,8 @@ for k,n in pairs(records) do print(string.format('RECORD_EXEC %s %d',k,n)) end
               'source_map_sha256': verified['source_map_sha256'], 'build_proof_sha256': proof_sha,
               'collector_sha256': collector_sha, 'runtime_input_sha256': inputs,
               'emulator_core_sha256': spec(ROOT)['core_sha256'],
-              'scope': 'reference-only Moses route through 6740 frames', 'results': results}
+              'scope': 'reference-only Moses route through 6740 frames',
+              'inline_summary': inline_summary, 'results': results}
     output = ROOT / TRACE
     if output.is_symlink():
         raise ValueError('refusing a symlinked trace output')
@@ -107,6 +153,7 @@ for k,n in pairs(records) do print(string.format('RECORD_EXEC %s %d',k,n)) end
         candidate.replace(output)
     return {'script_pointer_bank_pairs': len(results['scripts']),
             'record_pointer_bank_modes': len(results['records']),
+            'inline_fetches': inline_summary[0],
             'native_gap_instruction_starts': len(results['code']), 'output': TRACE}
 
 

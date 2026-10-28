@@ -13,9 +13,11 @@ def fixture():
     bank0[0x10] = bank1[0x10] = 1
     bank1[0x20:0x2a] = bytes([0, 0xff, 0x12, 0x34, 0, 0, 0, 0, 0, 0])
     bank0[0x20:0x2a] = bytes([0x12, 0x34, 0x56, 0, 0, 0, 0, 0, 0, 0])
-    trace = {'results': {'code': {'08011': 2},
+    trace = {'inline_summary': [2, 0, 0, 0],
+             'results': {'code': {'08011': 2},
                          'scripts': {'0010:01': 3, '8010:FE': 2},
-                         'records': {'0020:01:00': 4, '8020:01:FF': 1}}}
+                         'records': {'0020:01:00': 4, '8020:01:FF': 1},
+                         'inline': {'95:08011': 4, 'B1:00030': 4}}}
     gaps = {BANK_SIZE + 0x11, BANK_SIZE + 0x23}
     return bank0, bank1, bytes([1, 3]), gaps, trace
 
@@ -32,6 +34,9 @@ class RuntimeExtentTests(unittest.TestCase):
         self.assertEqual(result['record_used_physical_bytes'], 6)
         self.assertEqual(result['record_local_spans'], [{'start': BANK_SIZE + 0x23, 'size': 1}])
         self.assertEqual(result['native_gap_instruction_executions'], 2)
+        self.assertEqual(result['inline_fetches'], 2)
+        self.assertEqual(result['inline_physical_bytes'], 2)
+        self.assertEqual(result['inline_local_spans'], [{'start': BANK_SIZE + 0x11, 'size': 1}])
 
     def test_mapper_bank_and_sentinel_skip_are_not_counted_as_local_reads(self):
         b0, b1, lengths, gaps, trace = fixture()
@@ -43,8 +48,18 @@ class RuntimeExtentTests(unittest.TestCase):
         self.assertEqual(result['record_used_physical_bytes'], 1)
         self.assertEqual(result['record_local_bytes'], 0)
 
+    def test_inline_bytes_deduplicate_handlers_and_report_non_prg_reads(self):
+        b0, b1, lengths, gaps, trace = fixture()
+        trace['results']['inline'] = {'95:08011': 4, 'B1:08011': 3}
+        trace['inline_summary'] = [2, 0, 1, 0]
+        result = coverage(bytes(b0), bytes(b1), lengths, gaps, trace)
+        self.assertEqual(result['inline_physical_bytes'], 1)
+        self.assertEqual(result['inline_local_bytes'], 1)
+        self.assertEqual(result['inline_non_prg_reads'], 1)
+
     def test_malformed_trace_and_invalid_extents_fail_closed(self):
-        for change in ('missing', 'count', 'opcode', 'script_crossing', 'record_crossing', 'code_outside_gap'):
+        for change in ('missing', 'count', 'opcode', 'script_crossing', 'record_crossing', 'code_outside_gap',
+                       'inline_pending', 'inline_mismatch', 'inline_address'):
             b0, b1, lengths, gaps, trace = fixture()
             if change == 'missing':
                 del trace['results']['records']
@@ -57,8 +72,14 @@ class RuntimeExtentTests(unittest.TestCase):
                 b1[-1] = 1
             elif change == 'record_crossing':
                 trace['results']['records'] = {'7FF8:01:00': 1}
-            else:
+            elif change == 'code_outside_gap':
                 trace['results']['code'] = {'00000': 1}
+            elif change == 'inline_pending':
+                trace['inline_summary'][3] = 1
+            elif change == 'inline_mismatch':
+                trace['inline_summary'][0] = 3
+            else:
+                trace['results']['inline'] = {'95:10000': 8}
             with self.subTest(change=change), self.assertRaises(ValueError):
                 coverage(bytes(b0), bytes(b1), lengths, gaps, trace)
 
