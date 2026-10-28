@@ -34,9 +34,9 @@ independent source trees or treat one version's evidence as verifying the rest.
 simultaneous reconstruction. Keep progress and completion evidence per target.
 
 The v1.5 build now assembles and links to the exact reference, with 21,474 bytes
-of source code and 21,994 bytes of structured data across the physical PRG banks.
-It still includes 22,068 local PRG bytes and 65,536 local CHR bytes. A total of
-1,654 independent source-change controls verify every listed reconstructed region.
+of source code and 22,007 bytes of structured data across the physical PRG banks.
+It still includes 22,055 local PRG bytes and 65,536 local CHR bytes. A total of
+1,656 independent source-change controls verify every listed reconstructed region.
 Passing input audits or whole-ROM equality alone is not reconstruction
 completion. The developer identifies BOGUS as the
 state-machine engine in the [Vance Kozik interview](https://www.nesworld.com/kozik.php);
@@ -340,12 +340,12 @@ Runtime bounds on either table have not been established.
 map, descriptor-context, native-event and direct-target scripts and records, palette setup,
 candidate audio and PPU-stream uses, round-tripped packed text, and optional
 validated audio and sprite traces. It counts physical bytes once while
-retaining overlapping uses. With the current local traces, 757 PRG bytes have no use
+retaining overlapping uses. With the current local traces, 727 PRG bytes have no use
 in these inventories; that number is not a count of remaining code. The report
 also retains 7,633 possible map/script overlap bytes and 864 possible record/script
 overlap bytes across the combined inventories. The expanded field-setter walk
 introduces many speculative competing decodes; it does not establish their
-reachability. It also reports 8,065 source-owned bytes covered by candidate
+reachability. It also reports 8,147 source-owned bytes covered by candidate
 data uses, which can include compatible uses as well as competing ones. The
 report records its input identities and writes metadata only to
 ignored `analysis/us-v1.5/prg-inventory.json`.
@@ -1734,3 +1734,36 @@ indexes. These are conditional static plans and injected-handler observations,
 not proof that those states are reachable, that palette setup ran, of I/O side
 effects or of cartridge timing. The metadata remains in ignored
 `analysis/us-v1.5/state-table-inventory.json`.
+
+The bank-1 bytes at `$A814-$A81C` are now structured as a candidate audio
+stream: select channel 1, write five registers, delay and stop. The `$B3`
+handler accepts a 16-bit slot value without a visible bound. With the
+source-referenced table base `$26D0` and slot value `$451B`, its doubled index
+selects the pair at bank-0 `$B106-$B107`; those bytes encode `$2814`, selecting
+the candidate stream under the emulator's bank mapping. Slot value `$C51B`
+wraps to the same pair, while `$451A` selects a different pointer.
+
+Four bank-1 bytes at `$AC54-$AC57` are also represented as candidate audio:
+two instrument selections, channel 2 selection and stop. With slot value
+`$16A6`, `$B3` selects a pair at bank-1 `$D41C-$D41D` that encodes `$2C54`.
+Those two bytes already belong to candidate BOGUS source; their audio-pointer
+interpretation is conditional, with no new ownership claimed for the pair.
+Slot value `$96A6` wraps to the same address, while `$16A5` selects another pair.
+The preceding byte `$AC53` remains local.
+
+The same unbounded lookup also admits alternative entries inside the first
+stream: slot `$1365` selects bank-1 `$CD9A`, whose pair encodes `$2817`, and
+slot `$5176` or `$5178` selects bank-0 `$C9BC` or `$C9C0`, whose pairs encode
+`$2818`. Controlled execution reaches these overlapping command boundaries; their slot
+values and execution in normal play and intended interpretation remain unknown.
+
+`make verify-indexed-audio` injects all nine inputs on both ROMs and checks
+the pair reads, physical mappings and voice initialization. For the seven
+stream-entry cases it then directs the audio update routine to consume each
+sequence, forcing the voice timer between updates, and checks the cursor, timer
+and stop state. The five-byte stack copies also look ahead into
+the next source regions; those additional bytes are not part of either stream. This targeted
+experiment supports the candidate interpretation and the original arithmetic;
+it does not show those slot values occur during play, establish sound output,
+or verify physical cartridge behavior. Its metadata stays under ignored
+`analysis/us-v1.5/indexed-audio-verification.json`.

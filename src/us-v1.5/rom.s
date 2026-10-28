@@ -14446,7 +14446,15 @@ AudioCandidateA807:
     AudioLoop $02, (AudioCandidateA807 - BankStart)
     AudioStopVoice
 .assert (* - BankStart) = $2814, error, "bank 1 audio candidate A807 end"
-    .incbin "bank1_a814_a81d.bin"
+; Candidate voice-4 stream: $B3 with base $26D0 and slot value $451B
+; fetches its encoded pointer from bank-0 $B106. This index is unbounded in
+; the handler; the slot value and stream reachability in normal play are unknown.
+AudioCandidateA814:
+    AudioSelectChannel $01 ; CONTROL_AUDIO_CANDIDATE_A814
+    AudioWriteFive $1C, $9C, $EE, $27
+    AudioDelay $08
+    AudioStopVoice
+.assert (* - BankStart) = $281D, error, "bank 1 audio candidate A814 end"
 ; Partial audio commands observed in reference playback.
 AudioObservedA81D:
     AudioSelectChannel $03 ; CONTROL_AUDIO_OBSERVED_A81D
@@ -15276,7 +15284,16 @@ AudioObservedAC49:
     AudioDelay $0B
     AudioRestorePointer
 .assert (* - BankStart) = $2C53, error, "bank 1 observed audio AC49 end"
-    .incbin "bank1_ac53_ac58.bin"
+    .incbin "bank1_ac53_ac54.bin"
+; The $B3 base $26D0 with slot value $16A6 reads this encoded pointer from
+; bank-1 $D41C, overlapping a candidate BOGUS branch operand and command.
+; Neither the index nor this voice-4 stream is established in normal play.
+AudioCandidateAC54:
+    AudioInstrument $01 ; CONTROL_AUDIO_CANDIDATE_AC54
+    AudioSelectChannel $02
+    AudioInstrument $01
+    AudioStopVoice
+.assert (* - BankStart) = $2C58, error, "bank 1 audio candidate AC54 end"
 ; Audio commands observed during the extended Moses route.
 AudioObservedAC58:
     AudioSelectChannel $00 ; CONTROL_AUDIO_OBSERVED_AC58

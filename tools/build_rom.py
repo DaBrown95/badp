@@ -964,6 +964,8 @@ MUTATIONS = {
     "candidate_script_f40e": ("CONTROL_CANDIDATE_SCRIPT_F40E", "BogusSetMainState CandidateCompactRecordF40DFlags", "BogusSetMainState (CandidateCompactRecordF40DFlags ^ 1)"),
     "audio_candidate_a792": ("CONTROL_AUDIO_CANDIDATE_A792", "AudioDelay $18", "AudioDelay $19"),
     "audio_candidate_a807": ("CONTROL_AUDIO_CANDIDATE_A807", "AudioSelectChannel $00", "AudioSelectChannel $01"),
+    "audio_candidate_a814": ("CONTROL_AUDIO_CANDIDATE_A814", "AudioSelectChannel $01", "AudioSelectChannel $00"),
+    "audio_candidate_ac54": ("CONTROL_AUDIO_CANDIDATE_AC54", "AudioInstrument $01", "AudioInstrument $00"),
     "audio_candidate_a844": ("CONTROL_AUDIO_CANDIDATE_A844", "AudioSelectChannel $01", "AudioSelectChannel $02"),
     "audio_candidate_a856": ("CONTROL_AUDIO_CANDIDATE_A856", "AudioSelectChannel $00", "AudioSelectChannel $01"),
     "audio_candidate_a89b": ("CONTROL_AUDIO_CANDIDATE_A89B", "AudioSelectChannel $03", "AudioSelectChannel $00"),
