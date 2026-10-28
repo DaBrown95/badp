@@ -6,7 +6,7 @@ import json
 from pathlib import Path
 import sys
 
-from . import map_assets, map_layout_assets
+from . import map_assets, map_layout_assets, text_assets
 from .build_rom import (MUTATIONS, PROOF_INPUTS, SYMBOL_CONTROLS, digest, mutate_include, mutate_source,
                         source_regions, verify_control, verify_symbol_control)
 from .identify_rom import inspect_rom
@@ -135,6 +135,35 @@ def verify_primary(root: Path, target: dict) -> dict:
             or layout_control.get("changed_offsets") != map_layout_assets.verify_control(reference, layout_candidate,
                                                                                              prg_offset, layouts)):
         raise ValueError("map layout source-change control is stale or invalid")
+    text, text_spans, text_source, text_input_hash = text_assets.select(root, prg, digest(reference))
+    text_gaps = map_layout_assets.gap_payloads(prg, regions, text_spans)
+    if map_assets.GAP_NAME in text_gaps or set(text_gaps) & set(layout_gaps):
+        raise ValueError("packed text and map assets share an input gap")
+    text_evidence = proof.get("text_assets", {})
+    if (text_evidence.get("source") != text_source or text_evidence.get("input_sha256") != text_input_hash
+            or text_evidence.get("gap_sha256") != {name: digest(payload) for name, payload in text_gaps.items()}
+            or (directory / "inputs/packed-text.json").read_bytes() != text_assets.serialize(text)
+            or any((directory / "inputs" / name).read_bytes() != payload for name, payload in text_gaps.items())):
+        raise ValueError("packed-text build evidence is stale")
+    changed_text = text_assets.changed_asset(text, prg)
+    changed_text_json = text_assets.serialize(changed_text)
+    changed_text_spans = text_assets.encode(changed_text, prg, digest(reference))
+    changed_text_gaps = map_layout_assets.gap_payloads(prg, regions, changed_text_spans)
+    text_changed_names = [name for name in text_gaps if changed_text_gaps[name] != text_gaps[name]]
+    if not text_changed_names or set(text_changed_names) != set(text_gaps):
+        raise ValueError("packed-text control does not affect every input gap")
+    text_dir = directory / "controls/text_asset"
+    text_candidate = (text_dir / "candidate.nes").read_bytes()
+    text_control = text_evidence.get("control", {})
+    if ((text_dir / "rom.s").read_bytes() != source_bytes
+            or (text_dir / "packed-text.json").read_bytes() != changed_text_json
+            or any((text_dir / "gaps" / name).read_bytes() != changed_text_gaps[name] for name in text_changed_names)
+            or text_control.get("asset_sha256") != digest(changed_text_json)
+            or text_control.get("gap_sha256") != {name: digest(changed_text_gaps[name]) for name in text_changed_names}
+            or text_control.get("candidate_sha256") != digest(text_candidate)
+            or text_control.get("changed_offsets") != text_assets.verify_control(reference, text_candidate, prg_offset,
+                                                                                     text_spans, changed_text_spans)):
+        raise ValueError("packed-text source-change control is stale or invalid")
     code = sum(region["size"] for region in regions if region["kind"] == "code")
     data = sum(region["size"] for region in regions if region["kind"] == "data")
     counts = proof["counts"]

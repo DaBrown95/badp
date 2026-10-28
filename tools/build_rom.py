@@ -11,7 +11,7 @@ import subprocess
 import sys
 import tempfile
 
-from . import map_assets, map_layout_assets
+from . import map_assets, map_layout_assets, text_assets
 from .identify_rom import inspect_rom
 from .project import IDENTITY_PARTS, load_target
 from .setup import verified_tools
@@ -20,7 +20,8 @@ from .setup import verified_tools
 ROOT = Path(__file__).resolve().parents[1]
 TARGET = "us-v1.5"
 PROOF_INPUTS = ("tools/build_rom.py", "tools/identify_rom.py", "tools/project.py",
-                "tools/setup.py", "tools/map_assets.py", "tools/map_layout_assets.py", "tools/map_data.py", "tools/script_entries.py",
+                "tools/setup.py", "tools/map_assets.py", "tools/map_layout_assets.py", "tools/text_assets.py",
+                "tools/map_data.py", "tools/packed_text.py", "tools/script_entries.py",
                 "config/cc65-toolchain.json")
 
 # Each shared RAM symbol gets an independent operand-change control. Counts
@@ -1850,6 +1851,16 @@ def build() -> dict:
                 raise ValueError("map layout gap does not match the local source complement")
             path.write_bytes(payload)
         (work / "inputs/map-layouts.json").write_bytes(map_layout_assets.serialize(layouts))
+        text, text_spans, text_source, text_input_hash = text_assets.select(ROOT, prg, parsed["file"]["sha256"])
+        text_gaps = map_layout_assets.gap_payloads(prg, regions, text_spans)
+        if map_assets.GAP_NAME in text_gaps or set(text_gaps) & set(layout_gaps):
+            raise ValueError("packed text and map assets share an input gap")
+        for name, payload in text_gaps.items():
+            path = work / "inputs" / name
+            if not path.is_file() or path.stat().st_size != len(payload):
+                raise ValueError("packed-text gap does not match the local source complement")
+            path.write_bytes(payload)
+        (work / "inputs/packed-text.json").write_bytes(text_assets.serialize(text))
         output_path = assemble(work, tool_paths, Path("source/rom.s"), Path("bible-adventures"))
         output = output_path.read_bytes()
         if output != reference:
@@ -1942,6 +1953,34 @@ def build() -> dict:
                            "control": {"asset_sha256": digest(changed_layout_json),
                                        "gap_sha256": {name: digest(changed_layout_gaps[name]) for name in changed_names},
                                        "candidate_sha256": digest(layout_candidate), "changed_offsets": layout_changed}}
+        text_control_dir = work / "controls/text_asset"
+        text_control_dir.mkdir(parents=True)
+        (text_control_dir / "rom.s").write_text(source)
+        changed_text = text_assets.changed_asset(text, prg)
+        changed_text_json = text_assets.serialize(changed_text)
+        changed_text_spans = text_assets.encode(changed_text, prg, parsed["file"]["sha256"])
+        changed_text_gaps = map_layout_assets.gap_payloads(prg, regions, changed_text_spans)
+        text_changed_names = [name for name in text_gaps if changed_text_gaps[name] != text_gaps[name]]
+        if not text_changed_names or set(text_changed_names) != set(text_gaps):
+            raise ValueError("packed-text control must affect every text input gap")
+        (text_control_dir / "packed-text.json").write_bytes(changed_text_json)
+        (text_control_dir / "gaps").mkdir()
+        shutil.copytree(work / "inputs", text_control_dir / "inputs")
+        for name in text_changed_names:
+            (text_control_dir / "gaps" / name).write_bytes(changed_text_gaps[name])
+            (text_control_dir / "inputs" / name).write_bytes(changed_text_gaps[name])
+        text_control_rom = assemble(work, tool_paths, Path("controls/text_asset/rom.s"),
+                                    Path("controls/text_asset/candidate"), Path("controls/text_asset/inputs"))
+        text_candidate = text_control_rom.read_bytes()
+        text_changed = text_assets.verify_control(reference, text_candidate, parsed["prg"]["offset"],
+                                                  text_spans, changed_text_spans)
+        retire_control_intermediates(text_control_dir)
+        shutil.rmtree(text_control_dir / "inputs")
+        text_evidence = {"source": text_source, "input_sha256": text_input_hash,
+                         "gap_sha256": {name: digest(payload) for name, payload in text_gaps.items()},
+                         "control": {"asset_sha256": digest(changed_text_json),
+                                     "gap_sha256": {name: digest(changed_text_gaps[name]) for name in text_changed_names},
+                                     "candidate_sha256": digest(text_candidate), "changed_offsets": text_changed}}
         counts = {kind: sum(r["size"] for r in regions if r["kind"] == kind)
                   for kind in ("code", "data")}
         pin = json.loads((ROOT / "config/cc65-toolchain.json").read_text())
@@ -1958,7 +1997,7 @@ def build() -> dict:
             "tool_sha256": {name: digest(path.read_bytes()) for name, path in tool_paths.items()},
             "verification_input_sha256": {name: digest((ROOT / name).read_bytes()) for name in PROOF_INPUTS},
             "source_regions": regions, "local_prg_gaps": gaps, "map_assets": asset_evidence,
-            "layout_assets": layout_evidence,
+            "layout_assets": layout_evidence, "text_assets": text_evidence,
             "counts": {"matching_code_bytes": counts["code"], "structured_data_bytes": counts["data"],
                        "local_prg_bytes": sum(g["size"] for g in gaps),
                        "local_chr_bytes": len(chr_data), "container_header_bytes": 16},

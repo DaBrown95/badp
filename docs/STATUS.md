@@ -1547,3 +1547,23 @@ unbounded indices. In the broader inventory, 19 local bytes have only a
 candidate-record label; that absence of other labels does not establish their
 use or make them code. The metadata-only comparison is retained locally at
 `analysis/us-v1.5/descriptor-record-ownership-review.json`.
+
+All 52 known packed messages can now be exported to ignored local storage with
+`make extract-packed-text`. The editable text retains each original one- or
+two-symbol encoding slot and the original padding; character edits must fit the
+same slot width and preserve the record length. The source-owned PPU destination
+headers remain separate. A retained control changes one character in each
+record before assembly and checks all 52 physical payload changes against the
+fixed reference. Text remains an extracted asset and receives no source credit;
+possible audio, script and record overlaps remain unresolved, and decoding does
+not establish message reachability or intended presentation.
+
+A source-span review of the combined candidate graph finds 184 local physical
+bytes labelled only as possible script by the current inventory. Twelve
+fully covered candidate starts have a source-owned graph predecessor; the 25
+incoming edges examined do not start at a debug span associated with a declared
+BOGUS source command. Some instead decode native instructions or other data.
+This is a bounded static classification, not proof that the candidates are
+unreachable or that the inventory finds every asset use. The reviewed addresses,
+source associations and proof identity remain in ignored
+`analysis/us-v1.5/exclusive-script-candidates.json`.

@@ -117,8 +117,11 @@ local tile and attribute rows under `extracted/`. If present, the build encodes
 that file; otherwise it derives the same local input from the audited ROM. The
 one unreferenced slot stays opaque. `make extract-map-layouts` similarly exports
 the 14 map grids locally; their dimensions remain in tracked source. Changing a
-tile or grid cell makes the matching comparison fail. These local assets do not
-count as reconstructed PRG source.
+tile or grid cell makes the matching comparison fail. `make extract-packed-text`
+exports the 52 decoded messages locally. Character edits must preserve each
+record's character count and the original one- or two-symbol encoding widths;
+the matching build rejects changed messages. These local assets do not count as
+reconstructed PRG source.
 
 On macOS with Apple silicon and Homebrew's SDL2 installed, an optional emulator
 check exercises the opening of each adventure:
@@ -178,6 +181,7 @@ and simultaneous press/release handling on the reference and build.
 | `make map-data` | Decode candidate map layouts and chunks to local analysis. |
 | `make extract-map-chunks` | Export editable map chunks to ignored local storage. |
 | `make extract-map-layouts` | Export editable map grids to ignored local storage. |
+| `make extract-packed-text` | Export editable packed messages to ignored local storage. |
 | `make trace-map` | Check map fetches in extended v1.5 emulator inputs. |
 | `make prg-inventory` | Combine verified source ownership with candidate and observed data uses. |
 | `make trace-runtime-extents` | Capture sampled Moses script and record accesses. |

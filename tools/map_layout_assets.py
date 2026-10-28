@@ -87,7 +87,7 @@ def select(root: Path, prg: bytes, reference_sha256: str) -> tuple[dict, list[tu
 
 
 def gap_payloads(prg: bytes, regions: list[dict], spans: list[tuple[int, int, bytes]]) -> dict[str, bytes]:
-    """Assemble affected local gap inputs from local pieces and decoded grids."""
+    """Assemble local gap inputs from reference pieces and supplied data spans."""
     if len(prg) != 2 * BANK_SIZE:
         raise ValueError('expected two complete PRG banks')
     gaps = []
@@ -104,11 +104,11 @@ def gap_payloads(prg: bytes, regions: list[dict], spans: list[tuple[int, int, by
     locations = {name: (bank, start, end) for bank, start, end, name in gaps}
     for bank, start, grid in spans:
         if bank not in (0, 1) or type(start) is not int or not isinstance(grid, bytes) or not grid:
-            raise ValueError('invalid map layout grid span')
+            raise ValueError('invalid local data span')
         matches = [name for gb, begin, end, name in gaps
                    if gb == bank and begin <= start and start + len(grid) <= end]
         if len(matches) != 1:
-            raise ValueError('map grid is not entirely within one local gap')
+            raise ValueError('data span is not entirely within one local gap')
         grouped.setdefault(matches[0], []).append((start, grid))
     result = {}
     for name, pieces in grouped.items():
@@ -117,13 +117,13 @@ def gap_payloads(prg: bytes, regions: list[dict], spans: list[tuple[int, int, by
         out = bytearray()
         for pos, grid in sorted(pieces):
             if pos < cursor:
-                raise ValueError('overlapping map grid spans')
+                raise ValueError('overlapping local data spans')
             out.extend(prg[bank * BANK_SIZE + cursor:bank * BANK_SIZE + pos])
             out.extend(grid)
             cursor = pos + len(grid)
         out.extend(prg[bank * BANK_SIZE + cursor:bank * BANK_SIZE + end])
         if len(out) != end - start:
-            raise ValueError('local map gap changed size')
+            raise ValueError('local input gap changed size')
         result[name] = bytes(out)
     return result
 

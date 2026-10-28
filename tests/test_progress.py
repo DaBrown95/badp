@@ -10,7 +10,7 @@ from unittest.mock import patch
 
 from test_build import synthetic_map
 from test_map_assets import synthetic_prg
-from tools import map_assets, map_layout_assets
+from tools import map_assets, map_layout_assets, packed_text, text_assets
 from tools.build_rom import (MUTATIONS, PROOF_INPUTS, SYMBOL_CONTROLS, digest, mutate_include,
                              mutate_source, source_regions)
 from tools.identify_rom import inspect_rom
@@ -93,6 +93,14 @@ class ProofFreshnessTests(unittest.TestCase):
         link = b"synthetic linker config\n"
         source_map = {**synthetic_map(), "target": "us-v1.5", "source": "src/rom.s",
                       "linker_config": "config/link.cfg"}
+        # Synthetic source-owned text destination headers split the local
+        # message payloads into distinct gaps, matching the project geometry.
+        synthetic_bank = synthetic_prg()[map_assets.BANK_SIZE:]
+        for index in range(packed_text.RECORD_COUNT):
+            pos = packed_text.TABLE_OFFSET + index * 2
+            cpu = int.from_bytes(synthetic_bank[pos:pos + 2], "little")
+            source_map["regions"].append({"id": f"synthetic-text-header-{index}", "bank": 1,
+                                          "cpu": hex(cpu), "size": 2, "kind": "data", "control": "reset"})
         source_map_bytes = json.dumps(source_map).encode()
         write("src/rom.s", source)
         write("include/nes.inc", include)
@@ -187,6 +195,39 @@ class ProofFreshnessTests(unittest.TestCase):
                            "control": {"asset_sha256": digest(changed_layout_json),
                                        "gap_sha256": {name: digest(changed_gaps[name]) for name in changed_names},
                                        "candidate_sha256": digest(layout_candidate), "changed_offsets": changed_offsets}}
+        text, text_spans, text_source, text_hash = text_assets.select(self.root, prg, digest(reference))
+        text_gaps = map_layout_assets.gap_payloads(prg, regions, text_spans)
+        if set(text_gaps) & set(layout_gaps):
+            raise ValueError("synthetic text and layout gaps unexpectedly overlap")
+        (inputs / "packed-text.json").write_bytes(text_assets.serialize(text))
+        for name, payload in text_gaps.items():
+            (inputs / name).write_bytes(payload)
+        changed_text = text_assets.changed_asset(text, prg)
+        changed_text_json = text_assets.serialize(changed_text)
+        changed_text_spans = text_assets.encode(changed_text, prg, digest(reference))
+        changed_text_gaps = map_layout_assets.gap_payloads(prg, regions, changed_text_spans)
+        text_names = [name for name in text_gaps if text_gaps[name] != changed_text_gaps[name]]
+        if not text_names or set(text_names) != set(text_gaps):
+            raise ValueError("invalid synthetic packed-text control")
+        candidate_data = bytearray(reference)
+        for bank, offset, payload in changed_text_spans:
+            start = 16 + bank * map_assets.BANK_SIZE + offset
+            candidate_data[start:start + len(payload)] = payload
+        text_candidate = bytes(candidate_data)
+        text_offsets = text_assets.verify_control(reference, text_candidate, 16, text_spans, changed_text_spans)
+        text_dir = self.proof_dir / "controls/text_asset"
+        text_dir.mkdir(parents=True)
+        (text_dir / "rom.s").write_bytes(source)
+        (text_dir / "packed-text.json").write_bytes(changed_text_json)
+        (text_dir / "gaps").mkdir()
+        for name in text_names:
+            (text_dir / "gaps" / name).write_bytes(changed_text_gaps[name])
+        (text_dir / "candidate.nes").write_bytes(text_candidate)
+        text_evidence = {"source": text_source, "input_sha256": text_hash,
+                         "gap_sha256": {name: digest(payload) for name, payload in text_gaps.items()},
+                         "control": {"asset_sha256": digest(changed_text_json),
+                                     "gap_sha256": {name: digest(changed_text_gaps[name]) for name in text_names},
+                                     "candidate_sha256": digest(text_candidate), "changed_offsets": text_offsets}}
         controls = []
         for name in MUTATIONS:
             selected = [r for r in regions if r["control"] == name]
@@ -230,7 +271,7 @@ class ProofFreshnessTests(unittest.TestCase):
             "toolchain_revision": "synthetic", "tool_sha256": {n: digest(p.read_bytes()) for n, p in self.tools.items()},
             "output_sha256": digest(reference), "reference_sha256": digest(reference),
             "component_matches": {p: True for p in IDENTITY_PARTS}, "source_regions": regions,
-            "map_assets": asset_evidence, "layout_assets": layout_evidence,
+            "map_assets": asset_evidence, "layout_assets": layout_evidence, "text_assets": text_evidence,
             "counts": {"matching_code_bytes": code, "structured_data_bytes": data,
                        "local_prg_bytes": 65536 - code - data, "local_chr_bytes": 65536},
             "controls": controls, "symbol_controls": symbol_controls,
@@ -263,6 +304,33 @@ class ProofFreshnessTests(unittest.TestCase):
         self.proof["symbol_controls"].pop()
         self.save_proof()
         with self.assertRaisesRegex(ValueError, "controls are incomplete"):
+            self.verify()
+
+    def test_changed_text_asset_or_control_is_rejected(self):
+        asset_path = self.root / text_assets.ASSET_PATH
+        asset_path.parent.mkdir(parents=True)
+        raw = (self.proof_dir / "inputs/packed-text.json").read_bytes()
+        asset = json.loads(raw)
+        asset_path.write_bytes(raw)
+        with self.assertRaisesRegex(ValueError, "packed-text build evidence is stale"):
+            self.verify()
+        self.proof["text_assets"]["source"] = "local"
+        self.proof["text_assets"]["input_sha256"] = digest(raw)
+        self.save_proof()
+        self.verify()
+        prg = self.target["reference"]["prg"]
+        reference = (self.root / self.target["input_path"]).read_bytes()
+        payload = reference[prg["offset"]:prg["offset"] + prg["size"]]
+        asset_path.write_bytes(text_assets.serialize(text_assets.changed_asset(asset, payload)))
+        with self.assertRaisesRegex(ValueError, "packed-text build evidence is stale"):
+            self.verify()
+        asset_path.unlink()
+        self.proof["text_assets"]["source"] = "reference"
+        self.proof["text_assets"]["input_sha256"] = digest(raw)
+        self.save_proof()
+        name = next(iter(self.proof["text_assets"]["control"]["gap_sha256"]))
+        (self.proof_dir / "controls/text_asset/gaps" / name).write_bytes(b"changed")
+        with self.assertRaisesRegex(ValueError, "packed-text source-change control"):
             self.verify()
 
     def test_changed_layout_asset_or_control_is_rejected(self):

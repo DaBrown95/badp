@@ -7,7 +7,7 @@ import tempfile
 import unittest
 from unittest.mock import patch
 
-from tools import map_assets
+from tools import map_assets, packed_text
 
 
 def synthetic_prg():
@@ -29,6 +29,22 @@ def synthetic_prg():
         offset = 0x2800 + (state % 14) * 11
         base = 0x21b2 + state * 2
         prg[base:base + 2] = offset.to_bytes(2, 'little')
+    # Synthetic text tables and 52 fixed-size records; no game text is used.
+    bank = map_assets.BANK_SIZE
+    prg[bank + packed_text.PRIMARY_OFFSET:bank + packed_text.PRIMARY_OFFSET + 32] = bytes(range(0x41, 0x61))
+    prg[bank + packed_text.SECONDARY_OFFSET:bank + packed_text.SECONDARY_OFFSET + 32] = bytes(range(0x21, 0x41))
+    position = 0x403e
+    for index in range(52):
+        payload_size = 74 if index < 51 else 99
+        symbols = next(n for n in range(1, 400) if (n * 5 + 7) // 8 == payload_size)
+        record = {'header': [0, 0], 'tokens': [{'kind': 'primary', 'index': 1}] * (symbols - 1),
+                  'padding_bits': (-5 * symbols) % 8, 'padding_value': 0}
+        encoded = packed_text.encode_record(record)
+        pointer = packed_text.TABLE_OFFSET + index * 2
+        prg[bank + pointer:bank + pointer + 2] = (0x8000 + position).to_bytes(2, 'little')
+        prg[bank + position:bank + position + len(encoded)] = encoded
+        position += len(encoded)
+    assert position == packed_text.DATA_END
     return bytes(prg)
 
 
