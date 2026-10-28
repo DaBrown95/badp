@@ -339,7 +339,7 @@ either table have not been established.
 map, descriptor-context, native-event and direct-target scripts and records, palette setup,
 candidate audio and PPU-stream uses, round-tripped packed text, and optional
 validated audio and sprite traces. It counts physical bytes once while
-retaining overlapping uses. With the current local traces, 994 PRG bytes have no use
+retaining overlapping uses. With the current local traces, 909 PRG bytes have no use
 in these inventories; that number is not a count of remaining code. The report
 also retains 4,561 possible map/script overlap bytes and 516 possible record/script
 overlap bytes across the combined inventories. The expanded field-setter walk
@@ -351,9 +351,9 @@ ignored `analysis/us-v1.5/prg-inventory.json`.
 `make audio-flow` follows literal voice starts in reconstructed commands and the
 native opcode-$18 start. It models both loop outcomes, stops at voice-stop
 commands and follows the restore-to-start-plus-one path. The current static
-walk has 36 starts, 790 command contexts and 1,293 distinct physical bytes,
-with no conflicting decodes or five-byte fetches crossing a bank. Of the 706
-bytes used by the existing audio trace, 605 also occur in these candidate paths.
+walk has 47 starts, 851 command contexts and 1,443 distinct physical bytes,
+with no conflicting decodes or five-byte fetches crossing a bank. All 706 bytes
+used by the existing audio trace also occur in these candidate paths.
 Indexed or otherwise dynamic starts and unobserved playback remain open; the
 decoded audio payloads stay local and do not count as reconstructed code.
 `make ppu-streams` decodes 19 candidate inventory PPU streams from literal queues,
@@ -991,3 +991,22 @@ reference/build power-on replay with the baby linked at world x=1,081 at frame
 9,200. Later samples showed the player falling, so the maintained scenario
 ends at the earlier 9,000-frame checkpoint; the continuation remains local
 exploratory evidence.
+
+Two indexed audio-control tables at bank 1 `$A6D0-$A6F3` now express ten
+voice-4 pointers and two four-voice pointer records as source. In directed
+reference-only Noah and David runs, the `$B3` handler fetched table indices
+0, 2 and 8, and the `$78` handler fetched both four-voice records. The probe
+paired all 168 observed accesses with their mapped physical addresses and
+found no bank disagreements. The unobserved entries are static candidates;
+the instruction behavior does not establish a runtime index bound. The
+individual audio payloads remain local. Each source table has a separate
+changed-source control. The local probe scripts, observations and input hashes
+remain under `analysis/`.
+
+Additional fourth-level route searches were replayed from power-on on the
+reference and matching build. The sampled state and screenshots agreed through
+frame 10,200. The baby was linked at world x=1,539 at frame 9,800 and at
+world x=1,802 at frame 10,100; a later sample at frame 10,200 showed the link
+lost. These are discrete samples from exploratory routes, not continuous-link
+verification or a completed level. The maintained scenario still checks the
+previous frame-9,000 checkpoint.

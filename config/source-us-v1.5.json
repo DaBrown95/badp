@@ -1371,6 +1371,8 @@
     {"id": "bank1-compact-context-ed50", "bank": 1, "cpu": "0xed50", "size": 3, "kind": "data", "control": "compact_context_ed50"},
     {"id": "bank1-compact-context-ed53", "bank": 1, "cpu": "0xed53", "size": 3, "kind": "data", "control": "compact_context_ed53"},
     {"id": "bank1-indexed-state-records-b32e", "bank": 1, "cpu": "0xb32e", "size": 28, "kind": "data", "control": "indexed_state_records_b32e"},
+    {"id": "bank1-indexed-voice4-pointers", "bank": 1, "cpu": "0xa6d0", "size": 20, "kind": "data", "control": "indexed_voice4_pointers"},
+    {"id": "bank1-indexed-voice-records", "bank": 1, "cpu": "0xa6e4", "size": 16, "kind": "data", "control": "indexed_voice_records"},
     {"id": "bank1-vectors", "bank": 1, "cpu": "0xfffa", "size": 6, "kind": "data", "control": "vectors"}
   ]
 }

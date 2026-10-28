@@ -12,6 +12,8 @@ class AudioFlowTests(unittest.TestCase):
     BogusStartVoice4 $2769 ; a comment
     BogusRestartVoice4 $0000
     BogusStartVoice4FromIndexedPair $4444
+    AudioPointerEntry $5678
+    AudioVoicePointerRecord $FFFF, $0000, $3456, $6789
 ScriptOp18:
     lda #$04
     jsr StopAudioVoice
@@ -22,9 +24,14 @@ ScriptOp18:
     rts
 .assert 1, error, "synthetic"
 '''
-        self.assertEqual(literal_seeds(source), [0x1234, 0x26c8, 0x2769, 0x2a58])
+        self.assertEqual(literal_seeds(source), [0x1234, 0x26c8, 0x2769, 0x2a58, 0x3456, 0x5678, 0x6789])
         with self.assertRaisesRegex(ValueError, 'unsupported audio pointer'):
             literal_seeds(source.replace('$2769', 'SomeLabel'))
+        with self.assertRaisesRegex(ValueError, 'unsupported audio pointer'):
+            literal_seeds(source.replace('AudioPointerEntry $5678', 'AudioPointerEntry SomeLabel'))
+        with self.assertRaisesRegex(ValueError, 'unsupported audio pointer'):
+            literal_seeds(source.replace('AudioVoicePointerRecord $FFFF, $0000, $3456, $6789',
+                                         'AudioVoicePointerRecord $FFFF, $0000, $3456'))
         with self.assertRaisesRegex(ValueError, 'native opcode'):
             literal_seeds(source.replace('jsr StartAudioVoice', 'jsr OtherRoutine'))
         with self.assertRaisesRegex(ValueError, 'audio boundaries'):

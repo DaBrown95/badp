@@ -1,8 +1,8 @@
 """Trace candidate v1.5 audio-command flows without exporting their payloads.
 
-Literal starts come from reconstructed BOGUS commands and the native $18
-handler. This static traversal does not establish reachability or stream
-bounds. Any decoded audio data remains in ignored local analysis.
+Literal starts come from reconstructed BOGUS commands, indexed voice-pointer
+tables and the native $18 handler. This static traversal does not establish
+reachability or stream bounds. Any decoded audio data remains in ignored local analysis.
 """
 from __future__ import annotations
 
@@ -18,7 +18,7 @@ from .audio_commands import decode_command
 from .project import input_path
 from .script_entries import BANK_SIZE, ROOT, _locate, _location, load_audited_banks
 
-_CALL = re.compile(r'^\s*(BogusSetVoicePointers|BogusStartVoice4|BogusRestartVoice4)\s+([^;]+)')
+_CALL = re.compile(r'^\s*(BogusSetVoicePointers|BogusStartVoice4|BogusRestartVoice4|AudioPointerEntry|AudioVoicePointerRecord)\s+([^;]+)')
 _WORD = re.compile(r'\$[0-9a-fA-F]{4}\Z')
 FLOW_INPUTS = ('tools/audio_flow.py', 'tools/audio_commands.py', 'tools/script_entries.py')
 
@@ -28,7 +28,7 @@ def _digest(path: Path) -> str:
 
 
 def literal_seeds(source: str) -> list[int]:
-    """Read literal starts and the statically identified native opcode-$18 start."""
+    """Read literal starts, indexed table pointers and the native opcode-$18 start."""
     starts = set()
     for line in source.splitlines():
         match = _CALL.match(line)
@@ -36,7 +36,7 @@ def literal_seeds(source: str) -> list[int]:
             continue
         name, operands = match.groups()
         parts = [part.strip() for part in operands.split(',')]
-        expected = 4 if name == 'BogusSetVoicePointers' else 1
+        expected = 4 if name in ('BogusSetVoicePointers', 'AudioVoicePointerRecord') else 1
         if len(parts) != expected or any(not _WORD.fullmatch(part) for part in parts):
             raise ValueError(f'unsupported audio pointer expression in {name}')
         for part in parts:

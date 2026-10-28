@@ -181,6 +181,14 @@ compareRangeReturn:
     .word horizontal_base, horizontal
 .endmacro
 
+; Indexed audio-control tables store encoded voice pointers; payloads remain local.
+.macro AudioPointerEntry pointer
+    .word pointer
+.endmacro
+.macro AudioVoicePointerRecord voice0, voice1, voice2, voice3
+    .word voice0, voice1, voice2, voice3
+.endmacro
+
 ; Opcode $89 reads a seven-byte state record at base plus seven times an index.
 .macro BogusLoadIndexedStateRecord base
     .byte $89
@@ -13744,7 +13752,28 @@ ScriptRecordLengths:
 .segment "PRG1"
 .scope Bank1
 BankStart:
-    .incbin "bank1_8000_aca0.bin"
+    .incbin "bank1_8000_a6d0.bin"
+; Opcode $B3 selects a two-byte voice-4 pointer by slot value. Three indices
+; were observed on the reference ROM; the actual runtime bounds are unknown.
+IndexedVoice4PointersA6D0:
+    AudioPointerEntry $26F9 ; CONTROL_INDEXED_VOICE4_POINTERS
+    AudioPointerEntry $2807
+    AudioPointerEntry $27B2
+    AudioPointerEntry $2745
+    AudioPointerEntry $2844
+    AudioPointerEntry $284D
+    AudioPointerEntry $2856
+    AudioPointerEntry $285F
+    AudioPointerEntry $2837
+    AudioPointerEntry $2875
+.assert (* - BankStart) = $26E4, error, "bank 1 indexed voice-4 pointers end"
+; Opcode $78 reads four voice pointers per eight-byte entry. Both entries were
+; observed; $FFFF preserves the corresponding voice. No index bound is known.
+IndexedVoiceRecordsA6E4:
+    AudioVoicePointerRecord $FFFF, $FFFF, $27E3, $27F4 ; CONTROL_INDEXED_VOICE_RECORDS
+    AudioVoicePointerRecord $FFFF, $FFFF, $26F4, $26F5
+.assert (* - BankStart) = $26F4, error, "bank 1 indexed voice records end"
+    .incbin "bank1_a6f4_aca0.bin"
 ; Record accesses observed at the bank-0 loader in the opening scenarios.
 ; Fields behind a $FFFF resource pointer may not be read by the loader.
 RuntimeRecordACA0:
