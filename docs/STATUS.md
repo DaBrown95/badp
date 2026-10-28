@@ -1072,3 +1072,12 @@ route probe and its reference/build observations are retained in local analysis.
 `make trace-audio-route` reproduces these 47 command starts through frame 4,300
 using the maintained Moses input and validates the physical-bank reads on both
 ROMs. It does not establish all audio paths or cartridge behavior.
+
+An extended fifth-level route was replayed from power-on on both ROMs. The
+baby remained linked for 1,115 consecutive end-of-frame samples, from frame
+10,786 through 11,900, with the player reaching world x=1,252. The same four
+one-frame player-slot transients were observed as in the shorter route. The
+maintained comparison now checks this longer carry; it does not yet reach a
+fifth-level success screen. The corresponding reference-only trace recorded
+81,516 script fetches, 1,064 record loads and 65,536 inline reads without
+finding sampled local extents along the maintained path.
