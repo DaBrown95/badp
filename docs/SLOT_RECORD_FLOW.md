@@ -149,6 +149,11 @@ local, and excludes competing record interpretations and candidate script or
 asset uses from these extents. These associations are still static candidates;
 the separate source-change controls establish matching bytes, not execution.
 
+Forty-two more negative-mode accesses are represented as compact resource
+pointer and flag records. The current inventory has no competing record, script
+or asset interpretation for their selected extents; the associations and
+whether these paths execute remain unverified.
+
 Twenty additional script regions from the merged trace are represented as
 named commands. They were non-overlapping under the earlier trace; the expanded
 `$18` successor now exposes the possible `$ED4A-$ED4F` record use described

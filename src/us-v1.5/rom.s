@@ -16262,7 +16262,14 @@ CandidateBC8B:
     BogusCallNativeEncoded $B51B
     BogusSetMainState $FF
 .assert (* - BankStart) = $3CA8, error, "bank 1 candidate script BC75 end"
-    .incbin "bank1_bca8_bcae.bin"
+; Candidate descriptor $BCAE, command $BD03, negative mode.
+CompactContextBCA8:
+    SlotCompactRecord $C1E5, $00 ; CONTROL_COMPACT_CONTEXT_BCA8
+.assert (* - BankStart) = $3CAB, error, "bank 1 compact candidate bca8 end"
+; Candidate descriptor $BCAE, command $BCEB, negative mode.
+CompactContextBCAB:
+    SlotCompactRecord $B5DE, $00 ; CONTROL_COMPACT_CONTEXT_BCAB
+.assert (* - BankStart) = $3CAE, error, "bank 1 compact candidate bcab end"
 ; Descriptor-linked slot record; resource data remains local.
 SlotRuntimeBCAE:
     SlotRuntimeRecord $B5D3, (ScriptBCC0 - BankStart), $00, $FF, $00, $00, $00 ; CONTROL_SLOT_RUNTIME_BCAE
@@ -17024,7 +17031,10 @@ ScriptD4B8:
     BogusRestartVoice4 $2724
     BogusJumpBank1 ScriptD463
 .assert (* - BankStart) = $54BE, error, "bank 1 script D479 end"
-    .incbin "bank1_d4be_d4c1.bin"
+; Candidate descriptor $D4C1, command $D6C6, negative mode.
+CompactContextD4BE:
+    SlotCompactRecord $B6F8, $00 ; CONTROL_COMPACT_CONTEXT_D4BE
+.assert (* - BankStart) = $54C1, error, "bank 1 compact candidate d4be end"
 ; Descriptor-linked slot record; resource data remains local.
 SlotRuntimeD4C1:
     SlotRuntimeRecord $BFD3, $551B, $00, $FF, $00, $00, $00 ; CONTROL_SLOT_RUNTIME_D4C1
@@ -18049,7 +18059,14 @@ LongScriptDA12:
 ExtendedScriptDA14:
     BogusLoadRecordAndClearSavedState $48 ; CONTROL_EXTENDED_SCRIPT_DA14
 .assert (* - BankStart) = $5A16, error, "bank 1 extended script $DA14 end"
-    .incbin "bank1_da16_da1c.bin"
+; Candidate descriptor $DA1C, command $E89D, negative mode.
+CompactContextDA16:
+    SlotCompactRecord $B65B, $22 ; CONTROL_COMPACT_CONTEXT_DA16
+.assert (* - BankStart) = $5A19, error, "bank 1 compact candidate da16 end"
+; Candidate descriptor $DA1C, command $E784, negative mode.
+CompactContextDA19:
+    SlotCompactRecord $B654, $00 ; CONTROL_COMPACT_CONTEXT_DA19
+.assert (* - BankStart) = $5A1C, error, "bank 1 compact candidate da19 end"
 ; Descriptor-linked slot record; resource data remains local.
 SlotRuntimeDA1C:
     SlotRuntimeRecord $B65B, (ScriptE9BC - BankStart), $22, $FF, $00, $00, $00 ; CONTROL_SLOT_RUNTIME_DA1C
@@ -18078,7 +18095,14 @@ SlotFlowDA61:
 SlotFlowDA6A:
     SlotRuntimeRecord $B644, $6ADA, $22, $FE, $27, $62, $21
 .assert (* - BankStart) = $5A73, error, "bank 1 slot record flow DA61 end"
-    .incbin "bank1_da73_da79.bin"
+; Candidate descriptor $DA79, command $E89D, negative mode.
+CompactContextDA73:
+    SlotCompactRecord $B83F, $22 ; CONTROL_COMPACT_CONTEXT_DA73
+.assert (* - BankStart) = $5A76, error, "bank 1 compact candidate da73 end"
+; Candidate descriptor $DA79, command $E784, negative mode.
+CompactContextDA76:
+    SlotCompactRecord $C313, $00 ; CONTROL_COMPACT_CONTEXT_DA76
+.assert (* - BankStart) = $5A79, error, "bank 1 compact candidate da76 end"
 ; Descriptor-linked slot record; resource data remains local.
 SlotRuntimeDA79:
     SlotRuntimeRecord $B83F, (ScriptE9BA - BankStart), $22, $FF, $00, $00, $00 ; CONTROL_SLOT_RUNTIME_DA79
@@ -18097,7 +18121,14 @@ SlotFlowDA94:
 SlotFlowDA9D:
     SlotRuntimeRecord $B83F, $6ADA, $22, $FE, $27, $62, $21
 .assert (* - BankStart) = $5AA6, error, "bank 1 slot record flow DA94 end"
-    .incbin "bank1_daa6_daac.bin"
+; Candidate descriptor $DAAC, command $E89D, negative mode.
+CompactContextDAA6:
+    SlotCompactRecord $B67A, $22 ; CONTROL_COMPACT_CONTEXT_DAA6
+.assert (* - BankStart) = $5AA9, error, "bank 1 compact candidate daa6 end"
+; Candidate descriptor $DAAC, command $E784, negative mode.
+CompactContextDAA9:
+    SlotCompactRecord $BBCF, $00 ; CONTROL_COMPACT_CONTEXT_DAA9
+.assert (* - BankStart) = $5AAC, error, "bank 1 compact candidate daa9 end"
 ; Descriptor-linked slot record; resource data remains local.
 SlotRuntimeDAAC:
     SlotRuntimeRecord $B67A, $6D11, $22, $FF, $00, $00, $00 ; CONTROL_SLOT_RUNTIME_DAAC
@@ -18170,7 +18201,10 @@ SweepPartialDB03Fields:
 SlotFlowDB0C:
     SlotCompactRecord $B88D, $23 ; CONTROL_SLOT_FLOW_DB0C
 .assert (* - BankStart) = $5B0F, error, "bank 1 slot record flow DB0C end"
-    .incbin "bank1_db0f_db12.bin"
+; Candidate descriptor $DB12, command $E784, negative mode.
+CompactContextDB0F:
+    SlotCompactRecord $C4AD, $00 ; CONTROL_COMPACT_CONTEXT_DB0F
+.assert (* - BankStart) = $5B12, error, "bank 1 compact candidate db0f end"
 ; Descriptor-linked slot record; resource data remains local.
 SlotRuntimeDB12:
     SlotRuntimeRecord $C4AD, (ScriptE691 - BankStart), $22, $FF, $00, $00, $00 ; CONTROL_SLOT_RUNTIME_DB12
@@ -18202,7 +18236,15 @@ PartialRecordDB3FResource:
 PartialRecordDB3FFields:
     .byte $00 ; CONTROL_PARTIAL_FIELDS_DB3F
 .assert (* - BankStart) = $5B44, error, "bank 1 partial record $DB43 end"
-    .incbin "bank1_db44_db4e.bin"
+    .incbin "bank1_db44_db48.bin"
+; Candidate descriptor $DB4E, command $E89D, negative mode.
+CompactContextDB48:
+    SlotCompactRecord $B937, $23 ; CONTROL_COMPACT_CONTEXT_DB48
+.assert (* - BankStart) = $5B4B, error, "bank 1 compact candidate db48 end"
+; Candidate descriptor $DB4E, command $E784, negative mode.
+CompactContextDB4B:
+    SlotCompactRecord $C5CB, $00 ; CONTROL_COMPACT_CONTEXT_DB4B
+.assert (* - BankStart) = $5B4E, error, "bank 1 compact candidate db4b end"
 ; Descriptor-linked slot record; resource data remains local.
 SlotRuntimeDB4E:
     SlotRuntimeRecord $B937, (ScriptED7C - BankStart), $23, $FF, $00, $00, $00 ; CONTROL_SLOT_RUNTIME_DB4E
@@ -18213,7 +18255,12 @@ ReviewedContactDB57:
     .byte $FF ; CONTROL_REVIEWED_CONTACT_DB57
     .word RuntimeScriptE764 - BankStart
 .assert (* - BankStart) = $5B5B, error, "bank 1 candidate contact db57 end"
-    .incbin "bank1_db5b_db66.bin"
+    .incbin "bank1_db5b_db60.bin"
+; Candidate descriptor $DB66, command $E89D, negative mode.
+CompactContextDB60:
+    SlotCompactRecord $B876, $22 ; CONTROL_COMPACT_CONTEXT_DB60
+.assert (* - BankStart) = $5B63, error, "bank 1 compact candidate db60 end"
+    .incbin "bank1_db63_db66.bin"
 ; Descriptor-linked slot record; resource data remains local.
 SlotRuntimeDB66:
     SlotRuntimeRecord $B876, (ScriptDB81 - BankStart), $22, $FF, $00, $00, $00 ; CONTROL_SLOT_RUNTIME_DB66
@@ -18300,7 +18347,10 @@ SlotFlowDC11:
 SlotFlowDC14:
     SlotCompactRecord $BCE9, $00
 .assert (* - BankStart) = $5C17, error, "bank 1 slot record flow DC0E end"
-    .incbin "bank1_dc17_dc1a.bin"
+; Candidate descriptor $DC1A, command $E784, negative mode.
+CompactContextDC17:
+    SlotCompactRecord $BCE1, $00 ; CONTROL_COMPACT_CONTEXT_DC17
+.assert (* - BankStart) = $5C1A, error, "bank 1 compact candidate dc17 end"
 ; Descriptor-linked slot record; resource data remains local.
 SlotRuntimeDC1A:
     SlotRuntimeRecord $B6D8, (ScriptDC35 - BankStart), $23, $00, $16, $61, $22 ; CONTROL_SLOT_RUNTIME_DC1A
@@ -18453,7 +18503,14 @@ ScriptDD55:
 SlotFlowDD59:
     SlotCompactRecord $C117, $00 ; CONTROL_SLOT_FLOW_DD59
 .assert (* - BankStart) = $5D5C, error, "bank 1 slot record flow DD59 end"
-    .incbin "bank1_dd5c_dd62.bin"
+; Candidate descriptor $DD62, command $E89D, negative mode.
+CompactContextDD5C:
+    SlotCompactRecord $B7AA, $22 ; CONTROL_COMPACT_CONTEXT_DD5C
+.assert (* - BankStart) = $5D5F, error, "bank 1 compact candidate dd5c end"
+; Candidate descriptor $DD62, command $E784, negative mode.
+CompactContextDD5F:
+    SlotCompactRecord $C0F9, $00 ; CONTROL_COMPACT_CONTEXT_DD5F
+.assert (* - BankStart) = $5D62, error, "bank 1 compact candidate dd5f end"
 ; Descriptor-linked slot record; resource data remains local.
 SlotRuntimeDD62:
     SlotRuntimeRecord $B7AA, (ScriptDE0D - BankStart), $22, $FF, $00, $00, $00 ; CONTROL_SLOT_RUNTIME_DD62
@@ -18476,7 +18533,14 @@ SlotFlowDD7D:
 SlotFlowDD86:
     SlotCompactRecord $C0B1, $00 ; CONTROL_SLOT_FLOW_DD86
 .assert (* - BankStart) = $5D89, error, "bank 1 slot record flow DD86 end"
-    .incbin "bank1_dd89_dd8f.bin"
+; Candidate descriptor $DD8F, command $E89D, negative mode.
+CompactContextDD89:
+    SlotCompactRecord $B7B3, $22 ; CONTROL_COMPACT_CONTEXT_DD89
+.assert (* - BankStart) = $5D8C, error, "bank 1 compact candidate dd89 end"
+; Candidate descriptor $DD8F, command $E784, negative mode.
+CompactContextDD8C:
+    SlotCompactRecord $C0A7, $00 ; CONTROL_COMPACT_CONTEXT_DD8C
+.assert (* - BankStart) = $5D8F, error, "bank 1 compact candidate dd8c end"
 ; Descriptor-linked slot record; resource data remains local.
 SlotRuntimeDD8F:
     SlotRuntimeRecord $B7B3, (ScriptDE0D - BankStart), $22, $FF, $00, $00, $00 ; CONTROL_SLOT_RUNTIME_DD8F
@@ -18499,7 +18563,14 @@ SlotFlowDDAA:
 SlotFlowDDB3:
     SlotCompactRecord $C389, $00 ; CONTROL_SLOT_FLOW_DDB3
 .assert (* - BankStart) = $5DB6, error, "bank 1 slot record flow DDB3 end"
-    .incbin "bank1_ddb6_ddbc.bin"
+; Candidate descriptor $DDBC, command $E89D, negative mode.
+CompactContextDDB6:
+    SlotCompactRecord $B866, $22 ; CONTROL_COMPACT_CONTEXT_DDB6
+.assert (* - BankStart) = $5DB9, error, "bank 1 compact candidate ddb6 end"
+; Candidate descriptor $DDBC, command $E784, negative mode.
+CompactContextDDB9:
+    SlotCompactRecord $C36B, $00 ; CONTROL_COMPACT_CONTEXT_DDB9
+.assert (* - BankStart) = $5DBC, error, "bank 1 compact candidate ddb9 end"
 ; Descriptor-linked slot record; resource data remains local.
 SlotRuntimeDDBC:
     SlotRuntimeRecord $B866, (ScriptDE0D - BankStart), $22, $FF, $00, $00, $00 ; CONTROL_SLOT_RUNTIME_DDBC
@@ -18522,7 +18593,14 @@ SlotFlowDDD7:
 SlotFlowDDE0:
     SlotCompactRecord $C06D, $00 ; CONTROL_SLOT_FLOW_DDE0
 .assert (* - BankStart) = $5DE3, error, "bank 1 slot record flow DDE0 end"
-    .incbin "bank1_dde3_dde9.bin"
+; Candidate descriptor $DDE9, command $E89D, negative mode.
+CompactContextDDE3:
+    SlotCompactRecord $B79A, $22 ; CONTROL_COMPACT_CONTEXT_DDE3
+.assert (* - BankStart) = $5DE6, error, "bank 1 compact candidate dde3 end"
+; Candidate descriptor $DDE9, command $E784, negative mode.
+CompactContextDDE6:
+    SlotCompactRecord $C075, $00 ; CONTROL_COMPACT_CONTEXT_DDE6
+.assert (* - BankStart) = $5DE9, error, "bank 1 compact candidate dde6 end"
 ; Descriptor-linked slot record; resource data remains local.
 SlotRuntimeDDE9:
     SlotRuntimeRecord $B79A, (ScriptDE0D - BankStart), $22, $FF, $00, $00, $00 ; CONTROL_SLOT_RUNTIME_DDE9
@@ -19126,7 +19204,14 @@ ScriptE2E8:
 ScriptE2F4:
     BogusLoadRecordAndClearSavedState $00
 .assert (* - BankStart) = $62F6, error, "bank 1 script E118 end"
-    .incbin "bank1_e2f6_e2fc.bin"
+; Candidate descriptor $E2FC, command $E89D, negative mode.
+CompactContextE2F6:
+    SlotCompactRecord $B8E7, $23 ; CONTROL_COMPACT_CONTEXT_E2F6
+.assert (* - BankStart) = $62F9, error, "bank 1 compact candidate e2f6 end"
+; Candidate descriptor $E2FC, command $E784, negative mode.
+CompactContextE2F9:
+    SlotCompactRecord $B8D5, $00 ; CONTROL_COMPACT_CONTEXT_E2F9
+.assert (* - BankStart) = $62FC, error, "bank 1 compact candidate e2f9 end"
 ; Descriptor-linked slot record; resource data remains local.
 SlotRuntimeE2FC:
     SlotRuntimeRecord $B8E7, (ScriptE486 - BankStart), $23, $FF, $00, $00, $00 ; CONTROL_SLOT_RUNTIME_E2FC
@@ -19159,7 +19244,10 @@ SlotFlowE332:
 SlotFlowE33B:
     SlotRuntimeRecord $B8CE, $6640, $00, $FF, $00, $00, $00
 .assert (* - BankStart) = $6344, error, "bank 1 slot record flow E320 end"
-    .incbin "bank1_e344_e347.bin"
+; Candidate descriptor $E34A, command $E89D, negative mode.
+CompactContextE344:
+    SlotCompactRecord $B99F, $23 ; CONTROL_COMPACT_CONTEXT_E344
+.assert (* - BankStart) = $6347, error, "bank 1 compact candidate e344 end"
 ; Record accesses observed at the bank-0 loader in the opening scenarios.
 ; Fields behind a $FFFF resource pointer may not be read by the loader.
 RuntimeRecordE347:
@@ -19196,7 +19284,14 @@ SlotFlowE380:
 SlotFlowE389:
     SlotRuntimeRecord $B986, $6640, $00, $FF, $00, $00, $00
 .assert (* - BankStart) = $6392, error, "bank 1 slot record flow E36E end"
-    .incbin "bank1_e392_e398.bin"
+; Candidate descriptor $E398, command $E89D, negative mode.
+CompactContextE392:
+    SlotCompactRecord $B823, $23 ; CONTROL_COMPACT_CONTEXT_E392
+.assert (* - BankStart) = $6395, error, "bank 1 compact candidate e392 end"
+; Candidate descriptor $E398, command $E784, negative mode.
+CompactContextE395:
+    SlotCompactRecord $B804, $00 ; CONTROL_COMPACT_CONTEXT_E395
+.assert (* - BankStart) = $6398, error, "bank 1 compact candidate e395 end"
 ; Descriptor-linked slot record; resource data remains local.
 SlotRuntimeE398:
     SlotRuntimeRecord $B823, (ScriptE48E - BankStart), $23, $FF, $00, $00, $00 ; CONTROL_SLOT_RUNTIME_E398
@@ -19229,7 +19324,14 @@ SlotFlowE3CE:
 SlotFlowE3D7:
     SlotRuntimeRecord $B814, $6640, $00, $FF, $00, $00, $00
 .assert (* - BankStart) = $63E0, error, "bank 1 slot record flow E3BC end"
-    .incbin "bank1_e3e0_e3e6.bin"
+; Candidate descriptor $E3E6, command $E89D, negative mode.
+CompactContextE3E0:
+    SlotCompactRecord $B7EB, $23 ; CONTROL_COMPACT_CONTEXT_E3E0
+.assert (* - BankStart) = $63E3, error, "bank 1 compact candidate e3e0 end"
+; Candidate descriptor $E3E6, command $E784, negative mode.
+CompactContextE3E3:
+    SlotCompactRecord $B7CA, $00 ; CONTROL_COMPACT_CONTEXT_E3E3
+.assert (* - BankStart) = $63E6, error, "bank 1 compact candidate e3e3 end"
 ; Descriptor-linked slot record; resource data remains local.
 SlotRuntimeE3E6:
     SlotRuntimeRecord $B7EB, (ScriptE48E - BankStart), $23, $FF, $00, $00, $00 ; CONTROL_SLOT_RUNTIME_E3E6
@@ -19259,7 +19361,14 @@ SlotFlowE41C:
 SlotFlowE425:
     SlotRuntimeRecord $B7DA, $6640, $00, $FF, $00, $00, $00
 .assert (* - BankStart) = $642E, error, "bank 1 slot record flow E40A end"
-    .incbin "bank1_e42e_e434.bin"
+; Candidate descriptor $E434, command $E89D, negative mode.
+CompactContextE42E:
+    SlotCompactRecord $B77E, $23 ; CONTROL_COMPACT_CONTEXT_E42E
+.assert (* - BankStart) = $6431, error, "bank 1 compact candidate e42e end"
+; Candidate descriptor $E434, command $E784, negative mode.
+CompactContextE431:
+    SlotCompactRecord $C049, $00 ; CONTROL_COMPACT_CONTEXT_E431
+.assert (* - BankStart) = $6434, error, "bank 1 compact candidate e431 end"
 ; Descriptor-linked slot record; resource data remains local.
 SlotRuntimeE434:
     SlotRuntimeRecord $B77E, (ScriptE47C - BankStart), $23, $FF, $00, $00, $00 ; CONTROL_SLOT_RUNTIME_E434
@@ -20333,7 +20442,14 @@ ContextScriptEADA:
 SlotFlowEAE4:
     SlotCompactRecord $B608, $22 ; CONTROL_SLOT_FLOW_EAE4
 .assert (* - BankStart) = $6AE7, error, "bank 1 slot record flow EAE4 end"
-    .incbin "bank1_eae7_eaed.bin"
+; Candidate descriptor $EAED, command $E89D, negative mode.
+CompactContextEAE7:
+    SlotCompactRecord $B608, $22 ; CONTROL_COMPACT_CONTEXT_EAE7
+.assert (* - BankStart) = $6AEA, error, "bank 1 compact candidate eae7 end"
+; Candidate descriptor $EAED, command $E784, negative mode.
+CompactContextEAEA:
+    SlotCompactRecord $BAE1, $00 ; CONTROL_COMPACT_CONTEXT_EAEA
+.assert (* - BankStart) = $6AED, error, "bank 1 compact candidate eaea end"
 ; Descriptor-linked slot record; resource data remains local.
 SlotRuntimeEAED:
     SlotRuntimeRecord $B608, (ScriptEC03 - BankStart), $22, $00, $16, $61, $12 ; CONTROL_SLOT_RUNTIME_EAED
@@ -20416,7 +20532,14 @@ CandidateEB66:
 SlotFlowEB6B:
     SlotCompactRecord $B848, $22 ; CONTROL_SLOT_FLOW_EB6B
 .assert (* - BankStart) = $6B6E, error, "bank 1 slot record flow EB6B end"
-    .incbin "bank1_eb6e_eb74.bin"
+; Candidate descriptor $EB74, command $E89D, negative mode.
+CompactContextEB6E:
+    SlotCompactRecord $B848, $22 ; CONTROL_COMPACT_CONTEXT_EB6E
+.assert (* - BankStart) = $6B71, error, "bank 1 compact candidate eb6e end"
+; Candidate descriptor $EB74, command $E784, negative mode.
+CompactContextEB71:
+    SlotCompactRecord $B851, $00 ; CONTROL_COMPACT_CONTEXT_EB71
+.assert (* - BankStart) = $6B74, error, "bank 1 compact candidate eb71 end"
 ; Descriptor-linked slot record; resource data remains local.
 SlotRuntimeEB74:
     SlotRuntimeRecord $B848, (ScriptEBFD - BankStart), $22, $00, $16, $61, $22 ; CONTROL_SLOT_RUNTIME_EB74
@@ -20442,7 +20565,10 @@ ModeRecordEB86Fields:
 SlotFlowEB91:
     SlotCompactRecord $B91E, $22 ; CONTROL_SLOT_FLOW_EB91
 .assert (* - BankStart) = $6B94, error, "bank 1 slot record flow EB91 end"
-    .incbin "bank1_eb94_eb97.bin"
+; Candidate descriptor $EB9A, command $E89D, negative mode.
+CompactContextEB94:
+    SlotCompactRecord $B91E, $22 ; CONTROL_COMPACT_CONTEXT_EB94
+.assert (* - BankStart) = $6B97, error, "bank 1 compact candidate eb94 end"
 ; Compact record observed in negative loader mode.
 SweepRecordEB97:
     SlotCompactRecord $C577, $00 ; CONTROL_SWEEP_RECORD_EB97
@@ -20479,7 +20605,14 @@ CandidateEBB5:
 SlotFlowEBCA:
     SlotCompactRecord $C743, $00 ; CONTROL_SLOT_FLOW_EBCA
 .assert (* - BankStart) = $6BCD, error, "bank 1 slot record flow EBCA end"
-    .incbin "bank1_ebcd_ebd3.bin"
+; Candidate descriptor $EBD3, command $E89D, negative mode.
+CompactContextEBCD:
+    SlotCompactRecord $B9D8, $27 ; CONTROL_COMPACT_CONTEXT_EBCD
+.assert (* - BankStart) = $6BD0, error, "bank 1 compact candidate ebcd end"
+; Candidate descriptor $EBD3, command $E784, negative mode.
+CompactContextEBD0:
+    SlotCompactRecord $C74D, $00 ; CONTROL_COMPACT_CONTEXT_EBD0
+.assert (* - BankStart) = $6BD3, error, "bank 1 compact candidate ebd0 end"
 ; Descriptor-linked slot record; resource data remains local.
 SlotRuntimeEBD3:
     SlotRuntimeRecord $C72F, (ScriptEBEE - BankStart), $22, $FF, $00, $00, $00 ; CONTROL_SLOT_RUNTIME_EBD3
@@ -20629,7 +20762,14 @@ ContextScriptED11:
     BogusSetSlotD0Bits $01
     BogusJumpBank1 (BankStart + $6D7F)
 .assert (* - BankStart) = $6D1B, error, "bank 1 contextual script ED11 end"
-    .incbin "bank1_ed1b_ed21.bin"
+; Candidate descriptor $ED21, command $E89D, negative mode.
+CompactContextED1B:
+    SlotCompactRecord $BA0A, $22 ; CONTROL_COMPACT_CONTEXT_ED1B
+.assert (* - BankStart) = $6D1E, error, "bank 1 compact candidate ed1b end"
+; Candidate descriptor $ED21, command $E784, negative mode.
+CompactContextED1E:
+    SlotCompactRecord $C7BF, $00 ; CONTROL_COMPACT_CONTEXT_ED1E
+.assert (* - BankStart) = $6D21, error, "bank 1 compact candidate ed1e end"
 ; Descriptor-linked slot record; resource data remains local.
 SlotRuntimeED21:
     SlotRuntimeRecord $BA0A, $6D45, $22, $FF, $00, $00, $00 ; CONTROL_SLOT_RUNTIME_ED21
@@ -20657,7 +20797,14 @@ ContextScriptED45:
     BogusSetSlot05F0Pair $08, $60
     BogusJumpBank1 (BankStart + $6D7F)
 .assert (* - BankStart) = $6D50, error, "bank 1 contextual script ED45 end"
-    .incbin "bank1_ed50_ed56.bin"
+; Candidate descriptor $ED56, command $E89D, negative mode.
+CompactContextED50:
+    SlotCompactRecord $B68A, $22 ; CONTROL_COMPACT_CONTEXT_ED50
+.assert (* - BankStart) = $6D53, error, "bank 1 compact candidate ed50 end"
+; Candidate descriptor $ED56, command $E784, negative mode.
+CompactContextED53:
+    SlotCompactRecord $BC6D, $00 ; CONTROL_COMPACT_CONTEXT_ED53
+.assert (* - BankStart) = $6D56, error, "bank 1 compact candidate ed53 end"
 ; Descriptor-linked slot record; resource data remains local.
 SlotRuntimeED56:
     SlotRuntimeRecord $B68A, (ScriptED71 - BankStart), $22, $FF, $00, $00, $00 ; CONTROL_SLOT_RUNTIME_ED56

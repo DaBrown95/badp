@@ -34,9 +34,9 @@ independent source trees or treat one version's evidence as verifying the rest.
 simultaneous reconstruction. Keep progress and completion evidence per target.
 
 The v1.5 build now assembles and links to the exact reference, with 21,474 bytes
-of source code and 19,687 bytes of structured data across the physical PRG banks.
-It still includes 24,375 local PRG bytes and 65,536 local CHR bytes. A total of
-1,306 independent source-change controls verify every listed reconstructed region.
+of source code and 19,813 bytes of structured data across the physical PRG banks.
+It still includes 24,249 local PRG bytes and 65,536 local CHR bytes. A total of
+1,348 independent source-change controls verify every listed reconstructed region.
 Passing input audits or whole-ROM equality alone is not reconstruction
 completion. The developer identifies BOGUS as the
 state-machine engine in the [Vance Kozik interview](https://www.nesworld.com/kozik.php);
@@ -44,7 +44,7 @@ the original source language and toolchain remain unestablished.
 
 ## v1.5 opening-gameplay evidence
 
-`make verify-gameplay` runs 6,340 NTSC frames each for Noah, Moses and David,
+`make verify-gameplay` runs 6,740 NTSC frames each for Noah, Moses and David,
 plus a separate Noah inventory scenario,
 in pinned MesenCE 2.2.1, with zeroed power-on RAM and fixed mapper/alignment
 settings. It compares the audited reference and verified build under the same
@@ -54,13 +54,13 @@ presses B to lift the baby, jumps past the first approaching enemy and crosses
 the first water gap. It recovers him after a later collision, backtracks over the
 position trigger, completes the first two levels and enters level three. There,
 it picks Moses up after a series of jumps and carries him through further jumps
-and movement to a higher position. Sampled slot fields show the link, its loss,
+and movement to the upper platforms. Sampled slot fields show the link, its loss,
 recovery and carried finish; pinned screenshot hashes check both success screens.
 In David's opening, the verifier pairs native position-event writes for slot
 descriptor `$6E` with mode-zero loads of encoded record `$6365`. It also pairs
 controller requests for descriptor `$01` with their record loads: the Moses
 sequence records 38 `$24` and four `$2D` matches, and the Noah inventory
-scenario records one configured `$36` match, with no mismatches. The sixty-two
+scenario records one configured `$36` match, with no mismatches. The sixty-four
 sampled frames, slot fields, state and cycle counts, mapper-write streams, NMI counts, OAM DMA and
 APU-register write streams agreed between the reference and build. Both PRG
 banks appeared in the emulator's mapper-write mapping; every observed write
@@ -98,6 +98,16 @@ at `$B6E5` and `$B6E9` are now source, with separate source-mutation controls.
 The two intervening bytes and pointed-to sprite remain local. This is evidence
 for the exercised emulator route, not proof of all uses or physical hardware.
 The trace files remain in ignored `analysis/us-v1.5/`.
+A reference-only third-level sweep branched from frame 6,340 into 162 input
+sequences. Several kept Moses carried at frame 6,500, but an 81-sequence
+follow-up from a farther-right position did not keep him carried through frame
+6,740. A second route kept him carried at frame 6,740 on the upper platforms;
+that route is included in the maintained reference/build comparison. The local
+exploration scripts and results remain in `analysis/us-v1.5/stage3-early-branch.*`,
+`analysis/us-v1.5/stage3-farther-branch.*` and `analysis/us-v1.5/stage3-left-branch.*`.
+A further 81-sequence reference-only sweep from frame 6,740 kept Moses carried
+in 60 cases at frame 6,980, but none ended as high as the earlier checkpoint.
+It remains local in `analysis/us-v1.5/stage3-upper-sweep.*`.
 The first 4,900-frame reference/build attempt reported differing Moses
 runtime evidence without identifying a field. A subsequent focused comparison
 matched; the cause of the initial discrepancy remains unestablished. The failure
@@ -306,7 +316,7 @@ in these inventories; that number is not a count of remaining code. The report
 also retains 4,561 possible map/script overlap bytes and 516 possible record/script
 overlap bytes across the combined inventories. The expanded field-setter walk
 introduces many speculative competing decodes; it does not establish their
-reachability. It also reports 4,257 source-owned bytes covered by candidate
+reachability. It also reports 4,383 source-owned bytes covered by candidate
 data uses, which can include compatible uses as well as competing ones. The
 report records its input identities and writes metadata only to
 ignored `analysis/us-v1.5/prg-inventory.json`.
@@ -647,6 +657,11 @@ by the examined mode and sentinel checks. The skipped bytes remain local.
 The descriptor associations and contact conditions are static candidates, not
 observed gameplay. The reviewed extents did not overlap competing candidate
 script, map, sprite, audio or PPU uses in the current inventory.
+
+Forty-two additional compact negative-mode records represent 126 bytes. The
+candidate loader reads a resource pointer and a flag byte for each; it does not
+install a script pointer in that mode. Their descriptor and script associations
+are provisional and the extents were checked for competing candidate uses.
 
 Four zero-terminated byte lists at `$FCA7-$FCE2` are structured source. The
 candidate `$FD05` script selects their bases through `$FCE3`, reads each value
