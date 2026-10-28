@@ -73,10 +73,14 @@ not covered. The [combined PRG inventory](STATUS.md) includes these candidates.
 `make native-event-flow` extends that analysis across later scripts installed by
 records, repeating native-event discovery to a fixed point. The
 position event requests mode-zero offset `$1B` when bit 2 of `$0790` is clear
-and the native position checks pass. Controller discovery covers only the
-observed controlled descriptor `$01` and the observed configured action `$36`;
-other controlled descriptors, configured action values and flag writes remain
-open. On v1.5 it finds 60 candidate contact, 10 position and three controller
+and the native position checks pass. Fixed controller discovery covers observed
+controlled descriptors `$01` and `$09`; the configured action `$36` remains
+restricted to descriptor `$01`, where it was observed. In the sampled Moses
+and inventory frames descriptor `$09` had event flags and configured action
+`$FF`; the current walker finds no literal flag-clear path enabling its fixed
+actions. The separate directional `$36` path is gated by bit `$40` and is also
+included as a static candidate. Other controlled descriptors, flag writes and
+action values remain open. On v1.5 it finds 60 candidate contact, 10 position and three controller
 records, 386 contexts and 8,264 script nodes in two rounds. Its graph contains
 2,974 overlapping script bytes and 516 record/script overlap bytes. Following
 the newly reviewed `$37-$3A` field setters accounts for most of this expansion;

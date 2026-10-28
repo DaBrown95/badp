@@ -45,6 +45,7 @@ def synthetic_output(state=1, *, inventory=False):
     lines.append(f'BADP_STAGE2_RECORD {int(state == 5)}')
     lines.append(f'BADP_POSITION_EVENT {int(state == 11)} 0')
     lines.append(f'BADP_CONTROLLER_EVENTS {int(state == 5)} {int(state == 5)} {int(inventory)} 0')
+    lines.append(f'BADP_CONTROLLED_09 {int(state == 5 or inventory)} 0')
     lines.append('BADP_INVENTORY 1 6 0' if inventory else 'BADP_INVENTORY 0 0 0')
     lines.extend(f'BADP_TARGET script {address:04X} 0' for address in SCRIPT_TARGETS)
     lines.extend(f'BADP_TARGET record {address:04X} 0' for address in RECORD_TARGETS)
@@ -86,6 +87,9 @@ class MesenRuntimeTests(unittest.TestCase):
                         text.replace('BADP_CONTROLLER_EVENTS 0 0 0 0\n', ''),
                         text + 'BADP_CONTROLLER_EVENTS 0 0 0 0\n',
                         text.replace('BADP_CONTROLLER_EVENTS 0 0 0 0', 'BADP_CONTROLLER_EVENTS 0 -1 0 0'),
+                        text.replace('BADP_CONTROLLED_09 0 0\n', ''),
+                        text + 'BADP_CONTROLLED_09 0 0\n',
+                        text.replace('BADP_CONTROLLED_09 0 0', 'BADP_CONTROLLED_09 -1 0'),
                         text + 'BADP_INVENTORY 0 0 0\n',
                         text.replace('BADP_INVENTORY 0 0 0', 'BADP_INVENTORY -1 0 0'),
                         text + 'BADP_WRITE 5700 FFB7 0C 32767 12\n',
@@ -132,6 +136,17 @@ class MesenRuntimeTests(unittest.TestCase):
         validate_scenario(inventory, 1, inventory=True)
         inventory['controller_event_36_matches'] = 0
         with self.assertRaisesRegex(ValueError, 'controller event'):
+            validate_scenario(inventory, 1, inventory=True)
+
+    def test_controlled_descriptor_09_requires_disabled_samples(self):
+        inventory, _, _ = parse_output(synthetic_output(inventory=True))
+        validate_scenario(inventory, 1, inventory=True)
+        inventory['controlled09_disabled_samples'] = 0
+        with self.assertRaisesRegex(ValueError, 'controlled descriptor 09'):
+            validate_scenario(inventory, 1, inventory=True)
+        inventory['controlled09_disabled_samples'] = 1
+        inventory['controlled09_other_samples'] = 1
+        with self.assertRaisesRegex(ValueError, 'controlled descriptor 09'):
             validate_scenario(inventory, 1, inventory=True)
 
     def test_moses_requires_pickup_and_carry(self):

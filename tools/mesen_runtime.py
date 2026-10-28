@@ -55,6 +55,7 @@ def parse_output(output: str) -> tuple[dict, dict[int, bytes], dict[str, bytes]]
     stage2_record = None
     position_event = None
     controller_events = None
+    controlled09 = None
     targets: dict[str, int] = {}
     warnings = 0
     for line in output.splitlines():
@@ -161,6 +162,13 @@ def parse_output(output: str) -> tuple[dict, dict[int, bytes], dict[str, bytes]]
             controller_events = tuple(map(int, parts[1:]))
             if any(value < 0 for value in controller_events):
                 raise ValueError('invalid controller-event count')
+        elif line.startswith('BADP_CONTROLLED_09 '):
+            parts = line.split()
+            if controlled09 is not None or len(parts) != 3:
+                raise ValueError('malformed or duplicate controlled-descriptor evidence')
+            controlled09 = tuple(map(int, parts[1:]))
+            if any(value < 0 for value in controlled09):
+                raise ValueError('invalid controlled-descriptor count')
         elif line.startswith('BADP_TARGET '):
             parts = line.split()
             if len(parts) != 4 or parts[1] not in ('script', 'record'):
@@ -179,7 +187,7 @@ def parse_output(output: str) -> tuple[dict, dict[int, bytes], dict[str, bytes]]
                         | {f'record:{address:04X}' for address in RECORD_TARGETS})
     if (set(frames) != set(FRAMES) or set(slots) != set(SLOT_FRAMES) or reported != expected or not writes
             or probes is None or inventory is None or stage2_record is None or position_event is None
-            or controller_events is None
+            or controller_events is None or controlled09 is None
             or set(targets) != expected_targets):
         raise ValueError('runtime evidence is incomplete or inconsistent')
     write_data = ('\n'.join(writes) + '\n').encode('ascii')
@@ -200,6 +208,7 @@ def parse_output(output: str) -> tuple[dict, dict[int, bytes], dict[str, bytes]]
              'position_event_matches': position_event[0], 'position_event_mismatches': position_event[1],
              'controller_event_24_matches': controller_events[0], 'controller_event_2d_matches': controller_events[1],
              'controller_event_36_matches': controller_events[2], 'controller_event_mismatches': controller_events[3],
+             'controlled09_disabled_samples': controlled09[0], 'controlled09_other_samples': controlled09[1],
              'contested_target_hits': dict(sorted(targets.items())),
              'uninitialized_read_warnings': warnings}, images,
             {'mapper': write_data, 'apu': audio_data, 'oam_dma': dma_data})
@@ -219,6 +228,9 @@ def validate_scenario(evidence: dict, expected_state: int, *, inventory: bool = 
                                          or not evidence['controller_event_2d_matches']))
             or (inventory and not evidence['controller_event_36_matches'])):
         raise ValueError('controller event did not resolve to the expected record')
+    if (evidence['controlled09_other_samples']
+            or ((expected_state == 5 or inventory) and not evidence['controlled09_disabled_samples'])):
+        raise ValueError('controlled descriptor 09 did not retain its observed disabled state')
     if inventory:
         if (not evidence['inventory_list_index_zero'] or not evidence['inventory_template_index_zero']
                 or frames['1800']['screenshot_sha256'] == frames['1400']['screenshot_sha256']):

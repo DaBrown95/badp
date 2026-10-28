@@ -276,7 +276,7 @@ def inventory(root: Path = ROOT) -> dict:
                     'candidate_contact_records': sum(r['command'] == 'native_contact' for r in events['event_records']),
                     'candidate_position_event_records': sum(r['command'] == 'native_position' for r in events['event_records']),
                     'candidate_controller_event_records': sum(
-                        r['command'] in ('native_controller24', 'native_controller2d', 'native_configured36')
+                        r['command'] in ('native_controller24', 'native_controller2d', 'native_configured36', 'native_direction36')
                         for r in events['event_records']),
                     'native_event_rounds': events['rounds'],
                     'direct_incomplete_observed_indexed_jumps': sum(
@@ -292,7 +292,7 @@ def inventory(root: Path = ROOT) -> dict:
                     'ppu_overlapping_stream_bytes': ppu_graph['overlapping_stream_bytes'],
                     'interpretation': 'Overlapping evidence is retained; uncatalogued does not mean code. '
                                       'Candidate scripts and records include descriptor, native-event and direct-target paths; '
-                                      'controller events cover observed descriptor 1 only; audio paths use literal starts. '
+                                      'fixed controller events cover observed descriptors 1 and 9; configured 36 covers descriptor 1; audio paths use literal starts. '
                                       'Audio and PPU streams may be unreachable or incomplete; '
                                       'Candidate map, sprite and palette ranges do not prove exclusive data use; '
                                       'static sprite frame indices and resource contexts may be unreachable.'})

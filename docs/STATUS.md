@@ -67,6 +67,12 @@ banks appeared in the emulator's mapper-write mapping; every observed write
 value equalled the mapped ROM byte. This describes the emulator model and the
 tested paths, not physical board behaviour or proof of timing on hardware.
 
+End-of-frame samples of the first controller slot also observe descriptor `$09` during the
+Moses and inventory scenarios: 354 and 1,088 samples respectively have event
+flags and configured action `$FF`, with no other sampled values. This does not
+establish its state under other inputs or guarantee that it cannot receive an
+action between samples.
+
 Mesen reports uninitialized-read warnings in these runs, equally for the
 reference and build; their causes remain to be investigated. Audio output and
 complete progression have not been checked.
@@ -119,6 +125,11 @@ in 60 cases at frame 6,980, but none ended as high as the earlier checkpoint.
 A finer 243-sequence sweep kept him carried in 207 cases at frame 6,900;
 none ended as high as frame 6,740. The attempts remain local in
 `analysis/us-v1.5/stage3-upper-sweep.*` and `stage3-upper-fine.*`.
+Two further reference-only sweeps tried 143 short left/jump combinations and
+242 combinations including upward input. All ended at world Y 352 while still
+carrying Moses, rather than retaining the upper-platform height. Their scripts
+and results remain in `analysis/us-v1.5/stage3-targeted-jump.*` and
+`analysis/us-v1.5/stage3-ladder-sweep.*`.
 The first 4,900-frame reference/build attempt reported differing Moses
 runtime evidence without identifying a field. A subsequent focused comparison
 matched; the cause of the initial discrepancy remains unestablished. The failure

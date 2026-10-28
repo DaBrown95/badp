@@ -21,6 +21,8 @@ local controller_event_seen={}
 local controller_load_pending={}
 local controller_matches={[0x24]=0,[0x2D]=0,[0x36]=0}
 local controller_event_mismatches=0
+local controlled09_disabled=0
+local controlled09_other=0
 local controller_sites={
  [0x24]={pc=0xFBF9,physical=0x7BF9,pointer=0x2CC7},
  [0x2D]={pc=0xFC2E,physical=0x7C2E,pointer=0x2CD0},
@@ -235,6 +237,17 @@ emu.addEventCallback(function()
 end,emu.eventType.inputPolled)
 emu.addEventCallback(function()
  frames=frames+1
+ if frames>=1200 then
+  local slot=emu.read(0x3C,emu.memType.nesDebug)
+  if slot<16 and emu.read(0x04E0+slot,emu.memType.nesDebug)==0x09 then
+   if emu.read(0x0790+slot,emu.memType.nesDebug)==0xFF
+      and emu.read(0x15,emu.memType.nesDebug)==0xFF then
+    controlled09_disabled=controlled09_disabled+1
+   else
+    controlled09_other=controlled09_other+1
+   end
+  end
+ end
  if frames==240 or frames==650 or frames==1200 or frames==1400 or frames==1496 or frames==1511 or frames==1550 or frames==1700 or frames==1800 or frames==2100 or frames==2150 or frames==2300 or frames==2400 or frames==2600 or frames==2800 or frames==3000 or frames==3100 or frames==3200 or frames==3250 or frames==3300 or frames==3350 or frames==3400 or frames==3450 or frames==3650 or frames==3700 or frames==3750 or frames==3800 or frames==3825 or frames==3850 or frames==3900 or frames==4050 or frames==4150 or frames==4300 or frames==4400 or frames==4500 or frames==4600 or frames==4650 or frames==4750 or frames==4900 or frames==5000 or frames==5100 or frames==5200 or frames==5250 or frames==5300 or frames==5375 or frames==5450 or frames==5500 or frames==5550 or frames==5575 or frames==5625 or frames==5650 or frames==5700 or frames==5880 or frames==5950 or frames==6000 or frames==6040 or frames==6100 or frames==6160 or frames==6200 or frames==6260 or frames==6300 or frames==6340 or frames==6500 or frames==6740 then
   local state=emu.getState()
   local p=emu.convertAddress(0x8000,emu.memType.nesMemory)
@@ -257,6 +270,7 @@ emu.addEventCallback(function()
   print(string.format('BADP_STAGE2_RECORD %d',stage2_record_mode2))
   print(string.format('BADP_POSITION_EVENT %d %d',position_event_matches,position_event_mismatches))
   print(string.format('BADP_CONTROLLER_EVENTS %d %d %d %d',controller_matches[0x24],controller_matches[0x2D],controller_matches[0x36],controller_event_mismatches))
+  print(string.format('BADP_CONTROLLED_09 %d %d',controlled09_disabled,controlled09_other))
   print(string.format('BADP_INVENTORY %d %d %d',inventory_list_zero,inventory_template_zero,inventory_other))
   for _,address in ipairs(script_targets) do print(string.format('BADP_TARGET script %04X %d',address,script_hits[address])) end
   for _,address in ipairs(record_targets) do print(string.format('BADP_TARGET record %04X %d',address,record_hits[address])) end
