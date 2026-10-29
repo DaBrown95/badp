@@ -164,6 +164,8 @@ issues or support requests.
 
 ## Licence and credits
 
+The original game's [NES credits are listed on MobyGames](https://www.mobygames.com/game/8520/bible-adventures/credits/nes/).
+
 The [MIT licence](LICENSE.md) applies only to this project's original
 copyrightable contributions. It grants no rights to the original game's code,
 artwork, audio, text or trademarks, including original material represented in
