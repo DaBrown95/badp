@@ -28,6 +28,42 @@ back on my mind, and I wanted to try reconstructing it with coding agents. The
 [episode archive](https://cinemassacre-archive.github.io/avgn/episode-17) records
 the video's release date and the games it covers.
 
+**Historical inference cost:** As of 29 October 2026, the recorded model usage
+for reconstructing and preparing all six releases was equivalent to approximately
+**US$370 at standard API prices**. This is a historical comparison figure, not
+an actual subscription bill or OpenAI's underlying compute cost.
+
+The recorded usage totalled **3.04 billion tokens**, including repeated context,
+with **99.31% of input tokens served from cache**.
+
+| Model | Recorded tokens | Share of tokens |
+| --- | ---: | ---: |
+| GPT-6.1 Terra | 2,597,268,692 | 85.44% |
+| GPT-6.1 Sol | 442,603,856 | 14.56% |
+
+The calculation uses these standard API rates, in US dollars per million tokens,
+captured on 29 October 2026:
+
+| Model | Request input length | Uncached input | Cached input | Output |
+| --- | --- | ---: | ---: | ---: |
+| GPT-6.1 Terra | ≤272,000 tokens | $1.00 | $0.05 | $5.00 |
+| GPT-6.1 Terra | >272,000 tokens | $2.00 | $0.10 | $7.50 |
+| GPT-6.1 Sol | ≤272,000 tokens | $2.00 | $0.10 | $10.00 |
+| GPT-6.1 Sol | >272,000 tokens | $4.00 | $0.20 | $15.00 |
+
+The long-context rates apply to the entire request. Reasoning tokens are included
+in output usage and counted once. No cache-write tokens were recorded.
+
+Pricing references: [OpenAI API pricing](https://developers.openai.com/api/docs/pricing),
+with Internet Archive snapshots of the
+[pricing table](https://web.archive.org/web/20261029103131/https://developers.openai.com/api/docs/pricing),
+[Terra rates](https://web.archive.org/web/20261029084959/https://developers.openai.com/api/docs/models/gpt-6.1-terra)
+and [Sol rates](https://web.archive.org/web/20261029054724/https://developers.openai.com/api/docs/models/gpt-6.1-sol).
+
+Another **38.54 million tokens** from automatic reviews are excluded from the
+dollar estimate because their model has no published price. The estimate
+excludes human time, local computing and tool charges.
+
 ## Verified status
 
 Each version has its own byte-identical build, changed-source controls and
