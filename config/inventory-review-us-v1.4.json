@@ -95,7 +95,7 @@
         },
         {
           "path": "docs/CARTRIDGE_EVIDENCE.md",
-          "sha256": "e01fc42161cca3792191eb5f03cd69b89dd532e6fbdaf6f9cf06c4b8a116234c",
+          "sha256": "193490541056525ed16ced39d8c66aaf6a0efede8b53c097847c0c5f2903dabb",
           "scope": "Hardware evidence and uncertainty boundaries; no hardware conclusion from the header alone."
         }
       ]

@@ -1,6 +1,12 @@
-# MIT License
+# MIT licence
 
-Copyright (c) 2026 badp contributors
+This licence covers original copyrightable contributions made for this project
+only where the project author holds rights in them. It does not license the
+original Bible Adventures game or any third-party material, including original
+game material represented in reconstructed source. See NOTICE.md for scope and
+attribution.
+
+Copyright (c) 2026 David Brown
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal

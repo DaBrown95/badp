@@ -54,7 +54,7 @@
       "evidence": [
         {
           "path": "docs/CARTRIDGE_EVIDENCE.md",
-          "sha256": "e01fc42161cca3792191eb5f03cd69b89dd532e6fbdaf6f9cf06c4b8a116234c",
+          "sha256": "193490541056525ed16ced39d8c66aaf6a0efede8b53c097847c0c5f2903dabb",
           "scope": "Reviewed cartridge and program evidence, including mapper uncertainty."
         },
         {
@@ -111,7 +111,7 @@
         },
         {
           "path": "docs/SCRIPT_FLOW.md",
-          "sha256": "8f922c92056d4d2ced7e85a543cbb2865b2555178b19b52759141f54e5f199fc",
+          "sha256": "a1c7d3c3f67ae8b5645b8f8de361de6ccacb1b9a2bb5d17301a35b80fd9ae3bc",
           "scope": "Existing semantic review and limits of candidate flow."
         },
         {

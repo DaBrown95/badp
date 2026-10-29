@@ -34,3 +34,19 @@ __pycache__/
 *.py[cod]
 .venv/
 .DS_Store
+
+# Local research scratch and publication backups.
+/controls/
+/docs/STATUS.md
+/docs/ACCEPTANCE.md
+*.bundle
+
+# Local credentials and editor state.
+.env
+.env.*
+*.pem
+*.key
+*.p12
+*.pfx
+/.idea/
+/.vscode/

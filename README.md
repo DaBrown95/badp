@@ -1,65 +1,48 @@
 # Bible Adventures
 
-A matching reconstruction of Wisdom Tree's *Bible Adventures* for the
-Nintendo Entertainment System (NES), aiming to recover the complete game as
-readable source across all six supplied USA versions.
+A matching reconstruction of Wisdom Tree's *Bible Adventures* for the Nintendo
+Entertainment System. It covers the unversioned USA release and v1.1 through
+v1.5. Native code uses labelled 6502 assembly. Scripts and decoded tables use
+structured definitions. Shared source and small variants preserve each release's
+layout and behaviour, including original bugs.
 
-This is an **AI-driven experiment** to see what coding agents can do.
-Almost all code, analysis and tooling are AI-generated.
+This is an AI-driven experiment to see whether coding agents can reconstruct
+the game. Almost all code, analysis and tooling are AI-generated. The project
+is unofficial. The original source files, names, language and toolchain remain
+unknown.
 
-## Progress
+## History and motivation
 
-All six reference ROMs have been identified against a
-[pinned No-Intro catalogue](config/catalogues/no-intro-nes.json). Exact headers,
-full-file hashes and separate PRG/CHR identities are recorded in
-[config/targets/](config/targets/).
+Color Dreams developed *Bible Adventures* for Wisdom Tree, which released it in
+1991 without a Nintendo licence. It contains three biblical platform games:
+Noah's Ark, Baby Moses, and David and Goliath. The
+[MobyGames entry](https://www.mobygames.com/game/8520/bible-adventures/) records
+its release history. In a [developer interview](https://www.nesworld.com/kozik.php),
+Vance Kozik describes his level and character programming and identifies the
+engine as BOGUS, the in-house Binary Output Game Utility System state machine.
 
-The target names follow No-Intro; a CRC-matching cartridge profile calls the
-v1.5 target [Version 5.0](https://nescartdb.com/profile/view/4773/bible-adventures).
+I started this project after realising that Cinemassacre's
+[AVGN "Bible Games" video](https://www.youtube.com/watch?v=LkNvQYiM6bw), released
+in December 2006, was approaching its twentieth anniversary. That put the game
+back on my mind, and I wanted to try reconstructing it with coding agents. The
+[episode archive](https://cinemassacre-archive.github.io/avgn/episode-17) records
+the video's release date and the games it covers.
 
-The accepted builds match their own reference ROMs byte for byte. Shared source
-covers reset
-and startup, NMI frame and controller handling, PPU update streams and setup,
-palette streams, split-screen setup, scroll updates, bank switching, sprite
-setup and animation, audio voice and command handling, map initialization and
-redraw, frame motion and slot updates, arithmetic, packed-text decoding, and
-shared banked record and data-copy routines. The script command dispatcher, its record-length and
-handler tables are also reconstructed, with 197 entries in v1.2 through v1.5,
-196 entries in v1.1 and 191 entries in the unversioned release.
-Slot descriptors, position-record streams, audio lookup tables and several
-script regions are represented as structured data. Some audio command paths
-are static candidates under bank-1 selection; their reachability is unverified.
-Some scripts and slot records have also been observed during the opening gameplay checks. Remaining
-PRG assets and CHR graphics remain locally supplied inputs with deterministic
-rebuilding.
-Changed-source controls check that each reconstructed region affects the
-assembled output.
+## Verified status
 
-The five v1.5 storage groups now have explicit retained-data representations;
-their original purpose remains uncertain. `make source-audit` derives review status and remaining
-work from the [evidence-backed decisions](config/inventory-review-us-v1.5.json),
-preserving overlapping uses. Acceptance requires that review and a current
-matching full build; the table below reports the verified decision.
+Each version has its own byte-identical build, changed-source controls and
+accepted inventory. "Accepted" means the project's source and data-format review
+found no remaining reconstruction blocker. Original names, the purpose of some
+retained storage, and whether conditional paths execute remain uncertain.
+Matching bytes establish identical executable behaviour under the same
+conditions. They do not verify every inferred interpretation or physical
+cartridge behaviour.
 
-All six versions are accepted by separate matching builds and reviewed
-inventories. Shared source expresses their differing native forms, scripts and
-data layouts; changed incidental interpretations remain explicit. The
-unversioned release retains its distinct native handlers, separate-dimension
-sprite format and ordinary PPU message streams. Its source, editable inputs,
-complete build and review decisions are maintained separately.
-Byte equality
-establishes identical executable behaviour under the same conditions; it does
-not establish the correctness of inferred source names or data formats.
-The [project configuration](config/project.json) records the primary target and
-rollout order.
-
-Percentages show verified reconstructed code and structured data as a share of
-physical PRG bytes. Verification checks the emitted bytes and source controls;
-inferred meanings can remain provisional. Some retained data roles remain uncertain;
-the game's total code denominator is unknown. CHR graphics, the container
-header, alignment fill and copied bytes do not count as reconstructed source. Alignment
-fill is reported separately in the progress data. These percentages
-are not measures of gameplay completion.
+The percentages below count native code and structured data against all
+65,536 physical PRG bytes. Locally supplied assets and explicit alignment fill
+account for the rest. CHR graphics are also local inputs. These percentages
+measure how many PRG bytes have reconstructed source, not overall completion.
+The number of bytes that contain game code remains unknown.
 
 <!-- BEGIN GENERATED PROGRESS -->
 | Version | Reconstructed PRG | Status |
@@ -72,112 +55,73 @@ are not measures of gameplay completion.
 | USA, unversioned | **67.19%** (44,033 / 65,536 bytes) | Accepted |
 <!-- END GENERATED PROGRESS -->
 
-Run `make progress` to rebuild the selected target and refresh this table and the
-[verified progress data](assets/progress.json).
+The [progress data](assets/progress.json) separates native code, structured data
+and fill. Input identities are pinned in [config/targets/](config/targets/)
+against a [reviewed No-Intro catalogue](config/catalogues/no-intro-nes.json).
+Target names follow No-Intro; NesCartDB labels the matching v1.5 cartridge
+[Version 5.0](https://nescartdb.com/profile/view/4773/bible-adventures).
 
-The starting approach is labelled 6502 assembly, with gameplay scripts and data
-decoded as their formats become understood. Programmer Vance Kozik identifies
-the game's engine as the in-house BOGUS state-machine system in his
-[developer interview](https://www.nesworld.com/kozik.php). The original source
-language, assembler and toolchain have not been established.
+## Build
 
-Progress reports distinguish reconstructed code, decoded data,
-local binary inclusions and unresolved regions. A matching ROM assembled from
-copied bytes alone will not count as a completed reconstruction.
-
-## Building
-
-Requires Python 3.10+, Make and a C compiler. On macOS, install Xcode's command
-line tools. Run once from the repository root to download and build the pinned
-assembler and linker locally:
+You need Python 3.10+, Make, a C compiler and your own matching ROM dump. On
+macOS, install Xcode's command line tools. The setup command downloads,
+checks the checksum and builds the pinned cc65 assembler and linker under the
+ignored `toolchains/` directory:
 
 ```sh
 make setup
 make test
 ```
 
-Keep your own NES ROMs in the ignored `baseroms/` directory, using the filenames
-recorded in each target manifest. The default target is v1.5:
+Place your ROM in `baseroms/` using the filename in its target manifest. For
+the default v1.5 target:
 
 ```text
 baseroms/Bible Adventures (USA) (v1.5) (Unl).nes
 ```
 
-Inspect its container and verify the reference inputs:
+Then audit the input and build:
 
 ```sh
-make identify
 make audit
-make audit-all
 make build
 ```
 
-Select another configured version, or inspect an arbitrary file:
+Select any of the other five supported releases with `TARGET`:
 
 ```sh
 make audit TARGET=us-v1.4
-make progress TARGET=us-v1.4
-make identify ROM='baseroms/another-dump.nes'
+make build TARGET=us-v1.4
+make build TARGET=us-unversioned
 ```
 
-`make identify` reads iNES and NES 2.0 containers and prints JSON with full-file hashes,
-separate PRG/CHR hashes, header fields, and any trainer or trailing data.
-It does not modify the ROM, identify a release from a database, or select a
-reference automatically. The audits compare against reviewed pins, including
-catalogue SHA-1 checks. Header mapper fields still need verification against the
-cartridge and program behaviour. Input audits do not establish a working build.
+Each build needs only its selected ROM. `make audit-all` checks all six
+inputs when available. `make identify ROM='baseroms/another-dump.nes'` inspects a
+file without modifying it or automatically approving it as a reference.
 
-`make build` assembles and links the selected supported target, verifies the entire
-ROM and its components, and runs the source-change controls. Output and proof:
-`build/us-v1.5/bible-adventures.nes` and `build/us-v1.5/proof.json`. They remain
-local, along with the extracted inputs and control builds. Supported variants use their own
-`build/<target>/` directory and separate decoded assets and controls. The optional
-`make extract-chr-tiles` exports all 4,096 physical CHR tiles locally as eight
-rows of palette indices 0–3. The build encodes that file when present, otherwise
-it decodes the audited reference. This describes 2bpp pixels, not their PPU
-mapping, palette choices or use in the game. CHR is an asset, excluded from PRG
-source progress. The optional `make extract-map-chunks` command exports the 145
-referenced map chunks as editable local tile and attribute rows under
-`extracted/`. If present, the build encodes that file; otherwise it derives the same local input from the audited ROM. The
-unreferenced duplicate of slot 134 is separately editable. `make extract-map-layouts` similarly exports
-the 14 map grids locally; their dimensions remain in tracked source. Changing a
-tile or grid cell makes the matching comparison fail. `make extract-packed-text`
-exports the 52 decoded messages locally. Character edits must preserve each
-record's character count and the original one- or two-symbol encoding widths.
-The four bytes also represented by candidate audio commands must stay consistent
-with their source definitions; other edits fail the matching comparison. The
-locally supplied asset data does not count as reconstructed PRG source.
-`make extract-sprite-frames` exports the 326 frames in the reviewed v1.5 sprite
-layout as local rows of tile indices and attribute bytes. Of those frame starts,
-132 were observed in the existing emulator traces. The build reads the rows
-when the file exists; the 132 observed dimensions, 42 direct-frame OAM headers
-and complete 124-record animation directory are in source. Other frame header
-bytes stay local and fixed. These records refer to CHR graphics, which remain
-a separate local input. Other entry points and overlapping uses remain possible.
-`make extract-menu-tiles`
-exports the fourteen menu display streams locally; their tile bytes are editable,
-while command positions and stream lengths stay fixed. These bytes can also
-have other candidate uses and do not count as source progress.
+Each build assembles and links the source, decodes or encodes the local assets,
+and compares the whole ROM and its components with the reference. It also builds
+isolated source and asset edits and checks that each comparison fails. The
+output is `build/<target>/bible-adventures.nes`, with the source map, controls and
+`proof.json` beside it. Reference headers and hashes stay fixed. A mismatch is a
+failure, including when you deliberately edit an asset.
 
-`make extract-palettes` exports the 26 reviewed palette streams as initial
-sixteen-colour palettes and trailing animation groups. Their headers stay in
-source; colour bytes remain local and receive no source credit. The build
-checks edits to both initial palettes and animation groups against the fixed ROM.
-`make extract-ppu-tiles` similarly exports the 236 tile bytes in the 19 reviewed
-logical inventory PPU streams. Address commands, terminators and payload lengths
-stay fixed; tile edits cannot introduce command bytes. Both local formats retain
-their possible overlapping uses and do not establish that every stream executes.
+## Local assets and verification
 
-`make build TARGET=us-unversioned` uses the shared engine with its own source
-composition and format manifests. It creates missing editable inputs locally
-from the audited ROM and preserves existing edits. Its nine input groups cover
-maps, sprites, palettes, ordinary PPU messages and inventory streams, menu tiles,
-CHR and retained resource data. `make source-audit TARGET=us-unversioned` checks
-its separate evidence-backed acceptance decisions. Conditional RAM-record and
-non-ROM resource addresses remain explicit rather than being repaired.
+The repository excludes ROMs, graphics, audio, extracted text, generated binaries
+and emulator evidence. The build derives the inputs it needs from your
+audited ROM and preserves supported editable files under `extracted/`. Asset
+values do not receive reconstructed-source credit.
 
-On macOS with Apple silicon and Homebrew's SDL2 installed, an optional emulator
-check exercises the opening of each adventure:
+The optional v1.5 export commands include `make extract-chr-tiles`,
+`make extract-map-chunks`, `make extract-map-layouts`, `make extract-packed-text`,
+`make extract-sprite-frames`, `make extract-menu-tiles`, `make extract-palettes`
+and `make extract-ppu-tiles`. These retain fixed geometry, encoding and overlap
+constraints. Earlier versions use their own asset profiles; the unversioned
+build maintains its distinct sprite, PPU-message and retained-resource formats.
+
+On macOS with Apple silicon and Homebrew's SDL2 installed, optional emulator
+comparisons use the pinned MesenCE build:
 
 ```sh
 make setup-mesen
@@ -185,135 +129,60 @@ make verify-gameplay
 make verify-controller
 ```
 
-The check runs the reference and matching build under the same inputs, comparing
-rendered frame pixels, state, mapper writes, NMI, OAM DMA, audio-register writes
-and direct `$2000`–`$2007` write timing (excluding `$2004` OAM-data writes).
-PNG screenshots are retained as visual evidence. The
-Moses sequences carry and recover the baby, complete the first five levels,
-and reach the sixth-level spawn. The third-level checks cover both a
-lower-platform route and the completed route over the roof and down the stairs.
-A Noah sequence picks up and carries an animal; another opens and closes the
-inventory and checks its table reads. These sequences check
-controller actions against their record loads; David's opening also checks a
-native position event against its record load.
-It keeps its evidence in the ignored `reports/us-v1.5/runtime/` directory. These
-short opening scenarios do not establish full gameplay completion or physical
-cartridge behaviour. The controller check also compares all eight button bits
-and simultaneous press/release handling on the reference and build.
+Run `make build` for v1.5 first. These comparisons cover maintained v1.5 routes
+in all three adventures, including five Moses levels, animal carrying and
+inventory interactions. They compare rendered pixels, sampled state, mapper
+writes, interrupts, DMA and audio/PPU register writes under fixed inputs.
+They do not cover every path, other releases or physical hardware. `make help`
+lists the other controlled probes.
 
-`make verify-native-calls` checks the banked native-call wrapper with injected
-operands, mappings and stack depths. It substitutes a mapper write and RTS at
-each computed target to check returns in either bank. It does not run the helper bodies
-or establish that those inputs occur during gameplay.
+The maintainer commands `make source-audit` and `make progress` also need local
+review evidence and an existing build proof for each version. A fresh clone
+with ROMs and tools can reproduce builds and source-change controls. It lacks
+the historical emulator traces and review files needed to reproduce the
+published acceptance decisions. Missing or stale review evidence blocks
+acceptance even when the build matches.
 
-| Command | Purpose |
-| --- | --- |
-| `make verify-native-calls` | Check injected native-call mapping, RTS targets and wrapper returns. |
-| `make help` | Show available commands. |
-| `make setup` | Download and build the pinned cc65 tools locally. |
-| `make setup-mesen` | Download the pinned optional MesenCE emulator locally. |
-| `make targets` | Show the primary target and version order. |
-| `make identify` | Inspect the primary ROM, or a selected target/file. |
-| `make audit` | Verify the primary input; `TARGET=<id>` selects another. |
-| `make audit-all` | Verify all six input identities. |
-| `make build` | Build and compare any of the six versions selected by `TARGET`; retain controls. |
-| `make verify-gameplay` | Compare v1.5 opening scenarios and inventory in MesenCE. |
-| `make verify-controller` | Compare controller bit order and simultaneous transitions. |
-| `make verify-audio-bank` | Check audio selector and mapper behavior with controlled inputs. |
-| `make verify-record-boundary` | Check record-fetch address wrap with controlled inputs. |
-| `make verify-record-overlaps` | Check controlled overlapping record fields. |
-| `make verify-script-overlap` | Check a controlled ambiguous record and script path. |
-| `make verify-indexed-audio` | Check indexed audio lookups and isolated fragments. |
-| `make verify-sprite-shapes` | Check observed frame dimension reads. |
-| `make state-table-inventory` | Check state-table indexing and conditional palette read addresses. |
-| `make indexed-jump-inventory` | Check `$F434` index behavior and candidate table reads. |
-| `make native-control-flow` | Check native instruction boundaries, transfers and dispatch aliases. |
-| `make native-script-calls` | Classify candidate BOGUS native-call targets in both banks. |
-| `make progress` | Rebuild and update the per-version tracker. |
-| `make position-records` | Decode v1.5 position records to ignored local analysis. |
-| `make script-entries` | Inventory candidate v1.5 script entry points locally. |
-| `make script-flow` | Trace reviewed v1.5 script paths to local analysis. |
-| `make contact-record-flow` | Trace candidate contact-event records and scripts locally. |
-| `make native-event-flow` | Trace candidate native events through later scripts. |
-| `make direct-record-flow` | Check direct record targets for possible script overlaps. |
-| `make packed-text` | Decode v1.5 packed text to local analysis. |
-| `make ppu-streams` | Inventory candidate PPU command streams without exporting text. |
-| `make trace-audio` | Capture audio-command reads during extended v1.5 emulator inputs. |
-| `make trace-audio-route` | Compare audio fetch counts and bytes on the maintained Moses route. |
-| `make audio-inventory` | Validate and decode the local audio trace; payloads remain local. |
-| `make audio-flow` | Trace candidate audio-command paths from literal voice starts. |
-| `make trace-sprites` | Capture sprite resource and frame entries during extended v1.5 inputs. |
-| `make sprite-inventory` | Validate and decode the local sprite trace; payloads remain local. |
-| `make extract-sprite-frames` | Export observed sprite tile and attribute rows locally. |
-| `make extract-menu-tiles` | Export menu display tile streams locally. |
-| `make map-data` | Decode candidate map layouts and chunks to local analysis. |
-| `make extract-chr-tiles` | Export editable physical CHR tiles to ignored local storage. |
-| `make extract-map-chunks` | Export editable map chunks to ignored local storage. |
-| `make extract-map-layouts` | Export editable map grids to ignored local storage. |
-| `make extract-packed-text` | Export editable packed messages to ignored local storage. |
-| `make trace-map` | Check map fetches in extended v1.5 emulator inputs. |
-| `make prg-inventory` | Combine verified source ownership with candidate and observed data uses. |
-| `make source-audit` | Account for every physical PRG region, local asset and competing candidate use. |
-| `make extract-palettes` | Export palette colours and animation groups locally. |
-| `make extract-ppu-tiles` | Export logical inventory PPU tile payloads locally. |
-| `make verify-script-only-records` | Check controlled sentinel-record reads and preserved sprite fields. |
-| `make verify-orphan-loop` | Check the inferred loop with injected counters and skipped waits. |
-| `make verify-normal-records` | Check declared and fragmented record views in normal and negative loader modes. |
-| `make sprite-layout` | Check the contiguous sprite layout and compare frame and directory relocations. |
-| `make trace-runtime-extents` | Capture sampled Moses script and record accesses. |
-| `make runtime-extents` | Check sampled command and record bytes against the current source map. |
-| `make test` | Test the tooling using synthetic data; no game ROM needed. |
-
-Run `make trace-runtime-extents` before `make runtime-extents`; repeat the
-capture after changing the build or gameplay verifier.
+The decisions are in `config/inventory-review-*.json`. The supporting technical
+notes are in `docs/`. `make progress` rebuilds the selected target and verifies
+all maintained proofs before refreshing the table above. Tooling tests use
+synthetic data and need no ROM.
 
 ## Repository
 
-```text
-.
-├── Makefile        Project commands
-├── assets/         Verified progress data
-├── config/         Target identities, version order, future tool pins and maps
-├── include/        Shared assembly symbols and macros
-├── src/            Reconstructed code, scripts and structured data
-├── tools/          Build and analysis scripts
-├── tests/          Tooling tests using synthetic data
-└── docs/           Internal AI scratch notes
-```
+| Path | Contents |
+| --- | --- |
+| `src/`, `include/` | Reconstructed assembly, scripts, data and shared symbols |
+| `config/` | Target identities, layouts, tool pins and inventory decisions |
+| `tools/`, `tests/` | Build and research tools; synthetic tooling tests |
+| `assets/progress.json` | Verified PRG source counts |
+| `docs/` | Supporting technical review notes |
+| `licenses/` | Third-party attribution |
 
-## About
-
-This project does not accept contributions, pull requests, issues or support
-requests. ROMs, extracted assets and game binaries are not included.
+This is an owner-run project. It does not accept contributions, pull requests,
+issues or support requests.
 
 ## Licence and credits
 
-The [MIT licence](LICENSE.md) covers our own contributions to the source, tools
-and documentation. It does not cover original game code, assets, text or
-trademarks, or third-party material.
+The [MIT licence](LICENSE.md) applies only to this project's original
+copyrightable contributions. It grants no rights to the original game's code,
+artwork, audio, text or trademarks, including original material represented in
+reconstructed source. See [NOTICE.md](NOTICE.md) for the scope and third-party
+attribution. This project is unaffiliated with Color Dreams, Wisdom Tree,
+Cinemassacre or Nintendo.
 
-### Original game
-
-*Bible Adventures* was developed by Color Dreams for Wisdom Tree. Vance Kozik
-describes his work on the game's levels and character programming in the
-[developer interview](https://www.nesworld.com/kozik.php).
-
-This is an unofficial project, unaffiliated with the original developers,
-publisher or Nintendo.
-
-### Tools and dependencies
-
-The tooling uses Python's standard library and downloads these dependencies
-locally when requested. No third-party game code or emulator is bundled.
+The setup commands install these dependencies locally. The repository does not
+bundle them:
 
 | Dependency | Use | Licence |
 | --- | --- | --- |
 | [cc65 V2.19](https://github.com/cc65/cc65/tree/555282497c3ecf8b313d87d5973093af19c35bd5) | ca65 assembler, ld65 linker and da65 disassembler | [zlib](https://github.com/cc65/cc65/blob/555282497c3ecf8b313d87d5973093af19c35bd5/LICENSE) |
-| [MesenCE 2.2.1](https://github.com/nesdev-org/MesenCE/releases/tag/2.2.1) | Optional opening-gameplay comparisons | [GPL-3.0-or-later](https://github.com/nesdev-org/MesenCE/blob/20ba206cef5ba207c21203176d02cb9f43dda9fb/LICENSE) |
+| [MesenCE 2.2.1](https://github.com/nesdev-org/MesenCE/releases/tag/2.2.1) | Optional emulator comparisons | [GPL-3.0-or-later](https://github.com/nesdev-org/MesenCE/blob/20ba206cef5ba207c21203176d02cb9f43dda9fb/LICENSE) |
 
-### References and inspiration
-
-- [NESdev Wiki](https://www.nesdev.org/wiki/Nesdev_Wiki), for NES hardware research.
-- [iNES](https://www.nesdev.org/wiki/INES) and [NES 2.0](https://www.nesdev.org/wiki/NES_2.0), for ROM container formats.
-- [Color Dreams mapper documentation](https://www.nesdev.org/wiki/Color_Dreams), a starting reference whose applicability must be checked against the selected dump.
-- [ca65](https://cc65.github.io/doc/ca65.html) and [ld65](https://cc65.github.io/doc/ld65.html), used for the reconstruction without implying they were used for the original game.
+Research references include the [NESdev Wiki](https://www.nesdev.org/wiki/Nesdev_Wiki),
+[iNES](https://www.nesdev.org/wiki/INES), [NES 2.0](https://www.nesdev.org/wiki/NES_2.0),
+[Color Dreams mapper documentation](https://www.nesdev.org/wiki/Color_Dreams),
+and the [ca65](https://cc65.github.io/doc/ca65.html) and
+[ld65](https://cc65.github.io/doc/ld65.html) manuals. Use of these tools does not
+imply they were used for the original game. Exploratory TAS-derived inputs
+are credited in [licenses/tasvideos-5223.md](licenses/tasvideos-5223.md).
