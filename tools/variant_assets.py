@@ -34,8 +34,14 @@ def options(root: Path, profile: dict) -> dict[str, dict]:
     result['menu_tiles']['geometry'] = {
         'commands': tuple((name, layout.address(1, cpu)) for name, cpu in menu_assets.COMMANDS),
         'region_start': layout.offset(1, menu_assets.REGION_START),
-        'region_end': layout.offset(1, menu_assets.REGION_END)}
+        'region_end': profile.get('menu_region_end', layout.offset(1, menu_assets.REGION_END))}
     for name, path in MANIFESTS.items():
+        if name == 'palettes' and profile.get('palette_manifest'):
+            manifest = json.loads((root / profile['palette_manifest']).read_text())
+            if manifest['target'] != target:
+                raise ValueError('asset manifest is not the selected target')
+            result[name]['manifest'] = manifest
+            continue
         manifest = json.loads((root / path).read_text())
         if manifest['target'] != profile['canonical_target']:
             raise ValueError('asset manifest is not the canonical source layout')

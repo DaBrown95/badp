@@ -5,7 +5,7 @@
   "source_map_sha256": "6382658a5cf3c86a4ceadf54994114fe0bd54fafa99530e310c24fdbd5898afc",
   "schema_version": 1,
   "review_input_sha256": {
-    "tools/variant_inventory.py": "de4fb2f393232c5d81a8de85d151b578cd02a39fc5a8aa2d6ee6badbc750dbf7",
+    "tools/variant_inventory.py": "e440d2fad54c37f6c0bb60837237babd1f20194e64b80ccf0708d1b549decf92",
     "tools/inventory_review.py": "a7a8329a8271f42e3adaf38dd96448b38198f9ca6d0cbaa880e341834270cb53",
     "tools/source_audit.py": "c6e273f6dc095677c221879967104f212283f5db59b22b9da48ebf3bd04b9450",
     "tools/prg_inventory.py": "d40cc9dca05ea5a95806cbf03d8f7a09bac9812cf45f46f5b3d4a43340635546",
@@ -33,12 +33,12 @@
       "evidence": [
         {
           "path": "analysis/us-v1.2/review-evidence/proof.json",
-          "sha256": "1a4989b8ace3c8e259b98eb839e2d2350b51ea109b17032d061f5408d8630470",
+          "sha256": "4cc289e4f06370dd7c58fa87dcb5da01a56be9b5ee42e739eedd56ae5ccc77d3",
           "scope": "Own fresh full decoded-input build, complete applicable source/symbol controls and eight asset edits."
         },
         {
           "path": "analysis/us-v1.2/review-evidence/inventory-development.json",
-          "sha256": "7b7678d959078ef9a8f460054bdefa4046ba7026fa36c80763f5796c47f1d403",
+          "sha256": "cb50c0cae906dd6f1e63e48845303de59ce77e4ea5507e2bbb44a31b2e73966c",
           "scope": "Own physical partition, supported entry/transfer mechanisms and actual script/record/audio/resource relationships; overlapping interpretations retained."
         },
         {
@@ -80,12 +80,12 @@
       "evidence": [
         {
           "path": "analysis/us-v1.2/review-evidence/proof.json",
-          "sha256": "1a4989b8ace3c8e259b98eb839e2d2350b51ea109b17032d061f5408d8630470",
+          "sha256": "4cc289e4f06370dd7c58fa87dcb5da01a56be9b5ee42e739eedd56ae5ccc77d3",
           "scope": "Own fresh full decoded-input build, complete applicable source/symbol controls and eight asset edits."
         },
         {
           "path": "analysis/us-v1.2/review-evidence/inventory-development.json",
-          "sha256": "7b7678d959078ef9a8f460054bdefa4046ba7026fa36c80763f5796c47f1d403",
+          "sha256": "cb50c0cae906dd6f1e63e48845303de59ce77e4ea5507e2bbb44a31b2e73966c",
           "scope": "Own physical partition, supported entry/transfer mechanisms and actual script/record/audio/resource relationships; overlapping interpretations retained."
         },
         {
@@ -137,12 +137,12 @@
       "evidence": [
         {
           "path": "analysis/us-v1.2/review-evidence/proof.json",
-          "sha256": "1a4989b8ace3c8e259b98eb839e2d2350b51ea109b17032d061f5408d8630470",
+          "sha256": "4cc289e4f06370dd7c58fa87dcb5da01a56be9b5ee42e739eedd56ae5ccc77d3",
           "scope": "Own fresh full decoded-input build, complete applicable source/symbol controls and eight asset edits."
         },
         {
           "path": "analysis/us-v1.2/review-evidence/inventory-development.json",
-          "sha256": "7b7678d959078ef9a8f460054bdefa4046ba7026fa36c80763f5796c47f1d403",
+          "sha256": "cb50c0cae906dd6f1e63e48845303de59ce77e4ea5507e2bbb44a31b2e73966c",
           "scope": "Own physical partition, supported entry/transfer mechanisms and actual script/record/audio/resource relationships; overlapping interpretations retained."
         },
         {
@@ -184,12 +184,12 @@
       "evidence": [
         {
           "path": "analysis/us-v1.2/review-evidence/proof.json",
-          "sha256": "1a4989b8ace3c8e259b98eb839e2d2350b51ea109b17032d061f5408d8630470",
+          "sha256": "4cc289e4f06370dd7c58fa87dcb5da01a56be9b5ee42e739eedd56ae5ccc77d3",
           "scope": "Own fresh full decoded-input build, complete applicable source/symbol controls and eight asset edits."
         },
         {
           "path": "analysis/us-v1.2/review-evidence/inventory-development.json",
-          "sha256": "7b7678d959078ef9a8f460054bdefa4046ba7026fa36c80763f5796c47f1d403",
+          "sha256": "cb50c0cae906dd6f1e63e48845303de59ce77e4ea5507e2bbb44a31b2e73966c",
           "scope": "Own physical partition, supported entry/transfer mechanisms and actual script/record/audio/resource relationships; overlapping interpretations retained."
         },
         {
@@ -209,7 +209,7 @@
         },
         {
           "path": "tools/variant_assets.py",
-          "sha256": "902199135ca0ba44e4ade96c6b84821335e18f3846dec1cb7882ef692dd62314",
+          "sha256": "90755b765384b18d5aa9a9d623756dff5f9d8b3d30a3f83ddb1e12cda4a87c7d",
           "scope": "Complete validated own-target resource geometry and deterministic encoding."
         },
         {
@@ -231,12 +231,12 @@
       "evidence": [
         {
           "path": "analysis/us-v1.2/review-evidence/proof.json",
-          "sha256": "1a4989b8ace3c8e259b98eb839e2d2350b51ea109b17032d061f5408d8630470",
+          "sha256": "4cc289e4f06370dd7c58fa87dcb5da01a56be9b5ee42e739eedd56ae5ccc77d3",
           "scope": "Own fresh full decoded-input build, complete applicable source/symbol controls and eight asset edits."
         },
         {
           "path": "analysis/us-v1.2/review-evidence/inventory-development.json",
-          "sha256": "7b7678d959078ef9a8f460054bdefa4046ba7026fa36c80763f5796c47f1d403",
+          "sha256": "cb50c0cae906dd6f1e63e48845303de59ce77e4ea5507e2bbb44a31b2e73966c",
           "scope": "Own physical partition, supported entry/transfer mechanisms and actual script/record/audio/resource relationships; overlapping interpretations retained."
         },
         {
@@ -251,7 +251,7 @@
         },
         {
           "path": "tools/variant_inventory.py",
-          "sha256": "de4fb2f393232c5d81a8de85d151b578cd02a39fc5a8aa2d6ee6badbc750dbf7",
+          "sha256": "e440d2fad54c37f6c0bb60837237babd1f20194e64b80ccf0708d1b549decf92",
           "scope": "Restricted literal relocation and physical identity of the native bank-0 audio start."
         },
         {
@@ -273,12 +273,12 @@
       "evidence": [
         {
           "path": "analysis/us-v1.2/review-evidence/proof.json",
-          "sha256": "1a4989b8ace3c8e259b98eb839e2d2350b51ea109b17032d061f5408d8630470",
+          "sha256": "4cc289e4f06370dd7c58fa87dcb5da01a56be9b5ee42e739eedd56ae5ccc77d3",
           "scope": "Own fresh full decoded-input build, complete applicable source/symbol controls and eight asset edits."
         },
         {
           "path": "analysis/us-v1.2/review-evidence/inventory-development.json",
-          "sha256": "7b7678d959078ef9a8f460054bdefa4046ba7026fa36c80763f5796c47f1d403",
+          "sha256": "cb50c0cae906dd6f1e63e48845303de59ce77e4ea5507e2bbb44a31b2e73966c",
           "scope": "Own physical partition, supported entry/transfer mechanisms and actual script/record/audio/resource relationships; overlapping interpretations retained."
         },
         {
@@ -288,12 +288,12 @@
         },
         {
           "path": "tools/variant_assets.py",
-          "sha256": "902199135ca0ba44e4ade96c6b84821335e18f3846dec1cb7882ef692dd62314",
+          "sha256": "90755b765384b18d5aa9a9d623756dff5f9d8b3d30a3f83ddb1e12cda4a87c7d",
           "scope": "Decoded coverage of every local gap with no raw-reference fallback."
         },
         {
           "path": "tools/verify_variant.py",
-          "sha256": "e1536c6e6f566bf59640a29b4c01777d1785a11046a7e998f13c5ad42200ba2a",
+          "sha256": "904e3e77f0a6705491d42e03ff15ae496394a6d8d678a8df6727cb3e83e2f421",
           "scope": "Current positive build and complete source/symbol/asset controls required for this target."
         }
       ]
@@ -310,12 +310,12 @@
       "evidence": [
         {
           "path": "analysis/us-v1.2/review-evidence/proof.json",
-          "sha256": "1a4989b8ace3c8e259b98eb839e2d2350b51ea109b17032d061f5408d8630470",
+          "sha256": "4cc289e4f06370dd7c58fa87dcb5da01a56be9b5ee42e739eedd56ae5ccc77d3",
           "scope": "Own fresh full decoded-input build, complete applicable source/symbol controls and eight asset edits."
         },
         {
           "path": "analysis/us-v1.2/review-evidence/inventory-development.json",
-          "sha256": "7b7678d959078ef9a8f460054bdefa4046ba7026fa36c80763f5796c47f1d403",
+          "sha256": "cb50c0cae906dd6f1e63e48845303de59ce77e4ea5507e2bbb44a31b2e73966c",
           "scope": "Own physical partition, supported entry/transfer mechanisms and actual script/record/audio/resource relationships; overlapping interpretations retained."
         },
         {
@@ -330,7 +330,7 @@
         },
         {
           "path": "tools/variant_assets.py",
-          "sha256": "902199135ca0ba44e4ade96c6b84821335e18f3846dec1cb7882ef692dd62314",
+          "sha256": "90755b765384b18d5aa9a9d623756dff5f9d8b3d30a3f83ddb1e12cda4a87c7d",
           "scope": "Own bounded menu/map/frame extents from the target consumers and geometry."
         }
       ],
@@ -350,12 +350,12 @@
       "evidence": [
         {
           "path": "analysis/us-v1.2/review-evidence/proof.json",
-          "sha256": "1a4989b8ace3c8e259b98eb839e2d2350b51ea109b17032d061f5408d8630470",
+          "sha256": "4cc289e4f06370dd7c58fa87dcb5da01a56be9b5ee42e739eedd56ae5ccc77d3",
           "scope": "Own fresh full decoded-input build, complete applicable source/symbol controls and eight asset edits."
         },
         {
           "path": "analysis/us-v1.2/review-evidence/inventory-development.json",
-          "sha256": "7b7678d959078ef9a8f460054bdefa4046ba7026fa36c80763f5796c47f1d403",
+          "sha256": "cb50c0cae906dd6f1e63e48845303de59ce77e4ea5507e2bbb44a31b2e73966c",
           "scope": "Own physical partition, supported entry/transfer mechanisms and actual script/record/audio/resource relationships; overlapping interpretations retained."
         },
         {
@@ -370,7 +370,7 @@
         },
         {
           "path": "tools/variant_assets.py",
-          "sha256": "902199135ca0ba44e4ade96c6b84821335e18f3846dec1cb7882ef692dd62314",
+          "sha256": "90755b765384b18d5aa9a9d623756dff5f9d8b3d30a3f83ddb1e12cda4a87c7d",
           "scope": "Own bounded menu/map/frame extents from the target consumers and geometry."
         }
       ],
@@ -390,12 +390,12 @@
       "evidence": [
         {
           "path": "analysis/us-v1.2/review-evidence/proof.json",
-          "sha256": "1a4989b8ace3c8e259b98eb839e2d2350b51ea109b17032d061f5408d8630470",
+          "sha256": "4cc289e4f06370dd7c58fa87dcb5da01a56be9b5ee42e739eedd56ae5ccc77d3",
           "scope": "Own fresh full decoded-input build, complete applicable source/symbol controls and eight asset edits."
         },
         {
           "path": "analysis/us-v1.2/review-evidence/inventory-development.json",
-          "sha256": "7b7678d959078ef9a8f460054bdefa4046ba7026fa36c80763f5796c47f1d403",
+          "sha256": "cb50c0cae906dd6f1e63e48845303de59ce77e4ea5507e2bbb44a31b2e73966c",
           "scope": "Own physical partition, supported entry/transfer mechanisms and actual script/record/audio/resource relationships; overlapping interpretations retained."
         },
         {
@@ -410,7 +410,7 @@
         },
         {
           "path": "tools/variant_assets.py",
-          "sha256": "902199135ca0ba44e4ade96c6b84821335e18f3846dec1cb7882ef692dd62314",
+          "sha256": "90755b765384b18d5aa9a9d623756dff5f9d8b3d30a3f83ddb1e12cda4a87c7d",
           "scope": "Own bounded menu/map/frame extents from the target consumers and geometry."
         }
       ],
@@ -430,12 +430,12 @@
       "evidence": [
         {
           "path": "analysis/us-v1.2/review-evidence/proof.json",
-          "sha256": "1a4989b8ace3c8e259b98eb839e2d2350b51ea109b17032d061f5408d8630470",
+          "sha256": "4cc289e4f06370dd7c58fa87dcb5da01a56be9b5ee42e739eedd56ae5ccc77d3",
           "scope": "Own fresh full decoded-input build, complete applicable source/symbol controls and eight asset edits."
         },
         {
           "path": "analysis/us-v1.2/review-evidence/inventory-development.json",
-          "sha256": "7b7678d959078ef9a8f460054bdefa4046ba7026fa36c80763f5796c47f1d403",
+          "sha256": "cb50c0cae906dd6f1e63e48845303de59ce77e4ea5507e2bbb44a31b2e73966c",
           "scope": "Own physical partition, supported entry/transfer mechanisms and actual script/record/audio/resource relationships; overlapping interpretations retained."
         },
         {
@@ -450,7 +450,7 @@
         },
         {
           "path": "tools/variant_assets.py",
-          "sha256": "902199135ca0ba44e4ade96c6b84821335e18f3846dec1cb7882ef692dd62314",
+          "sha256": "90755b765384b18d5aa9a9d623756dff5f9d8b3d30a3f83ddb1e12cda4a87c7d",
           "scope": "Own bounded menu/map/frame extents from the target consumers and geometry."
         }
       ],
@@ -470,12 +470,12 @@
       "evidence": [
         {
           "path": "analysis/us-v1.2/review-evidence/proof.json",
-          "sha256": "1a4989b8ace3c8e259b98eb839e2d2350b51ea109b17032d061f5408d8630470",
+          "sha256": "4cc289e4f06370dd7c58fa87dcb5da01a56be9b5ee42e739eedd56ae5ccc77d3",
           "scope": "Own fresh full decoded-input build, complete applicable source/symbol controls and eight asset edits."
         },
         {
           "path": "analysis/us-v1.2/review-evidence/inventory-development.json",
-          "sha256": "7b7678d959078ef9a8f460054bdefa4046ba7026fa36c80763f5796c47f1d403",
+          "sha256": "cb50c0cae906dd6f1e63e48845303de59ce77e4ea5507e2bbb44a31b2e73966c",
           "scope": "Own physical partition, supported entry/transfer mechanisms and actual script/record/audio/resource relationships; overlapping interpretations retained."
         },
         {
@@ -490,7 +490,7 @@
         },
         {
           "path": "tools/variant_assets.py",
-          "sha256": "902199135ca0ba44e4ade96c6b84821335e18f3846dec1cb7882ef692dd62314",
+          "sha256": "90755b765384b18d5aa9a9d623756dff5f9d8b3d30a3f83ddb1e12cda4a87c7d",
           "scope": "Own bounded menu/map/frame extents from the target consumers and geometry."
         }
       ],
@@ -499,5 +499,5 @@
       "size": 2
     }
   ],
-  "reuse_note": "Own reference, maintained source, physical map, decoded inputs and finite supported inventories. Native differences and justified constants have own source/control evidence. Prior record-format rules are reused only for explicitly compared instruction regions. Original names, dead/conditional entry and arbitrary-state reachability remain uncertain without creating invented reconstruction gates. No other-version runtime trace verifies v1.2."
+  "reuse_note": "Own reference, maintained source, physical map, decoded inputs and finite supported inventories. Native differences and justified constants have own source/control evidence. Prior record-format rules are reused only for explicitly compared instruction regions. Original names, dead/conditional entry and arbitrary-state reachability remain uncertain without creating invented reconstruction gates. No other-version runtime trace verifies v1.2. Shared tooling was refreshed for v1.1: own rebuilt counts, native inventory, decoded assets/eight edits and all reviewed mechanism summaries are unchanged. Identical compiler inputs reuse their retained control builds."
 }

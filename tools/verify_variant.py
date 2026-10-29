@@ -11,7 +11,7 @@ from .build_variant_source import digest
 from .identify_rom import inspect_rom
 from .native_control_flow import inventory as native_inventory
 from .project import IDENTITY_PARTS
-from .source_variants import compose, load_profile, variant_regions
+from .source_variants import compose, load_profile, variant_regions, target_include
 from . import variant_controls
 from .verify_variant_source import verify as verify_source
 from . import variant_assets
@@ -40,7 +40,7 @@ def verify(root: Path, target: dict) -> dict:
     if (proof.get('build_artifact_sha256') != {name: digest((directory / name).read_bytes()) for name in ARTIFACTS}
             or (directory / 'bible-adventures.nes').read_bytes() != reference
             or (directory / 'source/rom.s').read_text() != source
-            or (directory / 'source/nes.inc').read_bytes() != (root / 'include/nes.inc').read_bytes()
+            or (directory / 'source/nes.inc').read_text() != target_include((root / 'include/nes.inc').read_text(), profile)
             or (directory / 'source/link.cfg').read_bytes() != (root / config['linker_config']).read_bytes()):
         raise ValueError('variant retained build or source artifact differs')
     prg = reference[16:65552]
@@ -82,7 +82,7 @@ def verify(root: Path, target: dict) -> dict:
         if proof['asset_controls'][name] != expected or (control / 'asset.json').read_bytes() != module.serialize(changed_asset):
             raise ValueError('variant asset control differs: ' + name)
     native = native_inventory((directory / 'bible-adventures.dbg').read_text(), source, prg, regions)
-    dispatch = dispatch_inventory(prg, profile['geometry'], native, regions)
+    dispatch = dispatch_inventory(prg, profile['geometry'], native, regions, profile.get('nominal_script_entries', 197))
     if (json.loads((directory / 'native-inventory.json').read_text()) != native
             or json.loads((directory / 'dispatch-inventory.json').read_text()) != dispatch
             or proof.get('native') != {'instructions': native['instruction_count'], 'bytes': native['instruction_code_bytes']}):

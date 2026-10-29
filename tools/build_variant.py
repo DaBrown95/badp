@@ -13,7 +13,7 @@ from .identify_rom import inspect_rom
 from .native_control_flow import inventory as native_inventory, DISPATCH_LOW, DISPATCH_HIGH, LENGTH_TABLE
 from .project import IDENTITY_PARTS, load_target
 from .setup import verified_tools
-from .source_variants import compose, load_profile, source_paths, variant_regions
+from .source_variants import compose, load_profile, source_paths, variant_regions, target_include
 from . import variant_controls
 from . import variant_assets
 from .verify_variant_source import verify as verify_source
@@ -31,11 +31,12 @@ def input_names(profile: dict, config: dict) -> set[str]:
         profile['reset_source'], f'config/variants/{profile["target"]}.json', f'config/targets/{profile["target"]}.json',
         'tools/source_variants.py', 'tools/build_rom.py', 'tools/setup.py', 'tools/project.py', 'tools/variant_controls.py',
         'tools/identify_rom.py', 'config/catalogues/no-intro-nes.json', 'config/cc65-toolchain.json', 'tools/native_control_flow.py', 'tools/nes6502.py'} | (
-        {'tools/legacy_source.py', *({'tools/earlier_source.py'} if profile['target'] == 'us-v1.2' else set())}
-        if profile['target'] in ('us-v1.3', 'us-v1.2') else set())
+        {'tools/legacy_source.py', *({'tools/earlier_source.py'} if profile['target'] in ('us-v1.2', 'us-v1.1') else set())}
+        if profile['target'] in ('us-v1.3', 'us-v1.2', 'us-v1.1') else set()) | (
+        {'tools/v11_source.py', 'tools/v11_controls.py'} if profile['target'] == 'us-v1.1' else set())
 
 
-def dispatch_inventory(prg: bytes, layout, native: dict, regions: list[dict]) -> dict:
+def dispatch_inventory(prg: bytes, layout, native: dict, regions: list[dict], nominal: int = 197) -> dict:
     low, high = layout.offset(0, DISPATCH_LOW), layout.offset(0, DISPATCH_HIGH)
     lengths = layout.offset(0, LENGTH_TABLE)
     if prg[lengths:lengths + 256] != prg[32768 + lengths:32768 + lengths + 256]:
@@ -53,11 +54,34 @@ def dispatch_inventory(prg: bytes, layout, native: dict, regions: list[dict]) ->
                'bank0_instruction_start': (0, target) in starts, 'bank1_instruction_start': (1, target) in starts,
                'physical_uses': [kinds[bank * 32768 + target - 32768] if target >= 32768 else 'outside_prg'
                                  for bank in (0, 1)]}
-        if index < 197 and not row['bank0_instruction_start']:
+        if index < nominal and not row['bank0_instruction_start']:
             raise ValueError('nominal variant script handler is not a source instruction start')
         rows.append(row)
-    return {'nominal_entries': 197, 'byte_indices': 256, 'entries': rows,
+    return {'nominal_entries': nominal, 'byte_indices': 256, 'entries': rows,
             'scope': 'Actual target table values and physical representations; additional indices are conditional aliases, not newly declared routines.'}
+
+
+def reviewed_tail_transfer(source: str, row: dict) -> bool:
+    """Recognize only the two existing bank-tail transfers from actual spans.
+
+    RAM/inline-form changes can move a site within the shared macro, so its
+    source-associated assembler line is stronger evidence than adding one
+    interval delta to the primary site's CPU address.
+    """
+    if row.get('bank') != 1 or row.get('other_bank_instruction_start') is not True:
+        return False
+    lines = source.splitlines()
+    definitions = [i for i, line in enumerate(lines) if line.startswith('.macro BankTail ')]
+    if len(definitions) != 1:
+        return False
+    start = definitions[0]
+    end = next((i for i in range(start + 1, len(lines)) if lines[i] == '.endmacro'), None)
+    number = row.get('source_line')
+    if end is None or type(number) is not int or not start < number - 1 < end:
+        return False
+    statement = ' '.join(lines[number - 1].partition(';')[0].split())
+    return (row.get('operation'), statement) in (
+        ('jsr', 'jsr Bank0::NmiFrameWork'), ('jmp', 'jmp Bank0::Boot'))
 
 
 def build(target_id: str) -> dict:
@@ -86,7 +110,7 @@ def build(target_id: str) -> dict:
     with tempfile.TemporaryDirectory(prefix=f'.{target_id}-', dir=base) as temporary:
         work = Path(temporary) / 'proof';(work / 'source').mkdir(parents=True)
         (work / 'source/rom.s').write_text(source)
-        shutil.copyfile(ROOT / 'include/nes.inc', work / 'source/nes.inc')
+        (work / 'source/nes.inc').write_text(target_include((ROOT / 'include/nes.inc').read_text(), profile))
         shutil.copyfile(ROOT / config['linker_config'], work / 'source/link.cfg')
         (work / 'inputs').mkdir();(work / 'assets').mkdir()
 
@@ -106,11 +130,14 @@ def build(target_id: str) -> dict:
         if native['same_bank_non_instruction_start_targets']:
             raise ValueError('variant direct transfer points into a source instruction')
         for row in native['same_bank_non_code_targets']:
-            if (row['bank'], row['cpu'], row.get('other_bank_instruction_start')) not in (
-                    (1, f'0x{profile["geometry"].address(1, 0xffd9):04x}', True),
-                    (1, f'0x{profile["geometry"].address(1, 0xfff1):04x}', True)):
+            conditional = profile.get('conditional_native_transfer_sites', {})
+            if (row['bank'] == 1 and row['cpu'] in conditional
+                    and row['target_cpu'] == conditional[row['cpu']]['target_cpu']
+                    and row.get('other_bank_instruction_start') is True):
+                continue
+            if not reviewed_tail_transfer(source, row):
                 raise ValueError('unreviewed variant native bank transition')
-        dispatch = dispatch_inventory(prg, profile['geometry'], native, regions)
+        dispatch = dispatch_inventory(prg, profile['geometry'], native, regions, profile.get('nominal_script_entries', 197))
         asset_controls = {}
         for name, row in selected.items():
             module = variant_assets.MODULES[name]

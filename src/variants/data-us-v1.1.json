@@ -1,0 +1,1001 @@
+{
+  "schema_version": 1,
+  "target": "us-v1.1",
+  "shared_entries": 114,
+  "entries": 127,
+  "pointer_namespace": "Primary logical encoded record identities; target geometry relocates them. FFFF remains the actual unavailable pointer.",
+  "field_roles": "The four byte positions initialize the target native descriptor consumer destinations; shared historical field names and record identities are provisional.",
+  "unavailable_indices": [
+    40,
+    77,
+    80,
+    81,
+    82,
+    83,
+    84,
+    85,
+    93,
+    100,
+    101,
+    102,
+    103
+  ],
+  "field_overrides": [
+    {
+      "index": 2,
+      "expected": [
+        116,
+        224,
+        128,
+        1
+      ],
+      "fields": [
+        116,
+        224,
+        0,
+        1
+      ]
+    },
+    {
+      "index": 10,
+      "expected": [
+        32,
+        218,
+        160,
+        0
+      ],
+      "fields": [
+        32,
+        218,
+        32,
+        0
+      ]
+    },
+    {
+      "index": 77,
+      "expected": [
+        48,
+        224,
+        160,
+        0
+      ],
+      "fields": [
+        48,
+        224,
+        128,
+        1
+      ]
+    },
+    {
+      "index": 81,
+      "expected": [
+        48,
+        224,
+        160,
+        1
+      ],
+      "fields": [
+        48,
+        224,
+        128,
+        1
+      ]
+    },
+    {
+      "index": 83,
+      "expected": [
+        112,
+        224,
+        48,
+        1
+      ],
+      "fields": [
+        48,
+        224,
+        128,
+        1
+      ]
+    },
+    {
+      "index": 84,
+      "expected": [
+        32,
+        0,
+        0,
+        0
+      ],
+      "fields": [
+        48,
+        224,
+        128,
+        1
+      ]
+    },
+    {
+      "index": 85,
+      "expected": [
+        112,
+        224,
+        0,
+        1
+      ],
+      "fields": [
+        48,
+        224,
+        128,
+        1
+      ]
+    },
+    {
+      "index": 93,
+      "expected": [
+        112,
+        224,
+        128,
+        7
+      ],
+      "fields": [
+        48,
+        224,
+        32,
+        0
+      ]
+    },
+    {
+      "index": 94,
+      "expected": [
+        48,
+        224,
+        160,
+        0
+      ],
+      "fields": [
+        48,
+        224,
+        32,
+        0
+      ]
+    },
+    {
+      "index": 95,
+      "expected": [
+        48,
+        224,
+        160,
+        0
+      ],
+      "fields": [
+        48,
+        224,
+        32,
+        0
+      ]
+    },
+    {
+      "index": 99,
+      "expected": [
+        32,
+        224,
+        128,
+        1
+      ],
+      "fields": [
+        32,
+        224,
+        0,
+        1
+      ]
+    },
+    {
+      "index": 100,
+      "expected": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "fields": [
+        96,
+        0,
+        32,
+        0
+      ]
+    },
+    {
+      "index": 101,
+      "expected": [
+        96,
+        0,
+        128,
+        0
+      ],
+      "fields": [
+        48,
+        224,
+        160,
+        0
+      ]
+    },
+    {
+      "index": 102,
+      "expected": [
+        96,
+        0,
+        0,
+        1
+      ],
+      "fields": [
+        48,
+        224,
+        160,
+        0
+      ]
+    },
+    {
+      "index": 103,
+      "expected": [
+        2,
+        0,
+        32,
+        1
+      ],
+      "fields": [
+        48,
+        224,
+        160,
+        0
+      ]
+    },
+    {
+      "index": 108,
+      "expected": [
+        112,
+        218,
+        160,
+        1
+      ],
+      "fields": [
+        112,
+        218,
+        32,
+        1
+      ]
+    },
+    {
+      "index": 110,
+      "expected": [
+        176,
+        224,
+        128,
+        1
+      ],
+      "fields": [
+        176,
+        224,
+        0,
+        1
+      ]
+    }
+  ],
+  "extra_entries": [
+    {
+      "record": "0x6ee8",
+      "fields": [
+        48,
+        224,
+        160,
+        0
+      ]
+    },
+    {
+      "record": "0x5c1a",
+      "fields": [
+        48,
+        224,
+        0,
+        1
+      ]
+    },
+    {
+      "record": "0x6b37",
+      "fields": [
+        48,
+        224,
+        32,
+        1
+      ]
+    },
+    {
+      "record": "0x5ef4",
+      "fields": [
+        48,
+        224,
+        0,
+        1
+      ]
+    },
+    {
+      "record": "0x388a",
+      "fields": [
+        112,
+        224,
+        48,
+        1
+      ]
+    },
+    {
+      "record": "0x3b52",
+      "fields": [
+        32,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "record": "0x5584",
+      "fields": [
+        112,
+        224,
+        128,
+        1
+      ]
+    },
+    {
+      "record": "0x552b",
+      "fields": [
+        112,
+        224,
+        0,
+        7
+      ]
+    },
+    {
+      "record": "0x543e",
+      "fields": [
+        96,
+        0,
+        0,
+        1
+      ]
+    },
+    {
+      "record": "0x3b60",
+      "fields": [
+        96,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "record": "0x3d09",
+      "fields": [
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "record": "0xffff",
+      "fields": [
+        0,
+        0,
+        32,
+        1
+      ]
+    },
+    {
+      "record": "0x3c19",
+      "fields": [
+        2,
+        0,
+        32,
+        1
+      ]
+    }
+  ],
+  "script_index_remap": {
+    "0x4d": 114,
+    "0x50": 115,
+    "0x51": 116,
+    "0x52": 117,
+    "0x53": 118,
+    "0x54": 119,
+    "0x55": 120,
+    "0x5d": 121,
+    "0x64": 124,
+    "0x65": 123,
+    "0x66": 122,
+    "0x67": 126
+  },
+  "script_index_roles": {
+    "BogusCreateSlotFromValue": 0,
+    "BogusInitializeOtherSlotRelative": 0,
+    "BogusInitializeOtherSlotAbsolute": 0,
+    "BogusCountSlotsByRecord": 0,
+    "BogusCreateLinkedSlot": 0
+  },
+  "script_index_evidence": "The initialization consumers pass the resolved first operand through 2A to the six-byte descriptor lookup. The count consumer compares that operand with SlotDescriptorIndex. Only these explicit operand roles are remapped; generic values and indexed/conditional interpretations retain their actual fields. The shared search retains A from SlotDescriptorIndex when its selector is nonzero; selector zero compares the coordinate pair. The marking command has a separate FF scan, and the relative-selection command has a separate selector 23 path. Those special selectors and dynamic expressions are excluded.",
+  "script_fragments": [
+    {
+      "start": "ScriptB754",
+      "end": "ScriptB765",
+      "remove": [
+        "    BogusSetDispatchCounter $84",
+        "    BogusSetSlot0790Bits $01",
+        "    BogusSetSlot0660LowBits $00"
+      ]
+    },
+    {
+      "start": "ContactScriptB78C",
+      "end": "ContactScriptB79D",
+      "after": "    BogusSetSlot0660HighBits $00",
+      "insert": "    BogusSetSlot07F0 $08"
+    },
+    {
+      "start": "CandidateAD45",
+      "end": "CandidateAD58",
+      "remove": [
+        "    BogusReloadSlotRecordMode1 $06",
+        "    BogusReadSlotValue $0F",
+        "    BogusBranchIfSlotValueNotEqual CandidateAD58, $000F",
+        "    BogusReloadSlotRecordMode1 $08"
+      ]
+    },
+    {
+      "start": "ScriptB9A0",
+      "end": "DataB9E0",
+      "after": "ScriptB9A0:",
+      "insert": "    BogusSetState03BC $03"
+    },
+    {
+      "start": "ScriptBD97",
+      "end": "SlotRuntimeBDB6",
+      "remove": [
+        "    BogusRestartVoice4 $0000",
+        "    BogusSetVoicePointers $0000, $0000, $0000, $0000"
+      ]
+    },
+    {
+      "start": "ScriptBAB8",
+      "end": "ScriptBAD1",
+      "after": "ScriptBAB8:",
+      "insert": "    BogusBranchIfSlotB0AtMost V11ScriptBAB8Continue, $DE\n    BogusYieldAndSlotAction $00\nV11ScriptBAB8Continue:",
+      "remove": [
+        "    BogusBranchIfRemainingVerticalOffsetAtMost ScriptBB0F, $000F ; CONTROL_BOGUS_BABD"
+      ]
+    },
+    {
+      "start": "ScriptBB8A",
+      "end": "ScriptBB9B",
+      "after": "ScriptBB8A:",
+      "insert": "    BogusBranchIfAbsSlot0700Below ScriptBBAE, $30\nV11BB8AResume:",
+      "remove": [
+        "    BogusBranchIfSlot0700AtMost ScriptBB9B, $D0",
+        "    BogusJumpBank1 ScriptBBAE"
+      ]
+    },
+    {
+      "start": "ScriptBBB8",
+      "end": "ScriptBBD2",
+      "remove": [
+        "    BogusBranchIfSlot0700AtMost ScriptBBAE, $30"
+      ]
+    },
+    {
+      "start": "ScriptD3DF",
+      "end": "ScriptD406",
+      "remove": [
+        "    BogusSetDispatchCounter $86"
+      ]
+    },
+    {
+      "start": "ScriptD41D",
+      "end": "SweepScriptD42E",
+      "remove": [
+        "    BogusLoadSlotRecordAtPointer $53C0"
+      ]
+    },
+    {
+      "start": "ScriptD463",
+      "end": "SlotRuntimeD470",
+      "remove": [
+        "    BogusBranchIfAbsSlot0700Below ScriptB98E, $08"
+      ]
+    },
+    {
+      "start": "ScriptDD55",
+      "end": "SlotFlowDD59",
+      "replace": [
+        {
+          "old": "    BogusWait $0F",
+          "new": "    BogusWait $0A"
+        }
+      ]
+    },
+    {
+      "start": "ScriptF176",
+      "end": "ScriptF1E8",
+      "remove": [
+        "    BogusSetState13Bits $0F",
+        "    BogusSetState03BC $00"
+      ]
+    },
+    {
+      "start": "CandidateBC8B",
+      "end": "CompactContextBCA8",
+      "remove": [
+        "    BogusRestartVoice4 $0000",
+        "    BogusSetVoicePointers $0000, $0000, $0000, $0000"
+      ]
+    },
+    {
+      "start": "ContextScriptD51B",
+      "end": "SlotRuntimeD52B",
+      "remove": [
+        "    BogusCreateLinkedSlot $28, $1C, $FE, $00"
+      ]
+    },
+    {
+      "start": "RuntimeScriptEE5C",
+      "end": "ExtendedScriptEE62",
+      "remove": [
+        "    BogusBranchIfSlot0630Bit02 (BankStart + $6E62)"
+      ]
+    },
+    {
+      "start": "ScriptBBD2",
+      "end": "ScriptBBDD",
+      "replace": [
+        {
+          "old": "    BogusBranchIfSlot0700AtMost ScriptBC0C, $12",
+          "new": "    BogusBranchIfSlot0700AtMost ScriptBC0C, $10"
+        }
+      ]
+    },
+    {
+      "start": "ScriptBBE5",
+      "end": "ScriptBBED",
+      "replace": [
+        {
+          "old": "    BogusBranchIfSlot0700AtMost ScriptBBED, $ED",
+          "new": "    BogusBranchIfSlot0700AtMost ScriptBBED, $EF"
+        }
+      ]
+    },
+    {
+      "start": "ScriptBBF3",
+      "end": "ScriptBBFE",
+      "replace": [
+        {
+          "old": "    BogusBranchIfSlot0700AtMost ScriptBC0C, $0A",
+          "new": "    BogusBranchIfSlot0700AtMost ScriptBC0C, $08"
+        }
+      ]
+    },
+    {
+      "start": "ScriptBC06",
+      "end": "ScriptBC0C",
+      "replace": [
+        {
+          "old": "    BogusBranchIfSlot0700AtMost ScriptBC0E, $F5",
+          "new": "    BogusBranchIfSlot0700AtMost ScriptBC0E, $F7"
+        }
+      ]
+    },
+    {
+      "start": "PositionStreamA8C0",
+      "end": "PositionStreamAAA4",
+      "after": "    PositionRecord $0177, $0000, $F0, $5C, $16, $00, $FF, $80",
+      "insert": "    PositionRecord $0178, $0000, $F0, $68, $3C, $00, $FF, $81 ; CONTROL_V11_POSITION_EXTRA"
+    },
+    {
+      "start": "SuccessorScriptAEB9",
+      "end": "SuccessorScriptAEC0",
+      "replace": [
+        {
+          "old": "    BogusAdjustSlotBounds $00, $01",
+          "new": "    BogusSetSlotMode $FF\n    BogusWait $01\n    BogusSetDispatchCounter $02\n    BogusLoadSlotValueArray $3C"
+        },
+        {
+          "old": "    BogusSetSlotMode $02",
+          "new": "    BogusSetSlotMode $00"
+        }
+      ]
+    },
+    {
+      "start": "InteractionScriptAF05",
+      "end": "LongScriptAF2C",
+      "remove": [
+        "    BogusMarkRelatedSlotAtDepth $1A, $01",
+        "    BogusMarkRelatedSlotAtDepth $1A, $02",
+        "    BogusMarkRelatedSlotAtDepth $1A, $03",
+        "    BogusMarkRelatedSlotAtDepth $1A, $04"
+      ]
+    },
+    {
+      "start": "LongScriptAF2C",
+      "end": "SuccessorScriptAF59",
+      "remove": [
+        "    BogusSetBackgroundPalettePointer Bank0::PaletteHeaderC83E",
+        "    BogusSetSpritePalettePointer Bank0::PaletteHeaderC83E"
+      ],
+      "after": "LongScriptAF41:",
+      "insert": "    BogusSetSpritePalettePointer Bank0::PaletteHeaderC83E\n    BogusSetBackgroundPalettePointer Bank0::PaletteHeaderC83E"
+    },
+    {
+      "start": "SuccessorScriptAF59",
+      "end": "PathScriptAF63",
+      "remove": [
+        "    BogusBranchIfSlot0760Equal SuccessorScriptAF61, $14",
+        "    BogusLoadRecordAndClearSavedState $48",
+        "    BogusWait $01"
+      ],
+      "after": "    BogusSetDispatchCounter $02 ; CONTROL_SUCCESSOR_SCRIPT_AF59",
+      "insert": "    BogusSetSlot0790Bits $DF"
+    },
+    {
+      "start": "ContextScriptF401",
+      "end": "CandidateScriptF40A",
+      "remove": [
+        "    BogusSetState03BC $03"
+      ]
+    },
+    {
+      "start": "DirectNextScriptB090",
+      "end": "DirectNextScriptB096",
+      "remove": [
+        "    BogusSetDispatchCounter $8F",
+        "    BogusBranchIfAbsSlot0700Below DirectNextScriptB0A0, $12"
+      ]
+    },
+    {
+      "start": "DirectNextScriptB0A0",
+      "end": "InferredScriptB0B0",
+      "remove": [
+        "    BogusBranchIfSlot0700AtMost DirectNextScriptB0B3, $7F",
+        "    BogusReadSlotValue $4C",
+        "    BogusMaskSlotValue $0080",
+        "    BogusBranchIfSlotValueEqual DirectNextScriptB096, $80, $00",
+        "    BogusLoadRecordAndClearSavedState $00"
+      ]
+    },
+    {
+      "start": "InferredScriptB0B0",
+      "end": "DirectNextScriptB0B3",
+      "remove": [
+        "    BogusJumpBank1 DirectNextScriptB09D ; CONTROL_INFERRED_B0B0"
+      ]
+    },
+    {
+      "start": "DirectNextScriptB0B3",
+      "end": "BranchScriptB0C0",
+      "remove": [
+        "    BogusReadSlotValue $4C ; CONTROL_DIRECT_NEXT_SCRIPT_B0B3",
+        "    BogusMaskSlotValue $0080",
+        "    BogusBranchIfSlotValueEqual DirectNextScriptB096, $00, $00",
+        "    BogusJumpBank1 DirectNextScriptB09D"
+      ]
+    },
+    {
+      "start": "BranchScriptB10C",
+      "end": "BranchScriptB10E",
+      "after": "    BogusWait $01",
+      "insert": "    BogusBranchIfSelectedFlags BranchScriptB10C, $40"
+    },
+    {
+      "start": "BranchScriptB116",
+      "end": "SweepRecordB118",
+      "after": "BranchScriptB116:",
+      "insert": "V11B116Retry:\n    BogusWait $01\n    BogusBranchIfSelectedFlags V11B116Retry, $40"
+    },
+    {
+      "start": "SuccessorScriptB20C",
+      "end": "SuccessorScriptB20E",
+      "after": "    BogusStoreSlotValueArray $3D",
+      "insert": "    BogusSetBackgroundPalettePointer Bank0::PaletteHeaderC83E\n    BogusSetSpritePalettePointer Bank0::PaletteHeaderC83E"
+    },
+    {
+      "start": "SuccessorScriptB275",
+      "end": "SuccessorScriptB278",
+      "after": "SuccessorScriptB275:",
+      "insert": "    BogusSetBackgroundPalettePointer Bank0::PaletteHeaderC83E"
+    },
+    {
+      "start": "SuccessorScriptB34A",
+      "end": "ExtendedScriptB35B",
+      "remove": [
+        "    BogusSetDispatchCounter $03 ; CONTROL_SUCCESSOR_SCRIPT_B34A",
+        "    BogusBranchIfSelectedFlags RuntimeScriptB1B5, $03"
+      ]
+    },
+    {
+      "start": "ExpandedScriptB38E",
+      "end": "ExpandedScriptB391",
+      "after": "ExpandedScriptB38E:",
+      "insert": "    BogusSetBackgroundPalettePointer Bank0::PaletteHeaderC83E\n    BogusSetSpritePalettePointer Bank0::PaletteHeaderC83E\n    BogusWait $02"
+    },
+    {
+      "start": "SweepRecordD3C0",
+      "end": "ScriptD3C9",
+      "remove": [
+        "    SlotRuntimeRecord $BC79, $FFFF, $00, $FF, $00, $00, $00 ; CONTROL_SWEEP_RECORD_D3C0"
+      ]
+    },
+    {
+      "start": "ContextContactScriptD67C",
+      "end": "ContextDirectRecordD68F",
+      "remove": [
+        "    BogusBranchIfSlot0760Equal ContextContactScriptD698, $28 ; CONTROL_CONTEXT_CONTACT_SCRIPT_D67C",
+        "    BogusClearSlot0790Bits $01"
+      ],
+      "after": "ContextContactScriptD67C:",
+      "insert": "    BogusSetDispatchCounter $84 ; CONTROL_CONTEXT_CONTACT_SCRIPT_D67C\n    BogusSetSlot0670Pair $40, $00\n    BogusBranchIfSlotCoordinatesA3 V11D68FCoordinates, $FF, $50\nV11D67CRetry:"
+    },
+    {
+      "start": "ContextContactScriptD698",
+      "end": "SlotRuntimeD6D7",
+      "replace": [
+        {
+          "old": "    BogusSetSlotValue $FFFF\n    BogusStoreSlotValueArray $23",
+          "new": "    BogusSaveStateAndPlaceSlots $10"
+        },
+        {
+          "old": "    BogusSetMainState $10",
+          "new": "    BogusSetMainState $FF"
+        }
+      ]
+    },
+    {
+      "start": "SlotRuntimeD6D7",
+      "end": "ExtendedScriptD702",
+      "remove": [
+        "    SlotRuntimeRecord $BC79, (ScriptD6E0 - BankStart), $00, $FF, $00, $00, $00 ; CONTROL_SLOT_RUNTIME_D6D7",
+        "    BogusSetSlot0640Pair $04, $00",
+        "    BogusBranchIfSlot0760Equal ScriptD6EA, $66",
+        "    BogusJumpBank1 ScriptD6E0",
+        "    BogusMarkMatchingSlots $00, $01, $20, $00",
+        "    BogusWait $04                ; CONTROL_BOGUS_D6E0",
+        "    BogusMarkMatchingSlots $00, $01, $20, $00",
+        "    BogusWait $04",
+        "    BogusMarkMatchingSlots $00, $01, $20, $00",
+        "    BogusRestartVoice4 $289B",
+        "    BogusYieldAndSlotAction $00"
+      ]
+    },
+    {
+      "start": "ContextDirectRecordD68F",
+      "end": "ContextContactScriptD698",
+      "after": "    SlotRuntimeRecord $BE09, $FFFF, $00, $FF, $00, $00, $00 ; CONTROL_CONTEXT_DIRECT_RECORD_D68F",
+      "insert": "; The record fetch reads this tenth byte, although it does not store it.\nV11D68FFetchedStorage:\n    .byte $00 ; CONTROL_V11_D68F_FETCHED_STORAGE\n; The preceding A3 command selects this actual five-byte BOGUS entry.\nV11D68FCoordinates:\n    BogusBranchIfSlotCoordinatesA3 V11D67CRetry, $FF, $2C ; CONTROL_V11_D68F_COORDINATES"
+    },
+    {
+      "start": "ExpandedScriptE8DA",
+      "end": "ExpandedScriptE8DC",
+      "after": "    BogusWait $09",
+      "insert": "    BogusSetVoicePointers $278C, $2795, $0000, $0000"
+    },
+    {
+      "start": "RuntimeScriptEE5F",
+      "end": "ExtendedScriptEE62",
+      "remove": [
+        "    BogusJumpBank1 (BankStart + $6FF3)"
+      ]
+    },
+    {
+      "start": "ExtendedScriptEE62",
+      "end": "OverlayScriptEE65",
+      "remove": [
+        "    BogusBranchIfSlot0620Bit10 (BankStart + $6FF3) ; CONTROL_EXTENDED_SCRIPT_EE62"
+      ]
+    },
+    {
+      "start": "CandidateF0D1",
+      "end": "CandidateF0DC",
+      "remove": [
+        "    BogusBranchIfRemainingVerticalOffsetAtMost (BankStart + $7157), $0028 ; CONTROL_BOGUS_F0D1",
+        "    BogusBranchIfSlot0620Bit10 CandidateF0F0",
+        "    BogusJumpBank1 CandidateF0D1"
+      ]
+    },
+    {
+      "start": "CandidateF2EE",
+      "end": "CandidateF2F7",
+      "remove": [
+        "    BogusSetState03BC $03"
+      ]
+    },
+    {
+      "start": "CandidateF2F7",
+      "end": "CandidateF305",
+      "remove": [
+        "    BogusSetState03BC $03"
+      ]
+    },
+    {
+      "start": "ScriptF223",
+      "end": "ScriptF230",
+      "remove": [
+        "    BogusSetDispatchCounter $03",
+        "    BogusSetBackgroundPalettePointer Bank0::PaletteHeaderCA37",
+        "    BogusSetSpritePalettePointer Bank0::PaletteHeaderCA4A"
+      ],
+      "after": "    BogusBranchIfState07ZeroAndClear ScriptF230",
+      "insert": "    BogusAddSelectedFieldClamped $00, $00, $00\n    BogusSetSlotValue $0001"
+    },
+    {
+      "start": "ScriptF230",
+      "end": "ScriptF24C",
+      "remove": [
+        "    BogusWait $05"
+      ],
+      "after": "    BogusSetInvertedState18 $FF",
+      "insert": "    BogusSetState03BC $00"
+    },
+    {
+      "start": "MenuLocalData",
+      "end": "ContextScriptF401",
+      "after": "    .incbin \"bank1_f357_f401.bin\"",
+      "insert": "; Four palette-selection rows precede the retained wait and menu successor.\nV11MenuPaletteRows:\n    BogusSetBackgroundPalettePointer Bank0::PaletteHeaderCA37 ; CONTROL_V11_MENU_PALETTES\n    BogusSetSpritePalettePointer Bank0::V11PaletteHeader28\n    BogusSetBackgroundPalettePointer Bank0::PaletteHeaderCA4A\n    BogusSetSpritePalettePointer Bank0::V11PaletteHeader29\n    BogusSetBackgroundPalettePointer Bank0::V11PaletteHeader26\n    BogusSetSpritePalettePointer Bank0::V11PaletteHeader30\n    BogusSetBackgroundPalettePointer Bank0::PaletteHeaderC83E\n    BogusSetSpritePalettePointer Bank0::PaletteHeaderC83E\n    BogusWait $0C"
+    },
+    {
+      "start": "CandidateValuesFCD2",
+      "end": "CandidateListPointersFCE3",
+      "replace": [
+        {
+          "old": "    .byte $2E, $2F, $30, $31, $32, $33, $34, $35, $36, $37, $23, $24, $38, $39, $56, $57, $00",
+          "new": "    .byte $2E, $2F, $30, $31, $32, $33, $34, $35, $36, $37, $23, $24, $38, $39, $00"
+        }
+      ]
+    },
+    {
+      "start": "RuntimeScriptAFAD",
+      "end": "RuntimeScriptAFB2",
+      "replace": [
+        {
+          "old": "    BogusBranchIfRemainingVerticalOffsetAtMost (BankStart + $2EC0), $0028",
+          "new": "    BogusBranchIfRemainingVerticalOffsetAtMost (BankStart + $2EC0), $0020"
+        }
+      ]
+    },
+    {
+      "start": "ContactScriptBCF3",
+      "end": "ContactScriptBD06",
+      "replace": [
+        {
+          "old": "    BogusStoreSlotLowAt $05E2",
+          "new": "    BogusStoreSlotLowAt $00C2"
+        }
+      ]
+    },
+    {
+      "start": "SlotFlowD5CC",
+      "end": "ContextRecordD5D5",
+      "replace": [
+        {
+          "old": "    SlotRuntimeRecord $B96E, $577B, $23, $FE, $35, $61, $11 ; CONTROL_SLOT_FLOW_D5CC",
+          "new": "    SlotRuntimeRecord $B96E, $577B, $23, $FE, $25, $61, $11 ; CONTROL_SLOT_FLOW_D5CC"
+        }
+      ]
+    },
+    {
+      "start": "ScriptF275",
+      "end": "ScriptF28D",
+      "remove": [
+        "    BogusSetVoicePointers $FFFF, $FFFF, $2783, $FFFF"
+      ],
+      "after": "    BogusSetSlotPositionFromOperands $58, $88",
+      "insert": "    BogusSetVoicePointers $FFFF, $FFFF, $2783, $FFFF"
+    },
+    {
+      "start": "OverlayScriptEE65",
+      "end": "SlotRuntimeEE68",
+      "replace": [
+        {
+          "old": "    BogusJumpCompactOverlay CandidateF0D1, ($04 + (<(CandidateF0D1 - BankStart) * $100)), >(CandidateF0D1 - BankStart) ; CONTROL_OVERLAY_EE65",
+          "new": "    BogusJumpCompactOverlay ScriptEFF3, ($04 + (<(ScriptEFF3 - BankStart) * $100)), >(ScriptEFF3 - BankStart) ; CONTROL_OVERLAY_EE65"
+        }
+      ]
+    },
+    {
+      "start": "CandidateF333",
+      "end": "MenuLocalData",
+      "replace": [
+        {
+          "old": "    BogusJumpBank1 (BankStart + $7401)",
+          "new": "    BogusJumpBank1 V11MenuPaletteRows",
+          "count": 3
+        }
+      ]
+    }
+  ],
+  "script_fragment_evidence": "Own script entries and adjacent record/table boundaries identify each connected fragment. AD45 omits both unavailable C4 commands and their intervening condition; B9A0 includes the state setter at the actual branch target; BD58 omits the two zero-voice commands as well as the absent native fade call. B6EE/contact removes three two-byte setters and adds one adjacent contact setter. Exact source integration remains required.",
+  "conditional_script_index_roles": {
+    "BogusBranchIfMatchingSlotReady": {
+      "selector": 1,
+      "index": 2,
+      "excluded_selectors": [
+        0
+      ]
+    },
+    "BogusMarkMatchingSlots": {
+      "selector": 1,
+      "index": 2,
+      "excluded_selectors": [
+        0,
+        255
+      ]
+    },
+    "BogusSelectRelativeSlotAndYield": {
+      "selector": 2,
+      "index": 3,
+      "excluded_selectors": [
+        0,
+        35
+      ]
+    }
+  },
+  "control_adaptations": {
+    "bogus_babd": "The A0 comparison is absent. Keep this connected-region control by changing the surviving ReadSlotValue $11 operand before composition. The removed comparison is not another missing handler.",
+    "successor_script_b34a": "The initial dispatch and selected-flags test are absent. Mutate the surviving dispatch counter $07 in this connected script.",
+    "context_contact_script_d67c": "The original 760 comparison is absent. Mutate the older dispatch84 byte in the same connected region.",
+    "bogus_f0d1": "The initial three statements are absent. Mutate the retained SetSlot0620Bit20 command at the same physical entry using its native opcode alias."
+  },
+  "position_evidence": "The two own native position-pointer tables locate A8C0 at A8AE and its next stream at AA9A. The extra record has key0178 and the same eight-byte format; all other records agree after the F0 descriptor-index remap. F0 copies its first payload field through2A to the descriptor initializer. The original stream/sentinel rules and other record types are preserved.",
+  "palette_pointer_overrides": [
+    {
+      "table": "BackgroundPalettePointers",
+      "index": 0,
+      "expected": "PaletteHeaderC83E",
+      "target": "PaletteHeaderCA37"
+    },
+    {
+      "table": "BackgroundPalettePointers",
+      "index": 17,
+      "expected": "PaletteHeaderC83E",
+      "target": "PaletteHeaderCA37"
+    },
+    {
+      "table": "SpritePalettePointers",
+      "index": 0,
+      "expected": "PaletteHeaderC83E",
+      "target": "V11PaletteHeader27"
+    },
+    {
+      "table": "SpritePalettePointers",
+      "index": 17,
+      "expected": "PaletteHeaderC83E",
+      "target": "V11PaletteHeader27"
+    }
+  ],
+  "palette_evidence": "Both own native pointer tables select the31 parsed stream headers. The first26 retain shared ordering; five additional static19-byte streams follow. Some state slots choose a different existing or additional stream. The95-byte difference is represented as15 source header bytes and80 local colour bytes, with other uses left possible.",
+  "af02_evidence": "The actual preceding unconditional jump selects AF14, while the encoded word after byte15 selects AEF7, its immediate fallthrough. The29-byte intervening BGR stream uses reconstructed handlers3A and73, branches to AF14/AF0F and jumps to the existing post-menu candidate entry. The two pointer roles are preserved separately; ordinary reachability and original purpose remain uncertain.",
+  "retired_data_regions": {
+    "bank1-inferred-b0b0": "The connected v1.1 B085/B0C0 scripts omit the entire jump statement. Its labelled start/end coincide; no replacement bytes or routine is required.",
+    "bank1-direct-next-script-b0b3": "The connected v1.1 script omits the related value-test and jump block. Its labelled start/end coincide; existing labels preserve shared alternate entries without byte ownership.",
+    "bank1-sweep-record-d3c0": "The redundant nine-byte sentinel record is absent between the directly referenced record and script in v1.1. The logical extent collapses.",
+    "bank1-slot-record-d6d7": "The descriptor record and its following script are absent; the corresponding descriptor is unavailable in v1.1.",
+    "bank1-script-d6e0": "The entire34-byte sequence is absent between the revised contact script and retained D702 successor. Its descriptor is unavailable; no invented substitute is required.",
+    "bank1-extended-script-ee62": "The three-byte branch is absent along with the preceding jump; the retained flag setter falls through to the independently represented overlay jump."
+  },
+  "b0_b3_evidence": "Own command-length tables and the adjacent matching record/table boundaries locate the connected B085/B0C0, B1F7 and B34A/B35C streams. The former removes the value-test continuation and adds two selected-flags wait loops. B1F7 retains the zero-voice restart, with an alternate entry immediately after it, and selects both palette streams; B34A removes the first dispatch/test and adds palette selection plus a wait. CreateLinkedSlot passes its first field through the common descriptor initializer. All alternate source labels are retained; exact assembled integration is required.",
+  "late_contact_evidence": "The D3C0 sentinel record is absent. Actual A3 branch fields establish the revised D67C retry/coordinate entries, including a five-byte entry after a retained tenth fetched byte. The D698 ending saves state and sets main state FF; the D6D7 descriptor/34-byte script pair is absent. Own descriptor availability and adjacent source correspondence constrain these decisions; original purpose and ordinary entry remain open.",
+  "menu_evidence": "Own queue6E fields select the same fourteen payload lengths as v1.2. The following26 bytes are four BG/SP palette pairs and a wait, not local tile data. Own palette pointers select the shared and five additional streams. The input sequence removes dispatch/palette setup and a wait, adds a clamped-field operation, value initializer and state setter. The final value list lacks the two later56/57 values; its zero terminator and pointer-table boundary remain explicit.",
+  "conditional_view_decisions": {
+    "B072 voice opcode overlap": "The v1.1 relocated record/resource or script field changes this incidental opcode/literal predicate. Retain its physical fields and candidate labels; do not assert the later-version command interpretation.",
+    "D228 contact/script opcode disagreement": "The v1.1 relocated record/resource or script field changes this incidental opcode/literal predicate. Retain its physical fields and candidate labels; do not assert the later-version command interpretation.",
+    "record/script pair opcode disagreement": "The v1.1 relocated record/resource or script field changes this incidental opcode/literal predicate. Retain its physical fields and candidate labels; do not assert the later-version command interpretation.",
+    "candidate DB69 resource": "The v1.1 relocated record/resource or script field changes this incidental opcode/literal predicate. Retain its physical fields and candidate labels; do not assert the later-version command interpretation.",
+    "DC26 contact/script opcode disagreement": "The v1.1 relocated record/resource or script field changes this incidental opcode/literal predicate. Retain its physical fields and candidate labels; do not assert the later-version command interpretation.",
+    "E003 record/script opcode disagreement": "The v1.1 relocated record/resource or script field changes this incidental opcode/literal predicate. Retain its physical fields and candidate labels; do not assert the later-version command interpretation.",
+    "E075 record/script opcode disagreement": "The v1.1 relocated record/resource or script field changes this incidental opcode/literal predicate. Retain its physical fields and candidate labels; do not assert the later-version command interpretation.",
+    "E08A contact/script opcode disagreement": "The v1.1 relocated record/resource or script field changes this incidental opcode/literal predicate. Retain its physical fields and candidate labels; do not assert the later-version command interpretation.",
+    "E0B0 record/script opcode disagreement": "The v1.1 relocated record/resource or script field changes this incidental opcode/literal predicate. Retain its physical fields and candidate labels; do not assert the later-version command interpretation.",
+    "E0E8 record/script opcode disagreement": "The v1.1 relocated record/resource or script field changes this incidental opcode/literal predicate. Retain its physical fields and candidate labels; do not assert the later-version command interpretation.",
+    "E0EF record/script opcode disagreement": "The v1.1 relocated record/resource or script field changes this incidental opcode/literal predicate. Retain its physical fields and candidate labels; do not assert the later-version command interpretation.",
+    "EF42 record/contact byte disagreement": "The v1.1 relocated record/resource or script field changes this incidental opcode/literal predicate. Retain its physical fields and candidate labels; do not assert the later-version command interpretation.",
+    "contact pointer high field disagreement": "The v1.1 contact pointer remains a source word; its moved high byte no longer agrees with the later-version opcode operand. Preserve the contact and candidate labels without asserting that opcode view."
+  }
+}

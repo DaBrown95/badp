@@ -31,22 +31,33 @@ NEW_12 = [*EXTRA_12, 'v12_reset_mapper', 'v12_reset_table', 'v12_xy_right_target
 def names(profile: dict) -> list[str]:
     if profile['target'] == 'us-v1.4':
         return list(MUTATIONS)
-    if profile['target'] not in ('us-v1.3', 'us-v1.2'):
+    if profile['target'] not in ('us-v1.3', 'us-v1.2', 'us-v1.1'):
         raise ValueError('missing target source-control catalogue')
     retired = profile.get('retired_primary_controls', {})
-    required = RETIRED_12 if profile['target'] == 'us-v1.2' else RETIRED
+    required = RETIRED_12 if profile['target'] in ('us-v1.2', 'us-v1.1') else RETIRED
+    if profile['target'] == 'us-v1.1':
+        from .v11_controls import RETIRED as retired11
+        required = required | retired11
     if (set(retired) != required or any(not isinstance(reason, str) or not reason.strip() for reason in retired.values())):
         raise ValueError('target primary-control retirements lack explicit decisions')
     additions = (['v13_controller2_port', 'v13_inline_shift', 'v13_pointer_af02'] + NEW_12
-                 if profile['target'] == 'us-v1.2' else list(EXTRA))
+                 if profile['target'] in ('us-v1.2', 'us-v1.1') else list(EXTRA))
+    if profile['target'] == 'us-v1.1':
+        from .v11_controls import NEW
+        additions = [name for name in additions if name != 'v12_mode_return'] + list(NEW)
     return [name for name in MUTATIONS if name not in required] + additions
 
 
 def mutate(canonical: str, reset: str, profile: dict, name: str) -> str:
     if name not in names(profile):
         raise ValueError('unknown or retired source control')
+    if profile['target'] == 'us-v1.1':
+        from .v11_controls import NEW, ADAPTED, mutate as mutate11, adapt
+        if name in NEW or name in ADAPTED:
+            source = compose(canonical, reset, profile)
+            return mutate11(source, name) if name in NEW else adapt(source, name)
     candidate_profile = deepcopy(profile)
-    if name in EXTRA_12 or (profile['target'] == 'us-v1.2' and name == 'set_initial_map_tile_position'):
+    if name in EXTRA_12 or (profile['target'] in ('us-v1.2', 'us-v1.1') and name == 'set_initial_map_tile_position'):
         scope, original, replacement = EXTRA_12['v12_initial_map' if name == 'set_initial_map_tile_position' else name]
         text = candidate_profile['earlier_definition_text']
         start = text.index(scope);end = text.index('.endmacro', start)
@@ -60,7 +71,7 @@ def mutate(canonical: str, reset: str, profile: dict, name: str) -> str:
         body = canonical[start:end]
         if body.count('jsr ShiftXYRight1') != 2:raise ValueError('changed generic XY shift calls')
         canonical = canonical[:start] + body.replace('jsr ShiftXYRight1', 'jsr ShiftXYRight1 + 1', 1) + canonical[end:]
-    elif profile['target'] == 'us-v1.2' and name == 'queue_scroll_row':
+    elif profile['target'] in ('us-v1.2', 'us-v1.1') and name == 'queue_scroll_row':
         start = canonical.index('\nQueueScrollRow:');end = canonical.index('\n.assert', start)
         canonical = canonical[:start] + replace_once(canonical[start:end], 'stx MapTileXLow', 'stx MapTileXHigh') + canonical[end:]
     elif name in EXTRA:
@@ -82,13 +93,13 @@ def mutate(canonical: str, reset: str, profile: dict, name: str) -> str:
             else:body = replace_once(body, original, replacement)
             candidate_profile[key] = text[:start] + body + text[end:]
     elif name == 'reset_dispatch':reset = mutate_source(reset, name)
-    elif profile['target'] in ('us-v1.3', 'us-v1.2') and name == 'compute_bank_selection':
+    elif profile['target'] in ('us-v1.3', 'us-v1.2', 'us-v1.1') and name == 'compute_bank_selection':
         candidate_profile['selector_text'] = mutate_source(profile['selector_text'], name)
-    elif profile['target'] in ('us-v1.3', 'us-v1.2') and name == 'apply_slot_offset':
+    elif profile['target'] in ('us-v1.3', 'us-v1.2', 'us-v1.1') and name == 'apply_slot_offset':
         start = canonical.index('\nApplySlotOffsetIfClear:');end = canonical.index('\n.assert', start)
         block = replace_once(canonical[start:end], 'lda $03A6', 'lda $03A7')
         canonical = canonical[:start] + block + canonical[end:]
-    elif profile['target'] in ('us-v1.3', 'us-v1.2') and name in ('record_voice_e01a', 'record_voice_e023'):
+    elif profile['target'] in ('us-v1.3', 'us-v1.2', 'us-v1.1') and name in ('record_voice_e01a', 'record_voice_e023'):
         # The primary script-pointer edit becomes a relocated ROM pointer in
         # this target. Mutate the actual record mode instead, retaining the
         # corresponding conditional voice word rather than breaking its assertion.
@@ -96,7 +107,7 @@ def mutate(canonical: str, reset: str, profile: dict, name: str) -> str:
         changed = replace_once(original, '$FFFF, $00,', '$FFFF, $01,')
         changed = replace_once(changed, '$FFB8, $00FF,', '$FFB8, $01FF,')
         canonical = marked_statement(canonical, marker, lambda statement: replace_once(statement, original, changed))
-    elif profile['target'] in ('us-v1.3', 'us-v1.2') and name in ('script_op08', 'script_op2d', 'prepare_audio_note',
+    elif profile['target'] in ('us-v1.3', 'us-v1.2', 'us-v1.1') and name in ('script_op08', 'script_op2d', 'prepare_audio_note',
                                                    'script_op9f', 'script_opa0', 'convert_slot_position',
                                                    'pending_ppu_copy_banked'):
         # Literal primary addresses can coincide with the relocated positive
@@ -147,7 +158,7 @@ def affected(regions: list[dict], offsets: list[int]) -> list[str]:
 def verify_symbol(reference: bytes, candidate: bytes, regions: list[dict], name: str, target: str) -> list[int]:
     if target == 'us-v1.4':return verify_symbol_control(reference, candidate, regions, name)
     changed = changed_owned(reference, candidate, regions)
-    address, _ = SYMBOL_CONTROLS[name]
+    address = symbol_address(name, target)
     operand_bytes = set()
     for row in regions:
         if row['kind'] != 'code':continue
@@ -173,3 +184,21 @@ def coverage(regions: list[dict], controls: list[dict]) -> dict:
                if not any(i in offsets for i in range(row['file_offset'], row['file_offset'] + row['size']))]
     return {'regions': len(regions), 'controlled_regions': len(regions) - len(missing),
             'uncontrolled_regions': missing, 'complete': not missing}
+
+
+def symbol_names(profile: dict) -> list[str]:
+    return [name for name in SYMBOL_CONTROLS
+            if profile['target'] != 'us-v1.1' or name != 'SpriteRecordReserveCount']
+
+
+def symbol_address(name: str, target: str) -> int:
+    address = SYMBOL_CONTROLS[name][0]
+    if target == 'us-v1.1':
+        if name == 'SpriteRecordStride':return 10
+        if 0x04B0 <= address < 0x0800:return address - 16
+    return address
+
+
+def mutate_symbol(include: str, name: str, target: str) -> str:
+    address = symbol_address(name, target)
+    return replace_once(include, f'{name} = ${address:04X}', f'{name} = ${address ^ 1:04X}')

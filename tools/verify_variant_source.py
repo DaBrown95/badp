@@ -7,6 +7,7 @@ from pathlib import Path
 from .build_rom import MUTATIONS, SYMBOL_CONTROLS, verify_control, verify_symbol_control
 from .build_variant_source import input_names, apply_source_patch, digest
 from .setup import verified_tools
+from .source_variants import target_include
 from . import variant_controls
 
 
@@ -26,7 +27,7 @@ def verify(root: Path, target: dict, profile: dict, config: dict, source: str,
     reference = (root / target['input_path']).read_bytes()
     if digest(reference) != proof['reference_sha256']:
         raise ValueError('variant reference differs from its source checkpoint')
-    include = (root / 'include/nes.inc').read_bytes()
+    include = target_include((root / 'include/nes.inc').read_text(), profile).encode()
     tools = verified_tools(root)
     common = {'linker_sha256': digest((root / config['linker_config']).read_bytes()),
               'gap_sha256': {name: digest(payload) for name, payload in gaps.items()},
@@ -38,8 +39,8 @@ def verify(root: Path, target: dict, profile: dict, config: dict, source: str,
     controls, symbols = proof.get('controls', []), proof.get('symbol_controls', [])
     catalogue = set(variant_controls.names(profile))
     if (len(controls) != len(catalogue) or {row['control'] for row in controls} != catalogue
-            or len(symbols) != len(SYMBOL_CONTROLS)
-            or {row['control'] for row in symbols} != {'symbol_' + name for name in SYMBOL_CONTROLS}):
+            or len(symbols) != len(variant_controls.symbol_names(profile))
+            or {row['control'] for row in symbols} != {'symbol_' + name for name in variant_controls.symbol_names(profile)}):
         raise ValueError('variant source or symbol controls are incomplete or duplicated')
     # The unchanged input fingerprint above includes the producer, source
     # renderer and mutation catalogue. Reconstruct its exact compiler inputs

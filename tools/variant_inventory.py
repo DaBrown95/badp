@@ -60,6 +60,7 @@ def audio_source_literals(source: str, debug: str) -> str:
         original = '#' + operator + 'LegacyOpcode18Audio'
         if source.count(original) != 1:raise ValueError('ambiguous native audio operand')
         source = source.replace(original, f'#${byte:02X}', 1)
+        source = source.replace('#' + operator + 'Bank0::LegacyOpcode18Audio', f'#${byte:02X}')
     return source
 
 
@@ -72,8 +73,9 @@ def analyze(root: Path, target: dict, proof: dict, reference: bytes) -> dict:
     prg = reference[16:65552];bank0, bank1 = prg[:32768], prg[32768:]
     regions = proof['regions']
     length_offset = layout.offset(0, 0x7da7)
-    lengths = bank0[length_offset:length_offset + 197]
+    lengths = bank0[length_offset:length_offset + profile.get('nominal_script_entries', 197)]
     roots = [layout.offset(1, seed) for seed in source_script_seeds(canonical, canonical_config['regions'])]
+    roots += [int(cpu, 0) - 32768 for cpu in profile.get('additional_script_roots', [])]
     indices = {layout.offset(1, site): value for site, value in PRIMARY_INDEXED_JUMPS.items()}
     graph = walk(bank0, bank1, lengths, roots, indexed_jumps=indices, limit=65536)
     if graph['unprocessed']:
@@ -84,7 +86,7 @@ def analyze(root: Path, target: dict, proof: dict, reference: bytes) -> dict:
         bank = 'bank1' if row['selection'] == 'secondary_write' else 'bank0'
         if not row['target_instruction_starts'][bank]:
             raise ValueError('declared variant native call lacks its supported target boundary')
-    descriptors = descriptor_inventory(bank0, bank1, layout.offset(0, DESCRIPTORS), DESCRIPTOR_COUNT, lengths)
+    descriptors = descriptor_inventory(bank0, bank1, layout.offset(0, DESCRIPTORS), profile.get("descriptor_count", DESCRIPTOR_COUNT), lengths)
     direct = direct_inventory(bank0, bank1, graph)
     target_map = {**canonical_config, 'target': target['id'], 'regions': regions}
     if 'loader_views' in target_map:

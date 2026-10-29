@@ -9,6 +9,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import re
 from pathlib import Path
 import shutil
 import subprocess
@@ -20,7 +21,7 @@ from .identify_rom import inspect_rom
 from .native_control_flow import inventory as native_inventory
 from .project import IDENTITY_PARTS, load_target
 from .setup import verified_tools
-from .source_variants import compose, load_profile, source_paths, variant_regions
+from .source_variants import compose, load_profile, source_paths, variant_regions, target_include
 from . import variant_controls
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -33,8 +34,9 @@ INPUTS = ('tools/build_variant_source.py', 'tools/source_variants.py', 'tools/bu
 def input_names(profile: dict, config: dict) -> set[str]:
     names = set(INPUTS) | set(source_paths(profile)) | {f'config/variants/{profile["target"]}.json',
              f'config/targets/{profile["target"]}.json', config['linker_config']}
-    if profile['target'] in ('us-v1.3', 'us-v1.2'):names.add('tools/legacy_source.py')
-    if profile['target'] == 'us-v1.2':names.add('tools/earlier_source.py')
+    if profile['target'] in ('us-v1.3', 'us-v1.2', 'us-v1.1'):names.add('tools/legacy_source.py')
+    if profile['target'] in ('us-v1.2', 'us-v1.1'):names.add('tools/earlier_source.py')
+    if profile['target'] == 'us-v1.1':names.update(('tools/v11_source.py', 'tools/v11_controls.py'))
     return names
 
 
@@ -83,6 +85,11 @@ def gap_inputs(reference: bytes, config: dict, profile: dict, destination: Path)
             if cursor < end:
                 cpu_start, cpu_end = layout.span(bank, cursor + 32768, end + 32768)
                 mapped_start, mapped_end = cpu_start - 32768, cpu_end - 32768
+                name = f'bank{bank}_{cursor + 32768:04x}_{end + 32768:04x}.bin'
+                if name in profile.get('local_gap_overrides', {}):
+                    override = profile['local_gap_overrides'][name]
+                    mapped_start = int(override['cpu'], 0) - 32768
+                    mapped_end = mapped_start + override['size']
                 if mapped_start >= mapped_end:
                     raise ValueError('target asset gap collapses')
                 payload = prg[bank * 32768 + mapped_start:bank * 32768 + mapped_end]
@@ -91,6 +98,16 @@ def gap_inputs(reference: bytes, config: dict, profile: dict, destination: Path)
                 result.append({'name': name, 'bank': bank, 'cpu': f'0x{mapped_start + 32768:04x}',
                                'size': len(payload), 'sha256': digest(payload)})
             cursor = end + row['size']
+    for row in profile.get('extra_local_inputs', []):
+        bank, cpu, size = row['bank'], int(row['cpu'], 0), row['size']
+        if bank not in (0, 1) or type(size) is not int or not 0x8000 <= cpu < cpu + size <= 0x10000:
+            raise ValueError('invalid additional local input extent')
+        name = row['name']
+        if not re.fullmatch(r'[a-z0-9_]+\.bin', name) or any(x['name'] == name for x in result):
+            raise ValueError('invalid additional local input name')
+        payload = prg[bank * 32768 + cpu - 32768:bank * 32768 + cpu - 32768 + size]
+        (destination / name).write_bytes(payload)
+        result.append({'name': name, 'bank': bank, 'cpu': f'0x{cpu:04x}', 'size': size, 'sha256': digest(payload)})
     return result
 
 
@@ -121,7 +138,7 @@ def build(target_id: str, *, all_controls: bool) -> dict:
     (work / 'source').mkdir(parents=True, exist_ok=True)
     tools = verified_tools(ROOT)
     (work / 'source/rom.s').write_text(source)
-    shutil.copyfile(ROOT / 'include/nes.inc', work / 'source/nes.inc')
+    (work / 'source/nes.inc').write_text(target_include((ROOT / 'include/nes.inc').read_text(), profile))
     shutil.copyfile(ROOT / config['linker_config'], work / 'source/link.cfg')
     gaps = gap_inputs(reference, config, profile, work / 'inputs')
     candidate_path = assemble(work, tools, Path('source/rom.s'), Path('candidate'))
@@ -139,10 +156,15 @@ def build(target_id: str, *, all_controls: bool) -> dict:
     if not all_controls and target_id == 'us-v1.2':
         selected = [name for name in selected if name in catalogue]
         selected += [name for name in variant_controls.NEW_12 if name not in selected]
+    if target_id == 'us-v1.1' and not all_controls:
+        from .v11_controls import NEW, ADAPTED
+        selected = [name for name in selected if name in catalogue]
+        selected += [name for name in (*NEW, *sorted(ADAPTED), 'compute_bank_selection', 'set_initial_map_tile_position')
+                     if name not in selected]
     controls = []
     folder = work / 'controls'
     folder.mkdir(exist_ok=True)
-    include = (ROOT / 'include/nes.inc').read_bytes()
+    include = target_include((ROOT / 'include/nes.inc').read_text(), profile).encode()
     common_inputs = {'linker_sha256': hashes[config['linker_config']],
                      'gap_sha256': {row['name']: row['sha256'] for row in gaps},
                      'header_sha256': digest(reference[:16]), 'chr_sha256': digest(reference[65552:]),
@@ -196,8 +218,8 @@ def build(target_id: str, *, all_controls: bool) -> dict:
             print(f'{target_id}: {index}/{len(selected)} source controls', flush=True)
     symbol_controls = []
     if all_controls:
-        for name in SYMBOL_CONTROLS:
-            changed_include = mutate_include(include.decode(), name).encode()
+        for name in variant_controls.symbol_names(profile):
+            changed_include = variant_controls.mutate_symbol(include.decode(), name, target_id).encode()
             row = compile_control('symbol_' + name, source, changed_include,
                                   lambda payload: variant_controls.verify_symbol(reference, payload, regions, name, target_id))
             symbol_controls.append(row)

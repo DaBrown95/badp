@@ -1,0 +1,1957 @@
+{
+  "schema_version": 1,
+  "target": "us-v1.1",
+  "canonical_target": "us-v1.5",
+  "canonical_source": "src/us-v1.5/rom.s",
+  "canonical_map": "config/source-us-v1.5.json",
+  "reset_source": "src/variants/reset-us-v1.2.inc",
+  "bank_selection_source": "src/variants/bank-selection-us-v1.2.inc",
+  "native_definitions": [
+    "src/variants/controller2-us-v1.3.inc",
+    "src/variants/native-inlines-us-v1.3.inc"
+  ],
+  "layout": [
+    {
+      "bank": 0,
+      "start": "0x8000",
+      "end": "0x8150",
+      "delta": 0
+    },
+    {
+      "bank": 0,
+      "start": "0x8150",
+      "end": "0x817b",
+      "delta": -288
+    },
+    {
+      "bank": 0,
+      "start": "0x817b",
+      "end": "0x820b",
+      "delta": -317
+    },
+    {
+      "bank": 0,
+      "start": "0x820b",
+      "end": "0x8291",
+      "delta": -345
+    },
+    {
+      "bank": 0,
+      "start": "0x8291",
+      "end": "0x82ec",
+      "delta": -363
+    },
+    {
+      "bank": 0,
+      "start": "0x82ec",
+      "end": "0x8334",
+      "delta": -292
+    },
+    {
+      "bank": 0,
+      "start": "0x8334",
+      "end": "0x8389",
+      "delta": -220
+    },
+    {
+      "bank": 0,
+      "start": "0x8389",
+      "end": "0x844b",
+      "delta": -219
+    },
+    {
+      "bank": 0,
+      "start": "0x844b",
+      "end": "0x8504",
+      "delta": -212
+    },
+    {
+      "bank": 0,
+      "start": "0x8504",
+      "end": "0x85e8",
+      "delta": -208
+    },
+    {
+      "bank": 0,
+      "start": "0x85e8",
+      "end": "0x86de",
+      "delta": -184
+    },
+    {
+      "bank": 0,
+      "start": "0x86de",
+      "end": "0x874b",
+      "delta": -183
+    },
+    {
+      "bank": 0,
+      "start": "0x874b",
+      "end": "0x8883",
+      "delta": -179
+    },
+    {
+      "bank": 0,
+      "start": "0x8883",
+      "end": "0x8892",
+      "delta": -185
+    },
+    {
+      "bank": 0,
+      "start": "0x8892",
+      "end": "0x88e6",
+      "delta": -190
+    },
+    {
+      "bank": 0,
+      "start": "0x88e6",
+      "end": "0x8cae",
+      "delta": -213
+    },
+    {
+      "bank": 0,
+      "start": "0x8cae",
+      "end": "0x8d8b",
+      "delta": -218
+    },
+    {
+      "bank": 0,
+      "start": "0x8d8b",
+      "end": "0x90e2",
+      "delta": -232
+    },
+    {
+      "bank": 0,
+      "start": "0x90e2",
+      "end": "0x9216",
+      "delta": -226
+    },
+    {
+      "bank": 0,
+      "start": "0x9216",
+      "end": "0x9229",
+      "delta": -220
+    },
+    {
+      "bank": 0,
+      "start": "0x9229",
+      "end": "0x92f5",
+      "delta": -217
+    },
+    {
+      "bank": 0,
+      "start": "0x92f5",
+      "end": "0x93cd",
+      "delta": -216
+    },
+    {
+      "bank": 0,
+      "start": "0x93cd",
+      "end": "0x96a8",
+      "delta": -219
+    },
+    {
+      "bank": 0,
+      "start": "0x96a8",
+      "end": "0x96db",
+      "delta": -207
+    },
+    {
+      "bank": 0,
+      "start": "0x96db",
+      "end": "0x9790",
+      "delta": -195
+    },
+    {
+      "bank": 0,
+      "start": "0x9790",
+      "end": "0x97b7",
+      "delta": -171
+    },
+    {
+      "bank": 0,
+      "start": "0x97b7",
+      "end": "0x97c8",
+      "delta": -147
+    },
+    {
+      "bank": 0,
+      "start": "0x97c8",
+      "end": "0x98f1",
+      "delta": -163
+    },
+    {
+      "bank": 0,
+      "start": "0x98f1",
+      "end": "0x990b",
+      "delta": -169
+    },
+    {
+      "bank": 0,
+      "start": "0x990b",
+      "end": "0x9916",
+      "delta": -166
+    },
+    {
+      "bank": 0,
+      "start": "0x9916",
+      "end": "0x9a15",
+      "delta": -149
+    },
+    {
+      "bank": 0,
+      "start": "0x9a15",
+      "end": "0x9a20",
+      "delta": -126
+    },
+    {
+      "bank": 0,
+      "start": "0x9a20",
+      "end": "0x9a35",
+      "delta": -109
+    },
+    {
+      "bank": 0,
+      "start": "0x9a35",
+      "end": "0x9adc",
+      "delta": -130
+    },
+    {
+      "bank": 0,
+      "start": "0x9adc",
+      "end": "0x9af4",
+      "delta": -139
+    },
+    {
+      "bank": 0,
+      "start": "0x9af4",
+      "end": "0x9c05",
+      "delta": -134
+    },
+    {
+      "bank": 0,
+      "start": "0x9c05",
+      "end": "0x9c10",
+      "delta": -114
+    },
+    {
+      "bank": 0,
+      "start": "0x9c10",
+      "end": "0x9e19",
+      "delta": -97
+    },
+    {
+      "bank": 0,
+      "start": "0x9e19",
+      "end": "0x9e1f",
+      "delta": -103
+    },
+    {
+      "bank": 0,
+      "start": "0x9e1f",
+      "end": "0x9e2f",
+      "delta": -89
+    },
+    {
+      "bank": 0,
+      "start": "0x9e2f",
+      "end": "0x9e35",
+      "delta": -115
+    },
+    {
+      "bank": 0,
+      "start": "0x9e35",
+      "end": "0x9f06",
+      "delta": -104
+    },
+    {
+      "bank": 0,
+      "start": "0x9f06",
+      "end": "0xa1b2",
+      "delta": -96
+    },
+    {
+      "bank": 0,
+      "start": "0xa1b2",
+      "end": "0xaaa4",
+      "delta": -18
+    },
+    {
+      "bank": 0,
+      "start": "0xaaa4",
+      "end": "0xb5d3",
+      "delta": -10
+    },
+    {
+      "bank": 0,
+      "start": "0xb5d3",
+      "end": "0xba23",
+      "delta": -193
+    },
+    {
+      "bank": 0,
+      "start": "0xba23",
+      "end": "0xc7df",
+      "delta": 540
+    },
+    {
+      "bank": 0,
+      "start": "0xc7df",
+      "end": "0xca5d",
+      "delta": -3709
+    },
+    {
+      "bank": 0,
+      "start": "0xca5d",
+      "end": "0xcb74",
+      "delta": -98
+    },
+    {
+      "bank": 0,
+      "start": "0xcb74",
+      "end": "0xcb98",
+      "delta": -89
+    },
+    {
+      "bank": 0,
+      "start": "0xcb98",
+      "end": "0xcbe4",
+      "delta": -80
+    },
+    {
+      "bank": 0,
+      "start": "0xcbe4",
+      "end": "0xcc82",
+      "delta": -94
+    },
+    {
+      "bank": 0,
+      "start": "0xcc82",
+      "end": "0xcc83",
+      "delta": -98
+    },
+    {
+      "bank": 0,
+      "start": "0xcc83",
+      "end": "0xcc8c",
+      "delta": -99
+    },
+    {
+      "bank": 0,
+      "start": "0xcc8c",
+      "end": "0xccc7",
+      "delta": -80
+    },
+    {
+      "bank": 0,
+      "start": "0xccc7",
+      "end": "0xcf84",
+      "delta": -79
+    },
+    {
+      "bank": 0,
+      "start": "0xcf84",
+      "end": "0xcfb9",
+      "delta": -77
+    },
+    {
+      "bank": 0,
+      "start": "0xcfb9",
+      "end": "0xcfca",
+      "delta": -78
+    },
+    {
+      "bank": 0,
+      "start": "0xcfca",
+      "end": "0xd016",
+      "delta": -90
+    },
+    {
+      "bank": 0,
+      "start": "0xd016",
+      "end": "0xd27a",
+      "delta": -91
+    },
+    {
+      "bank": 0,
+      "start": "0xd27a",
+      "end": "0xd2a2",
+      "delta": -82
+    },
+    {
+      "bank": 0,
+      "start": "0xd2a2",
+      "end": "0xd2c4",
+      "delta": -73
+    },
+    {
+      "bank": 0,
+      "start": "0xd2c4",
+      "end": "0xd2ef",
+      "delta": -84
+    },
+    {
+      "bank": 0,
+      "start": "0xd2ef",
+      "end": "0xd2f8",
+      "delta": -81
+    },
+    {
+      "bank": 0,
+      "start": "0xd2f8",
+      "end": "0xd386",
+      "delta": -86
+    },
+    {
+      "bank": 0,
+      "start": "0xd386",
+      "end": "0xd64a",
+      "delta": -87
+    },
+    {
+      "bank": 0,
+      "start": "0xd64a",
+      "end": "0xd70f",
+      "delta": -88
+    },
+    {
+      "bank": 0,
+      "start": "0xd70f",
+      "end": "0xd71d",
+      "delta": -89
+    },
+    {
+      "bank": 0,
+      "start": "0xd71d",
+      "end": "0xd7dc",
+      "delta": -88
+    },
+    {
+      "bank": 0,
+      "start": "0xd7dc",
+      "end": "0xd801",
+      "delta": -87
+    },
+    {
+      "bank": 0,
+      "start": "0xd801",
+      "end": "0xd808",
+      "delta": -85
+    },
+    {
+      "bank": 0,
+      "start": "0xd808",
+      "end": "0xd820",
+      "delta": -87
+    },
+    {
+      "bank": 0,
+      "start": "0xd820",
+      "end": "0xd836",
+      "delta": -104
+    },
+    {
+      "bank": 0,
+      "start": "0xd836",
+      "end": "0xd849",
+      "delta": -103
+    },
+    {
+      "bank": 0,
+      "start": "0xd849",
+      "end": "0xd8bb",
+      "delta": -101
+    },
+    {
+      "bank": 0,
+      "start": "0xd8bb",
+      "end": "0xd910",
+      "delta": -100
+    },
+    {
+      "bank": 0,
+      "start": "0xd910",
+      "end": "0xd9aa",
+      "delta": -98
+    },
+    {
+      "bank": 0,
+      "start": "0xd9aa",
+      "end": "0xda10",
+      "delta": -97
+    },
+    {
+      "bank": 0,
+      "start": "0xda10",
+      "end": "0xda3d",
+      "delta": -95
+    },
+    {
+      "bank": 0,
+      "start": "0xda3d",
+      "end": "0xda4e",
+      "delta": -93
+    },
+    {
+      "bank": 0,
+      "start": "0xda4e",
+      "end": "0xda51",
+      "delta": -91
+    },
+    {
+      "bank": 0,
+      "start": "0xda51",
+      "end": "0xdab7",
+      "delta": -90
+    },
+    {
+      "bank": 0,
+      "start": "0xdab7",
+      "end": "0xdace",
+      "delta": -88
+    },
+    {
+      "bank": 0,
+      "start": "0xdace",
+      "end": "0xdb7d",
+      "delta": -87
+    },
+    {
+      "bank": 0,
+      "start": "0xdb7d",
+      "end": "0xdceb",
+      "delta": -86
+    },
+    {
+      "bank": 0,
+      "start": "0xdceb",
+      "end": "0xdcff",
+      "delta": -84
+    },
+    {
+      "bank": 0,
+      "start": "0xdcff",
+      "end": "0xdde5",
+      "delta": -82
+    },
+    {
+      "bank": 0,
+      "start": "0xdde5",
+      "end": "0xdf5b",
+      "delta": -81
+    },
+    {
+      "bank": 0,
+      "start": "0xdf5b",
+      "end": "0xdf6d",
+      "delta": -79
+    },
+    {
+      "bank": 0,
+      "start": "0xdf6d",
+      "end": "0xdf78",
+      "delta": -77
+    },
+    {
+      "bank": 0,
+      "start": "0xdf78",
+      "end": "0xdf7e",
+      "delta": -76
+    },
+    {
+      "bank": 0,
+      "start": "0xdf7e",
+      "end": "0xdf99",
+      "delta": -75
+    },
+    {
+      "bank": 0,
+      "start": "0xdf99",
+      "end": "0xdf9f",
+      "delta": -74
+    },
+    {
+      "bank": 0,
+      "start": "0xdf9f",
+      "end": "0xdfe5",
+      "delta": -73
+    },
+    {
+      "bank": 0,
+      "start": "0xdfe5",
+      "end": "0xe026",
+      "delta": -72
+    },
+    {
+      "bank": 0,
+      "start": "0xe026",
+      "end": "0xe049",
+      "delta": -64
+    },
+    {
+      "bank": 0,
+      "start": "0xe049",
+      "end": "0xe05e",
+      "delta": -57
+    },
+    {
+      "bank": 0,
+      "start": "0xe05e",
+      "end": "0xe067",
+      "delta": -53
+    },
+    {
+      "bank": 0,
+      "start": "0xe067",
+      "end": "0xe071",
+      "delta": -47
+    },
+    {
+      "bank": 0,
+      "start": "0xe071",
+      "end": "0xe07a",
+      "delta": -46
+    },
+    {
+      "bank": 0,
+      "start": "0xe07a",
+      "end": "0xe0ae",
+      "delta": -45
+    },
+    {
+      "bank": 0,
+      "start": "0xe0ae",
+      "end": "0xe0dd",
+      "delta": -43
+    },
+    {
+      "bank": 0,
+      "start": "0xe0dd",
+      "end": "0xe202",
+      "delta": -42
+    },
+    {
+      "bank": 0,
+      "start": "0xe202",
+      "end": "0xe221",
+      "delta": -44
+    },
+    {
+      "bank": 0,
+      "start": "0xe221",
+      "end": "0xe28f",
+      "delta": -46
+    },
+    {
+      "bank": 0,
+      "start": "0xe28f",
+      "end": "0xe29a",
+      "delta": -44
+    },
+    {
+      "bank": 0,
+      "start": "0xe29a",
+      "end": "0xe2b6",
+      "delta": -42
+    },
+    {
+      "bank": 0,
+      "start": "0xe2b6",
+      "end": "0xe30f",
+      "delta": -41
+    },
+    {
+      "bank": 0,
+      "start": "0xe30f",
+      "end": "0xe32e",
+      "delta": -44
+    },
+    {
+      "bank": 0,
+      "start": "0xe32e",
+      "end": "0xe363",
+      "delta": -42
+    },
+    {
+      "bank": 0,
+      "start": "0xe363",
+      "end": "0xe3c9",
+      "delta": -34
+    },
+    {
+      "bank": 0,
+      "start": "0xe3c9",
+      "end": "0xe40d",
+      "delta": -26
+    },
+    {
+      "bank": 0,
+      "start": "0xe40d",
+      "end": "0xe42b",
+      "delta": -27
+    },
+    {
+      "bank": 0,
+      "start": "0xe42b",
+      "end": "0xe434",
+      "delta": -25
+    },
+    {
+      "bank": 0,
+      "start": "0xe434",
+      "end": "0xe452",
+      "delta": -23
+    },
+    {
+      "bank": 0,
+      "start": "0xe452",
+      "end": "0xe526",
+      "delta": -21
+    },
+    {
+      "bank": 0,
+      "start": "0xe526",
+      "end": "0xe532",
+      "delta": -18
+    },
+    {
+      "bank": 0,
+      "start": "0xe532",
+      "end": "0xe5d8",
+      "delta": -27
+    },
+    {
+      "bank": 0,
+      "start": "0xe5d8",
+      "end": "0xe5f3",
+      "delta": -24
+    },
+    {
+      "bank": 0,
+      "start": "0xe5f3",
+      "end": "0xe75b",
+      "delta": -22
+    },
+    {
+      "bank": 0,
+      "start": "0xe75b",
+      "end": "0xe780",
+      "delta": -26
+    },
+    {
+      "bank": 0,
+      "start": "0xe780",
+      "end": "0xe7c4",
+      "delta": -18
+    },
+    {
+      "bank": 0,
+      "start": "0xe7c4",
+      "end": "0xe830",
+      "delta": -16
+    },
+    {
+      "bank": 0,
+      "start": "0xe830",
+      "end": "0xe882",
+      "delta": -14
+    },
+    {
+      "bank": 0,
+      "start": "0xe882",
+      "end": "0xe88c",
+      "delta": -13
+    },
+    {
+      "bank": 0,
+      "start": "0xe88c",
+      "end": "0xe88f",
+      "delta": -10
+    },
+    {
+      "bank": 0,
+      "start": "0xe88f",
+      "end": "0xe8b6",
+      "delta": -9
+    },
+    {
+      "bank": 0,
+      "start": "0xe8b6",
+      "end": "0xe963",
+      "delta": -10
+    },
+    {
+      "bank": 0,
+      "start": "0xe963",
+      "end": "0xe967",
+      "delta": -11
+    },
+    {
+      "bank": 0,
+      "start": "0xe967",
+      "end": "0xe9a0",
+      "delta": -12
+    },
+    {
+      "bank": 0,
+      "start": "0xe9a0",
+      "end": "0xeaf6",
+      "delta": -10
+    },
+    {
+      "bank": 0,
+      "start": "0xeaf6",
+      "end": "0xeb7a",
+      "delta": -41
+    },
+    {
+      "bank": 0,
+      "start": "0xeb7a",
+      "end": "0xeb8b",
+      "delta": -46
+    },
+    {
+      "bank": 0,
+      "start": "0xeb8b",
+      "end": "0xec5c",
+      "delta": -47
+    },
+    {
+      "bank": 0,
+      "start": "0xec5c",
+      "end": "0xef89",
+      "delta": -46
+    },
+    {
+      "bank": 0,
+      "start": "0xef89",
+      "end": "0xf1eb",
+      "delta": -48
+    },
+    {
+      "bank": 0,
+      "start": "0xf1eb",
+      "end": "0xf2cc",
+      "delta": -47
+    },
+    {
+      "bank": 0,
+      "start": "0xf2cc",
+      "end": "0xf421",
+      "delta": -50
+    },
+    {
+      "bank": 0,
+      "start": "0xf421",
+      "end": "0xf469",
+      "delta": -41
+    },
+    {
+      "bank": 0,
+      "start": "0xf469",
+      "end": "0xf479",
+      "delta": -32
+    },
+    {
+      "bank": 0,
+      "start": "0xf479",
+      "end": "0xf47e",
+      "delta": -57
+    },
+    {
+      "bank": 0,
+      "start": "0xf47e",
+      "end": "0xf4d9",
+      "delta": -37
+    },
+    {
+      "bank": 0,
+      "start": "0xf4d9",
+      "end": "0xf511",
+      "delta": -38
+    },
+    {
+      "bank": 0,
+      "start": "0xf511",
+      "end": "0xf537",
+      "delta": -43
+    },
+    {
+      "bank": 0,
+      "start": "0xf537",
+      "end": "0xf56a",
+      "delta": -45
+    },
+    {
+      "bank": 0,
+      "start": "0xf56a",
+      "end": "0xf577",
+      "delta": -42
+    },
+    {
+      "bank": 0,
+      "start": "0xf577",
+      "end": "0xf5ae",
+      "delta": -43
+    },
+    {
+      "bank": 0,
+      "start": "0xf5ae",
+      "end": "0xf5f1",
+      "delta": -44
+    },
+    {
+      "bank": 0,
+      "start": "0xf5f1",
+      "end": "0xf63c",
+      "delta": -45
+    },
+    {
+      "bank": 0,
+      "start": "0xf63c",
+      "end": "0xf681",
+      "delta": -41
+    },
+    {
+      "bank": 0,
+      "start": "0xf681",
+      "end": "0xf6be",
+      "delta": -33
+    },
+    {
+      "bank": 0,
+      "start": "0xf6be",
+      "end": "0xf866",
+      "delta": -25
+    },
+    {
+      "bank": 0,
+      "start": "0xf866",
+      "end": "0xf89f",
+      "delta": -22
+    },
+    {
+      "bank": 0,
+      "start": "0xf89f",
+      "end": "0xf965",
+      "delta": -27
+    },
+    {
+      "bank": 0,
+      "start": "0xf965",
+      "end": "0xfa34",
+      "delta": -28
+    },
+    {
+      "bank": 0,
+      "start": "0xfa34",
+      "end": "0xfa4a",
+      "delta": -26
+    },
+    {
+      "bank": 0,
+      "start": "0xfa4a",
+      "end": "0xfa96",
+      "delta": -24
+    },
+    {
+      "bank": 0,
+      "start": "0xfa96",
+      "end": "0xfae5",
+      "delta": -25
+    },
+    {
+      "bank": 0,
+      "start": "0xfae5",
+      "end": "0xfda7",
+      "delta": -26
+    },
+    {
+      "bank": 0,
+      "start": "0xfda7",
+      "end": "0xfe6c",
+      "delta": -17
+    },
+    {
+      "bank": 0,
+      "start": "0xfe6c",
+      "end": "0xffb3",
+      "delta": -18
+    },
+    {
+      "bank": 0,
+      "start": "0xffb3",
+      "end": "0xfffa",
+      "delta": -6
+    },
+    {
+      "bank": 0,
+      "start": "0xfffa",
+      "end": "0x10000",
+      "delta": 0
+    },
+    {
+      "bank": 1,
+      "start": "0x8000",
+      "end": "0xa6d0",
+      "delta": 0
+    },
+    {
+      "bank": 1,
+      "start": "0xa6d0",
+      "end": "0xad58",
+      "delta": -8
+    },
+    {
+      "bank": 1,
+      "start": "0xad58",
+      "end": "0xaebc",
+      "delta": -19
+    },
+    {
+      "bank": 1,
+      "start": "0xaebc",
+      "end": "0xaf05",
+      "delta": -14
+    },
+    {
+      "bank": 1,
+      "start": "0xaf05",
+      "end": "0xaf0d",
+      "delta": 15
+    },
+    {
+      "bank": 1,
+      "start": "0xaf0d",
+      "end": "0xaf19",
+      "delta": 12
+    },
+    {
+      "bank": 1,
+      "start": "0xaf19",
+      "end": "0xaf1f",
+      "delta": 9
+    },
+    {
+      "bank": 1,
+      "start": "0xaf1f",
+      "end": "0xaf25",
+      "delta": 6
+    },
+    {
+      "bank": 1,
+      "start": "0xaf25",
+      "end": "0xaf4a",
+      "delta": 3
+    },
+    {
+      "bank": 1,
+      "start": "0xaf4a",
+      "end": "0xaf51",
+      "delta": 9
+    },
+    {
+      "bank": 1,
+      "start": "0xaf51",
+      "end": "0xaf54",
+      "delta": 6
+    },
+    {
+      "bank": 1,
+      "start": "0xaf54",
+      "end": "0xaf57",
+      "delta": 3
+    },
+    {
+      "bank": 1,
+      "start": "0xaf57",
+      "end": "0xaf5b",
+      "delta": 0
+    },
+    {
+      "bank": 1,
+      "start": "0xaf5b",
+      "end": "0xaf5f",
+      "delta": 2
+    },
+    {
+      "bank": 1,
+      "start": "0xaf5f",
+      "end": "0xaf61",
+      "delta": -2
+    },
+    {
+      "bank": 1,
+      "start": "0xaf61",
+      "end": "0xaf63",
+      "delta": -4
+    },
+    {
+      "bank": 1,
+      "start": "0xaf63",
+      "end": "0xb092",
+      "delta": -6
+    },
+    {
+      "bank": 1,
+      "start": "0xb092",
+      "end": "0xb096",
+      "delta": -8
+    },
+    {
+      "bank": 1,
+      "start": "0xb096",
+      "end": "0xb0a4",
+      "delta": -12
+    },
+    {
+      "bank": 1,
+      "start": "0xb0a4",
+      "end": "0xb0a6",
+      "delta": -16
+    },
+    {
+      "bank": 1,
+      "start": "0xb0a6",
+      "end": "0xb0a9",
+      "delta": -18
+    },
+    {
+      "bank": 1,
+      "start": "0xb0a9",
+      "end": "0xb0ae",
+      "delta": -21
+    },
+    {
+      "bank": 1,
+      "start": "0xb0ae",
+      "end": "0xb0b0",
+      "delta": -26
+    },
+    {
+      "bank": 1,
+      "start": "0xb0b0",
+      "end": "0xb0b3",
+      "delta": -28
+    },
+    {
+      "bank": 1,
+      "start": "0xb0b3",
+      "end": "0xb0b5",
+      "delta": -31
+    },
+    {
+      "bank": 1,
+      "start": "0xb0b5",
+      "end": "0xb0b8",
+      "delta": -33
+    },
+    {
+      "bank": 1,
+      "start": "0xb0b8",
+      "end": "0xb0bd",
+      "delta": -36
+    },
+    {
+      "bank": 1,
+      "start": "0xb0bd",
+      "end": "0xb0c0",
+      "delta": -41
+    },
+    {
+      "bank": 1,
+      "start": "0xb0c0",
+      "end": "0xb10e",
+      "delta": -44
+    },
+    {
+      "bank": 1,
+      "start": "0xb10e",
+      "end": "0xb118",
+      "delta": -40
+    },
+    {
+      "bank": 1,
+      "start": "0xb118",
+      "end": "0xb18e",
+      "delta": -34
+    },
+    {
+      "bank": 1,
+      "start": "0xb18e",
+      "end": "0xb1f3",
+      "delta": -37
+    },
+    {
+      "bank": 1,
+      "start": "0xb1f3",
+      "end": "0xb20e",
+      "delta": -40
+    },
+    {
+      "bank": 1,
+      "start": "0xb20e",
+      "end": "0xb216",
+      "delta": -34
+    },
+    {
+      "bank": 1,
+      "start": "0xb216",
+      "end": "0xb22a",
+      "delta": -37
+    },
+    {
+      "bank": 1,
+      "start": "0xb22a",
+      "end": "0xb250",
+      "delta": -40
+    },
+    {
+      "bank": 1,
+      "start": "0xb250",
+      "end": "0xb268",
+      "delta": -43
+    },
+    {
+      "bank": 1,
+      "start": "0xb268",
+      "end": "0xb34c",
+      "delta": -46
+    },
+    {
+      "bank": 1,
+      "start": "0xb34c",
+      "end": "0xb353",
+      "delta": -48
+    },
+    {
+      "bank": 1,
+      "start": "0xb353",
+      "end": "0xb391",
+      "delta": -52
+    },
+    {
+      "bank": 1,
+      "start": "0xb391",
+      "end": "0xb3b1",
+      "delta": -47
+    },
+    {
+      "bank": 1,
+      "start": "0xb3b1",
+      "end": "0xb3ba",
+      "delta": -50
+    },
+    {
+      "bank": 1,
+      "start": "0xb3ba",
+      "end": "0xb765",
+      "delta": -53
+    },
+    {
+      "bank": 1,
+      "start": "0xb765",
+      "end": "0xb79d",
+      "delta": -59
+    },
+    {
+      "bank": 1,
+      "start": "0xb79d",
+      "end": "0xb9e0",
+      "delta": -57
+    },
+    {
+      "bank": 1,
+      "start": "0xb9e0",
+      "end": "0xbabd",
+      "delta": -55
+    },
+    {
+      "bank": 1,
+      "start": "0xbabd",
+      "end": "0xbad1",
+      "delta": -49
+    },
+    {
+      "bank": 1,
+      "start": "0xbad1",
+      "end": "0xbb9b",
+      "delta": -54
+    },
+    {
+      "bank": 1,
+      "start": "0xbb9b",
+      "end": "0xbbd2",
+      "delta": -57
+    },
+    {
+      "bank": 1,
+      "start": "0xbbd2",
+      "end": "0xbca8",
+      "delta": -61
+    },
+    {
+      "bank": 1,
+      "start": "0xbca8",
+      "end": "0xbdb6",
+      "delta": -76
+    },
+    {
+      "bank": 1,
+      "start": "0xbdb6",
+      "end": "0xbe81",
+      "delta": -91
+    },
+    {
+      "bank": 1,
+      "start": "0xbe81",
+      "end": "0xd05f",
+      "delta": -94
+    },
+    {
+      "bank": 1,
+      "start": "0xd05f",
+      "end": "0xd253",
+      "delta": -97
+    },
+    {
+      "bank": 1,
+      "start": "0xd253",
+      "end": "0xd3c9",
+      "delta": -100
+    },
+    {
+      "bank": 1,
+      "start": "0xd3c9",
+      "end": "0xd406",
+      "delta": -109
+    },
+    {
+      "bank": 1,
+      "start": "0xd406",
+      "end": "0xd42e",
+      "delta": -111
+    },
+    {
+      "bank": 1,
+      "start": "0xd42e",
+      "end": "0xd435",
+      "delta": -114
+    },
+    {
+      "bank": 1,
+      "start": "0xd435",
+      "end": "0xd470",
+      "delta": -117
+    },
+    {
+      "bank": 1,
+      "start": "0xd470",
+      "end": "0xd52b",
+      "delta": -121
+    },
+    {
+      "bank": 1,
+      "start": "0xd52b",
+      "end": "0xd68f",
+      "delta": -126
+    },
+    {
+      "bank": 1,
+      "start": "0xd68f",
+      "end": "0xd698",
+      "delta": -122
+    },
+    {
+      "bank": 1,
+      "start": "0xd698",
+      "end": "0xd6d7",
+      "delta": -116
+    },
+    {
+      "bank": 1,
+      "start": "0xd6d7",
+      "end": "0xd6e0",
+      "delta": -119
+    },
+    {
+      "bank": 1,
+      "start": "0xd6e0",
+      "end": "0xd6ea",
+      "delta": -128
+    },
+    {
+      "bank": 1,
+      "start": "0xd6ea",
+      "end": "0xd702",
+      "delta": -138
+    },
+    {
+      "bank": 1,
+      "start": "0xd702",
+      "end": "0xe8dc",
+      "delta": -162
+    },
+    {
+      "bank": 1,
+      "start": "0xe8dc",
+      "end": "0xee5f",
+      "delta": -153
+    },
+    {
+      "bank": 1,
+      "start": "0xee5f",
+      "end": "0xee62",
+      "delta": -156
+    },
+    {
+      "bank": 1,
+      "start": "0xee62",
+      "end": "0xee65",
+      "delta": -159
+    },
+    {
+      "bank": 1,
+      "start": "0xee65",
+      "end": "0xf0dc",
+      "delta": -162
+    },
+    {
+      "bank": 1,
+      "start": "0xf0dc",
+      "end": "0xf187",
+      "delta": -173
+    },
+    {
+      "bank": 1,
+      "start": "0xf187",
+      "end": "0xf1e8",
+      "delta": -177
+    },
+    {
+      "bank": 1,
+      "start": "0xf1e8",
+      "end": "0xf230",
+      "delta": -177
+    },
+    {
+      "bank": 1,
+      "start": "0xf230",
+      "end": "0xf2f7",
+      "delta": -178
+    },
+    {
+      "bank": 1,
+      "start": "0xf2f7",
+      "end": "0xf305",
+      "delta": -183
+    },
+    {
+      "bank": 1,
+      "start": "0xf305",
+      "end": "0xf333",
+      "delta": -188
+    },
+    {
+      "bank": 1,
+      "start": "0xf333",
+      "end": "0xf401",
+      "delta": -191
+    },
+    {
+      "bank": 1,
+      "start": "0xf401",
+      "end": "0xf40a",
+      "delta": -167
+    },
+    {
+      "bank": 1,
+      "start": "0xf40a",
+      "end": "0xfce3",
+      "delta": -172
+    },
+    {
+      "bank": 1,
+      "start": "0xfce3",
+      "end": "0xfd56",
+      "delta": -174
+    },
+    {
+      "bank": 1,
+      "start": "0xfd56",
+      "end": "0xfd65",
+      "delta": -177
+    },
+    {
+      "bank": 1,
+      "start": "0xfd65",
+      "end": "0xfd68",
+      "delta": -180
+    },
+    {
+      "bank": 1,
+      "start": "0xfd68",
+      "end": "0xfda7",
+      "delta": -183
+    },
+    {
+      "bank": 1,
+      "start": "0xfda7",
+      "end": "0xfe6c",
+      "delta": -17
+    },
+    {
+      "bank": 1,
+      "start": "0xfe6c",
+      "end": "0xffb3",
+      "delta": -18
+    },
+    {
+      "bank": 1,
+      "start": "0xffb3",
+      "end": "0xfffa",
+      "delta": -6
+    },
+    {
+      "bank": 1,
+      "start": "0xfffa",
+      "end": "0x10000",
+      "delta": 0
+    }
+  ],
+  "relocated_blocks": [
+    {
+      "bank": 0,
+      "start": "0x9efa",
+      "end": "0x9f06",
+      "target_start": "0x9e92"
+    },
+    {
+      "bank": 0,
+      "start": "0xb5d3",
+      "end": "0xba23",
+      "target_start": "0xb512"
+    },
+    {
+      "bank": 0,
+      "start": "0xba23",
+      "end": "0xc7df",
+      "target_start": "0xbc3f"
+    },
+    {
+      "bank": 0,
+      "start": "0xc7df",
+      "end": "0xca5d",
+      "target_start": "0xb962"
+    }
+  ],
+  "menu_brand_count_delta": -2,
+  "omit_source_regions": [
+    "bank0-scale-world-shift",
+    "bank0-map-queue-second-nametable",
+    "bank0-main-state-scale"
+  ],
+  "region_overrides": {
+    "bank1-candidate-audio-a6c8": {
+      "id": "bank0-opcode18-audio",
+      "bank": 0,
+      "cpu": "0x9e9e",
+      "size": 8
+    },
+    "bank1-alignment-fill-fd6a": {
+      "cpu": "0xfd25",
+      "size": 75
+    },
+    "bank1-script-prefix-af02": {
+      "id": "bank1-af02-pointer-fields",
+      "control": "v13_pointer_af02"
+    },
+    "bank0-alignment-fill-fff4": {
+      "cpu": "0xfff4",
+      "size": 6
+    },
+    "bank1-alignment-fill-fff4": {
+      "cpu": "0xfff4",
+      "size": 6
+    },
+    "bank0-alignment-fill-fd3f": {
+      "cpu": "0xfd25",
+      "size": 75
+    }
+  },
+  "primary_only_candidate_aliases": [
+    "E002",
+    "E099",
+    "EB0D",
+    "EBAD",
+    "E01A",
+    "E023",
+    "E090",
+    "B077",
+    "AF00",
+    "AF02-branch-prefix",
+    "E006",
+    "E07B",
+    "E0B6",
+    "EB00",
+    "DA51-opcode",
+    "B072-voice",
+    "D228-command",
+    "D559-pair",
+    "DB69-225B",
+    "DC26-67",
+    "E003-command",
+    "E075-command",
+    "E08A-67",
+    "E0B0-command",
+    "E0E8-command",
+    "E0EF-command",
+    "EF42-70"
+  ],
+  "changed_conditional_fields": [
+    "DB69 trailing field follows the moved script low byte.",
+    "D57C and EE65 alternate record fields follow their shared jump operands.",
+    "Audio AA49 retains its literal note encoding; its conditional target does not follow the moved AC7F label.",
+    "The secondary mode-gate fragment includes the BNE before the two PLAs; ordinary entry remains unproven.",
+    "The two main-state coordinate callers select a separate nineteen-byte unrolled helper."
+  ],
+  "scope": "Explicit shared-source v1.1 differences and physical geometry. Full-ROM equality, own decoded asset rebuilding, meaningful controls and reviewed inventory remain required; the profile alone is not acceptance.",
+  "code_windows": [
+    {
+      "id": "bank0-native-8000-803b",
+      "bank": 0,
+      "cpu": "0x8000",
+      "size": 59,
+      "kind": "code",
+      "control": "boot"
+    },
+    {
+      "id": "bank0-native-803e-8ea8",
+      "bank": 0,
+      "cpu": "0x803e",
+      "size": 3690,
+      "kind": "code",
+      "control": "nmi_frame"
+    },
+    {
+      "id": "bank0-native-8ed2-9186",
+      "bank": 0,
+      "cpu": "0x8ed2",
+      "size": 692,
+      "kind": "code",
+      "control": "update_audio_voices"
+    },
+    {
+      "id": "bank0-native-918b-918e",
+      "bank": 0,
+      "cpu": "0x918b",
+      "size": 3,
+      "kind": "code",
+      "control": "audio_all_tone_channels"
+    },
+    {
+      "id": "bank0-native-91e8-922a",
+      "bank": 0,
+      "cpu": "0x91e8",
+      "size": 66,
+      "kind": "code",
+      "control": "audio_voice_register_address"
+    },
+    {
+      "id": "bank0-native-92da-9e92",
+      "bank": 0,
+      "cpu": "0x92da",
+      "size": 3000,
+      "kind": "code",
+      "control": "write_audio_voice_period"
+    },
+    {
+      "id": "bank0-native-c9fb-d52e",
+      "bank": 0,
+      "cpu": "0xc9fb",
+      "size": 2867,
+      "kind": "code",
+      "control": "main_state_init"
+    },
+    {
+      "id": "bank0-native-d6b6-da23",
+      "bank": 0,
+      "cpu": "0xd6b6",
+      "size": 877,
+      "kind": "code",
+      "control": "script_op00"
+    },
+    {
+      "id": "bank0-native-da2b-fd25",
+      "bank": 0,
+      "cpu": "0xda2b",
+      "size": 8954,
+      "kind": "code",
+      "control": "script_op1f"
+    },
+    {
+      "id": "bank0-native-fd70-fd96",
+      "bank": 0,
+      "cpu": "0xfd70",
+      "size": 38,
+      "kind": "code",
+      "control": "script_native_call"
+    },
+    {
+      "id": "bank0-native-fe5a-ffb1",
+      "bank": 0,
+      "cpu": "0xfe5a",
+      "size": 343,
+      "kind": "code",
+      "control": "record_fetch"
+    },
+    {
+      "id": "bank0-native-ffc1-fff4",
+      "bank": 0,
+      "cpu": "0xffc1",
+      "size": 51,
+      "kind": "code",
+      "control": "nmi"
+    },
+    {
+      "id": "bank1-native-be8c-bf78",
+      "bank": 1,
+      "cpu": "0xbe8c",
+      "size": 236,
+      "kind": "code",
+      "control": "packed_text_decode"
+    },
+    {
+      "id": "bank1-native-fcb3-fd25",
+      "bank": 1,
+      "cpu": "0xfcb3",
+      "size": 114,
+      "kind": "code",
+      "control": "v11_secondary_controller"
+    },
+    {
+      "id": "bank1-native-fd70-fd96",
+      "bank": 1,
+      "cpu": "0xfd70",
+      "size": 38,
+      "kind": "code",
+      "control": "script_native_call"
+    },
+    {
+      "id": "bank1-native-fe5a-ffb1",
+      "bank": 1,
+      "cpu": "0xfe5a",
+      "size": 343,
+      "kind": "code",
+      "control": "record_fetch"
+    },
+    {
+      "id": "bank1-native-ffc1-fff4",
+      "bank": 1,
+      "cpu": "0xffc1",
+      "size": 51,
+      "kind": "code",
+      "control": "nmi"
+    }
+  ],
+  "code_window_scope": "Physical emitted native instruction windows; official instructions, modes and boundaries are separately verified. Windows are not exclusive routines, and changed-byte controls must cover every physical source region.",
+  "retired_primary_controls": {
+    "shift_left4": "The standalone four-left-shift entry is absent. Its two callers inline four ASLs; the three-shift native entry remains. Existing caller controls and the new inline-source control replace this obsolete boundary.",
+    "double_fe_pointer": "The FE/FF doubling helper is absent; seven caller sites inline its instructions. Native source is checked per instruction, with the inline-source control.",
+    "scale_position_by_eight": "The standalone chained-shift entry is absent. Both callers inline three paired shifts, represented in the shared native-inlines source.",
+    "shift_reference_right": "The standalone reference-shift helper is absent; its three paired operations are inline in the position update.",
+    "scale_world_shift": "The standalone world-shift helper is absent. Its three accumulator/$11 shifts are inline in the source-owned coordinate function.",
+    "shift_search_coordinate_right": "The standalone search-coordinate shift is absent; its three paired shifts are inline in the source-owned bounds caller.",
+    "shift_scrolled_slot_horizontal": "The standalone horizontal-slot shift is absent; indexed paired shifts are inline in the source-owned fraction caller.",
+    "pending_ppu_set_source": "The standalone EA/EB source helper is absent. Its four instructions appear inline at both PPU consumers.",
+    "advance_audio_command_two": "There is no two-byte-advance entry. Every former call becomes two calls to the retained one-byte advance, which keeps its control.",
+    "script_prefix_af02": "The actual three-byte form is an encoded pointer to InteractionScriptAF05 and a trailing E0 field. The primary conditional branch-prefix opcode does not survive relocation. The typed pointer source has its own control.",
+    "main_state_scale": "Both standalone scroll-base doubling helpers are absent; their paired shifts occur inline in the state setup. Caller controls and the shared inline-source control cover the current representation.",
+    "reset_dispatch": "The reset-state validator/countdown does not exist in v1.2. Its own mapper pulse sequence and explicit conflict constants have replacement controls.",
+    "scroll_x_tile_coordinate": "This convenience entry is absent. Its callers load the X coordinate inline and call the retained generic shift; caller and generic-shift controls cover the actual forms.",
+    "scroll_y_tile_coordinate": "This convenience entry is absent. Its callers load the Y coordinate inline and call the retained generic shift; caller and generic-shift controls cover the actual forms.",
+    "inferred_b0b0": "The connected v1.1 B085/B0C0 scripts omit the entire jump statement. Its labelled start/end coincide; no replacement bytes or routine is required.",
+    "direct_next_script_b0b3": "The connected v1.1 script omits the related value-test and jump block. Its labelled start/end coincide; existing labels preserve shared alternate entries without byte ownership.",
+    "slot_runtime_d6d7": "The descriptor record and its following script are absent; the corresponding descriptor is unavailable in v1.1.",
+    "bogus_d6e0": "The entire34-byte sequence is absent between the revised contact script and retained D702 successor. Its descriptor is unavailable; no invented substitute is required.",
+    "extended_script_ee62": "The three-byte branch is absent along with the preceding jump; the retained flag setter falls through to the independently represented overlay jump.",
+    "sweep_record_d3c0": "The redundant nine-byte sentinel record is absent between the directly referenced record and script in v1.1. The logical extent collapses.",
+    "script_opc4": "The tenth sprite-record reservation field and C4 setter/dispatch entry do not exist in this release. The196-entry table and ten-byte stride are explicit and controlled.",
+    "store_record_field_0a": "The field0A setter has no body or callers in this ten-byte sprite-record version. The retained allocator and sprite consumers have own meaningful controls.",
+    "fade_palette_load": "The entire183-byte native fade helper and its24 declared command calls are absent. Existing palette-stream handlers plus explicit older palette-selection scripts remain controlled.",
+    "fade_wait_vblank": "The whole fade helper, including this vblank loop, is absent; no fabricated substitute is required."
+  },
+  "source_control_adaptations": {
+    "script_op08": "Mutate the actual symbolic call target plus one so the control follows this target\u2019s relocated helper.",
+    "prepare_audio_note": "The former JSR is inline; mutate the surviving FE timing mask to FC in the same caller.",
+    "script_op9f": "The former JSR is inline; mutate the surviving compare jump target plus one in the same caller.",
+    "script_opa0": "The former JSR is inline; mutate the surviving zero initializer to one in the same caller.",
+    "apply_slot_offset": "The former first helper call is inline; mutate its surviving 03A6 state read to 03A7.",
+    "script_op2d": "Mutate the actual symbolic call target plus one so the control follows this target\u2019s relocated helper.",
+    "convert_slot_position": "The former scale helper call is inline; mutate the surviving 51 component read to 50 in the same caller.",
+    "pending_ppu_copy_banked": "The former source helper call is inline; mutate the surviving E7 bank selector read to E6 in the same caller.",
+    "record_voice_e01a": "The primary pointer edit changes its typed ROM location and breaks the conditional voice-word predicate. Mutate the actual record mode and corresponding conditional voice word coherently.",
+    "record_voice_e023": "The primary pointer edit changes its typed ROM location and breaks the conditional voice-word predicate. Mutate the actual record mode and corresponding conditional voice word coherently.",
+    "set_initial_map_tile_position": "The two generic calls become memory/accumulator shifts. Mutate the first actual source coordinate in the v1.2 macro.",
+    "queue_scroll_row": "The coordinate convenience call is inline; mutate the surviving tile-coordinate store in both exposed-row callers.",
+    "bogus_f0d1": "The old statement is absent or its physical interpretation changed. Mutate the named surviving operand/flag/pointer in tools/v11_controls.py; require a fresh comparison failure inside actual source-owned bytes.",
+    "overlay_ee65": "The old statement is absent or its physical interpretation changed. Mutate the named surviving operand/flag/pointer in tools/v11_controls.py; require a fresh comparison failure inside actual source-owned bytes.",
+    "successor_script_b34a": "The old statement is absent or its physical interpretation changed. Mutate the named surviving operand/flag/pointer in tools/v11_controls.py; require a fresh comparison failure inside actual source-owned bytes.",
+    "bogus_babd": "The old statement is absent or its physical interpretation changed. Mutate the named surviving operand/flag/pointer in tools/v11_controls.py; require a fresh comparison failure inside actual source-owned bytes.",
+    "background_palette_pointers": "The old statement is absent or its physical interpretation changed. Mutate the named surviving operand/flag/pointer in tools/v11_controls.py; require a fresh comparison failure inside actual source-owned bytes.",
+    "contact_script_e08a": "The old statement is absent or its physical interpretation changed. Mutate the named surviving operand/flag/pointer in tools/v11_controls.py; require a fresh comparison failure inside actual source-owned bytes.",
+    "context_contact_script_d67c": "The old statement is absent or its physical interpretation changed. Mutate the named surviving operand/flag/pointer in tools/v11_controls.py; require a fresh comparison failure inside actual source-owned bytes.",
+    "branch_script_fd65": "The old statement is absent or its physical interpretation changed. Mutate the named surviving operand/flag/pointer in tools/v11_controls.py; require a fresh comparison failure inside actual source-owned bytes.",
+    "slot_flow_d5cc": "The old statement is absent or its physical interpretation changed. Mutate the named surviving operand/flag/pointer in tools/v11_controls.py; require a fresh comparison failure inside actual source-owned bytes.",
+    "allocate_sprite_search": "The old statement is absent or its physical interpretation changed. Mutate the named surviving operand/flag/pointer in tools/v11_controls.py; require a fresh comparison failure inside actual source-owned bytes.",
+    "sprite_palette_pointers": "The old statement is absent or its physical interpretation changed. Mutate the named surviving operand/flag/pointer in tools/v11_controls.py; require a fresh comparison failure inside actual source-owned bytes.",
+    "context_direct_record_d68f": "The old statement is absent or its physical interpretation changed. Mutate the named surviving operand/flag/pointer in tools/v11_controls.py; require a fresh comparison failure inside actual source-owned bytes.",
+    "context_f401": "The old statement is absent or its physical interpretation changed. Mutate the named surviving operand/flag/pointer in tools/v11_controls.py; require a fresh comparison failure inside actual source-owned bytes.",
+    "contact_script_dc26": "The old statement is absent or its physical interpretation changed. Mutate the named surviving operand/flag/pointer in tools/v11_controls.py; require a fresh comparison failure inside actual source-owned bytes.",
+    "allocate_sprite_find_space": "The old statement is absent or its physical interpretation changed. Mutate the named surviving operand/flag/pointer in tools/v11_controls.py; require a fresh comparison failure inside actual source-owned bytes.",
+    "successor_script_af59": "The old statement is absent or its physical interpretation changed. Mutate the named surviving operand/flag/pointer in tools/v11_controls.py; require a fresh comparison failure inside actual source-owned bytes.",
+    "script_op5f": "This RAM field moved between zero page and absolute storage. Change the actual target operand to its adjacent address while preserving its instruction/addressing width; require own comparison failure in source-owned native bytes.",
+    "script_op60": "This RAM field moved between zero page and absolute storage. Change the actual target operand to its adjacent address while preserving its instruction/addressing width; require own comparison failure in source-owned native bytes.",
+    "slot_update_limits": "This RAM field moved between zero page and absolute storage. Change the actual target operand to its adjacent address while preserving its instruction/addressing width; require own comparison failure in source-owned native bytes.",
+    "slot_draw_check_release": "This RAM field moved between zero page and absolute storage. Change the actual target operand to its adjacent address while preserving its instruction/addressing width; require own comparison failure in source-owned native bytes.",
+    "select_slot_horizontal_motion": "This RAM field moved between zero page and absolute storage. Change the actual target operand to its adjacent address while preserving its instruction/addressing width; require own comparison failure in source-owned native bytes.",
+    "select_slot_vertical_motion": "This RAM field moved between zero page and absolute storage. Change the actual target operand to its adjacent address while preserving its instruction/addressing width; require own comparison failure in source-owned native bytes."
+  },
+  "earlier_definitions": [
+    "src/variants/native-inlines-us-v1.2.inc"
+  ],
+  "extra_regions": [
+    {
+      "id": "bank0-reset-conflict-values",
+      "bank": 0,
+      "cpu": "0x803b",
+      "size": 3,
+      "kind": "data",
+      "control": "v12_reset_table"
+    },
+    {
+      "id": "bank0-v11-palette-header-26",
+      "bank": 0,
+      "cpu": "0xbbe0",
+      "size": 3,
+      "kind": "data",
+      "control": "v11_extra_palettes"
+    },
+    {
+      "id": "bank0-v11-palette-header-27",
+      "bank": 0,
+      "cpu": "0xbbf3",
+      "size": 3,
+      "kind": "data",
+      "control": "v11_extra_palettes"
+    },
+    {
+      "id": "bank0-v11-palette-header-28",
+      "bank": 0,
+      "cpu": "0xbc06",
+      "size": 3,
+      "kind": "data",
+      "control": "v11_extra_palettes"
+    },
+    {
+      "id": "bank0-v11-palette-header-29",
+      "bank": 0,
+      "cpu": "0xbc19",
+      "size": 3,
+      "kind": "data",
+      "control": "v11_extra_palettes"
+    },
+    {
+      "id": "bank0-v11-palette-header-30",
+      "bank": 0,
+      "cpu": "0xbc2c",
+      "size": 3,
+      "kind": "data",
+      "control": "v11_extra_palettes"
+    },
+    {
+      "id": "bank1-v11-menu-palette-rows",
+      "bank": 1,
+      "cpu": "0xf340",
+      "size": 26,
+      "kind": "data",
+      "control": "v11_menu_palettes"
+    }
+  ],
+  "earlier_controls_not_carried_forward": {
+    "v13_shared_return_tail": "Replaced by the five-byte branch/return source component and v12_mode_return control.",
+    "v13_mapper_prefix": "The extra 08/09 half is absent; the retained sixteen-entry 0C/0D table keeps the primary table control.",
+    "v12_mode_return": "The secondary gate is part of the114-byte copied native controller tail, with its own source control and shared gate instruction controls. The old standalone fragment macro is unused."
+  },
+  "local_gap_overrides": {
+    "bank1_f357_f401.bin": {
+      "cpu": "0xf298",
+      "size": 168
+    }
+  },
+  "data_source": "src/variants/data-us-v1.1.json",
+  "script_source": "src/variants/scripts-us-v1.1.inc",
+  "palette_source": "src/variants/palettes-us-v1.1.inc",
+  "palette_manifest": "config/palettes-us-v1.1.json",
+  "retired_data_regions": {
+    "bank1-inferred-b0b0": "The connected v1.1 B085/B0C0 scripts omit the entire jump statement. Its labelled start/end coincide; no replacement bytes or routine is required.",
+    "bank1-direct-next-script-b0b3": "The connected v1.1 script omits the related value-test and jump block. Its labelled start/end coincide; existing labels preserve shared alternate entries without byte ownership.",
+    "bank1-sweep-record-d3c0": "The redundant nine-byte sentinel record is absent between the directly referenced record and script in v1.1. The logical extent collapses.",
+    "bank1-slot-record-d6d7": "The descriptor record and its following script are absent; the corresponding descriptor is unavailable in v1.1.",
+    "bank1-script-d6e0": "The entire34-byte sequence is absent between the revised contact script and retained D702 successor. Its descriptor is unavailable; no invented substitute is required.",
+    "bank1-extended-script-ee62": "The three-byte branch is absent along with the preceding jump; the retained flag setter falls through to the independently represented overlay jump."
+  },
+  "extra_local_inputs": [
+    {
+      "name": "v11_palette_26.bin",
+      "bank": 0,
+      "cpu": "0xbbe3",
+      "size": 16
+    },
+    {
+      "name": "v11_palette_27.bin",
+      "bank": 0,
+      "cpu": "0xbbf6",
+      "size": 16
+    },
+    {
+      "name": "v11_palette_28.bin",
+      "bank": 0,
+      "cpu": "0xbc09",
+      "size": 16
+    },
+    {
+      "name": "v11_palette_29.bin",
+      "bank": 0,
+      "cpu": "0xbc1c",
+      "size": 16
+    },
+    {
+      "name": "v11_palette_30.bin",
+      "bank": 0,
+      "cpu": "0xbc2f",
+      "size": 16
+    }
+  ],
+  "menu_region_end": 29504,
+  "nominal_script_entries": 196,
+  "descriptor_count": 127,
+  "conditional_native_transfer_sites": {
+    "0xfcd3": {
+      "target_cpu": "0xfbe0",
+      "decision": "This114-byte bank1 view retains the bank0 controller-tail operands at identical PCs. No ordinary bank1 entry or bank transition is asserted; arbitrary entry does not identify a missing routine."
+    },
+    "0xfd11": {
+      "target_cpu": "0x83bb",
+      "decision": "This114-byte bank1 view retains the bank0 controller-tail operands at identical PCs. No ordinary bank1 entry or bank transition is asserted; arbitrary entry does not identify a missing routine."
+    },
+    "0xfd1a": {
+      "target_cpu": "0x8377",
+      "decision": "This114-byte bank1 view retains the bank0 controller-tail operands at identical PCs. No ordinary bank1 entry or bank transition is asserted; arbitrary entry does not identify a missing routine."
+    }
+  },
+  "additional_script_roots": [
+    "0xaef7",
+    "0xd61f",
+    "0xf340"
+  ]
+}

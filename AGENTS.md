@@ -72,9 +72,9 @@ Follow the user's instructions over this file.
 - `make build` assembles and links v1.5 using the pinned cc65 tools, verifies the
   whole ROM and components, and retains a source map and changed-source controls
   in `build/us-v1.5/`. Decoded graphics and other asset inputs remain local.
-  `TARGET=us-v1.4`, `TARGET=us-v1.3` or `TARGET=us-v1.2` builds its maintained
+  `TARGET=us-v1.4`, `TARGET=us-v1.3`, `TARGET=us-v1.2` or `TARGET=us-v1.1` builds its maintained
   shared-source variant with its own decoded assets, controls and inventory.
-  Later versions need explicit source variants and separate evidence. Never
+  The unversioned release needs an explicit source variant and separate evidence. Never
   substitute a copy of the reference for a missing build step.
 - Before accepting a source replacement, change a meaningful instruction or
   operand in an isolated copy and verify that a fresh build and comparison fail.
