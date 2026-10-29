@@ -67,6 +67,30 @@ catalogue, source, include, linker, tool or payload inputs invalidate that scope
 The tooling integration passes 388 synthetic tests and all six reference audits.
 No runtime matrix was enlarged. Next: v1.3, then v1.2, v1.1 and unversioned.
 
+## v1.3 acceptance checkpoint (2026-10-29)
+
+v1.5, v1.4 and v1.3 now have separate current matching builds and accepted
+inventories. v1.3 restores its 95-byte reset path, second-controller NMI work,
+32-entry bank table, original inline operations and palette/frame order through
+shared source. The moved opcode-$18 audio stream and typed resource/script/text
+pointers rebuild at their actual locations. The aligned secondary return
+fragment retains a supported conditional native view and explicit uncertainty
+about purpose and ordinary reachability.
+
+All six mechanism and five retained-storage decisions are closed for v1.3.
+It has 21,505 native source bytes, 23,743 structured-data bytes and 54 fill bytes;
+20,234 PRG asset bytes and all CHR rebuild through local decoded formats. Every
+physical source region has a changed-byte control. Its 2,085 applicable source,
+57 symbol and eight asset controls pass. Eleven primary controls retire with
+specific source/interpretation reasons; five new controls cover the actual
+replacement components. All 9,894 source-associated instructions and 197
+nominal handler entries are checked against this target.
+
+The integration passes 396 synthetic tooling tests and all six identity audits.
+Existing runtime checks retain their demonstrated scope; no new runtime matrix
+was added. No accepted-version source blocker remains. v1.2, v1.1 and the
+unversioned release still need their own reconstruction and acceptance.
+
 ## v1.5 opening-gameplay evidence
 
 `make verify-gameplay` runs 6,740 NTSC frames each for Noah, Moses and David,

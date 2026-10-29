@@ -1,0 +1,515 @@
+{
+  "schema_version": 1,
+  "target": "us-v1.3",
+  "canonical_target": "us-v1.5",
+  "canonical_source": "src/us-v1.5/rom.s",
+  "canonical_map": "config/source-us-v1.5.json",
+  "reset_source": "src/variants/reset-us-v1.3.inc",
+  "bank_selection_source": "src/variants/bank-selection-us-v1.3.inc",
+  "native_definitions": [
+    "src/variants/controller2-us-v1.3.inc",
+    "src/variants/native-inlines-us-v1.3.inc"
+  ],
+  "layout": [
+    {
+      "bank": 0,
+      "start": "0x8000",
+      "end": "0x817b",
+      "delta": 0
+    },
+    {
+      "bank": 0,
+      "start": "0x817b",
+      "end": "0x8389",
+      "delta": -267
+    },
+    {
+      "bank": 0,
+      "start": "0x8389",
+      "end": "0x922c",
+      "delta": -124
+    },
+    {
+      "bank": 0,
+      "start": "0x922c",
+      "end": "0x92f6",
+      "delta": -109
+    },
+    {
+      "bank": 0,
+      "start": "0x92f6",
+      "end": "0x9414",
+      "delta": -108
+    },
+    {
+      "bank": 0,
+      "start": "0x9414",
+      "end": "0x97c8",
+      "delta": -111
+    },
+    {
+      "bank": 0,
+      "start": "0x97c8",
+      "end": "0x9a20",
+      "delta": -103
+    },
+    {
+      "bank": 0,
+      "start": "0x9a20",
+      "end": "0x9a35",
+      "delta": -49
+    },
+    {
+      "bank": 0,
+      "start": "0x9a35",
+      "end": "0x9b07",
+      "delta": -70
+    },
+    {
+      "bank": 0,
+      "start": "0x9b07",
+      "end": "0x9d63",
+      "delta": -74
+    },
+    {
+      "bank": 0,
+      "start": "0x9d63",
+      "end": "0x9e3c",
+      "delta": -37
+    },
+    {
+      "bank": 0,
+      "start": "0x9e3c",
+      "end": "0x9f06",
+      "delta": -31
+    },
+    {
+      "bank": 0,
+      "start": "0x9f06",
+      "end": "0xba23",
+      "delta": -23
+    },
+    {
+      "bank": 0,
+      "start": "0xba23",
+      "end": "0xc7df",
+      "delta": 615
+    },
+    {
+      "bank": 0,
+      "start": "0xc7df",
+      "end": "0xca5d",
+      "delta": -3539
+    },
+    {
+      "bank": 0,
+      "start": "0xca5d",
+      "end": "0xcb98",
+      "delta": -23
+    },
+    {
+      "bank": 0,
+      "start": "0xcb98",
+      "end": "0xcbe4",
+      "delta": -5
+    },
+    {
+      "bank": 0,
+      "start": "0xcbe4",
+      "end": "0xcc82",
+      "delta": -19
+    },
+    {
+      "bank": 0,
+      "start": "0xcc82",
+      "end": "0xcc8c",
+      "delta": -23
+    },
+    {
+      "bank": 0,
+      "start": "0xcc8c",
+      "end": "0xcdcf",
+      "delta": -24
+    },
+    {
+      "bank": 0,
+      "start": "0xcdcf",
+      "end": "0xd2f8",
+      "delta": -23
+    },
+    {
+      "bank": 0,
+      "start": "0xd2f8",
+      "end": "0xe07a",
+      "delta": -18
+    },
+    {
+      "bank": 0,
+      "start": "0xe07a",
+      "end": "0xe34e",
+      "delta": -11
+    },
+    {
+      "bank": 0,
+      "start": "0xe34e",
+      "end": "0xe581",
+      "delta": -15
+    },
+    {
+      "bank": 0,
+      "start": "0xe581",
+      "end": "0xe7d3",
+      "delta": -21
+    },
+    {
+      "bank": 0,
+      "start": "0xe7d3",
+      "end": "0xeb7a",
+      "delta": -17
+    },
+    {
+      "bank": 0,
+      "start": "0xeb7a",
+      "end": "0xeb8b",
+      "delta": -16
+    },
+    {
+      "bank": 0,
+      "start": "0xeb8b",
+      "end": "0xf057",
+      "delta": 3
+    },
+    {
+      "bank": 0,
+      "start": "0xf057",
+      "end": "0xf2cc",
+      "delta": 1
+    },
+    {
+      "bank": 0,
+      "start": "0xf2cc",
+      "end": "0xf424",
+      "delta": -1
+    },
+    {
+      "bank": 0,
+      "start": "0xf424",
+      "end": "0xf48a",
+      "delta": 8
+    },
+    {
+      "bank": 0,
+      "start": "0xf48a",
+      "end": "0xf6f3",
+      "delta": 12
+    },
+    {
+      "bank": 0,
+      "start": "0xf6f3",
+      "end": "0xf941",
+      "delta": 34
+    },
+    {
+      "bank": 0,
+      "start": "0xf941",
+      "end": "0xfae9",
+      "delta": 32
+    },
+    {
+      "bank": 0,
+      "start": "0xfae9",
+      "end": "0xfd88",
+      "delta": 36
+    },
+    {
+      "bank": 0,
+      "start": "0xfd88",
+      "end": "0xffc7",
+      "delta": -24
+    },
+    {
+      "bank": 0,
+      "start": "0xffc7",
+      "end": "0xfffa",
+      "delta": -8
+    },
+    {
+      "bank": 0,
+      "start": "0xfffa",
+      "end": "0x10000",
+      "delta": 0
+    },
+    {
+      "bank": 1,
+      "start": "0x8000",
+      "end": "0xa6d0",
+      "delta": 0
+    },
+    {
+      "bank": 1,
+      "start": "0xa6d0",
+      "end": "0xf3c5",
+      "delta": -8
+    },
+    {
+      "bank": 1,
+      "start": "0xf3c5",
+      "end": "0xfd88",
+      "delta": -10
+    },
+    {
+      "bank": 1,
+      "start": "0xfd88",
+      "end": "0xffc7",
+      "delta": -24
+    },
+    {
+      "bank": 1,
+      "start": "0xffc7",
+      "end": "0xfffa",
+      "delta": -8
+    },
+    {
+      "bank": 1,
+      "start": "0xfffa",
+      "end": "0x10000",
+      "delta": 0
+    }
+  ],
+  "relocated_blocks": [
+    {
+      "bank": 0,
+      "start": "0x9efa",
+      "end": "0x9f06",
+      "target_start": "0x9edb"
+    },
+    {
+      "bank": 0,
+      "start": "0xb5d3",
+      "end": "0xba23",
+      "target_start": "0xb5bc"
+    },
+    {
+      "bank": 0,
+      "start": "0xba23",
+      "end": "0xc7df",
+      "target_start": "0xbc8a"
+    },
+    {
+      "bank": 0,
+      "start": "0xc7df",
+      "end": "0xca5d",
+      "target_start": "0xba0c"
+    }
+  ],
+  "menu_brand_count_delta": -2,
+  "omit_source_regions": [
+    "bank0-scale-world-shift",
+    "bank0-map-queue-second-nametable",
+    "bank0-main-state-scale"
+  ],
+  "region_overrides": {
+    "bank1-candidate-audio-a6c8": {
+      "id": "bank0-opcode18-audio",
+      "bank": 0,
+      "cpu": "0x9ee7",
+      "size": 8
+    },
+    "bank1-alignment-fill-fd6a": {
+      "cpu": "0xfd63",
+      "size": 13
+    },
+    "bank1-script-prefix-af02": {
+      "id": "bank1-af02-pointer-fields",
+      "control": "v13_pointer_af02"
+    }
+  },
+  "primary_only_candidate_aliases": [
+    "E002",
+    "E099",
+    "EB0D",
+    "EBAD",
+    "E01A",
+    "E023",
+    "E090",
+    "B077",
+    "AF00",
+    "AF02-branch-prefix",
+    "E006",
+    "E07B",
+    "E0B6",
+    "EB00",
+    "DA51-opcode"
+  ],
+  "changed_conditional_fields": [
+    "DB69 trailing field follows the moved script low byte.",
+    "D57C and EE65 alternate record fields follow their shared jump operands.",
+    "Audio AA49 retains its literal note encoding; its conditional target does not follow the moved AC7F label."
+  ],
+  "scope": "Maintained shared-source v1.3 geometry and explicit native/data differences. Acceptance is derived from the own decoded-input build, applicable source/asset controls and evidence-bound inventory; this profile alone is not acceptance proof.",
+  "code_windows": [
+    {
+      "id": "bank0-native-8000-8f14",
+      "bank": 0,
+      "cpu": "0x8000",
+      "size": 3860,
+      "kind": "code",
+      "control": "boot"
+    },
+    {
+      "id": "bank0-native-8f3e-91f2",
+      "bank": 0,
+      "cpu": "0x8f3e",
+      "size": 692,
+      "kind": "code",
+      "control": "update_audio_voices"
+    },
+    {
+      "id": "bank0-native-91f7-91fa",
+      "bank": 0,
+      "cpu": "0x91f7",
+      "size": 3,
+      "kind": "code",
+      "control": "audio_all_tone_channels"
+    },
+    {
+      "id": "bank0-native-9254-9296",
+      "bank": 0,
+      "cpu": "0x9254",
+      "size": 66,
+      "kind": "code",
+      "control": "audio_voice_register_address"
+    },
+    {
+      "id": "bank0-native-9346-9edb",
+      "bank": 0,
+      "cpu": "0x9346",
+      "size": 2965,
+      "kind": "code",
+      "control": "write_audio_voice_period"
+    },
+    {
+      "id": "bank0-native-b505-b5bc",
+      "bank": 0,
+      "cpu": "0xb505",
+      "size": 183,
+      "kind": "code",
+      "control": "fade_palette_load"
+    },
+    {
+      "id": "bank0-native-ca46-d573",
+      "bank": 0,
+      "cpu": "0xca46",
+      "size": 2861,
+      "kind": "code",
+      "control": "main_state_init"
+    },
+    {
+      "id": "bank0-native-d6fd-da6b",
+      "bank": 0,
+      "cpu": "0xd6fd",
+      "size": 878,
+      "kind": "code",
+      "control": "script_op00"
+    },
+    {
+      "id": "bank0-native-da73-fd63",
+      "bank": 0,
+      "cpu": "0xda73",
+      "size": 8944,
+      "kind": "code",
+      "control": "script_op1f"
+    },
+    {
+      "id": "bank0-native-fd70-fd8f",
+      "bank": 0,
+      "cpu": "0xfd70",
+      "size": 31,
+      "kind": "code",
+      "control": "script_native_call"
+    },
+    {
+      "id": "bank0-native-fe54-ff9f",
+      "bank": 0,
+      "cpu": "0xfe54",
+      "size": 331,
+      "kind": "code",
+      "control": "record_fetch"
+    },
+    {
+      "id": "bank0-native-ffbf-ffec",
+      "bank": 0,
+      "cpu": "0xffbf",
+      "size": 45,
+      "kind": "code",
+      "control": "nmi"
+    },
+    {
+      "id": "bank1-native-bee2-bfce",
+      "bank": 1,
+      "cpu": "0xbee2",
+      "size": 236,
+      "kind": "code",
+      "control": "packed_text_decode"
+    },
+    {
+      "id": "bank1-native-fd60-fd63",
+      "bank": 1,
+      "cpu": "0xfd60",
+      "size": 3,
+      "kind": "code",
+      "control": "v13_shared_return_tail"
+    },
+    {
+      "id": "bank1-native-fd70-fd8f",
+      "bank": 1,
+      "cpu": "0xfd70",
+      "size": 31,
+      "kind": "code",
+      "control": "script_native_call"
+    },
+    {
+      "id": "bank1-native-fe54-ff9f",
+      "bank": 1,
+      "cpu": "0xfe54",
+      "size": 331,
+      "kind": "code",
+      "control": "record_fetch"
+    },
+    {
+      "id": "bank1-native-ffbf-ffec",
+      "bank": 1,
+      "cpu": "0xffbf",
+      "size": 45,
+      "kind": "code",
+      "control": "nmi"
+    }
+  ],
+  "code_window_scope": "Physical native source windows, checked instruction by instruction. Primary microregions are not reused after helper removal/reordering. All applicable primary source controls are retained; retired interpretations and new source components have explicit target decisions. Control coverage is derived from actual changed bytes in these windows and typed data regions.",
+  "retired_primary_controls": {
+    "shift_left4": "The standalone four-left-shift entry is absent. Its two callers inline four ASLs; the three-shift native entry remains. Existing caller controls and the new inline-source control replace this obsolete boundary.",
+    "double_fe_pointer": "The FE/FF doubling helper is absent; seven caller sites inline its instructions. Native source is checked per instruction, with the inline-source control.",
+    "scale_position_by_eight": "The standalone chained-shift entry is absent. Both callers inline three paired shifts, represented in the shared native-inlines source.",
+    "shift_reference_right": "The standalone reference-shift helper is absent; its three paired operations are inline in the position update.",
+    "scale_world_shift": "The standalone world-shift helper is absent. Its three accumulator/$11 shifts are inline in the source-owned coordinate function.",
+    "shift_search_coordinate_right": "The standalone search-coordinate shift is absent; its three paired shifts are inline in the source-owned bounds caller.",
+    "shift_scrolled_slot_horizontal": "The standalone horizontal-slot shift is absent; indexed paired shifts are inline in the source-owned fraction caller.",
+    "pending_ppu_set_source": "The standalone EA/EB source helper is absent. Its four instructions appear inline at both PPU consumers.",
+    "advance_audio_command_two": "There is no two-byte-advance entry. Every former call becomes two calls to the retained one-byte advance, which keeps its control.",
+    "script_prefix_af02": "The actual three-byte form is an encoded pointer to InteractionScriptAF05 and a trailing E0 field. The primary conditional branch-prefix opcode does not survive relocation. The typed pointer source has its own control.",
+    "main_state_scale": "Both standalone scroll-base doubling helpers are absent; their paired shifts occur inline in the state setup. Caller controls and the shared inline-source control cover the current representation."
+  },
+  "bank_value_prefix": 8,
+  "source_control_adaptations": {
+    "script_op08": "Use the actual symbolic call plus one; primary replacement literal F058 equals this target positive address.",
+    "prepare_audio_note": "The former JSR is inline; mutate the surviving FE timing mask to FC in the same caller.",
+    "script_op9f": "The former JSR is inline; mutate the surviving compare jump target plus one in the same caller.",
+    "script_opa0": "The former JSR is inline; mutate the surviving zero initializer to one in the same caller.",
+    "apply_slot_offset": "The former first helper call is inline; mutate its surviving 03A6 state read to 03A7.",
+    "script_op2d": "Use the actual symbolic call plus one; primary replacement literal F05D equals this target positive address.",
+    "convert_slot_position": "The former scale helper call is inline; mutate the surviving 51 component read to 50 in the same caller.",
+    "pending_ppu_copy_banked": "The former source helper call is inline; mutate the surviving E7 bank selector read to E6 in the same caller.",
+    "record_voice_e01a": "The primary pointer edit changes its typed ROM location and breaks the conditional voice-word predicate. Mutate the actual record mode and corresponding conditional voice word coherently.",
+    "record_voice_e023": "The primary pointer edit changes its typed ROM location and breaks the conditional voice-word predicate. Mutate the actual record mode and corresponding conditional voice word coherently."
+  }
+}

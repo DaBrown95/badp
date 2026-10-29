@@ -2174,22 +2174,26 @@ def digest(data: bytes) -> str:
     return hashlib.sha256(data).hexdigest()
 
 
-def source_regions(config: dict, prg_offset: int) -> list[dict]:
+def source_regions(config: dict, prg_offset: int, *, controls: set[str] | None = None,
+                   require_all_controls: bool = True) -> list[dict]:
     """Validate each physical ownership span and calculate its file offset."""
     bank_size, cpu_base, count = config["bank_size"], config["cpu_base"], config["bank_count"]
     if (bank_size, cpu_base, count) != (0x8000, 0x8000, 2):
         raise ValueError("unexpected v1.5 physical bank layout")
     output = []
+    allowed = set(MUTATIONS) if controls is None else controls
+    if not allowed or any(not isinstance(name, str) or not name for name in allowed):
+        raise ValueError('invalid source-control catalogue')
     for entry in config["regions"]:
         bank, cpu, size = entry["bank"], int(entry["cpu"], 0), entry["size"]
         if (bank not in range(count) or size <= 0 or cpu < cpu_base
                 or cpu + size > cpu_base + bank_size or entry["kind"] not in ("code", "data", "fill")
-                or entry["control"] not in MUTATIONS):
+                or entry["control"] not in allowed):
             raise ValueError(f"invalid source region: {entry}")
         output.append({**entry, "file_offset": prg_offset + bank * bank_size + cpu - cpu_base})
     if len({entry["id"] for entry in output}) != len(output):
         raise ValueError("duplicate source region id")
-    if {entry["control"] for entry in output} != set(MUTATIONS):
+    if require_all_controls and {entry["control"] for entry in output} != allowed:
         raise ValueError("each source-change control must own at least one region")
     for bank in range(count):
         end = cpu_base

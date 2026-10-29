@@ -21,6 +21,16 @@ class SourceVariantTests(unittest.TestCase):
         self.assertIn('PpuStreamAbsolute $2100', result)
         self.assertIn('BogusSetSlotValue $9123', result)
 
+    def test_reordered_extent_keeps_its_own_end_boundary(self):
+        layout = Layout(((0, 0x9000, 0x9100, 0x100), (0, 0x9100, 0x9200, -0x100)),
+                        ((0, 0x9000, 0x9100, 0x9100), (0, 0x9100, 0x9200, 0x9000)))
+        self.assertEqual(layout.address(0, 0x9100), 0x9000)
+        self.assertEqual(layout.span(0, 0x90f0, 0x9100), (0x91f0, 0x9200))
+        self.assertEqual(layout.span(0, 0x9100, 0x9120), (0x9000, 0x9020))
+        for low, high in [(0x90f0, 0x9110), (0x8ff0, 0x9001), (True, 0x9000)]:
+            with self.assertRaises(ValueError):layout.span(0, low, high)
+        with self.assertRaises(ValueError):Layout((), ((0, 0x9000, 0x9100, 0xff80),))
+
     def test_nested_operands_and_malformed_expressions(self):
         self.assertEqual(operands('($1234 + max(1, 2)), {3, 4}, $00'),
                          ['($1234 + max(1, 2))', '{3, 4}', '$00'])

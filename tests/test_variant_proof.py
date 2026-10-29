@@ -55,8 +55,8 @@ class VariantProofTests(unittest.TestCase):
                                                  'changed_offsets': chr_assets.verify_control(reference, negative, 65552),
                                                  'asset_sha256': digest(chr_assets.serialize(changed_asset))}})
         self.proof['assets']['chr']['asset_sha256'] = digest(chr_assets.serialize(asset))
-        profile = {'canonical_map': 'config/map.json', 'canonical_source': 'src/common.s', 'reset_source': 'src/reset.s', 'geometry': None}
-        for name, value in {'load_profile': profile, 'compose': 'synthetic common source', 'target_regions': self.regions,
+        profile = {'target': 'us-v1.4', 'canonical_map': 'config/map.json', 'canonical_source': 'src/common.s', 'reset_source': 'src/reset.s', 'geometry': None}
+        for name, value in {'load_profile': profile, 'compose': 'synthetic common source', 'variant_regions': self.regions,
                             'source_regions': self.regions, 'input_names': {'producer.py'},
                             'verify_source': ({'controls': [1], 'symbol_controls': [1], 'gaps': []}, 'checkpoint'),
                             'native_inventory': native, 'dispatch_inventory': {}}.items():

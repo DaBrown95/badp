@@ -222,7 +222,7 @@
         },
         {
           "path": "tools/build_rom.py",
-          "sha256": "c03a483e1e7748c6d16bfc1bdb263e5dddd001de24a8f9fe253bb558441763fe",
+          "sha256": "102fe521dff08ae913ff4797e7a8c486385159b2ee33bfe18ef0951d2b1ba580",
           "scope": "Whole-ROM equality and source/asset edit controls."
         }
       ]
@@ -418,7 +418,8 @@
     "tools/source_audit.py": "c6e273f6dc095677c221879967104f212283f5db59b22b9da48ebf3bd04b9450",
     "tools/sprite_assets.py": "8baa246fd55ba64e8233999d068896331b2af6bfbcbe316779fdeeb945703987",
     "tools/sprite_metadata.py": "b03c10e1e3577713a9123df59a2b5c9899d6dea2f372a20c7c15d7d13b35f491",
-    "tools/text_assets.py": "53d23b054c0a1b514bade60a9b7ab783bfe099b3d9bb3b04687e9141c5e27d56",
+    "tools/text_assets.py": "8173e63b2ab113d344417686b03eabfba0cae93bef370833b59ec201e657b3ee",
     "tools/verify_native_opcodes.py": "804720e4445a8266b7420cb1538de3f98c18606a2d3c4b2cb76451a7df90a240"
-  }
+  },
+  "compatibility_review": "Shared variant integration adds optional text geometry while preserving the primary defaults, and optional target control ownership while keeping the primary strict catalogue. Canonical v1.5 source, map, assets and consumer interpretations are unchanged. Focused synthetic geometry/failure cases pass; the integration checkpoint refreshes the complete primary build and controls. Earlier frozen runtime/storage evidence remains scoped to its unchanged source and reference."
 }

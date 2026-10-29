@@ -21,21 +21,28 @@ ASSET_PATH = Path('extracted/us-v1.5/packed-text.json')
 RESERVED = frozenset((0, 11, 26))
 
 
-def _records(prg: bytes) -> tuple[list[dict], bytes, bytes]:
+def _records(prg: bytes, geometry: dict | None = None) -> tuple[list[dict], bytes, bytes]:
     if len(prg) != 2 * BANK_SIZE:
         raise ValueError('expected two complete PRG banks')
+    defaults = {'table_offset': packed_text.TABLE_OFFSET, 'data_end': packed_text.DATA_END,
+                'primary_offset': packed_text.PRIMARY_OFFSET, 'secondary_offset': packed_text.SECONDARY_OFFSET}
+    settings = defaults if geometry is None else geometry
+    if (not isinstance(settings, dict) or set(settings) != set(defaults)
+            or any(type(value) is not int or not 0 <= value <= BANK_SIZE for value in settings.values())
+            or any(settings[key] + 32 > BANK_SIZE for key in ('primary_offset', 'secondary_offset'))):
+        raise ValueError('invalid packed-text table geometry')
     bank = prg[BANK_SIZE:]
-    primary = bank[packed_text.PRIMARY_OFFSET:packed_text.PRIMARY_OFFSET + 32]
-    secondary = bank[packed_text.SECONDARY_OFFSET:packed_text.SECONDARY_OFFSET + 32]
-    records = packed_text.decode_records(bank, packed_text.TABLE_OFFSET, packed_text.RECORD_COUNT,
-                                         packed_text.DATA_END, primary, secondary)
+    primary = bank[settings['primary_offset']:settings['primary_offset'] + 32]
+    secondary = bank[settings['secondary_offset']:settings['secondary_offset'] + 32]
+    records = packed_text.decode_records(bank, settings['table_offset'], packed_text.RECORD_COUNT,
+                                         settings['data_end'], primary, secondary)
     return records, primary, secondary
 
 
-def capture(prg: bytes, reference_sha256: str, *, target: str = TARGET) -> dict:
+def capture(prg: bytes, reference_sha256: str, *, target: str = TARGET, geometry: dict | None = None) -> dict:
     if not isinstance(reference_sha256, str) or len(reference_sha256) != 64:
         raise ValueError('invalid reference identity')
-    records, _, _ = _records(prg)
+    records, _, _ = _records(prg, geometry)
     return {'schema_version': 1, 'target': target, 'reference_sha256': reference_sha256,
             'records': [{'index': r['index'], 'cpu': r['cpu_address'], 'text': r['text'],
                          'encoding_slots': r['tokens'], 'padding_bits': r['padding_bits'],
@@ -74,13 +81,13 @@ def _edited_tokens(text: str, slots: list[dict], primary: bytes, secondary: byte
     return result
 
 
-def encode(asset: dict, prg: bytes, reference_sha256: str, *, target: str = TARGET) -> list[tuple[int, int, bytes]]:
+def encode(asset: dict, prg: bytes, reference_sha256: str, *, target: str = TARGET, geometry: dict | None = None) -> list[tuple[int, int, bytes]]:
     """Return 52 physical payload spans, leaving source-owned headers alone."""
     if (not isinstance(asset, dict) or set(asset) != {'schema_version', 'target', 'reference_sha256', 'records'}
             or asset['schema_version'] != 1 or asset['target'] != target
             or asset['reference_sha256'] != reference_sha256 or not isinstance(asset['records'], list)):
         raise ValueError('packed-text asset identity differs from the reference')
-    originals, primary, secondary = _records(prg)
+    originals, primary, secondary = _records(prg, geometry)
     if len(asset['records']) != len(originals):
         raise ValueError('packed-text record count differs from the reference')
     result = []
@@ -106,7 +113,7 @@ def serialize(asset: dict) -> bytes:
     return (json.dumps(asset, ensure_ascii=True, indent=2) + '\n').encode('utf-8')
 
 
-def select(root: Path, prg: bytes, reference_sha256: str, *, target: str = TARGET) -> tuple[dict, list[tuple[int, int, bytes]], str, str]:
+def select(root: Path, prg: bytes, reference_sha256: str, *, target: str = TARGET, geometry: dict | None = None) -> tuple[dict, list[tuple[int, int, bytes]], str, str]:
     path = root / asset_path(target, ASSET_PATH.name)
     if (root / 'extracted').is_symlink() or path.parent.is_symlink() or path.is_symlink():
         raise ValueError('refusing a symlinked packed-text input')
@@ -115,17 +122,17 @@ def select(root: Path, prg: bytes, reference_sha256: str, *, target: str = TARGE
         asset = json.loads(raw)
         source = 'local'
     else:
-        asset = capture(prg, reference_sha256, target=target)
+        asset = capture(prg, reference_sha256, target=target, geometry=geometry)
         raw = serialize(asset)
         source = 'reference'
-    spans = encode(asset, prg, reference_sha256, target=target)
+    spans = encode(asset, prg, reference_sha256, target=target, geometry=geometry)
     return asset, spans, source, hashlib.sha256(raw).hexdigest()
 
 
-def changed_asset(asset: dict, prg: bytes) -> dict:
+def changed_asset(asset: dict, prg: bytes, *, geometry: dict | None = None) -> dict:
     """Change the first and last encodable primary character in every record."""
     changed = json.loads(json.dumps(asset))
-    _, primary, _ = _records(prg)
+    _, primary, _ = _records(prg, geometry)
     for record in changed['records']:
         chars = list(record['text'])
         positions = [index for index, slot in enumerate(record['encoding_slots']) if slot['kind'] == 'primary']

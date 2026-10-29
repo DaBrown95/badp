@@ -76,6 +76,31 @@ class TargetAssetTests(unittest.TestCase):
         self.assertEqual(len(text_assets.encode(asset, data, sha, target='us-v1.4')), 52)
         with self.assertRaises(ValueError):text_assets.encode(asset, data, sha)
 
+    def test_text_tables_use_explicit_target_locations(self):
+        data = synthetic_prg();bank = data[32768:]
+        from tools import packed_text
+        moved = bytearray(data)
+        start, end, delta = packed_text.TABLE_OFFSET, packed_text.DATA_END, -8
+        moved[32768 + start + delta:32768 + end + delta] = bank[start:end]
+        for i in range(packed_text.RECORD_COUNT):
+            old = int.from_bytes(bank[start + 2*i:start + 2*i + 2], 'little')
+            n = 32768 + start + delta + 2*i
+            moved[n:n+2] = (old + delta).to_bytes(2, 'little')
+        geometry = {'table_offset': start + delta, 'data_end': end + delta,
+                    'primary_offset': packed_text.PRIMARY_OFFSET + delta,
+                    'secondary_offset': packed_text.SECONDARY_OFFSET + delta}
+        prg, sha = bytes(moved), 'f' * 64
+        asset = text_assets.capture(prg, sha, target='us-v1.3', geometry=geometry)
+        encoded = text_assets.encode(asset, prg, sha, target='us-v1.3', geometry=geometry)
+        self.assertEqual(len(encoded), 52)
+        for bank, offset, payload in encoded:
+            self.assertEqual(payload, prg[bank*32768+offset:bank*32768+offset+len(payload)])
+        changed = text_assets.changed_asset(asset, prg, geometry=geometry)
+        self.assertNotEqual(text_assets.encode(changed, prg, sha, target='us-v1.3', geometry=geometry), encoded)
+        with self.assertRaises(ValueError):text_assets.capture(prg, sha, target='us-v1.3')
+        for invalid in ({}, [], {**geometry, 'primary_offset': True}, {**geometry, 'secondary_offset': 32767}):
+            with self.assertRaises(ValueError):text_assets.capture(prg, sha, target='us-v1.3', geometry=invalid)
+
     def test_gap_encoding_cannot_fill_unknown_bytes_or_overwrite_source(self):
         prg = bytes(65536)
         gap = [{'name': 'synthetic.bin', 'bank': 0, 'cpu': '0x9000', 'size': 2}]

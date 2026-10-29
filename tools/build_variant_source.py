@@ -20,12 +20,21 @@ from .identify_rom import inspect_rom
 from .native_control_flow import inventory as native_inventory
 from .project import IDENTITY_PARTS, load_target
 from .setup import verified_tools
-from .source_variants import compose, load_profile, target_regions
+from .source_variants import compose, load_profile, source_paths, variant_regions
+from . import variant_controls
 
 ROOT = Path(__file__).resolve().parents[1]
 INPUTS = ('tools/build_variant_source.py', 'tools/source_variants.py', 'tools/build_rom.py',
+          'tools/variant_controls.py',
           'tools/setup.py', 'tools/project.py', 'tools/identify_rom.py', 'tools/native_control_flow.py',
           'tools/nes6502.py', 'tools/verify_native_opcodes.py', 'include/nes.inc', 'config/cc65-toolchain.json')
+
+
+def input_names(profile: dict, config: dict) -> set[str]:
+    names = set(INPUTS) | set(source_paths(profile)) | {f'config/variants/{profile["target"]}.json',
+             f'config/targets/{profile["target"]}.json', config['linker_config']}
+    if profile['target'] == 'us-v1.3':names.add('tools/legacy_source.py')
+    return names
 
 
 def digest(data: bytes) -> str:
@@ -71,7 +80,8 @@ def gap_inputs(reference: bytes, config: dict, profile: dict, destination: Path)
         for row in [*rows, {'cpu': '0x10000', 'size': 0}]:
             end = int(row['cpu'], 0) - 0x8000
             if cursor < end:
-                mapped_start, mapped_end = layout.offset(bank, cursor), layout.offset(bank, end)
+                cpu_start, cpu_end = layout.span(bank, cursor + 32768, end + 32768)
+                mapped_start, mapped_end = cpu_start - 32768, cpu_end - 32768
                 if mapped_start >= mapped_end:
                     raise ValueError('target asset gap collapses')
                 payload = prg[bank * 32768 + mapped_start:bank * 32768 + mapped_end]
@@ -94,12 +104,13 @@ def build(target_id: str, *, all_controls: bool) -> dict:
     if (actual['prg']['offset'], actual['prg']['size'], actual['chr']['offset'], actual['chr']['size']) != (16, 65536, 65552, 65536):
         raise ValueError('unsupported variant container geometry')
     config = json.loads((ROOT / profile['canonical_map']).read_text())
-    regions = source_regions({**config, 'regions': target_regions(config, profile['geometry'])}, 16)
+    catalogue = variant_controls.names(profile)
+    regions = source_regions({**config, 'regions': variant_regions(config, profile)}, 16,
+                             controls=set(catalogue), require_all_controls=target_id == 'us-v1.4')
     canonical = (ROOT / profile['canonical_source']).read_text()
     reset = (ROOT / profile['reset_source']).read_text()
     source = compose(canonical, reset, profile)
-    names = [*INPUTS, f'config/variants/{target_id}.json', f'config/targets/{target_id}.json',
-             profile['canonical_source'], profile['canonical_map'], profile['reset_source'], config['linker_config']]
+    names = input_names(profile, config)
     hashes = {name: digest((ROOT / name).read_bytes()) for name in names}
     paths = (ROOT / 'analysis', ROOT / 'analysis' / target_id,
              ROOT / 'analysis' / target_id / 'source-checkpoint')
@@ -120,7 +131,7 @@ def build(target_id: str, *, all_controls: bool) -> dict:
     native = native_inventory((work / 'candidate.dbg').read_text(), source, reference[16:16 + 65536], regions)
     native_path = ROOT / 'analysis' / target_id / 'native-control-flow.json'
     native_path.write_text(json.dumps(native, indent=2) + '\n')
-    selected = list(MUTATIONS) if all_controls else [
+    selected = catalogue if all_controls else [
         'boot', 'reset_dispatch', 'slot_runtime_d52b', 'overlay_b077', 'partial_resource_ad18',
         'record_da40_prefix', 'record_voice_e01a', 'record_script_e090', 'record_storage_e040',
         'menu_queue_first', 'retained_record_tail_eb08', 'slot_related_address']
@@ -158,21 +169,24 @@ def build(target_id: str, *, all_controls: bool) -> dict:
             finally:
                 (work / 'source/nes.inc').write_bytes(include)
         payload = output.read_bytes()
+        try:
+            offsets = verify(payload)
+        except ValueError as exc:
+            raise ValueError(f'control {name}: {exc}') from exc
         row = {'control': name, 'context': context, 'source_patch': patch, 'include_patch': include_patch,
-               'candidate_sha256': digest(payload), 'changed_offsets': verify(payload)}
+               'candidate_sha256': digest(payload), 'changed_offsets': offsets}
         receipt.write_text(json.dumps(row, indent=2) + '\n')
         return row
 
     for index, name in enumerate(selected, 1):
-        if name == 'reset_dispatch':
-            changed = compose(canonical, mutate_source(reset, name), profile)
-        else:
-            changed = compose(mutate_source(canonical, name), reset, profile)
+        changed = variant_controls.mutate(canonical, reset, profile, name)
         # Reuse only an identical compiler input with pinned tools, include,
         # linker and gap payloads. This is a per-control compile cache, not a
         # substitution of a reference ROM for assembly.
-        row = compile_control(name, changed, include, lambda payload: verify_control(reference, payload, regions, name))
-        row['affected_regions'] = [r['id'] for r in regions if r['control'] == name]
+        row = compile_control(name, changed, include,
+                              lambda payload: variant_controls.verify_source(reference, payload, regions, name, target_id))
+        row['affected_regions'] = ([r['id'] for r in regions if r['control'] == name] if target_id == 'us-v1.4'
+                                   else variant_controls.affected(regions, row['changed_offsets']))
         controls.append(row)
         if index % 100 == 0 or index == len(selected):
             print(f'{target_id}: {index}/{len(selected)} source controls', flush=True)
@@ -181,18 +195,23 @@ def build(target_id: str, *, all_controls: bool) -> dict:
         for name in SYMBOL_CONTROLS:
             changed_include = mutate_include(include.decode(), name).encode()
             row = compile_control('symbol_' + name, source, changed_include,
-                                  lambda payload: verify_symbol_control(reference, payload, regions, name))
+                                  lambda payload: variant_controls.verify_symbol(reference, payload, regions, name, target_id))
             symbol_controls.append(row)
     if (digest(reference_path.read_bytes()) != target['reference']['file']['sha256']
             or hashes != {name: digest((ROOT / name).read_bytes()) for name in names}
             or verified_tools(ROOT) != tools
             or common_inputs['tool_sha256'] != {key: digest(path.read_bytes()) for key, path in tools.items()}):
         raise ValueError('variant source inputs changed during verification')
+    control_coverage = variant_controls.coverage(regions, controls + symbol_controls)
+    if all_controls and not control_coverage['complete']:
+        raise ValueError('source controls omit physical regions: ' + str(control_coverage['uncontrolled_regions']))
     proof = {'schema_version': 1, 'target': target_id, 'reference_sha256': digest(reference),
              'match': True, 'candidate_sha256': digest(candidate), 'source_sha256': digest(source.encode()),
              'input_sha256': hashes, 'regions': regions, 'gaps': gaps, 'controls': controls,
              'symbol_controls': symbol_controls, 'build_inputs': common_inputs,
              'all_source_controls': all_controls, 'native_instruction_count': native['instruction_count'],
+             'source_control_coverage': control_coverage,
+             'retired_primary_controls': profile.get('retired_primary_controls', {}),
              'native_instruction_bytes': native['instruction_code_bytes'],
              'asset_codec_verification': 'pending', 'inventory_acceptance': 'pending',
              'scope': 'Source-composition checkpoint. Local asset gaps remain scaffolding; this is not a full target acceptance proof.'}

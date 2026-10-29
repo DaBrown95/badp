@@ -4,10 +4,12 @@ from __future__ import annotations
 from collections import Counter
 import json
 from pathlib import Path
+import re
 
 from .build_variant_source import digest
 from .direct_record_flow import source_script_seeds, direct_inventory
 from .inventory_review import apply_review
+from .native_control_flow import _fields
 from .native_script_calls import inventory as call_inventory
 from .prg_inventory import summarize, script_graph_spans
 from .record_views import inventory as record_inventory
@@ -24,6 +26,43 @@ INPUTS = ('tools/variant_inventory.py', 'tools/inventory_review.py', 'tools/sour
           'tools/audio_flow.py', 'tools/audio_commands.py')
 
 
+def audio_source_literals(source: str, debug: str) -> str:
+    """Read the renderer's restricted constant expressions, not arbitrary code.
+
+    The audio parser retains its literal-only contract. Relocated literals
+    keep their original operand plus a signed layout delta in generated source.
+    The one moved native audio label is resolved from the actual PRG0 debug map.
+    """
+    pattern = r'\(\(\$([0-9a-fA-F]{4}) \+ \((-?\d+)\)\)\)'
+    def fold(match):
+        value = int(match[1], 16) + int(match[2])
+        if not 0 <= value <= 65535:raise ValueError('audio literal leaves its word namespace')
+        return f'${value:04X}'
+    source = re.sub(pattern, fold, source)
+    if '#<LegacyOpcode18Audio' not in source and '#>LegacyOpcode18Audio' not in source:
+        return source
+    segments, scopes, symbols = {}, {}, []
+    for line in debug.splitlines():
+        tag, sep, rest = line.partition('\t')
+        if not sep or tag not in ('seg', 'scope', 'sym'):continue
+        fields = _fields(rest)
+        if tag == 'seg':segments[fields['id']] = fields
+        elif tag == 'scope':scopes[fields['id']] = fields
+        elif fields.get('name') == 'LegacyOpcode18Audio':symbols.append(fields)
+    if len(symbols) != 1:raise ValueError('missing or ambiguous moved native audio label')
+    symbol = symbols[0];segment = segments.get(symbol.get('seg'), {})
+    if (symbol.get('type') != 'lab' or scopes.get(symbol.get('scope'), {}).get('name') != 'Bank0'
+            or segment.get('name') != 'PRG0' or int(segment.get('ooffs', '-1'), 0) != 16):
+        raise ValueError('moved native audio label lacks a physical bank-0 identity')
+    value = int(symbol['val'], 0)
+    if not 0x8000 <= value <= 0xffff:raise ValueError('native audio label outside PRG')
+    for operator, byte in (('<', value & 255), ('>', value >> 8)):
+        original = '#' + operator + 'LegacyOpcode18Audio'
+        if source.count(original) != 1:raise ValueError('ambiguous native audio operand')
+        source = source.replace(original, f'#${byte:02X}', 1)
+    return source
+
+
 def analyze(root: Path, target: dict, proof: dict, reference: bytes) -> dict:
     profile = load_profile(root, target['id']);layout = profile['geometry']
     canonical_config = json.loads((root / profile['canonical_map']).read_text())
@@ -32,7 +71,8 @@ def analyze(root: Path, target: dict, proof: dict, reference: bytes) -> dict:
     canonical = (root / profile['canonical_source']).read_text()
     prg = reference[16:65552];bank0, bank1 = prg[:32768], prg[32768:]
     regions = proof['regions']
-    lengths = bank0[0x7da7:0x7da7 + 197]
+    length_offset = layout.offset(0, 0x7da7)
+    lengths = bank0[length_offset:length_offset + 197]
     roots = [layout.offset(1, seed) for seed in source_script_seeds(canonical, canonical_config['regions'])]
     indices = {layout.offset(1, site): value for site, value in PRIMARY_INDEXED_JUMPS.items()}
     graph = walk(bank0, bank1, lengths, roots, indexed_jumps=indices, limit=65536)
@@ -56,6 +96,7 @@ def analyze(root: Path, target: dict, proof: dict, reference: bytes) -> dict:
     # view, but do not promote its old literal voice fields to target entries.
     audio_source = '\n'.join(line for line in source.splitlines()
                              if not line.strip().startswith('SlotRecordVoiceOverlay '))
+    audio_source = audio_source_literals(audio_source, debug)
     audio = audio_flow.walk(bank0, bank1, audio_flow.literal_seeds(audio_source))
     if audio['unprocessed']:
         raise ValueError('variant audio inventory has unprocessed source roots')

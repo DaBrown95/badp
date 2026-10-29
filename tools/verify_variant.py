@@ -11,7 +11,8 @@ from .build_variant_source import digest
 from .identify_rom import inspect_rom
 from .native_control_flow import inventory as native_inventory
 from .project import IDENTITY_PARTS
-from .source_variants import compose, load_profile, target_regions
+from .source_variants import compose, load_profile, variant_regions
+from . import variant_controls
 from .verify_variant_source import verify as verify_source
 from . import variant_assets
 
@@ -25,7 +26,8 @@ def verify(root: Path, target: dict) -> dict:
     profile = load_profile(root, target['id'])
     config = json.loads((root / profile['canonical_map']).read_text())
     source = compose((root / profile['canonical_source']).read_text(), (root / profile['reset_source']).read_text(), profile)
-    regions = source_regions({**config, 'regions': target_regions(config, profile['geometry'])}, 16)
+    regions = source_regions({**config, 'regions': variant_regions(config, profile)}, 16,
+                             controls=set(variant_controls.names(profile)), require_all_controls=target['id'] == 'us-v1.4')
     hashes = {name: digest((root / name).read_bytes()) for name in input_names(profile, config)}
     reference = (root / target['input_path']).read_bytes();parsed = inspect_rom(reference)
     if (any(parsed[part] != target['reference'][part] for part in IDENTITY_PARTS)

@@ -8,7 +8,7 @@
   "input_path": "baseroms/Bible Adventures (USA) (v1.3) (Unl).nes",
   "identity_status": "catalogue-verified",
   "catalogue": "config/catalogues/no-intro-nes.json",
-  "reconstruction_status": "unstarted",
+  "reconstruction_status": "in-progress",
   "hardware_verification": {
     "status": "unverified",
     "mapper": null,

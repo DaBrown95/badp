@@ -5,7 +5,7 @@
   "source_map_sha256": "bcbf53c5515c9060b707d64d65b5ca34de8acb2da0b03bfb09f0ea6061dbbd39",
   "schema_version": 1,
   "review_input_sha256": {
-    "tools/variant_inventory.py": "faf55b243e144b8bb0267ee095c5618ac880e019463be4d2777e282eace4d400",
+    "tools/variant_inventory.py": "de4fb2f393232c5d81a8de85d151b578cd02a39fc5a8aa2d6ee6badbc750dbf7",
     "tools/inventory_review.py": "a7a8329a8271f42e3adaf38dd96448b38198f9ca6d0cbaa880e341834270cb53",
     "tools/source_audit.py": "c6e273f6dc095677c221879967104f212283f5db59b22b9da48ebf3bd04b9450",
     "tools/prg_inventory.py": "d40cc9dca05ea5a95806cbf03d8f7a09bac9812cf45f46f5b3d4a43340635546",
@@ -142,7 +142,7 @@
         },
         {
           "path": "tools/source_variants.py",
-          "sha256": "24515a9a87c09651a0d568fdd08e4e1e6b672bc532dd0642b09f735519e5a616",
+          "sha256": "9f104e1925c1f8b7b8e2f3b49cd15a43d5f10fc3a7f85dc21023f45731115dd1",
           "scope": "Typed source relocation and the primary incidental opcode assertions not transferred."
         }
       ]
@@ -179,12 +179,12 @@
         },
         {
           "path": "tools/variant_assets.py",
-          "sha256": "70920dfc9172539734f51ca2cc208dc18723910eaa8b1855f79e4b9740bb165b",
+          "sha256": "902199135ca0ba44e4ade96c6b84821335e18f3846dec1cb7882ef692dd62314",
           "scope": "Typed target locations for validated sprite directory/frame and palette/PPU format manifests."
         },
         {
           "path": "tools/source_variants.py",
-          "sha256": "24515a9a87c09651a0d568fdd08e4e1e6b672bc532dd0642b09f735519e5a616",
+          "sha256": "9f104e1925c1f8b7b8e2f3b49cd15a43d5f10fc3a7f85dc21023f45731115dd1",
           "scope": "Resource pointer namespace and split/paired compact-record relocation; absolute text, RAM and PPU addresses remain distinct."
         }
       ]
@@ -248,12 +248,12 @@
         },
         {
           "path": "tools/variant_assets.py",
-          "sha256": "70920dfc9172539734f51ca2cc208dc18723910eaa8b1855f79e4b9740bb165b",
+          "sha256": "902199135ca0ba44e4ade96c6b84821335e18f3846dec1cb7882ef692dd62314",
           "scope": "Every local gap is encoded from validated formats, rejecting uncovered bytes and conflicting overlapping views."
         },
         {
           "path": "tools/verify_variant.py",
-          "sha256": "7a2ff399a56be67d8594721ec98db67df314afe90e6538e965a9a3accfeb9efa",
+          "sha256": "e1536c6e6f566bf59640a29b4c01777d1785a11046a7e998f13c5ad42200ba2a",
           "scope": "Current positive build and all source/symbol/asset control artifacts must remain valid."
         },
         {
@@ -295,7 +295,7 @@
         },
         {
           "path": "tools/variant_assets.py",
-          "sha256": "70920dfc9172539734f51ca2cc208dc18723910eaa8b1855f79e4b9740bb165b",
+          "sha256": "902199135ca0ba44e4ade96c6b84821335e18f3846dec1cb7882ef692dd62314",
           "scope": "Actual menu and map extents derived from the target command/table operands."
         }
       ],
@@ -335,7 +335,7 @@
         },
         {
           "path": "tools/variant_assets.py",
-          "sha256": "70920dfc9172539734f51ca2cc208dc18723910eaa8b1855f79e4b9740bb165b",
+          "sha256": "902199135ca0ba44e4ade96c6b84821335e18f3846dec1cb7882ef692dd62314",
           "scope": "Actual menu and map extents derived from the target command/table operands."
         }
       ],
@@ -375,7 +375,7 @@
         },
         {
           "path": "tools/variant_assets.py",
-          "sha256": "70920dfc9172539734f51ca2cc208dc18723910eaa8b1855f79e4b9740bb165b",
+          "sha256": "902199135ca0ba44e4ade96c6b84821335e18f3846dec1cb7882ef692dd62314",
           "scope": "Actual menu and map extents derived from the target command/table operands."
         }
       ],
@@ -415,7 +415,7 @@
         },
         {
           "path": "tools/variant_assets.py",
-          "sha256": "70920dfc9172539734f51ca2cc208dc18723910eaa8b1855f79e4b9740bb165b",
+          "sha256": "902199135ca0ba44e4ade96c6b84821335e18f3846dec1cb7882ef692dd62314",
           "scope": "Actual menu and map extents derived from the target command/table operands."
         }
       ],
@@ -455,7 +455,7 @@
         },
         {
           "path": "tools/variant_assets.py",
-          "sha256": "70920dfc9172539734f51ca2cc208dc18723910eaa8b1855f79e4b9740bb165b",
+          "sha256": "902199135ca0ba44e4ade96c6b84821335e18f3846dec1cb7882ef692dd62314",
           "scope": "Actual menu and map extents derived from the target command/table operands."
         }
       ],
@@ -464,5 +464,6 @@
       "size": 2
     }
   ],
-  "reuse_note": "Source, geometry, entry/transfer tables, script/record/audio candidates and decoded assets are checked against this target. Shared native consumer rules are reused only for the twenty exact unchanged instruction regions in acceptance-context.json; reset/NMI differences have own source and boundaries. No primary gameplay trace verifies v1.4. Unknown names, intent and arbitrary-state reachability are not reconstruction blockers."
+  "reuse_note": "Source, geometry, entry/transfer tables, script/record/audio candidates and decoded assets are checked against this target. Shared native consumer rules are reused only for the twenty exact unchanged instruction regions in acceptance-context.json; reset/NMI differences have own source and boundaries. No primary gameplay trace verifies v1.4. Unknown names, intent and arbitrary-state reachability are not reconstruction blockers.",
+  "compatibility_review": "The v1.3 integration leaves the v1.4 generated assembly hash unchanged (2e2648953a5d6baf5fe683f513fa01d8634ef5419981e320abe73d84f74b49b4). Its layout has no reordered blocks, optional packed-text geometry resolves to existing defaults, strict original source/symbol controls remain, and audio literal normalization is inactive. Its own source checkpoint, decoded full build and audit are refreshed; earlier frozen evidence retains only its demonstrated scope."
 }

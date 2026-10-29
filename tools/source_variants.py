@@ -52,6 +52,7 @@ def marked_statement(source: str, marker: str, transform) -> str:
 @dataclass(frozen=True)
 class Layout:
     ranges: tuple[tuple[int, int, int, int], ...]
+    blocks: tuple[tuple[int, int, int, int], ...] = ()
 
     def __post_init__(self):
         previous = {}
@@ -63,6 +64,15 @@ class Layout:
                     or start < previous.get(bank, 0x8000)):
                 raise ValueError('invalid or overlapping target layout interval')
             previous[bank] = end
+        previous = {}
+        for bank, start, end, target in self.blocks:
+            if (type(bank) is not int or bank not in (0, 1)
+                    or any(type(n) is not int for n in (start, end, target))
+                    or not 0x8000 <= start < end <= 0x10000
+                    or not 0x8000 <= target < target + end - start <= 0x10000
+                    or start < previous.get(bank, 0x8000)):
+                raise ValueError('invalid or overlapping relocated source block')
+            previous[bank] = end
 
     def address(self, bank: int, cpu: int) -> int:
         if type(bank) is not int or bank not in (0, 1) or type(cpu) is not int or not 0x8000 <= cpu <= 0x10000:
@@ -72,6 +82,22 @@ class Layout:
 
     def offset(self, bank: int, offset: int) -> int:
         return self.address(bank, offset + 0x8000) - 0x8000
+
+    def span(self, bank: int, start: int, end: int) -> tuple[int, int]:
+        """Map a physical extent, keeping the left end of reordered blocks.
+
+        A frame extent ending where the primary palette begins does not end
+        at the palette's new start after those blocks exchange positions.
+        """
+        if (type(bank) is not int or bank not in (0, 1) or type(start) is not int
+                or type(end) is not int or not 0x8000 <= start < end <= 0x10000):
+            raise ValueError('invalid source span')
+        for b, low, high, target in self.blocks:
+            if b == bank and low <= start < end <= high:
+                return target + start - low, target + end - low
+            if b == bank and start < high and low < end:
+                raise ValueError('source span crosses a reordered block boundary')
+        return self.address(bank, start), self.address(bank, end)
 
     def expression(self, *, bank: int | None, encoded: bool = False) -> str:
         terms = ['(n)']
@@ -87,24 +113,59 @@ class Layout:
 
 
 def load_profile(root: Path, target: str) -> dict:
-    if target != 'us-v1.4':
+    if target not in ('us-v1.4', 'us-v1.3'):
         raise ValueError('no maintained source variant for this target')
     profile = json.loads((root / f'config/variants/{target}.json').read_text())
     if (profile.get('schema_version') != 1 or profile.get('target') != target
             or profile.get('canonical_target') != 'us-v1.5'):
         raise ValueError('invalid source variant identity')
-    for key in ('canonical_source', 'canonical_map', 'reset_source'):
-        value = profile.get(key, '')
+    for value in source_paths(profile):
         path = PurePosixPath(value)
         if not value or path.is_absolute() or '..' in path.parts or str(path) != value:
             raise ValueError('unsafe variant source path')
         if not (root / value).resolve().is_relative_to(root.resolve()) or (root / value).is_symlink():
             raise ValueError('variant source escapes workspace')
     profile['geometry'] = Layout(tuple((row['bank'], int(row['start'], 0), int(row['end'], 0), row['delta'])
-                                       for row in profile['layout']))
+                                       for row in profile['layout']),
+                                 tuple((row['bank'], int(row['start'], 0), int(row['end'], 0), int(row['target_start'], 0))
+                                       for row in profile.get('relocated_blocks', [])))
     if type(profile.get('menu_brand_count_delta')) is not int:
         raise ValueError('invalid menu length difference')
+    if target == 'us-v1.3':
+        profile['selector_text'] = (root / profile['bank_selection_source']).read_text()
+        profile['definition_text'] = '\n'.join((root / name).read_text() for name in profile['native_definitions'])
     return profile
+
+
+def source_paths(profile: dict) -> list[str]:
+    paths = [profile.get(key, '') for key in ('canonical_source', 'canonical_map', 'reset_source')]
+    if profile['target'] == 'us-v1.3':
+        definitions = profile.get('native_definitions')
+        if not isinstance(definitions, list) or not definitions:
+            raise ValueError('missing target native definitions')
+        paths += [profile.get('bank_selection_source', ''), *definitions]
+    if any(not isinstance(path, str) for path in paths):
+        raise ValueError('invalid variant source path')
+    return paths
+
+
+def variant_regions(config: dict, profile: dict) -> list[dict]:
+    if 'code_windows' not in profile:
+        return target_regions(config, profile['geometry'])
+    layout = profile['geometry']
+    overrides = profile.get('region_overrides', {})
+    known = {row['id'] for row in config['regions']}
+    if set(overrides) - known:
+        raise ValueError('unknown versioned source-region override')
+    result = []
+    for row in config['regions']:
+        if row['kind'] == 'code':
+            continue
+        start = int(row['cpu'], 0)
+        low, high = layout.span(row['bank'], start, start + row['size'])
+        result.append({**row, 'cpu': f'0x{low:04x}', 'size': high - low,
+                       **overrides.get(row['id'], {})})
+    return result + profile['code_windows']
 
 
 def typed_literal(value: str, function: str, layout: Layout) -> str:
@@ -155,8 +216,11 @@ def typed_lines(source: str, layout: Layout) -> str:
 
 
 def compose(source: str, reset: str, profile: dict) -> str:
-    if profile['target'] != 'us-v1.4':
+    if profile['target'] not in ('us-v1.4', 'us-v1.3'):
         raise ValueError('unsupported composition rules')
+    if profile['target'] == 'us-v1.3':
+        from .legacy_source import prepare
+        source = prepare(source, profile)
     layout = profile['geometry']
     if source.count('CheckResetState:') != 1 or source.count('InitializeGame:') != 1:
         raise ValueError('ambiguous reset variant boundaries')
@@ -232,6 +296,9 @@ def compose(source: str, reset: str, profile: dict) -> str:
                    + '\n    .word ' + typed_literal(f'${second:04X}', 'Bank0Resource', layout)
                    + '\n    .byte ' + prefix[4])
     source = source[:prefix.start()] + replacement + source[prefix.end():]
+    if profile['target'] == 'us-v1.3':
+        from .legacy_source import typed_fields, compact_constant_maps
+        source = compact_constant_maps(typed_fields(source, layout), layout)
     return source
 
 
@@ -239,7 +306,7 @@ def target_regions(config: dict, layout: Layout) -> list[dict]:
     result = []
     for entry in config['regions']:
         bank, start = entry['bank'], int(entry['cpu'], 0)
-        mapped, end = layout.address(bank, start), layout.address(bank, start + entry['size'])
+        mapped, end = layout.span(bank, start, start + entry['size'])
         if mapped >= end:
             raise ValueError('source region collapses in target layout')
         result.append({**entry, 'cpu': f'0x{mapped:04x}', 'size': end - mapped})

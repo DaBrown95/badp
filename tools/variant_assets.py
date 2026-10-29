@@ -22,6 +22,11 @@ MANIFESTS = {'sprite_frames': 'config/sprite-frames-us-v1.5.json',
 def options(root: Path, profile: dict) -> dict[str, dict]:
     layout, target = profile['geometry'], profile['target']
     result = {name: {'target': target} for name in MODULES}
+    result['packed_text']['geometry'] = {
+        'table_offset': layout.offset(1, text_assets.packed_text.TABLE_OFFSET),
+        'data_end': layout.offset(1, text_assets.packed_text.DATA_END),
+        'primary_offset': layout.offset(1, text_assets.packed_text.PRIMARY_OFFSET),
+        'secondary_offset': layout.offset(1, text_assets.packed_text.SECONDARY_OFFSET)}
     result['map_chunks']['chunk_table_offset'] = layout.offset(0, map_data.CHUNK_TABLE_OFFSET)
     result['map_layouts']['geometry'] = {
         'state_table_offset': layout.offset(0, map_data.STATE_TABLE_OFFSET),
@@ -37,12 +42,13 @@ def options(root: Path, profile: dict) -> dict[str, dict]:
         manifest['target'] = target
         manifest['source'] = ('Shared format entries translated to this target and decoded against its reference; '
                               'primary runtime observations do not verify this version.')
+        if 'end_cpu' in manifest:
+            _, end = layout.span(manifest['bank'], int(manifest['cpu_addresses'][0], 0), int(manifest['end_cpu'], 0))
+            manifest['end_cpu'] = f'0x{end:04x}'
         if 'cpu_addresses' in manifest:
             bank = manifest['bank']
             manifest['cpu_addresses'] = [f'0x{layout.address(bank, int(value, 0)):04x}'
                                          for value in manifest['cpu_addresses']]
-        if 'end_cpu' in manifest:
-            manifest['end_cpu'] = f'0x{layout.address(manifest["bank"], int(manifest["end_cpu"], 0)):04x}'
         if 'encoded_pointers' in manifest:
             translated = []
             for value in manifest['encoded_pointers']:
@@ -122,7 +128,7 @@ def encoded_gaps(prg: bytes, regions: list[dict], gaps: list[dict],
 
 def changed_payload(name: str, root: Path, row: dict, prg: bytes, reference: str):
     module, settings = MODULES[name], row['options']
-    changed = module.changed_asset(row['asset'], prg) if name == 'packed_text' else module.changed_asset(row['asset'])
+    changed = module.changed_asset(row['asset'], prg, geometry=settings.get('geometry')) if name == 'packed_text' else module.changed_asset(row['asset'])
     if name == 'chr':
         payload = module.encode(changed, reference, **settings)
     elif name in ('palettes', 'ppu_tiles', 'sprite_frames'):

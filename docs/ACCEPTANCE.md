@@ -52,6 +52,37 @@ credited to v1.4. Scoped wrapper/loader rules are reused where their code is
 unchanged, with target operands and boundaries checked separately.
 
 v1.4 is accepted: its current full build and evidence-bound review close every
-gate, with zero opaque PRG bytes and no remaining source/format blocker. Continue
-directly to v1.3, v1.2, v1.1 and the unversioned release, sharing source and
-retaining each version's own identity, layout, build and review evidence.
+gate, with zero opaque PRG bytes and no remaining source/format blocker. The
+v1.3 adaptation below continues with shared source and its own identity,
+layout, build and review evidence.
+
+## v1.3 adaptation
+
+The maintained variant restores the shorter reset dispatcher, second-controller
+NMI work, the 32-entry conflict table and its reset-state selector. Later helper
+calls become their original inline instructions, with the original loop and
+fallthrough order. Typed relocation keeps native RTS operands, script CPU
+addresses, encoded resources, text pointers and numeric/RAM words distinct.
+Palette streams precede sprite frames; opcode $18 selects the moved bank-0
+stream. All necessary local inputs use the same eight decoded asset formats.
+
+The aligned bank-1 `PLA / PLA / RTS` fragment is retained as a conditional
+native view. v1.1 through v1.3 repeat it at the exact bank-0 mode-gate return
+address as that gate moves. This supports its representation without asserting
+an ordinary bank-1 caller or another complete routine. Changed incidental
+script predicates are recorded explicitly; they do not override actual record,
+resource or music fields. The five retained storage groups preserve their
+values at D755, EB00–EB01, EB87–EB88, F34C–F34E and F619–F61A.
+
+v1.3 is accepted: its own fresh decoded full build and evidence-bound review
+close all six mechanism and five storage decisions, with zero opaque PRG bytes.
+All 197 nominal handler entries, supported native calls, script successors,
+record/resource relationships and audio starts have their target inventory.
+All physical source regions have meaningful changed-source evidence. Eleven
+obsolete primary controls have explicit retirement reasons; five controls cover
+new source components. This is not a transfer of primary gameplay evidence.
+
+No v1.3 reconstruction blocker remains. Next are v1.2, v1.1 and the unversioned
+release, in that order. Their source differences, builds and reviews remain
+unfinished; unknown original names or arbitrary-state reachability do not add
+new gates to the accepted versions.

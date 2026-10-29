@@ -5,8 +5,9 @@ import json
 from pathlib import Path
 
 from .build_rom import MUTATIONS, SYMBOL_CONTROLS, verify_control, verify_symbol_control
-from .build_variant_source import INPUTS, apply_source_patch, digest
+from .build_variant_source import input_names, apply_source_patch, digest
 from .setup import verified_tools
+from . import variant_controls
 
 
 def verify(root: Path, target: dict, profile: dict, config: dict, source: str,
@@ -14,8 +15,7 @@ def verify(root: Path, target: dict, profile: dict, config: dict, source: str,
     directory = root / 'analysis' / target['id'] / 'source-checkpoint'
     path = directory / 'source-proof.json'
     raw = path.read_bytes();proof = json.loads(raw)
-    expected_inputs = set(INPUTS) | {f'config/variants/{target["id"]}.json', f'config/targets/{target["id"]}.json',
-                                    profile['canonical_source'], profile['canonical_map'], profile['reset_source'], config['linker_config']}
+    expected_inputs = input_names(profile, config)
     if (proof.get('schema_version') != 1 or proof.get('target') != target['id'] or proof.get('match') is not True
             or proof.get('all_source_controls') is not True
             or proof.get('reference_sha256') != target['reference']['file']['sha256']
@@ -36,7 +36,8 @@ def verify(root: Path, target: dict, profile: dict, config: dict, source: str,
         raise ValueError('decoded asset or compiler inputs differ from the source-control checkpoint')
     common_sha = digest(json.dumps(common, sort_keys=True).encode())
     controls, symbols = proof.get('controls', []), proof.get('symbol_controls', [])
-    if (len(controls) != len(MUTATIONS) or {row['control'] for row in controls} != set(MUTATIONS)
+    catalogue = set(variant_controls.names(profile))
+    if (len(controls) != len(catalogue) or {row['control'] for row in controls} != catalogue
             or len(symbols) != len(SYMBOL_CONTROLS)
             or {row['control'] for row in symbols} != {'symbol_' + name for name in SYMBOL_CONTROLS}):
         raise ValueError('variant source or symbol controls are incomplete or duplicated')
@@ -54,10 +55,14 @@ def verify(root: Path, target: dict, profile: dict, config: dict, source: str,
                 or (symbol and (row['source_patch'] is not None or row['include_patch'] is None))):
             raise ValueError('invalid reconstructed variant control input: ' + name)
         candidate = (directory / 'controls' / name / 'candidate.nes').read_bytes()
-        observed = (verify_symbol_control(reference, candidate, regions, name.removeprefix('symbol_')) if symbol
-                    else verify_control(reference, candidate, regions, name))
+        observed = (variant_controls.verify_symbol(reference, candidate, regions, name.removeprefix('symbol_'), target['id']) if symbol
+                    else variant_controls.verify_source(reference, candidate, regions, name, target['id']))
         if digest(candidate) != row['candidate_sha256'] or observed != row['changed_offsets']:
             raise ValueError('variant source-control artifact differs: ' + name)
+    coverage = variant_controls.coverage(regions, controls + symbols)
+    if (not coverage['complete'] or proof.get('source_control_coverage') != coverage
+            or proof.get('retired_primary_controls') != profile.get('retired_primary_controls', {})):
+        raise ValueError('variant source-control coverage or applicability differs')
     if path.read_bytes() != raw:
         raise ValueError('source checkpoint changed during validation')
     return proof, digest(raw)

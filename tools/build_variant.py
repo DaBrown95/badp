@@ -13,7 +13,8 @@ from .identify_rom import inspect_rom
 from .native_control_flow import inventory as native_inventory, DISPATCH_LOW, DISPATCH_HIGH, LENGTH_TABLE
 from .project import IDENTITY_PARTS, load_target
 from .setup import verified_tools
-from .source_variants import compose, load_profile, target_regions
+from .source_variants import compose, load_profile, source_paths, variant_regions
+from . import variant_controls
 from . import variant_assets
 from .verify_variant_source import verify as verify_source
 
@@ -25,11 +26,12 @@ INPUTS = ('tools/build_variant.py', 'tools/verify_variant_source.py', 'tools/var
 
 
 def input_names(profile: dict, config: dict) -> set[str]:
-    return set(INPUTS) | set(variant_assets.MANIFESTS.values()) | {
+    return set(INPUTS) | set(variant_assets.MANIFESTS.values()) | set(source_paths(profile)) | {
         'include/nes.inc', config['linker_config'], profile['canonical_source'], profile['canonical_map'],
         profile['reset_source'], f'config/variants/{profile["target"]}.json', f'config/targets/{profile["target"]}.json',
-        'tools/source_variants.py', 'tools/build_rom.py', 'tools/setup.py', 'tools/project.py',
-        'tools/identify_rom.py', 'config/catalogues/no-intro-nes.json', 'config/cc65-toolchain.json', 'tools/native_control_flow.py', 'tools/nes6502.py'}
+        'tools/source_variants.py', 'tools/build_rom.py', 'tools/setup.py', 'tools/project.py', 'tools/variant_controls.py',
+        'tools/identify_rom.py', 'config/catalogues/no-intro-nes.json', 'config/cc65-toolchain.json', 'tools/native_control_flow.py', 'tools/nes6502.py'} | (
+        {'tools/legacy_source.py'} if profile['target'] == 'us-v1.3' else set())
 
 
 def dispatch_inventory(prg: bytes, layout, native: dict, regions: list[dict]) -> dict:
@@ -64,7 +66,8 @@ def build(target_id: str) -> dict:
     if any(parsed[part] != target['reference'][part] for part in IDENTITY_PARTS):
         raise ValueError('variant input differs from reviewed reference')
     config = json.loads((ROOT / profile['canonical_map']).read_text())
-    regions = source_regions({**config, 'regions': target_regions(config, profile['geometry'])}, 16)
+    regions = source_regions({**config, 'regions': variant_regions(config, profile)}, 16,
+                             controls=set(variant_controls.names(profile)), require_all_controls=target_id == 'us-v1.4')
     source = compose((ROOT / profile['canonical_source']).read_text(), (ROOT / profile['reset_source']).read_text(), profile)
     prg, chr_data = reference[16:65552], reference[65552:]
     names = input_names(profile, config)
@@ -103,7 +106,8 @@ def build(target_id: str) -> dict:
             raise ValueError('variant direct transfer points into a source instruction')
         for row in native['same_bank_non_code_targets']:
             if (row['bank'], row['cpu'], row.get('other_bank_instruction_start')) not in (
-                    (1, '0xffd9', True), (1, '0xfff1', True)):
+                    (1, f'0x{profile["geometry"].address(1, 0xffd9):04x}', True),
+                    (1, f'0x{profile["geometry"].address(1, 0xfff1):04x}', True)):
                 raise ValueError('unreviewed variant native bank transition')
         dispatch = dispatch_inventory(prg, profile['geometry'], native, regions)
         asset_controls = {}
