@@ -113,7 +113,7 @@ class Layout:
 
 
 def load_profile(root: Path, target: str) -> dict:
-    if target not in ('us-v1.4', 'us-v1.3'):
+    if target not in ('us-v1.4', 'us-v1.3', 'us-v1.2'):
         raise ValueError('no maintained source variant for this target')
     profile = json.loads((root / f'config/variants/{target}.json').read_text())
     if (profile.get('schema_version') != 1 or profile.get('target') != target
@@ -131,19 +131,26 @@ def load_profile(root: Path, target: str) -> dict:
                                        for row in profile.get('relocated_blocks', [])))
     if type(profile.get('menu_brand_count_delta')) is not int:
         raise ValueError('invalid menu length difference')
-    if target == 'us-v1.3':
+    if target in ('us-v1.3', 'us-v1.2'):
         profile['selector_text'] = (root / profile['bank_selection_source']).read_text()
         profile['definition_text'] = '\n'.join((root / name).read_text() for name in profile['native_definitions'])
+    if target == 'us-v1.2':
+        profile['earlier_definition_text'] = '\n'.join((root / name).read_text() for name in profile['earlier_definitions'])
     return profile
 
 
 def source_paths(profile: dict) -> list[str]:
     paths = [profile.get(key, '') for key in ('canonical_source', 'canonical_map', 'reset_source')]
-    if profile['target'] == 'us-v1.3':
+    if profile['target'] in ('us-v1.3', 'us-v1.2'):
         definitions = profile.get('native_definitions')
         if not isinstance(definitions, list) or not definitions:
             raise ValueError('missing target native definitions')
         paths += [profile.get('bank_selection_source', ''), *definitions]
+    if profile['target'] == 'us-v1.2':
+        earlier = profile.get('earlier_definitions')
+        if not isinstance(earlier, list) or not earlier:
+            raise ValueError('missing earlier native definitions')
+        paths += earlier
     if any(not isinstance(path, str) for path in paths):
         raise ValueError('invalid variant source path')
     return paths
@@ -165,7 +172,7 @@ def variant_regions(config: dict, profile: dict) -> list[dict]:
         low, high = layout.span(row['bank'], start, start + row['size'])
         result.append({**row, 'cpu': f'0x{low:04x}', 'size': high - low,
                        **overrides.get(row['id'], {})})
-    return result + profile['code_windows']
+    return result + profile['code_windows'] + profile.get('extra_regions', [])
 
 
 def typed_literal(value: str, function: str, layout: Layout) -> str:
@@ -216,11 +223,14 @@ def typed_lines(source: str, layout: Layout) -> str:
 
 
 def compose(source: str, reset: str, profile: dict) -> str:
-    if profile['target'] not in ('us-v1.4', 'us-v1.3'):
+    if profile['target'] not in ('us-v1.4', 'us-v1.3', 'us-v1.2'):
         raise ValueError('unsupported composition rules')
-    if profile['target'] == 'us-v1.3':
+    if profile['target'] in ('us-v1.3', 'us-v1.2'):
         from .legacy_source import prepare
         source = prepare(source, profile)
+    if profile['target'] == 'us-v1.2':
+        from .earlier_source import prepare as earlier_prepare
+        source = earlier_prepare(source, profile['selector_text'], profile['earlier_definition_text'])
     layout = profile['geometry']
     if source.count('CheckResetState:') != 1 or source.count('InitializeGame:') != 1:
         raise ValueError('ambiguous reset variant boundaries')
@@ -296,7 +306,7 @@ def compose(source: str, reset: str, profile: dict) -> str:
                    + '\n    .word ' + typed_literal(f'${second:04X}', 'Bank0Resource', layout)
                    + '\n    .byte ' + prefix[4])
     source = source[:prefix.start()] + replacement + source[prefix.end():]
-    if profile['target'] == 'us-v1.3':
+    if profile['target'] in ('us-v1.3', 'us-v1.2'):
         from .legacy_source import typed_fields, compact_constant_maps
         source = compact_constant_maps(typed_fields(source, layout), layout)
     return source

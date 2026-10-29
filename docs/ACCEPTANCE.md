@@ -82,7 +82,37 @@ All physical source regions have meaningful changed-source evidence. Eleven
 obsolete primary controls have explicit retirement reasons; five controls cover
 new source components. This is not a transfer of primary gameplay evidence.
 
-No v1.3 reconstruction blocker remains. Next are v1.2, v1.1 and the unversioned
-release, in that order. Their source differences, builds and reviews remain
-unfinished; unknown original names or arbitrary-state reachability do not add
-new gates to the accepted versions.
+No v1.3 reconstruction blocker remains. The v1.2 adaptation below continues
+with separate source, geometry, build and inventory evidence. Unknown original
+names or arbitrary-state reachability do not add gates to accepted versions.
+
+
+## v1.2 adaptation
+
+v1.2 is accepted by its own fresh decoded-input build and input-bound review.
+All six mechanism and five retained-storage decisions are closed, with zero
+opaque PRG bytes. The original reset pulses use three explicit ROM conflict
+constants; the later reset validator/countdown is absent. Mapper writes and
+selected default-bank restores are inline, while the supported standalone
+helper remains. Two main-state callers use a separate nineteen-byte unrolled
+shift, alongside the retained generic coordinate helper.
+
+The skipped audio pop and the mirrored secondary branch/pop/return retain
+conditional native views without an invented ordinary caller or whole routine.
+The menu consumers retain the same bounded fifteen-byte brand stream; those
+native bytes are not artwork. The five retained storage groups use their own
+placements and evidence, preserving uncertainty about original purpose. Three
+record-format consumer regions reuse prior rules only through explicit
+instruction and same-label target comparisons. No other-version gameplay
+observation verifies v1.2.
+
+All 197 nominal handler entries, 25 declared native calls, script successors,
+record/resource relationships and audio starts have their target inventory.
+Incidental decodes remain conditional and expose no concrete missing source.
+Fourteen obsolete primary controls have specific retirement reasons; replacement
+components have their own meaningful edits. Every physical source region is
+controlled, and all eight local asset formats re-encode exactly.
+
+No v1.2 source/format blocker remains. v1.1 and the unversioned release still
+need their own shared-source adaptations, exact full builds and reviewed
+inventories, in that order.

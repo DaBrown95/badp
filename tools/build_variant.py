@@ -31,7 +31,8 @@ def input_names(profile: dict, config: dict) -> set[str]:
         profile['reset_source'], f'config/variants/{profile["target"]}.json', f'config/targets/{profile["target"]}.json',
         'tools/source_variants.py', 'tools/build_rom.py', 'tools/setup.py', 'tools/project.py', 'tools/variant_controls.py',
         'tools/identify_rom.py', 'config/catalogues/no-intro-nes.json', 'config/cc65-toolchain.json', 'tools/native_control_flow.py', 'tools/nes6502.py'} | (
-        {'tools/legacy_source.py'} if profile['target'] == 'us-v1.3' else set())
+        {'tools/legacy_source.py', *({'tools/earlier_source.py'} if profile['target'] == 'us-v1.2' else set())}
+        if profile['target'] in ('us-v1.3', 'us-v1.2') else set())
 
 
 def dispatch_inventory(prg: bytes, layout, native: dict, regions: list[dict]) -> dict:

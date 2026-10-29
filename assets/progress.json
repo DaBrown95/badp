@@ -67,15 +67,22 @@
     {
       "target": "us-v1.2",
       "version": "USA v1.2",
-      "status": "Not started",
+      "status": "Accepted",
       "prg_bytes": 65536,
-      "reconstructed_bytes": 0,
-      "percentage": "0.00%",
-      "code_bytes": 0,
-      "structured_data_bytes": 0,
-      "fill_bytes": 0,
+      "reconstructed_bytes": 45270,
+      "percentage": "69.08%",
+      "code_bytes": 21556,
+      "structured_data_bytes": 23714,
+      "fill_bytes": 32,
       "reference_sha256": "753c243fb9c036fdf96f2c8a9b26340b7304fb101a7a61619b9c29f39b176fdc",
-      "evidence": null
+      "evidence": {
+        "code_bytes": 21556,
+        "data_bytes": 23714,
+        "fill_bytes": 32,
+        "source_sha256": "eee056656cadde4d88ace5f43b2fd72bdefc8563410d5207bff357990004acdc",
+        "source_map_sha256": "6382658a5cf3c86a4ceadf54994114fe0bd54fafa99530e310c24fdbd5898afc",
+        "toolchain_revision": "555282497c3ecf8b313d87d5973093af19c35bd5"
+      }
     },
     {
       "target": "us-v1.1",

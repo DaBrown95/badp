@@ -1,0 +1,1044 @@
+{
+  "schema_version": 1,
+  "target": "us-v1.2",
+  "canonical_target": "us-v1.5",
+  "canonical_source": "src/us-v1.5/rom.s",
+  "canonical_map": "config/source-us-v1.5.json",
+  "reset_source": "src/variants/reset-us-v1.2.inc",
+  "bank_selection_source": "src/variants/bank-selection-us-v1.2.inc",
+  "native_definitions": [
+    "src/variants/controller2-us-v1.3.inc",
+    "src/variants/native-inlines-us-v1.3.inc"
+  ],
+  "layout": [
+    {
+      "bank": 0,
+      "start": "0x8000",
+      "end": "0x817b",
+      "delta": 0
+    },
+    {
+      "bank": 0,
+      "start": "0x817b",
+      "end": "0x8191",
+      "delta": -317
+    },
+    {
+      "bank": 0,
+      "start": "0x8191",
+      "end": "0x8291",
+      "delta": -322
+    },
+    {
+      "bank": 0,
+      "start": "0x8291",
+      "end": "0x82ec",
+      "delta": -340
+    },
+    {
+      "bank": 0,
+      "start": "0x82ec",
+      "end": "0x8334",
+      "delta": -269
+    },
+    {
+      "bank": 0,
+      "start": "0x8334",
+      "end": "0x8389",
+      "delta": -197
+    },
+    {
+      "bank": 0,
+      "start": "0x8389",
+      "end": "0x844b",
+      "delta": -196
+    },
+    {
+      "bank": 0,
+      "start": "0x844b",
+      "end": "0x8504",
+      "delta": -189
+    },
+    {
+      "bank": 0,
+      "start": "0x8504",
+      "end": "0x85e8",
+      "delta": -185
+    },
+    {
+      "bank": 0,
+      "start": "0x85e8",
+      "end": "0x86de",
+      "delta": -161
+    },
+    {
+      "bank": 0,
+      "start": "0x86de",
+      "end": "0x874b",
+      "delta": -160
+    },
+    {
+      "bank": 0,
+      "start": "0x874b",
+      "end": "0x90e2",
+      "delta": -156
+    },
+    {
+      "bank": 0,
+      "start": "0x90e2",
+      "end": "0x9216",
+      "delta": -150
+    },
+    {
+      "bank": 0,
+      "start": "0x9216",
+      "end": "0x9229",
+      "delta": -144
+    },
+    {
+      "bank": 0,
+      "start": "0x9229",
+      "end": "0x92f5",
+      "delta": -141
+    },
+    {
+      "bank": 0,
+      "start": "0x92f5",
+      "end": "0x93cd",
+      "delta": -140
+    },
+    {
+      "bank": 0,
+      "start": "0x93cd",
+      "end": "0x96a8",
+      "delta": -143
+    },
+    {
+      "bank": 0,
+      "start": "0x96a8",
+      "end": "0x96db",
+      "delta": -131
+    },
+    {
+      "bank": 0,
+      "start": "0x96db",
+      "end": "0x9790",
+      "delta": -119
+    },
+    {
+      "bank": 0,
+      "start": "0x9790",
+      "end": "0x97b7",
+      "delta": -95
+    },
+    {
+      "bank": 0,
+      "start": "0x97b7",
+      "end": "0x97c8",
+      "delta": -71
+    },
+    {
+      "bank": 0,
+      "start": "0x97c8",
+      "end": "0x98f1",
+      "delta": -87
+    },
+    {
+      "bank": 0,
+      "start": "0x98f1",
+      "end": "0x990b",
+      "delta": -93
+    },
+    {
+      "bank": 0,
+      "start": "0x990b",
+      "end": "0x9916",
+      "delta": -90
+    },
+    {
+      "bank": 0,
+      "start": "0x9916",
+      "end": "0x9a15",
+      "delta": -73
+    },
+    {
+      "bank": 0,
+      "start": "0x9a15",
+      "end": "0x9a20",
+      "delta": -50
+    },
+    {
+      "bank": 0,
+      "start": "0x9a20",
+      "end": "0x9a35",
+      "delta": -33
+    },
+    {
+      "bank": 0,
+      "start": "0x9a35",
+      "end": "0x9adc",
+      "delta": -54
+    },
+    {
+      "bank": 0,
+      "start": "0x9adc",
+      "end": "0x9af4",
+      "delta": -63
+    },
+    {
+      "bank": 0,
+      "start": "0x9af4",
+      "end": "0x9c05",
+      "delta": -58
+    },
+    {
+      "bank": 0,
+      "start": "0x9c05",
+      "end": "0x9c10",
+      "delta": -38
+    },
+    {
+      "bank": 0,
+      "start": "0x9c10",
+      "end": "0x9e19",
+      "delta": -21
+    },
+    {
+      "bank": 0,
+      "start": "0x9e19",
+      "end": "0x9e1f",
+      "delta": -27
+    },
+    {
+      "bank": 0,
+      "start": "0x9e1f",
+      "end": "0x9e2f",
+      "delta": -13
+    },
+    {
+      "bank": 0,
+      "start": "0x9e2f",
+      "end": "0x9e35",
+      "delta": -39
+    },
+    {
+      "bank": 0,
+      "start": "0x9e35",
+      "end": "0x9f06",
+      "delta": -28
+    },
+    {
+      "bank": 0,
+      "start": "0x9f06",
+      "end": "0xba23",
+      "delta": -20
+    },
+    {
+      "bank": 0,
+      "start": "0xba23",
+      "end": "0xc7df",
+      "delta": 618
+    },
+    {
+      "bank": 0,
+      "start": "0xc7df",
+      "end": "0xca5d",
+      "delta": -3536
+    },
+    {
+      "bank": 0,
+      "start": "0xca5d",
+      "end": "0xcb74",
+      "delta": -20
+    },
+    {
+      "bank": 0,
+      "start": "0xcb74",
+      "end": "0xcb98",
+      "delta": -11
+    },
+    {
+      "bank": 0,
+      "start": "0xcb98",
+      "end": "0xcbe4",
+      "delta": -2
+    },
+    {
+      "bank": 0,
+      "start": "0xcbe4",
+      "end": "0xcc82",
+      "delta": -16
+    },
+    {
+      "bank": 0,
+      "start": "0xcc82",
+      "end": "0xcc83",
+      "delta": -20
+    },
+    {
+      "bank": 0,
+      "start": "0xcc83",
+      "end": "0xcc8c",
+      "delta": -21
+    },
+    {
+      "bank": 0,
+      "start": "0xcc8c",
+      "end": "0xccc7",
+      "delta": -2
+    },
+    {
+      "bank": 0,
+      "start": "0xccc7",
+      "end": "0xd0eb",
+      "delta": -1
+    },
+    {
+      "bank": 0,
+      "start": "0xd0eb",
+      "end": "0xd0ec",
+      "delta": 83
+    },
+    {
+      "bank": 0,
+      "start": "0xd0ec",
+      "end": "0xd0f3",
+      "delta": -1
+    },
+    {
+      "bank": 0,
+      "start": "0xd0f3",
+      "end": "0xd100",
+      "delta": 89
+    },
+    {
+      "bank": 0,
+      "start": "0xd100",
+      "end": "0xd10d",
+      "delta": 93
+    },
+    {
+      "bank": 0,
+      "start": "0xd10d",
+      "end": "0xd126",
+      "delta": 81
+    },
+    {
+      "bank": 0,
+      "start": "0xd126",
+      "end": "0xd129",
+      "delta": 57
+    },
+    {
+      "bank": 0,
+      "start": "0xd129",
+      "end": "0xd12e",
+      "delta": 80
+    },
+    {
+      "bank": 0,
+      "start": "0xd12e",
+      "end": "0xd131",
+      "delta": 76
+    },
+    {
+      "bank": 0,
+      "start": "0xd131",
+      "end": "0xd13f",
+      "delta": 103
+    },
+    {
+      "bank": 0,
+      "start": "0xd13f",
+      "end": "0xd14d",
+      "delta": -20232
+    },
+    {
+      "bank": 0,
+      "start": "0xd14d",
+      "end": "0xd15e",
+      "delta": -20238
+    },
+    {
+      "bank": 0,
+      "start": "0xd15e",
+      "end": "0xd15f",
+      "delta": -20247
+    },
+    {
+      "bank": 0,
+      "start": "0xd15f",
+      "end": "0xd160",
+      "delta": -20240
+    },
+    {
+      "bank": 0,
+      "start": "0xd160",
+      "end": "0xd17a",
+      "delta": -20233
+    },
+    {
+      "bank": 0,
+      "start": "0xd17a",
+      "end": "0xd17b",
+      "delta": -20251
+    },
+    {
+      "bank": 0,
+      "start": "0xd17b",
+      "end": "0xd199",
+      "delta": -20244
+    },
+    {
+      "bank": 0,
+      "start": "0xd199",
+      "end": "0xd19a",
+      "delta": -20525
+    },
+    {
+      "bank": 0,
+      "start": "0xd19a",
+      "end": "0xd1bb",
+      "delta": -1
+    },
+    {
+      "bank": 0,
+      "start": "0xd1bb",
+      "end": "0xd1bc",
+      "delta": 83
+    },
+    {
+      "bank": 0,
+      "start": "0xd1bc",
+      "end": "0xd1c3",
+      "delta": -1
+    },
+    {
+      "bank": 0,
+      "start": "0xd1c3",
+      "end": "0xd1d0",
+      "delta": 89
+    },
+    {
+      "bank": 0,
+      "start": "0xd1d0",
+      "end": "0xd1dd",
+      "delta": 93
+    },
+    {
+      "bank": 0,
+      "start": "0xd1dd",
+      "end": "0xd1f6",
+      "delta": 81
+    },
+    {
+      "bank": 0,
+      "start": "0xd1f6",
+      "end": "0xd1f9",
+      "delta": 57
+    },
+    {
+      "bank": 0,
+      "start": "0xd1f9",
+      "end": "0xd1fe",
+      "delta": 80
+    },
+    {
+      "bank": 0,
+      "start": "0xd1fe",
+      "end": "0xd201",
+      "delta": 76
+    },
+    {
+      "bank": 0,
+      "start": "0xd201",
+      "end": "0xd20f",
+      "delta": 103
+    },
+    {
+      "bank": 0,
+      "start": "0xd20f",
+      "end": "0xd21d",
+      "delta": -293
+    },
+    {
+      "bank": 0,
+      "start": "0xd21d",
+      "end": "0xd22e",
+      "delta": -299
+    },
+    {
+      "bank": 0,
+      "start": "0xd22e",
+      "end": "0xd22f",
+      "delta": -303
+    },
+    {
+      "bank": 0,
+      "start": "0xd22f",
+      "end": "0xd230",
+      "delta": -291
+    },
+    {
+      "bank": 0,
+      "start": "0xd230",
+      "end": "0xd24a",
+      "delta": -267
+    },
+    {
+      "bank": 0,
+      "start": "0xd24a",
+      "end": "0xd24b",
+      "delta": -290
+    },
+    {
+      "bank": 0,
+      "start": "0xd24b",
+      "end": "0xd269",
+      "delta": -286
+    },
+    {
+      "bank": 0,
+      "start": "0xd269",
+      "end": "0xd26a",
+      "delta": -313
+    },
+    {
+      "bank": 0,
+      "start": "0xd26a",
+      "end": "0xd27a",
+      "delta": -1
+    },
+    {
+      "bank": 0,
+      "start": "0xd27a",
+      "end": "0xd2a2",
+      "delta": 8
+    },
+    {
+      "bank": 0,
+      "start": "0xd2a2",
+      "end": "0xd2c4",
+      "delta": 17
+    },
+    {
+      "bank": 0,
+      "start": "0xd2c4",
+      "end": "0xd2ef",
+      "delta": 6
+    },
+    {
+      "bank": 0,
+      "start": "0xd2ef",
+      "end": "0xd2f8",
+      "delta": 9
+    },
+    {
+      "bank": 0,
+      "start": "0xd2f8",
+      "end": "0xe049",
+      "delta": 4
+    },
+    {
+      "bank": 0,
+      "start": "0xe049",
+      "end": "0xe30f",
+      "delta": 11
+    },
+    {
+      "bank": 0,
+      "start": "0xe30f",
+      "end": "0xe526",
+      "delta": 7
+    },
+    {
+      "bank": 0,
+      "start": "0xe526",
+      "end": "0xe532",
+      "delta": 10
+    },
+    {
+      "bank": 0,
+      "start": "0xe532",
+      "end": "0xe75b",
+      "delta": 1
+    },
+    {
+      "bank": 0,
+      "start": "0xe75b",
+      "end": "0xe780",
+      "delta": -3
+    },
+    {
+      "bank": 0,
+      "start": "0xe780",
+      "end": "0xeb7a",
+      "delta": 5
+    },
+    {
+      "bank": 0,
+      "start": "0xeb7a",
+      "end": "0xeb8b",
+      "delta": 6
+    },
+    {
+      "bank": 0,
+      "start": "0xeb8b",
+      "end": "0xef89",
+      "delta": 5
+    },
+    {
+      "bank": 0,
+      "start": "0xef89",
+      "end": "0xf1eb",
+      "delta": 3
+    },
+    {
+      "bank": 0,
+      "start": "0xf1eb",
+      "end": "0xf2cc",
+      "delta": 4
+    },
+    {
+      "bank": 0,
+      "start": "0xf2cc",
+      "end": "0xf421",
+      "delta": 1
+    },
+    {
+      "bank": 0,
+      "start": "0xf421",
+      "end": "0xf469",
+      "delta": 10
+    },
+    {
+      "bank": 0,
+      "start": "0xf469",
+      "end": "0xf479",
+      "delta": 19
+    },
+    {
+      "bank": 0,
+      "start": "0xf479",
+      "end": "0xf47e",
+      "delta": -6
+    },
+    {
+      "bank": 0,
+      "start": "0xf47e",
+      "end": "0xf511",
+      "delta": 14
+    },
+    {
+      "bank": 0,
+      "start": "0xf511",
+      "end": "0xf56a",
+      "delta": 10
+    },
+    {
+      "bank": 0,
+      "start": "0xf56a",
+      "end": "0xf63c",
+      "delta": 15
+    },
+    {
+      "bank": 0,
+      "start": "0xf63c",
+      "end": "0xf681",
+      "delta": 20
+    },
+    {
+      "bank": 0,
+      "start": "0xf681",
+      "end": "0xf6be",
+      "delta": 28
+    },
+    {
+      "bank": 0,
+      "start": "0xf6be",
+      "end": "0xf866",
+      "delta": 36
+    },
+    {
+      "bank": 0,
+      "start": "0xf866",
+      "end": "0xf89f",
+      "delta": 39
+    },
+    {
+      "bank": 0,
+      "start": "0xf89f",
+      "end": "0xfa34",
+      "delta": 34
+    },
+    {
+      "bank": 0,
+      "start": "0xfa34",
+      "end": "0xfa4a",
+      "delta": 36
+    },
+    {
+      "bank": 0,
+      "start": "0xfa4a",
+      "end": "0xfd88",
+      "delta": 38
+    },
+    {
+      "bank": 0,
+      "start": "0xfd88",
+      "end": "0xfd9c",
+      "delta": -24
+    },
+    {
+      "bank": 0,
+      "start": "0xfd9c",
+      "end": "0xfed8",
+      "delta": -17
+    },
+    {
+      "bank": 0,
+      "start": "0xfed8",
+      "end": "0xff18",
+      "delta": -11
+    },
+    {
+      "bank": 0,
+      "start": "0xff18",
+      "end": "0xffd9",
+      "delta": -5
+    },
+    {
+      "bank": 0,
+      "start": "0xffd9",
+      "end": "0xfffa",
+      "delta": 1
+    },
+    {
+      "bank": 0,
+      "start": "0xfffa",
+      "end": "0x10000",
+      "delta": 0
+    },
+    {
+      "bank": 1,
+      "start": "0x8000",
+      "end": "0xa6d0",
+      "delta": 0
+    },
+    {
+      "bank": 1,
+      "start": "0xa6d0",
+      "end": "0xf401",
+      "delta": -8
+    },
+    {
+      "bank": 1,
+      "start": "0xf401",
+      "end": "0xfd88",
+      "delta": -10
+    },
+    {
+      "bank": 1,
+      "start": "0xfd88",
+      "end": "0xfd9c",
+      "delta": -24
+    },
+    {
+      "bank": 1,
+      "start": "0xfd9c",
+      "end": "0xfed8",
+      "delta": -17
+    },
+    {
+      "bank": 1,
+      "start": "0xfed8",
+      "end": "0xff18",
+      "delta": -11
+    },
+    {
+      "bank": 1,
+      "start": "0xff18",
+      "end": "0xffd9",
+      "delta": -5
+    },
+    {
+      "bank": 1,
+      "start": "0xffd9",
+      "end": "0xfffa",
+      "delta": 1
+    },
+    {
+      "bank": 1,
+      "start": "0xfffa",
+      "end": "0x10000",
+      "delta": 0
+    }
+  ],
+  "relocated_blocks": [
+    {
+      "bank": 0,
+      "start": "0x9efa",
+      "end": "0x9f06",
+      "target_start": "0x9ede"
+    },
+    {
+      "bank": 0,
+      "start": "0xb5d3",
+      "end": "0xba23",
+      "target_start": "0xb5bf"
+    },
+    {
+      "bank": 0,
+      "start": "0xba23",
+      "end": "0xc7df",
+      "target_start": "0xbc8d"
+    },
+    {
+      "bank": 0,
+      "start": "0xc7df",
+      "end": "0xca5d",
+      "target_start": "0xba0f"
+    }
+  ],
+  "menu_brand_count_delta": -2,
+  "omit_source_regions": [
+    "bank0-scale-world-shift",
+    "bank0-map-queue-second-nametable",
+    "bank0-main-state-scale"
+  ],
+  "region_overrides": {
+    "bank1-candidate-audio-a6c8": {
+      "id": "bank0-opcode18-audio",
+      "bank": 0,
+      "cpu": "0x9eea",
+      "size": 8
+    },
+    "bank1-alignment-fill-fd6a": {
+      "cpu": "0xfd65",
+      "size": 11
+    },
+    "bank1-script-prefix-af02": {
+      "id": "bank1-af02-pointer-fields",
+      "control": "v13_pointer_af02"
+    }
+  },
+  "primary_only_candidate_aliases": [
+    "E002",
+    "E099",
+    "EB0D",
+    "EBAD",
+    "E01A",
+    "E023",
+    "E090",
+    "B077",
+    "AF00",
+    "AF02-branch-prefix",
+    "E006",
+    "E07B",
+    "E0B6",
+    "EB00",
+    "DA51-opcode"
+  ],
+  "changed_conditional_fields": [
+    "DB69 trailing field follows the moved script low byte.",
+    "D57C and EE65 alternate record fields follow their shared jump operands.",
+    "Audio AA49 retains its literal note encoding; its conditional target does not follow the moved AC7F label.",
+    "The secondary mode-gate fragment includes the BNE before the two PLAs; ordinary entry remains unproven.",
+    "The two main-state coordinate callers select a separate nineteen-byte unrolled helper."
+  ],
+  "scope": "Maintained shared-source v1.2 geometry, explicit native forms and decoded-format relationships. Acceptance is derived from its own full build, applicable controls and evidence-bound inventory; this profile alone is not acceptance proof.",
+  "code_windows": [
+    {
+      "id": "bank0-native-8000-803b",
+      "bank": 0,
+      "cpu": "0x8000",
+      "size": 59,
+      "kind": "code",
+      "control": "boot"
+    },
+    {
+      "id": "bank0-native-803e-8ef4",
+      "bank": 0,
+      "cpu": "0x803e",
+      "size": 3766,
+      "kind": "code",
+      "control": "nmi_frame"
+    },
+    {
+      "id": "bank0-native-8f1e-91d2",
+      "bank": 0,
+      "cpu": "0x8f1e",
+      "size": 692,
+      "kind": "code",
+      "control": "update_audio_voices"
+    },
+    {
+      "id": "bank0-native-91d7-91da",
+      "bank": 0,
+      "cpu": "0x91d7",
+      "size": 3,
+      "kind": "code",
+      "control": "audio_all_tone_channels"
+    },
+    {
+      "id": "bank0-native-9234-9276",
+      "bank": 0,
+      "cpu": "0x9234",
+      "size": 66,
+      "kind": "code",
+      "control": "audio_voice_register_address"
+    },
+    {
+      "id": "bank0-native-9326-9ede",
+      "bank": 0,
+      "cpu": "0x9326",
+      "size": 3000,
+      "kind": "code",
+      "control": "write_audio_voice_period"
+    },
+    {
+      "id": "bank0-native-b508-b5bf",
+      "bank": 0,
+      "cpu": "0xb508",
+      "size": 183,
+      "kind": "code",
+      "control": "fade_palette_load"
+    },
+    {
+      "id": "bank0-native-ca49-d589",
+      "bank": 0,
+      "cpu": "0xca49",
+      "size": 2880,
+      "kind": "code",
+      "control": "main_state_init"
+    },
+    {
+      "id": "bank0-native-d713-da81",
+      "bank": 0,
+      "cpu": "0xd713",
+      "size": 878,
+      "kind": "code",
+      "control": "script_op00"
+    },
+    {
+      "id": "bank0-native-da89-fd65",
+      "bank": 0,
+      "cpu": "0xda89",
+      "size": 8924,
+      "kind": "code",
+      "control": "script_op1f"
+    },
+    {
+      "id": "bank0-native-fd70-fd96",
+      "bank": 0,
+      "cpu": "0xfd70",
+      "size": 38,
+      "kind": "code",
+      "control": "script_native_call"
+    },
+    {
+      "id": "bank0-native-fe5b-ffb2",
+      "bank": 0,
+      "cpu": "0xfe5b",
+      "size": 343,
+      "kind": "code",
+      "control": "record_fetch"
+    },
+    {
+      "id": "bank0-native-ffc2-fff5",
+      "bank": 0,
+      "cpu": "0xffc2",
+      "size": 51,
+      "kind": "code",
+      "control": "nmi"
+    },
+    {
+      "id": "bank1-native-bee2-bfce",
+      "bank": 1,
+      "cpu": "0xbee2",
+      "size": 236,
+      "kind": "code",
+      "control": "packed_text_decode"
+    },
+    {
+      "id": "bank1-native-fd60-fd65",
+      "bank": 1,
+      "cpu": "0xfd60",
+      "size": 5,
+      "kind": "code",
+      "control": "v12_mode_return"
+    },
+    {
+      "id": "bank1-native-fd70-fd96",
+      "bank": 1,
+      "cpu": "0xfd70",
+      "size": 38,
+      "kind": "code",
+      "control": "script_native_call"
+    },
+    {
+      "id": "bank1-native-fe5b-ffb2",
+      "bank": 1,
+      "cpu": "0xfe5b",
+      "size": 343,
+      "kind": "code",
+      "control": "record_fetch"
+    },
+    {
+      "id": "bank1-native-ffc2-fff5",
+      "bank": 1,
+      "cpu": "0xffc2",
+      "size": 51,
+      "kind": "code",
+      "control": "nmi"
+    }
+  ],
+  "code_window_scope": "Physical emitted native instruction windows; official instructions, modes and boundaries are separately verified. Windows are not exclusive routines, and changed-byte controls must cover every physical source region.",
+  "retired_primary_controls": {
+    "shift_left4": "The standalone four-left-shift entry is absent. Its two callers inline four ASLs; the three-shift native entry remains. Existing caller controls and the new inline-source control replace this obsolete boundary.",
+    "double_fe_pointer": "The FE/FF doubling helper is absent; seven caller sites inline its instructions. Native source is checked per instruction, with the inline-source control.",
+    "scale_position_by_eight": "The standalone chained-shift entry is absent. Both callers inline three paired shifts, represented in the shared native-inlines source.",
+    "shift_reference_right": "The standalone reference-shift helper is absent; its three paired operations are inline in the position update.",
+    "scale_world_shift": "The standalone world-shift helper is absent. Its three accumulator/$11 shifts are inline in the source-owned coordinate function.",
+    "shift_search_coordinate_right": "The standalone search-coordinate shift is absent; its three paired shifts are inline in the source-owned bounds caller.",
+    "shift_scrolled_slot_horizontal": "The standalone horizontal-slot shift is absent; indexed paired shifts are inline in the source-owned fraction caller.",
+    "pending_ppu_set_source": "The standalone EA/EB source helper is absent. Its four instructions appear inline at both PPU consumers.",
+    "advance_audio_command_two": "There is no two-byte-advance entry. Every former call becomes two calls to the retained one-byte advance, which keeps its control.",
+    "script_prefix_af02": "The actual three-byte form is an encoded pointer to InteractionScriptAF05 and a trailing E0 field. The primary conditional branch-prefix opcode does not survive relocation. The typed pointer source has its own control.",
+    "main_state_scale": "Both standalone scroll-base doubling helpers are absent; their paired shifts occur inline in the state setup. Caller controls and the shared inline-source control cover the current representation.",
+    "reset_dispatch": "The reset-state validator/countdown does not exist in v1.2. Its own mapper pulse sequence and explicit conflict constants have replacement controls.",
+    "scroll_x_tile_coordinate": "This convenience entry is absent. Its callers load the X coordinate inline and call the retained generic shift; caller and generic-shift controls cover the actual forms.",
+    "scroll_y_tile_coordinate": "This convenience entry is absent. Its callers load the Y coordinate inline and call the retained generic shift; caller and generic-shift controls cover the actual forms."
+  },
+  "source_control_adaptations": {
+    "script_op08": "Mutate the actual symbolic call target plus one so the control follows this target\u2019s relocated helper.",
+    "prepare_audio_note": "The former JSR is inline; mutate the surviving FE timing mask to FC in the same caller.",
+    "script_op9f": "The former JSR is inline; mutate the surviving compare jump target plus one in the same caller.",
+    "script_opa0": "The former JSR is inline; mutate the surviving zero initializer to one in the same caller.",
+    "apply_slot_offset": "The former first helper call is inline; mutate its surviving 03A6 state read to 03A7.",
+    "script_op2d": "Mutate the actual symbolic call target plus one so the control follows this target\u2019s relocated helper.",
+    "convert_slot_position": "The former scale helper call is inline; mutate the surviving 51 component read to 50 in the same caller.",
+    "pending_ppu_copy_banked": "The former source helper call is inline; mutate the surviving E7 bank selector read to E6 in the same caller.",
+    "record_voice_e01a": "The primary pointer edit changes its typed ROM location and breaks the conditional voice-word predicate. Mutate the actual record mode and corresponding conditional voice word coherently.",
+    "record_voice_e023": "The primary pointer edit changes its typed ROM location and breaks the conditional voice-word predicate. Mutate the actual record mode and corresponding conditional voice word coherently.",
+    "set_initial_map_tile_position": "The two generic calls become memory/accumulator shifts. Mutate the first actual source coordinate in the v1.2 macro.",
+    "queue_scroll_row": "The coordinate convenience call is inline; mutate the surviving tile-coordinate store in both exposed-row callers."
+  },
+  "earlier_definitions": [
+    "src/variants/native-inlines-us-v1.2.inc"
+  ],
+  "extra_regions": [
+    {
+      "id": "bank0-reset-conflict-values",
+      "bank": 0,
+      "cpu": "0x803b",
+      "size": 3,
+      "kind": "data",
+      "control": "v12_reset_table"
+    }
+  ],
+  "earlier_controls_not_carried_forward": {
+    "v13_shared_return_tail": "Replaced by the five-byte branch/return source component and v12_mode_return control.",
+    "v13_mapper_prefix": "The extra 08/09 half is absent; the retained sixteen-entry 0C/0D table keeps the primary table control."
+  }
+}

@@ -91,6 +91,27 @@ Existing runtime checks retain their demonstrated scope; no new runtime matrix
 was added. No accepted-version source blocker remains. v1.2, v1.1 and the
 unversioned release still need their own reconstruction and acceptance.
 
+## v1.2 acceptance checkpoint (2026-10-29)
+
+v1.5 through v1.2 now have separate current matching builds and accepted
+inventories. The v1.2 adaptation closes its reset/ROM-constant, inline mapper,
+coordinate-helper and conditional-fragment differences through shared source.
+All six mechanism and five retained-storage items are closed. No other-version
+runtime result is credited to it, and no new runtime matrix was added.
+
+The own source contains 21,556 native and 23,714 structured-data bytes, with
+32 bytes of explicit fill. All 20,234 PRG asset bytes and all CHR rebuild through
+the eight shared decoded formats. Every physical source region has a changed
+byte; all 2,088 applicable source, 57 symbol and eight asset controls pass.
+All 9,923 source-associated instructions and 197 nominal handler entries are
+checked. The 25 declared native calls have supported target boundaries;
+incidental candidate decodes remain conditional.
+
+The integration passes 398 synthetic tooling tests and all six input audits.
+Previously accepted source is unchanged; its current proof metadata is refreshed
+using identical pinned compiler inputs. Remaining: v1.1 and unversioned source
+adaptation, exact builds and own inventories.
+
 ## v1.5 opening-gameplay evidence
 
 `make verify-gameplay` runs 6,740 NTSC frames each for Noah, Moses and David,

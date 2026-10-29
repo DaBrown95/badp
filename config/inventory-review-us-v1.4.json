@@ -142,7 +142,7 @@
         },
         {
           "path": "tools/source_variants.py",
-          "sha256": "9f104e1925c1f8b7b8e2f3b49cd15a43d5f10fc3a7f85dc21023f45731115dd1",
+          "sha256": "ffb0b0d6cacb9a00c46d8933b5407bcf63bb81b60af44c756df952f8bda3a150",
           "scope": "Typed source relocation and the primary incidental opcode assertions not transferred."
         }
       ]
@@ -184,7 +184,7 @@
         },
         {
           "path": "tools/source_variants.py",
-          "sha256": "9f104e1925c1f8b7b8e2f3b49cd15a43d5f10fc3a7f85dc21023f45731115dd1",
+          "sha256": "ffb0b0d6cacb9a00c46d8933b5407bcf63bb81b60af44c756df952f8bda3a150",
           "scope": "Resource pointer namespace and split/paired compact-record relocation; absolute text, RAM and PPU addresses remain distinct."
         }
       ]
@@ -465,5 +465,5 @@
     }
   ],
   "reuse_note": "Source, geometry, entry/transfer tables, script/record/audio candidates and decoded assets are checked against this target. Shared native consumer rules are reused only for the twenty exact unchanged instruction regions in acceptance-context.json; reset/NMI differences have own source and boundaries. No primary gameplay trace verifies v1.4. Unknown names, intent and arbitrary-state reachability are not reconstruction blockers.",
-  "compatibility_review": "The v1.3 integration leaves the v1.4 generated assembly hash unchanged (2e2648953a5d6baf5fe683f513fa01d8634ef5419981e320abe73d84f74b49b4). Its layout has no reordered blocks, optional packed-text geometry resolves to existing defaults, strict original source/symbol controls remain, and audio literal normalization is inactive. Its own source checkpoint, decoded full build and audit are refreshed; earlier frozen evidence retains only its demonstrated scope."
+  "compatibility_review": "The v1.2 integration adds target-specific native forms and explicit reset data regions. This target keeps the same generated source, source map, asset geometry and control catalogue. Its compiler inputs are unchanged and its source/decoded-build proof is refreshed. Scoped earlier evidence remains limited to its unchanged source/reference; no newer-version or other-version gameplay evidence is imported."
 }

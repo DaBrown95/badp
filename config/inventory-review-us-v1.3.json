@@ -479,5 +479,6 @@
       "size": 2
     }
   ],
-  "reuse_note": "Own reference, source, physical map, supported native/script/record/audio mechanisms and decoded inputs. Shared consumer instruction forms are compared explicitly through relocation. Original names, purpose and arbitrary-state reachability remain uncertain without opening an invented source gap. Primary runtime observations do not verify this target."
+  "reuse_note": "Own reference, source, physical map, supported native/script/record/audio mechanisms and decoded inputs. Shared consumer instruction forms are compared explicitly through relocation. Original names, purpose and arbitrary-state reachability remain uncertain without opening an invented source gap. Primary runtime observations do not verify this target.",
+  "compatibility_review": "The v1.2 integration adds target-specific native forms and explicit reset data regions. This target keeps the same generated source, source map, asset geometry and control catalogue. Its compiler inputs are unchanged and its source/decoded-build proof is refreshed. Scoped earlier evidence remains limited to its unchanged source/reference; no newer-version or other-version gameplay evidence is imported."
 }

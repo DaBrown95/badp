@@ -17,24 +17,53 @@ EXTRA = {
 RETIRED = frozenset(('shift_left4', 'double_fe_pointer', 'scale_position_by_eight', 'shift_reference_right',
                      'scale_world_shift', 'shift_search_coordinate_right', 'shift_scrolled_slot_horizontal',
                      'pending_ppu_set_source', 'advance_audio_command_two', 'script_prefix_af02', 'main_state_scale'))
+RETIRED_12 = RETIRED | {'reset_dispatch', 'scroll_x_tile_coordinate', 'scroll_y_tile_coordinate'}
+EXTRA_12 = {
+    'v12_initial_map': ('.macro V12InitialMapTilePosition', '    lda ScrollTargetXLow', '    lda ScrollTargetXHigh'),
+    'v12_main_xy_shift': ('.macro V12MainShiftXYRight3', '        lsr a', '        asl a'),
+    'v12_mode_return': ('.macro V12ModeGateReturnTail', '    bne returnReady', '    beq returnReady'),
+    'v12_inline_mapper': ('.macro V12RestoreDefaultBankInline', '    sta BankValues,y', '    sta BankValues+1,y'),
+    'v12_audio_return': ('.macro V12AudioShadowReturnTail', '    jmp StopAudioVoiceReturn', '    jmp StopAudioVoiceReturn + 1'),
+}
+NEW_12 = [*EXTRA_12, 'v12_reset_mapper', 'v12_reset_table', 'v12_xy_right_target']
 
 
 def names(profile: dict) -> list[str]:
     if profile['target'] == 'us-v1.4':
         return list(MUTATIONS)
-    if profile['target'] != 'us-v1.3':
+    if profile['target'] not in ('us-v1.3', 'us-v1.2'):
         raise ValueError('missing target source-control catalogue')
     retired = profile.get('retired_primary_controls', {})
-    if (set(retired) != RETIRED or any(not isinstance(reason, str) or not reason.strip() for reason in retired.values())):
+    required = RETIRED_12 if profile['target'] == 'us-v1.2' else RETIRED
+    if (set(retired) != required or any(not isinstance(reason, str) or not reason.strip() for reason in retired.values())):
         raise ValueError('target primary-control retirements lack explicit decisions')
-    return [name for name in MUTATIONS if name not in RETIRED] + list(EXTRA)
+    additions = (['v13_controller2_port', 'v13_inline_shift', 'v13_pointer_af02'] + NEW_12
+                 if profile['target'] == 'us-v1.2' else list(EXTRA))
+    return [name for name in MUTATIONS if name not in required] + additions
 
 
 def mutate(canonical: str, reset: str, profile: dict, name: str) -> str:
     if name not in names(profile):
         raise ValueError('unknown or retired source control')
     candidate_profile = deepcopy(profile)
-    if name in EXTRA:
+    if name in EXTRA_12 or (profile['target'] == 'us-v1.2' and name == 'set_initial_map_tile_position'):
+        scope, original, replacement = EXTRA_12['v12_initial_map' if name == 'set_initial_map_tile_position' else name]
+        text = candidate_profile['earlier_definition_text']
+        start = text.index(scope);end = text.index('.endmacro', start)
+        candidate_profile['earlier_definition_text'] = text[:start] + replace_once(text[start:end], original, replacement) + text[end:]
+    elif name in ('v12_reset_mapper', 'v12_reset_table'):
+        old, new = (('lda #$0C', 'lda #$08') if name == 'v12_reset_mapper'
+                    else ('MapperConflict08:\n    .byte $08', 'MapperConflict08:\n    .byte $00'))
+        reset = replace_once(reset, old, new)
+    elif name == 'v12_xy_right_target':
+        start = canonical.index('\nShiftXYRight3:');end = canonical.index('\nShiftXYRight1:', start)
+        body = canonical[start:end]
+        if body.count('jsr ShiftXYRight1') != 2:raise ValueError('changed generic XY shift calls')
+        canonical = canonical[:start] + body.replace('jsr ShiftXYRight1', 'jsr ShiftXYRight1 + 1', 1) + canonical[end:]
+    elif profile['target'] == 'us-v1.2' and name == 'queue_scroll_row':
+        start = canonical.index('\nQueueScrollRow:');end = canonical.index('\n.assert', start)
+        canonical = canonical[:start] + replace_once(canonical[start:end], 'stx MapTileXLow', 'stx MapTileXHigh') + canonical[end:]
+    elif name in EXTRA:
         key, scope, original, replacement = EXTRA[name]
         if scope is None:
             if candidate_profile.get(key) != original:
@@ -53,13 +82,13 @@ def mutate(canonical: str, reset: str, profile: dict, name: str) -> str:
             else:body = replace_once(body, original, replacement)
             candidate_profile[key] = text[:start] + body + text[end:]
     elif name == 'reset_dispatch':reset = mutate_source(reset, name)
-    elif profile['target'] == 'us-v1.3' and name == 'compute_bank_selection':
+    elif profile['target'] in ('us-v1.3', 'us-v1.2') and name == 'compute_bank_selection':
         candidate_profile['selector_text'] = mutate_source(profile['selector_text'], name)
-    elif profile['target'] == 'us-v1.3' and name == 'apply_slot_offset':
+    elif profile['target'] in ('us-v1.3', 'us-v1.2') and name == 'apply_slot_offset':
         start = canonical.index('\nApplySlotOffsetIfClear:');end = canonical.index('\n.assert', start)
         block = replace_once(canonical[start:end], 'lda $03A6', 'lda $03A7')
         canonical = canonical[:start] + block + canonical[end:]
-    elif profile['target'] == 'us-v1.3' and name in ('record_voice_e01a', 'record_voice_e023'):
+    elif profile['target'] in ('us-v1.3', 'us-v1.2') and name in ('record_voice_e01a', 'record_voice_e023'):
         # The primary script-pointer edit becomes a relocated ROM pointer in
         # this target. Mutate the actual record mode instead, retaining the
         # corresponding conditional voice word rather than breaking its assertion.
@@ -67,7 +96,7 @@ def mutate(canonical: str, reset: str, profile: dict, name: str) -> str:
         changed = replace_once(original, '$FFFF, $00,', '$FFFF, $01,')
         changed = replace_once(changed, '$FFB8, $00FF,', '$FFB8, $01FF,')
         canonical = marked_statement(canonical, marker, lambda statement: replace_once(statement, original, changed))
-    elif profile['target'] == 'us-v1.3' and name in ('script_op08', 'script_op2d', 'prepare_audio_note',
+    elif profile['target'] in ('us-v1.3', 'us-v1.2') and name in ('script_op08', 'script_op2d', 'prepare_audio_note',
                                                    'script_op9f', 'script_opa0', 'convert_slot_position',
                                                    'pending_ppu_copy_banked'):
         # Literal primary addresses can coincide with the relocated positive

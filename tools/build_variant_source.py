@@ -33,7 +33,8 @@ INPUTS = ('tools/build_variant_source.py', 'tools/source_variants.py', 'tools/bu
 def input_names(profile: dict, config: dict) -> set[str]:
     names = set(INPUTS) | set(source_paths(profile)) | {f'config/variants/{profile["target"]}.json',
              f'config/targets/{profile["target"]}.json', config['linker_config']}
-    if profile['target'] == 'us-v1.3':names.add('tools/legacy_source.py')
+    if profile['target'] in ('us-v1.3', 'us-v1.2'):names.add('tools/legacy_source.py')
+    if profile['target'] == 'us-v1.2':names.add('tools/earlier_source.py')
     return names
 
 
@@ -135,6 +136,9 @@ def build(target_id: str, *, all_controls: bool) -> dict:
         'boot', 'reset_dispatch', 'slot_runtime_d52b', 'overlay_b077', 'partial_resource_ad18',
         'record_da40_prefix', 'record_voice_e01a', 'record_script_e090', 'record_storage_e040',
         'menu_queue_first', 'retained_record_tail_eb08', 'slot_related_address']
+    if not all_controls and target_id == 'us-v1.2':
+        selected = [name for name in selected if name in catalogue]
+        selected += [name for name in variant_controls.NEW_12 if name not in selected]
     controls = []
     folder = work / 'controls'
     folder.mkdir(exist_ok=True)
