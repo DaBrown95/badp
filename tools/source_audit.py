@@ -152,6 +152,16 @@ def compare_regions(primary: bytes, others: dict[str, bytes], regions: list[dict
 def main() -> int:
     try:
         selected = os.environ.get('BADP_TARGET') or 'us-v1.5'
+        if selected == 'us-unversioned':
+            from .verify_unversioned import verify
+            from .unversioned_inventory import review
+            target = load_target(ROOT, selected)
+            verify(ROOT, target)
+            proof = json.loads((ROOT / 'build' / selected / 'proof.json').read_text())
+            result = review(ROOT, target, proof, (ROOT / target['input_path']).read_bytes())
+            print(json.dumps({'target': selected, 'representation_bytes': result['representation_bytes'],
+                              'inventory_review': result['inventory_review']}, indent=2))
+            return 0
         if selected != 'us-v1.5':
             from .verify_variant import verify
             from .variant_inventory import review

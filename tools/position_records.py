@@ -30,8 +30,10 @@ def _word(data: bytes, offset: int) -> int:
     return int.from_bytes(data[offset:offset + 2], "little")
 
 
-def decode_stream(data: bytes) -> list[dict]:
+def decode_stream(data: bytes, *, require_order: bool = True) -> list[dict]:
     """Decode an exact stream span, rejecting malformed or unordered records."""
+    if type(require_order) is not bool:
+        raise ValueError('invalid position ordering policy')
     if len(data) < 4 or data[-4:] != TERMINATOR or (len(data) - 4) % 8:
         raise ValueError("invalid stream length or terminator")
     records = []
@@ -42,7 +44,7 @@ def decode_stream(data: bytes) -> list[dict]:
         if raw_key == 0xFFFF:
             raise ValueError("terminator key inside records")
         key = raw_key & 0x7FFF
-        if key < previous:
+        if require_order and key < previous:
             raise ValueError("position keys are not sorted")
         previous = key
         records.append({"key": key, "range_flag": bool(raw_key & 0x8000),
@@ -50,14 +52,16 @@ def decode_stream(data: bytes) -> list[dict]:
     return records
 
 
-def encode_stream(records: list[dict]) -> bytes:
+def encode_stream(records: list[dict], *, require_order: bool = True) -> bytes:
     """Re-encode a decoded stream, preserving the high key bit and all bytes."""
+    if type(require_order) is not bool:
+        raise ValueError('invalid position ordering policy')
     result = bytearray()
     previous = -1
     for record in records:
         key, flag, kind, params = (record["key"], record["range_flag"],
                                     record["type"], record["parameters"])
-        if type(key) is not int or not 0 <= key <= 0x7FFF or key < previous:
+        if type(key) is not int or not 0 <= key <= 0x7FFF or (require_order and key < previous):
             raise ValueError("invalid or unordered position key")
         if type(flag) is not bool or type(kind) is not int or not 0 <= kind <= 255:
             raise ValueError("invalid flag or record type")
@@ -76,7 +80,8 @@ def encode_stream(records: list[dict]) -> bytes:
 
 
 def decode_tables(bank: bytes, table_a: int, table_b: int, entries: int,
-                  start: int, limit: int, address_base: int = 0) -> dict:
+                  start: int, limit: int, address_base: int = 0, *,
+                  unordered_streams: tuple[int, ...] = ()) -> dict:
     """Decode shared pointer targets once; addresses are relative to `bank`."""
     if not (0 <= start < limit <= len(bank)) or entries <= 0:
         raise ValueError("invalid stream bounds")
@@ -91,6 +96,9 @@ def decode_tables(bank: bytes, table_a: int, table_b: int, entries: int,
     starts = sorted(set(tables[0] + tables[1]))
     if not starts or starts[0] != start:
         raise ValueError("first stream does not start at the supported boundary")
+    if (not isinstance(unordered_streams, tuple) or len(set(unordered_streams)) != len(unordered_streams)
+            or any(type(offset) is not int or offset not in starts for offset in unordered_streams)):
+        raise ValueError('unordered stream exception does not name a unique pointer target')
     streams = []
     for index, offset in enumerate(starts):
         if index + 1 < len(starts):
@@ -105,10 +113,18 @@ def decode_tables(bank: bytes, table_a: int, table_b: int, entries: int,
                 raise ValueError("last stream terminator not found")
             end += 4
         raw = bank[offset:end]
-        records = decode_stream(raw)
-        if encode_stream(records) != raw:
+        require_order = offset not in unordered_streams
+        records = decode_stream(raw, require_order=require_order)
+        if encode_stream(records, require_order=require_order) != raw:
             raise ValueError("stream does not round-trip")
-        streams.append({"start": offset, "end": end, "records": records})
+        row = {"start": offset, "end": end, "records": records}
+        if not require_order:
+            row['order_exceptions'] = [
+                {'index': i, 'previous_key': records[i - 1]['key'], 'key': record['key']}
+                for i, record in enumerate(records) if i and record['key'] < records[i - 1]['key']]
+            if not row['order_exceptions']:
+                raise ValueError('unused unordered position stream exception')
+        streams.append(row)
     return {"tables": tables, "streams": streams}
 
 

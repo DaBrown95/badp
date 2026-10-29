@@ -7,7 +7,7 @@
   "review_input_sha256": {
     "tools/variant_inventory.py": "e440d2fad54c37f6c0bb60837237babd1f20194e64b80ccf0708d1b549decf92",
     "tools/inventory_review.py": "a7a8329a8271f42e3adaf38dd96448b38198f9ca6d0cbaa880e341834270cb53",
-    "tools/source_audit.py": "c6e273f6dc095677c221879967104f212283f5db59b22b9da48ebf3bd04b9450",
+    "tools/source_audit.py": "01f118ef2ec9313fc8cd8f12272d86a53da9b10de925b82470671fa24079dff8",
     "tools/prg_inventory.py": "d40cc9dca05ea5a95806cbf03d8f7a09bac9812cf45f46f5b3d4a43340635546",
     "tools/direct_record_flow.py": "82d87c19801e45c45986a1da79ee12d35dbb6cac474a385af282bb6e5a7dcb32",
     "tools/native_script_calls.py": "28daa83579d7ba99e7baace71f1b2e0d3474b92605ecb79e669b17bd5e932db1",
@@ -33,12 +33,12 @@
       "evidence": [
         {
           "path": "analysis/us-v1.1/review-evidence/proof.json",
-          "sha256": "1805d0db9f1fbb6bf2bff196a0bab10a8be42af95c0a6c017c4c31a3dac37335",
+          "sha256": "e92c1f2f0cc832d1b8e9f82d6d99b3ae865fd3edf8892c5b84b5e4f05d51b49b",
           "scope": "Own strict decoded-input whole-ROM build, complete applicable source/symbol controls and all eight asset edits."
         },
         {
           "path": "analysis/us-v1.1/review-evidence/inventory-development.json",
-          "sha256": "616a223277126530b85ba2f1d95cd046e719d8fa012daefaf17ee935a4ae7780",
+          "sha256": "302ee7be6863f429dd2981084ce0893c5dbc518a01280ad95802b4c849039739",
           "scope": "Own finite native, script, record, audio and resource inventory; every physical PRG byte represented, with overlaps retained."
         },
         {
@@ -75,12 +75,12 @@
       "evidence": [
         {
           "path": "analysis/us-v1.1/review-evidence/proof.json",
-          "sha256": "1805d0db9f1fbb6bf2bff196a0bab10a8be42af95c0a6c017c4c31a3dac37335",
+          "sha256": "e92c1f2f0cc832d1b8e9f82d6d99b3ae865fd3edf8892c5b84b5e4f05d51b49b",
           "scope": "Own strict decoded-input whole-ROM build, complete applicable source/symbol controls and all eight asset edits."
         },
         {
           "path": "analysis/us-v1.1/review-evidence/inventory-development.json",
-          "sha256": "616a223277126530b85ba2f1d95cd046e719d8fa012daefaf17ee935a4ae7780",
+          "sha256": "302ee7be6863f429dd2981084ce0893c5dbc518a01280ad95802b4c849039739",
           "scope": "Own finite native, script, record, audio and resource inventory; every physical PRG byte represented, with overlaps retained."
         },
         {
@@ -117,12 +117,12 @@
       "evidence": [
         {
           "path": "analysis/us-v1.1/review-evidence/proof.json",
-          "sha256": "1805d0db9f1fbb6bf2bff196a0bab10a8be42af95c0a6c017c4c31a3dac37335",
+          "sha256": "e92c1f2f0cc832d1b8e9f82d6d99b3ae865fd3edf8892c5b84b5e4f05d51b49b",
           "scope": "Own strict decoded-input whole-ROM build, complete applicable source/symbol controls and all eight asset edits."
         },
         {
           "path": "analysis/us-v1.1/review-evidence/inventory-development.json",
-          "sha256": "616a223277126530b85ba2f1d95cd046e719d8fa012daefaf17ee935a4ae7780",
+          "sha256": "302ee7be6863f429dd2981084ce0893c5dbc518a01280ad95802b4c849039739",
           "scope": "Own finite native, script, record, audio and resource inventory; every physical PRG byte represented, with overlaps retained."
         },
         {
@@ -154,12 +154,12 @@
       "evidence": [
         {
           "path": "analysis/us-v1.1/review-evidence/proof.json",
-          "sha256": "1805d0db9f1fbb6bf2bff196a0bab10a8be42af95c0a6c017c4c31a3dac37335",
+          "sha256": "e92c1f2f0cc832d1b8e9f82d6d99b3ae865fd3edf8892c5b84b5e4f05d51b49b",
           "scope": "Own strict decoded-input whole-ROM build, complete applicable source/symbol controls and all eight asset edits."
         },
         {
           "path": "analysis/us-v1.1/review-evidence/inventory-development.json",
-          "sha256": "616a223277126530b85ba2f1d95cd046e719d8fa012daefaf17ee935a4ae7780",
+          "sha256": "302ee7be6863f429dd2981084ce0893c5dbc518a01280ad95802b4c849039739",
           "scope": "Own finite native, script, record, audio and resource inventory; every physical PRG byte represented, with overlaps retained."
         },
         {
@@ -196,12 +196,12 @@
       "evidence": [
         {
           "path": "analysis/us-v1.1/review-evidence/proof.json",
-          "sha256": "1805d0db9f1fbb6bf2bff196a0bab10a8be42af95c0a6c017c4c31a3dac37335",
+          "sha256": "e92c1f2f0cc832d1b8e9f82d6d99b3ae865fd3edf8892c5b84b5e4f05d51b49b",
           "scope": "Own strict decoded-input whole-ROM build, complete applicable source/symbol controls and all eight asset edits."
         },
         {
           "path": "analysis/us-v1.1/review-evidence/inventory-development.json",
-          "sha256": "616a223277126530b85ba2f1d95cd046e719d8fa012daefaf17ee935a4ae7780",
+          "sha256": "302ee7be6863f429dd2981084ce0893c5dbc518a01280ad95802b4c849039739",
           "scope": "Own finite native, script, record, audio and resource inventory; every physical PRG byte represented, with overlaps retained."
         },
         {
@@ -233,12 +233,12 @@
       "evidence": [
         {
           "path": "analysis/us-v1.1/review-evidence/proof.json",
-          "sha256": "1805d0db9f1fbb6bf2bff196a0bab10a8be42af95c0a6c017c4c31a3dac37335",
+          "sha256": "e92c1f2f0cc832d1b8e9f82d6d99b3ae865fd3edf8892c5b84b5e4f05d51b49b",
           "scope": "Own strict decoded-input whole-ROM build, complete applicable source/symbol controls and all eight asset edits."
         },
         {
           "path": "analysis/us-v1.1/review-evidence/inventory-development.json",
-          "sha256": "616a223277126530b85ba2f1d95cd046e719d8fa012daefaf17ee935a4ae7780",
+          "sha256": "302ee7be6863f429dd2981084ce0893c5dbc518a01280ad95802b4c849039739",
           "scope": "Own finite native, script, record, audio and resource inventory; every physical PRG byte represented, with overlaps retained."
         },
         {
@@ -260,6 +260,11 @@
           "path": "tools/verify_variant.py",
           "sha256": "904e3e77f0a6705491d42e03ff15ae496394a6d8d678a8df6727cb3e83e2f421",
           "scope": "Current full decoded build and source/symbol/asset evidence required."
+        },
+        {
+          "path": "analysis/us-v1.1/review-evidence/unversioned-map-compatibility.json",
+          "sha256": "f95db87c48c2f5a8b65e462110f81ce8624ec46ca571da03d3f1706a351205f3",
+          "scope": "Actual map inventories, decoded chunk/grid inputs, encodings and changed assets agree with prior implementations. Build entry-point changes preserve compiler/verification core; retained source controls have identical compiler inputs."
         }
       ]
     },
@@ -275,12 +280,12 @@
       "evidence": [
         {
           "path": "analysis/us-v1.1/review-evidence/proof.json",
-          "sha256": "1805d0db9f1fbb6bf2bff196a0bab10a8be42af95c0a6c017c4c31a3dac37335",
+          "sha256": "e92c1f2f0cc832d1b8e9f82d6d99b3ae865fd3edf8892c5b84b5e4f05d51b49b",
           "scope": "Own strict decoded-input whole-ROM build, complete applicable source/symbol controls and all eight asset edits."
         },
         {
           "path": "analysis/us-v1.1/review-evidence/inventory-development.json",
-          "sha256": "616a223277126530b85ba2f1d95cd046e719d8fa012daefaf17ee935a4ae7780",
+          "sha256": "302ee7be6863f429dd2981084ce0893c5dbc518a01280ad95802b4c849039739",
           "scope": "Own finite native, script, record, audio and resource inventory; every physical PRG byte represented, with overlaps retained."
         },
         {
@@ -315,12 +320,12 @@
       "evidence": [
         {
           "path": "analysis/us-v1.1/review-evidence/proof.json",
-          "sha256": "1805d0db9f1fbb6bf2bff196a0bab10a8be42af95c0a6c017c4c31a3dac37335",
+          "sha256": "e92c1f2f0cc832d1b8e9f82d6d99b3ae865fd3edf8892c5b84b5e4f05d51b49b",
           "scope": "Own strict decoded-input whole-ROM build, complete applicable source/symbol controls and all eight asset edits."
         },
         {
           "path": "analysis/us-v1.1/review-evidence/inventory-development.json",
-          "sha256": "616a223277126530b85ba2f1d95cd046e719d8fa012daefaf17ee935a4ae7780",
+          "sha256": "302ee7be6863f429dd2981084ce0893c5dbc518a01280ad95802b4c849039739",
           "scope": "Own finite native, script, record, audio and resource inventory; every physical PRG byte represented, with overlaps retained."
         },
         {
@@ -355,12 +360,12 @@
       "evidence": [
         {
           "path": "analysis/us-v1.1/review-evidence/proof.json",
-          "sha256": "1805d0db9f1fbb6bf2bff196a0bab10a8be42af95c0a6c017c4c31a3dac37335",
+          "sha256": "e92c1f2f0cc832d1b8e9f82d6d99b3ae865fd3edf8892c5b84b5e4f05d51b49b",
           "scope": "Own strict decoded-input whole-ROM build, complete applicable source/symbol controls and all eight asset edits."
         },
         {
           "path": "analysis/us-v1.1/review-evidence/inventory-development.json",
-          "sha256": "616a223277126530b85ba2f1d95cd046e719d8fa012daefaf17ee935a4ae7780",
+          "sha256": "302ee7be6863f429dd2981084ce0893c5dbc518a01280ad95802b4c849039739",
           "scope": "Own finite native, script, record, audio and resource inventory; every physical PRG byte represented, with overlaps retained."
         },
         {
@@ -395,12 +400,12 @@
       "evidence": [
         {
           "path": "analysis/us-v1.1/review-evidence/proof.json",
-          "sha256": "1805d0db9f1fbb6bf2bff196a0bab10a8be42af95c0a6c017c4c31a3dac37335",
+          "sha256": "e92c1f2f0cc832d1b8e9f82d6d99b3ae865fd3edf8892c5b84b5e4f05d51b49b",
           "scope": "Own strict decoded-input whole-ROM build, complete applicable source/symbol controls and all eight asset edits."
         },
         {
           "path": "analysis/us-v1.1/review-evidence/inventory-development.json",
-          "sha256": "616a223277126530b85ba2f1d95cd046e719d8fa012daefaf17ee935a4ae7780",
+          "sha256": "302ee7be6863f429dd2981084ce0893c5dbc518a01280ad95802b4c849039739",
           "scope": "Own finite native, script, record, audio and resource inventory; every physical PRG byte represented, with overlaps retained."
         },
         {
@@ -435,12 +440,12 @@
       "evidence": [
         {
           "path": "analysis/us-v1.1/review-evidence/proof.json",
-          "sha256": "1805d0db9f1fbb6bf2bff196a0bab10a8be42af95c0a6c017c4c31a3dac37335",
+          "sha256": "e92c1f2f0cc832d1b8e9f82d6d99b3ae865fd3edf8892c5b84b5e4f05d51b49b",
           "scope": "Own strict decoded-input whole-ROM build, complete applicable source/symbol controls and all eight asset edits."
         },
         {
           "path": "analysis/us-v1.1/review-evidence/inventory-development.json",
-          "sha256": "616a223277126530b85ba2f1d95cd046e719d8fa012daefaf17ee935a4ae7780",
+          "sha256": "302ee7be6863f429dd2981084ce0893c5dbc518a01280ad95802b4c849039739",
           "scope": "Own finite native, script, record, audio and resource inventory; every physical PRG byte represented, with overlaps retained."
         },
         {
@@ -464,5 +469,5 @@
       "size": 2
     }
   ],
-  "reuse_note": "Own exact build, meaningful controls, decoded inputs and finite inventories. Reused record rules have explicit per-instruction operand comparisons. Names, original purpose, dead/conditional entry and arbitrary-state reachability are not additional reconstruction blockers. No other-version gameplay evidence verifies v1.1. Sprite tooling now also supports the unversioned separate-byte header. This target retains the same packed format: rebuilt counts, native inventory, decoded assets/eight edits and all reviewed mechanism summaries are unchanged. Identical compiler inputs reuse retained control builds."
+  "reuse_note": "The unversioned opt-in map geometry preserves this target's actual formats and encodings versus the prior implementations. Current full build, eight fresh asset controls, every retained source/symbol control and all reviewed mechanism summaries agree. Prior source controls retain identical source/include/asset/tool inputs; producer/verification core ASTs are unchanged."
 }

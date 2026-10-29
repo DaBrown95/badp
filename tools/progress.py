@@ -396,6 +396,10 @@ def progress_data(root: Path) -> dict:
         if target_id == PRIMARY:
             verified = verify_primary(root, target)
             status = "Accepted" if accepted_primary(root, target, verified) else "In progress"
+        elif target_id == 'us-unversioned' and (root / 'config/source-us-unversioned.json').is_file():
+            from .verify_unversioned import verify
+            verified = verify(root, target)
+            status = "Accepted" if accepted_target(root, target, verified, target_id) else "In progress"
         elif (root / f'config/variants/{target_id}.json').is_file():
             from .verify_variant import verify
             verified = verify(root, target)

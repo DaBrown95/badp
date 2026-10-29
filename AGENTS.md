@@ -74,7 +74,8 @@ Follow the user's instructions over this file.
   in `build/us-v1.5/`. Decoded graphics and other asset inputs remain local.
   `TARGET=us-v1.4`, `TARGET=us-v1.3`, `TARGET=us-v1.2` or `TARGET=us-v1.1` builds its maintained
   shared-source variant with its own decoded assets, controls and inventory.
-  The unversioned release needs an explicit source variant and separate evidence. Never
+  `TARGET=us-unversioned` builds its maintained shared-engine composition with
+  its own formats, editable inputs, controls and inventory. Never
   substitute a copy of the reference for a missing build step.
 - Before accepting a source replacement, change a meaningful instruction or
   operand in an isolated copy and verify that a fresh build and comparison fail.

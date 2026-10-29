@@ -52,6 +52,41 @@ def synthetic_prg():
 
 
 class MapAssetTests(unittest.TestCase):
+    def test_release_geometry_changes_slot_count_and_duplicate_relation(self):
+        geometry = {'chunk_index_count': 144, 'slot_count': 144, 'duplicate_of': 135}
+        prg = bytearray(2 * map_assets.BANK_SIZE)
+        indices = [index for index in range(144) if index != 22] + [0]
+        for i, slot in enumerate(indices):
+            prg[0x200 + i * 2:0x202 + i * 2] = (slot * 68).to_bytes(2, 'little')
+        for slot in range(144):
+            start = map_assets.BANK_SIZE + slot * 68
+            prg[start:start + 68] = bytes((slot * 17 + n) & 255 for n in range(68))
+        start, other = map_assets.BANK_SIZE + 22 * 68, map_assets.BANK_SIZE + 135 * 68
+        prg[start:start + 68] = prg[other:other + 68]
+        prg = bytes(prg)
+        options = {'chunk_table_offset': 0x200, 'geometry': geometry}
+        asset = map_assets.capture(prg, self.reference, **options)
+        self.assertEqual(len(asset['slots']), 144)
+        self.assertEqual(asset['slots'][22]['reference_duplicate_of'], 135)
+        baseline = map_assets.encode(asset, prg, self.reference, **options)
+        self.assertEqual(baseline, prg[map_assets.BANK_SIZE:map_assets.BANK_SIZE + 144 * 68])
+        changed = map_assets.changed_asset(asset, geometry=geometry)
+        payload = map_assets.encode(changed, prg, self.reference, **options)
+        reference = b'R' * 16 + prg
+        candidate = bytearray(reference)
+        candidate[16 + map_assets.BANK_SIZE:16 + map_assets.BANK_SIZE + len(payload)] = payload
+        offsets = map_assets.verify_control(reference, bytes(candidate), 16, geometry=geometry)
+        self.assertEqual(offsets, [16 + map_assets.BANK_SIZE + i for i in (0, 22 * 68 + 1, 135 * 68 + 2)])
+        with self.assertRaises(ValueError):
+            map_assets.capture(prg, self.reference, chunk_table_offset=0x200)
+        with self.assertRaisesRegex(ValueError, 'no longer duplicates'):
+            map_assets.capture(prg, self.reference, chunk_table_offset=0x200,
+                               geometry=dict(geometry, duplicate_of=134))
+        for invalid in (dict(geometry, slot_count=22), dict(geometry, chunk_index_count=True),
+                        dict(geometry, duplicate_of=22)):
+            with self.subTest(geometry=invalid), self.assertRaises(ValueError):
+                map_assets.capture(prg, self.reference, chunk_table_offset=0x200, geometry=invalid)
+
     def setUp(self):
         self.prg = synthetic_prg()
         self.reference = 'a' * 64

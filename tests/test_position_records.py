@@ -10,6 +10,32 @@ def record(key, flag=False, kind=0, parameters=None):
 
 
 class PositionRecordsTests(unittest.TestCase):
+    def test_reviewed_nonmonotonic_stream_preserves_order(self):
+        records = [record(0), record(9), record(4)]
+        data = encode_stream(records, require_order=False)
+        self.assertEqual(decode_stream(data, require_order=False), records)
+        with self.assertRaises(ValueError):
+            decode_stream(data)
+        bank = bytearray(64)
+        bank[:4] = bytes([16, 0, 16, 0])
+        bank[16:16 + len(data)] = data
+        result = decode_tables(bytes(bank), 0, 2, 1, 16, 64, unordered_streams=(16,))
+        self.assertEqual(result['streams'][0]['order_exceptions'],
+                         [{'index': 2, 'previous_key': 9, 'key': 4}])
+        for exceptions in ((17,), (16, 16), (True,)):
+            with self.subTest(exceptions=exceptions), self.assertRaises(ValueError):
+                decode_tables(bytes(bank), 0, 2, 1, 16, 64, unordered_streams=exceptions)
+
+    def test_unordered_exception_must_describe_an_actual_decrease(self):
+        data = encode_stream([record(0), record(1)])
+        bank = bytearray(64)
+        bank[:4] = bytes([16, 0, 16, 0])
+        bank[16:16 + len(data)] = data
+        with self.assertRaisesRegex(ValueError, 'unused unordered'):
+            decode_tables(bytes(bank), 0, 2, 1, 16, 64, unordered_streams=(16,))
+        with self.assertRaises(ValueError):
+            decode_stream(data, require_order=None)
+
     def test_round_trip_preserves_flag_and_parameters(self):
         records = [record(0), record(0x1234, True, 0xF0, [0, 255, 3, 4, 5])]
         data = encode_stream(records)

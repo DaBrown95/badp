@@ -268,3 +268,100 @@ UnversionedRowsFinishWait:
     ldx $10
     jmp ScriptOp0F
 .endmacro
+
+; Nonzero $03B8 enters this split-screen PPU sequence. The ordinary scroll path
+; skips it and joins ApplyNmiPpuCtrl. Preserve the incoming X in both polling
+; timeouts, the PPU latch/status reads, mapper call, fallback and exact delay.
+; Labels describe hardware operations; observed raster timing is not claimed.
+.macro UnversionedNmiSplitSequence
+UnversionedNmiSplit:
+    lda PPUSTATUS
+    lda #$27                     ; CONTROL_UNVERSIONED_NMI_SPLIT
+    sta PPUADDR
+    lda #$A0
+    sta PPUADDR
+    lda #$FE
+    sta PPUDATA
+    lda $03BE
+    ldy $03BF
+    jsr SwitchBank
+    lda $03FF
+    and #$E7
+    ora $03BB
+    sta $03FF
+    and #$FE
+    sta PPUCTRL
+    lda $03FE
+    sta PPUMASK
+    lda #$FF
+    sta PPUSCROLL
+    lda $03B8
+    clc
+    adc $03BC
+    sta PPUSCROLL
+    ldy #$0A
+    lda #$40
+UnversionedNmiWaitHitClear:
+    bit PPUSTATUS
+    beq UnversionedNmiWaitHitSet
+    dex
+    bne UnversionedNmiWaitHitClear
+    dey
+    bne UnversionedNmiWaitHitClear
+    jmp UnversionedNmiSplitDelay
+UnversionedNmiWaitHitSetSetup:
+    ldy #$0A
+UnversionedNmiWaitHitSet:
+    bit PPUSTATUS
+    bne UnversionedNmiSplitDelay
+    dex
+    bne UnversionedNmiWaitHitSet
+    dey
+    bne UnversionedNmiWaitHitSet
+UnversionedNmiSplitDelay:
+    ldx $03E6
+UnversionedNmiSplitDelayLoop:
+    dex
+    bne UnversionedNmiSplitDelayLoop
+    lda $03FC
+    sta PPUSCROLL
+    lda $03FD
+    sta PPUSCROLL
+.endmacro
+
+; A non-FF 9D operand sets bit $20 of the own C0 slot field; FF clears it.
+; Later versions retain the command length while replacing its body with RTS.
+.macro UnversionedSlotFlag9D
+ScriptOp9D:
+    lda $C0,x                    ; CONTROL_UNVERSIONED_SLOT_FLAG_9D
+    and #$DF
+    ldy RecordBuffer1
+    cpy #$FF
+    beq UnversionedSlotFlag9DStore
+    ora #$20
+UnversionedSlotFlag9DStore:
+    sta $C0,x
+UnversionedSlotFlag9DReturn:
+    rts
+.endmacro
+
+; B4 conditionally negates each stored motion field. B5 keeps the shared
+; coordinate getter, so the two nominal entries have separate native bodies.
+.macro UnversionedNegateFieldsB4
+UnversionedScriptOpB4:
+    lda RecordBuffer1            ; CONTROL_UNVERSIONED_NEGATE_B4
+    cmp #$FF
+    beq UnversionedNegateSecondB4
+    lda $04F0,x
+    jsr NegateA
+    sta $04F0,x
+UnversionedNegateSecondB4:
+    lda RecordBuffer2
+    cmp #$FF
+    beq UnversionedNegateReturnB4
+    lda $0500,x
+    jsr NegateA
+    sta $0500,x
+UnversionedNegateReturnB4:
+    rts
+.endmacro

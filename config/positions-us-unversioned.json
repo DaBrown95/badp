@@ -1,0 +1,21 @@
+{
+  "schema_version": 1,
+  "target": "us-unversioned",
+  "table_a_cpu": "0xa505",
+  "table_b_cpu": "0xa52f",
+  "entries": 21,
+  "stream_start_cpu": "0xa559",
+  "stream_end_cpu": "0xb2f1",
+  "unordered_streams": [
+    "0xabb1"
+  ],
+  "order_exceptions": [
+    {
+      "cpu": "0xabb1",
+      "index": 15,
+      "previous_key": 150,
+      "key": 109
+    }
+  ],
+  "source": "Actual native position-pointer consumers atC72A/C734; exact eight-byte record streams and4-byte sentinels. Preserve the one nonmonotonic key; intended roles and arbitrary-state reachability remain provisional."
+}

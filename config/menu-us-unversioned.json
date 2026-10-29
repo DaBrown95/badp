@@ -1,0 +1,67 @@
+{
+  "schema_version": 1,
+  "target": "us-unversioned",
+  "source": "Fourteen own 6E commands delimit disjoint tile payloads. Three retained prefix bytes remain outside them.",
+  "geometry": {
+    "region_start": 29569,
+    "region_end": 29730,
+    "commands": [
+      [
+        "tile_row_0",
+        61997
+      ],
+      [
+        "tile_row_1",
+        62004
+      ],
+      [
+        "tile_row_2",
+        62011
+      ],
+      [
+        "tile_row_3",
+        62018
+      ],
+      [
+        "copyright",
+        62025
+      ],
+      [
+        "brand",
+        62032
+      ],
+      [
+        "brand_tail",
+        62039
+      ],
+      [
+        "game_marker",
+        62053
+      ],
+      [
+        "noah",
+        62060
+      ],
+      [
+        "moses",
+        62067
+      ],
+      [
+        "david",
+        62074
+      ],
+      [
+        "restart",
+        62084
+      ],
+      [
+        "continue",
+        62091
+      ],
+      [
+        "different_game",
+        62098
+      ]
+    ]
+  }
+}

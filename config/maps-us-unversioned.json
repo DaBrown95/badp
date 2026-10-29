@@ -1,0 +1,98 @@
+{
+  "schema_version": 1,
+  "target": "us-unversioned",
+  "source": "Actual map table consumers at8698/9D64/C6D1;21 state pointers,144 chunk indices/slots and12 nonoverlapping grids; original uses and index bounds remain provisional.",
+  "chunk_table_cpu": "0xa32d",
+  "chunk_assets": {
+    "chunk_index_count": 144,
+    "slot_count": 144,
+    "duplicate_of": 135
+  },
+  "layout_assets": {
+    "state_table_offset": 8963,
+    "chunk_table_offset": 9005,
+    "state_count": 21,
+    "chunk_index_count": 144,
+    "layout_count": 12
+  },
+  "retained_suffix": {
+    "bank": 1,
+    "cpu": "0xf602",
+    "size": 2,
+    "classification": "Retained data after the nominal first grid; first byte is discarded high-byte lookahead. Original purpose unresolved."
+  },
+  "layouts": [
+    {
+      "bank": 0,
+      "cpu": "0xa44d",
+      "width": 4,
+      "height": 5
+    },
+    {
+      "bank": 0,
+      "cpu": "0xa463",
+      "width": 4,
+      "height": 4
+    },
+    {
+      "bank": 0,
+      "cpu": "0xa475",
+      "width": 4,
+      "height": 4
+    },
+    {
+      "bank": 1,
+      "cpu": "0xf42c",
+      "width": 52,
+      "height": 9
+    },
+    {
+      "bank": 1,
+      "cpu": "0xf604",
+      "width": 28,
+      "height": 6
+    },
+    {
+      "bank": 1,
+      "cpu": "0xf6ae",
+      "width": 10,
+      "height": 10
+    },
+    {
+      "bank": 1,
+      "cpu": "0xf714",
+      "width": 18,
+      "height": 5
+    },
+    {
+      "bank": 1,
+      "cpu": "0xf770",
+      "width": 32,
+      "height": 7
+    },
+    {
+      "bank": 1,
+      "cpu": "0xf852",
+      "width": 16,
+      "height": 15
+    },
+    {
+      "bank": 1,
+      "cpu": "0xf944",
+      "width": 35,
+      "height": 7
+    },
+    {
+      "bank": 1,
+      "cpu": "0xfa3b",
+      "width": 35,
+      "height": 7
+    },
+    {
+      "bank": 1,
+      "cpu": "0xfb32",
+      "width": 37,
+      "height": 7
+    }
+  ]
+}

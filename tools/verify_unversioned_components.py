@@ -485,6 +485,102 @@ def state_component(root: Path, folder: Path, tools: dict, prg: bytes) -> dict:
                         'pointers identify reconstructed palette boundaries. No exclusive-use claim.'}
 
 
+def map_component(root: Path, folder: Path, tools: dict, prg: bytes, reference: str) -> dict:
+    from . import map_assets, map_layout_assets
+    manifest = json.loads((root / 'config/maps-us-unversioned.json').read_text())
+    if manifest['schema_version'] != 1 or manifest['target'] != 'us-unversioned':
+        raise ValueError('invalid own map manifest')
+    chunk_options = {'target': 'us-unversioned', 'chunk_table_offset': 0x232D,
+                     'geometry': manifest['chunk_assets']}
+    layout_options = {'target': 'us-unversioned', 'geometry': manifest['layout_assets']}
+    chunks_path = root / 'extracted/us-unversioned/map-chunks.json'
+    grids_path = root / 'extracted/us-unversioned/map-layouts.json'
+    if any(path.is_symlink() or path.parent.is_symlink() for path in (chunks_path, grids_path)):
+        raise ValueError('refusing a symlinked map input')
+    chunks, grids = json.loads(chunks_path.read_bytes()), json.loads(grids_path.read_bytes())
+    inputs = folder / 'inputs'
+    inputs.mkdir(exist_ok=True)
+
+    def payload_inputs(chunk_asset: dict, grid_asset: dict) -> bytes:
+        payload = map_assets.encode(chunk_asset, prg, reference, **chunk_options)
+        (inputs / 'unversioned-map-chunks.bin').write_bytes(payload)
+        spans = map_layout_assets.encode(grid_asset, prg, reference, **layout_options)
+        for bank, offset, data in spans:
+            (inputs / f'unversioned-map-layout-{bank}-{offset + 0x8000 - 2:04x}.bin').write_bytes(data)
+        return payload
+
+    payload_inputs(chunks, grids)
+    source = (root / 'src/variants/maps-us-unversioned.inc').read_text()
+    prefix = '\n'.join(macros((root / 'src/us-v1.5/rom.s').read_text()).values())
+    prefix += '\n.scope Bank1\n' + '\n'.join(
+        f'UnversionedMapLayout{int(row["cpu"], 0):04X} = ${int(row["cpu"], 0):04X}'
+        for row in grids['layouts'] if row['bank'] == 1) + '\n.endscope\n'
+    chunk_source = '.segment "CODE"\n.org $8000\n.incbin "unversioned-map-chunks.bin"\n'
+    chunk_source += '.assert * = $A640, error, "unversioned map chunk region end"\n'
+    checks = []
+    for bank, start, end, macro in ((0, 0xA303, 0xA487, 'UnversionedBank0MapData'),
+                                    (1, 0xF42C, 0xFC37, 'UnversionedBank1MapData')):
+        cases = [('baseline', source)]
+        if bank == 0:
+            cases += [('changed-state-map-pointer', replace_once(source,
+                '.word UnversionedMapLayoutA44D ; CONTROL_UNVERSIONED_MAP_STATE_00',
+                '.word UnversionedMapLayoutA44D + 1 ; CONTROL_UNVERSIONED_MAP_STATE_00')),
+                ('changed-chunk-index', replace_once(source,
+                '.word $44 * $00 ; CONTROL_UNVERSIONED_MAP_CHUNK_OFFSETS',
+                '.word $44 * $01 ; CONTROL_UNVERSIONED_MAP_CHUNK_OFFSETS'))]
+        else:
+            cases += [('changed-grid-width', replace_once(source,
+                'MapLayoutDimensions $34, $09 ; CONTROL_UNVERSIONED_MAP_HEADER_F42C',
+                'MapLayoutDimensions $35, $09 ; CONTROL_UNVERSIONED_MAP_HEADER_F42C')),
+                ('changed-retained-suffix', replace_once(source,
+                '.byte $1E, $15 ; CONTROL_UNVERSIONED_RETAINED_MAP_SUFFIX',
+                '.byte $1F, $15 ; CONTROL_UNVERSIONED_RETAINED_MAP_SUFFIX'))]
+        offset = bank * 0x8000 + start - 0x8000
+        expected = prg[offset:offset + end - start]
+        for case, body in cases:
+            text = prefix + body + f'\n.segment "CODE"\n.org ${start:04X}\n    {macro}\n'
+            actual = assemble(folder, tools, f'maps-bank{bank}-' + case, text, start, end)
+            matches = actual == expected
+            if matches != (case == 'baseline'):
+                raise ValueError('map source/control comparison failed: ' + case)
+            checks.append({'bank': bank, 'cpu': f'0x{start:04x}', 'size': end - start, 'case': case,
+                           'source_sha256': digest(text.encode()), 'candidate_sha256': digest(actual),
+                           'matches_reference': matches})
+    baseline = assemble(folder, tools, 'map-chunks-baseline', chunk_source, 0x8000, 0xA640)
+    if baseline != prg[0x8000:0xA640]:
+        raise ValueError('map chunk input build differs from the own reference')
+    changed_chunks = map_assets.changed_asset(chunks, geometry=manifest['chunk_assets'])
+    changed_grids = map_layout_assets.changed_asset(grids)
+    payload_inputs(changed_chunks, changed_grids)
+    actual = assemble(folder, tools, 'map-chunks-changed-assets', chunk_source, 0x8000, 0xA640)
+    wanted = sorted(index * 68 + row * 8 + column
+                    for index, row, column in map_assets.control_tiles(manifest['chunk_assets']))
+    if ([i for i, (a, b) in enumerate(zip(actual, baseline)) if a != b] != wanted
+            or any(actual[i] != baseline[i] ^ 1 for i in wanted)):
+        raise ValueError('fresh chunk assembly does not preserve the three scoped asset edits')
+    grid_edits = []
+    for bank, start, end, macro in ((0, 0xA303, 0xA487, 'UnversionedBank0MapData'),
+                                    (1, 0xF42C, 0xFC37, 'UnversionedBank1MapData')):
+        text = prefix + source + f'\n.segment "CODE"\n.org ${start:04X}\n    {macro}\n'
+        actual = assemble(folder, tools, f'maps-bank{bank}-changed-grids', text, start, end)
+        offset = bank * 0x8000 + start - 0x8000
+        expected = prg[offset:offset + end - start]
+        selected = sorted(int(row['cpu'], 0) + 2 - start for row in grids['layouts'] if row['bank'] == bank)
+        if ([i for i, (a, b) in enumerate(zip(actual, expected)) if a != b] != selected
+                or any(actual[i] != expected[i] ^ 1 for i in selected)):
+            raise ValueError('fresh grid assembly does not change exactly one cell per layout')
+        grid_edits.extend(bank * 0x8000 + start - 0x8000 + i for i in selected)
+    payload_inputs(chunks, grids)
+    return {'checks': checks, 'chunk_asset_bytes': len(baseline), 'chunk_asset_edits': len(wanted),
+            'layout_asset_edits': len(grid_edits), 'local_asset_sha256': {
+                'map-chunks': digest(map_assets.serialize(chunks)),
+                'map-layouts': digest(map_layout_assets.serialize(grids))},
+            'decision': 'Own21-state/144-index source,12 layouts and144 editable chunk slots match. '
+                        'Retain slot22 as an independently editable duplicate of135. Keep the two '
+                        'F602 suffix bytes as retained data with unresolved original purpose.',
+            'scope': 'Connected map formats/source/assets only; remaining full-source integration is open.'}
+
+
 def verify(root: Path) -> dict:
     target = load_target(root, 'us-unversioned')
     reference = (root / target['input_path']).read_bytes()
@@ -504,7 +600,14 @@ def verify(root: Path) -> dict:
              'config/variants/us-v1.1.json', 'tools/sprite_metadata.py', 'tools/sprite_layout.py',
              'tools/sprite_assets.py', 'tools/palette_assets.py',
              'config/sprite-frames-us-unversioned.json', 'config/palettes-us-unversioned.json',
-             'src/variants/sprites-us-unversioned.inc', 'src/variants/state-tables-us-unversioned.inc']
+             'src/variants/sprites-us-unversioned.inc', 'src/variants/state-tables-us-unversioned.inc', 'tools/map_data.py', 'tools/map_assets.py',
+             'tools/map_layout_assets.py', 'config/maps-us-unversioned.json',
+             'src/variants/maps-us-unversioned.inc', 'tools/build_unversioned_bank0.py',
+             'tools/position_records.py', 'config/positions-us-unversioned.json',
+             'config/native-layout-us-unversioned.json',
+             'src/variants/bank0-slots-us-unversioned.inc',
+             'src/variants/descriptors-us-unversioned.json',
+             'src/variants/positions-us-unversioned.inc']
     profile = load_profile(root, 'us-v1.1')
     paths.extend(profile['native_definitions'] + profile['earlier_definitions'])
     hashes = {name: digest((root / name).read_bytes()) for name in paths}
@@ -519,12 +622,16 @@ def verify(root: Path) -> dict:
         module = sprite_assets if name == 'sprite-frames' else palette_assets
         if digest(module.serialize(current_asset)) != sha:
             raise ValueError('sprite/palette asset changed during verification')
+    maps = map_component(root, folder, tools, reference[16:0x10010], digest(reference))
+    from .build_unversioned_bank0 import build as build_bank0
+    bank0 = build_bank0(root)
     if hashes != {name: digest((root / name).read_bytes()) for name in paths}:
         raise ValueError('component source changed during verification')
     if digest((root / target['input_path']).read_bytes()) != digest(reference):
         raise ValueError('reference changed during verification')
     result = {'target': 'us-unversioned', 'reference_sha256': digest(reference),
-              'input_sha256': hashes, 'native_checks': native, 'messages': messages, 'sprites': sprites, 'states': states,
+              'input_sha256': hashes, 'native_checks': native, 'messages': messages,
+              'sprites': sprites, 'states': states, 'maps': maps, 'bank0': bank0,
               'decision': 'Adopt own word handlers, separate sprite dimensions, PPU commands and '
                           '51-message AB stream format. Whole-target layout, incoming scripts, '
                           'remaining data/assets and complete inventory are not accepted by this proof.',
@@ -544,6 +651,8 @@ def main() -> int:
                           'message_records': result['messages']['message_count'],
                           'sprite_component_bytes': result['sprites']['component_size'],
                           'state_component_bytes': result['states']['component_size'],
+                          'map_chunk_asset_bytes': result['maps']['chunk_asset_bytes'],
+                          'complete_bank0_match': result['bank0']['match'],
                           'scope': result['scope']}, indent=2))
     except (OSError, ValueError, KeyError, TypeError, subprocess.CalledProcessError) as exc:
         print(f'unversioned component verification failed: {exc}', file=sys.stderr)

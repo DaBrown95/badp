@@ -1,0 +1,628 @@
+{
+  "schema_version": 1,
+  "target": "us-unversioned",
+  "reference_sha256": "4864e086786bd617d4f587d9e979b6df0574b140067f20b910ca3aa69ffab857",
+  "source_sha256": "ac93430f769ece69bab4665ffee98bafec90441ae55cda6a2e9935ae4946e905",
+  "source_map_sha256": "96535c9eb3130a5266aed8708110350fb5b362ac671ee39377ed62c1f1aa52df",
+  "review_input_sha256": {
+    "config/catalogues/no-intro-nes.json": "32ba4e91ec7150c95b53cd24a760503d5a1d129095a8efcf619b5a82ed9524dd",
+    "config/cc65-toolchain.json": "7f87282a84dd7b6482fb0202a9bca94e3c8ca1a7fbb3baea3cb8c6442ba1abb8",
+    "config/link-us-v1.5.cfg": "0f599ba3d8f4bb3176c64ad346e7a5dd23dcf7a6f153ff1cc533df65f0d58f04",
+    "config/maps-us-unversioned.json": "04c633e52d86cd9403be06286c29cff9677a5921e1b3378cd5271fa3b6117054",
+    "config/menu-us-unversioned.json": "3a01e1d0e3a769e820215a704ad8fe886e13076acaa9f30d8fc886d9b866b0e2",
+    "config/native-layout-us-unversioned.json": "8371fd27a2c2fe9f3e3ac15e3cfca4a437ba0cc64d790c5e061bf62e72a28b7a",
+    "config/palettes-us-unversioned.json": "24942ba73f7f714d5d7c3fb134cebd2638a0b0bdbe7c85e6058a712ccc55a89f",
+    "config/palettes-us-v1.1.json": "bc4aa05c3bd96a802b5d53ffae53d09e9e6b258b18d294262c20fe1d80e0e111",
+    "config/positions-us-unversioned.json": "09ba0174cb0432063786324e88465c6ceba76508237d314c0800a2c9269fa773",
+    "config/ppu-inventory-us-unversioned.json": "cd660a05476b3f164465384f99e895b27000659c558e4daac733aa6927c559f0",
+    "config/ppu-messages-us-unversioned.json": "c906d5fb07a1fec558c0fce7630e41595f0320f1f47cf8d94bf193c06069a5cc",
+    "config/source-us-unversioned.json": "96535c9eb3130a5266aed8708110350fb5b362ac671ee39377ed62c1f1aa52df",
+    "config/source-us-v1.5.json": "5b49c893b25aadc9158a9913043a88f09c525eb60e3228b0ca21c61401987753",
+    "config/sprite-frames-us-unversioned.json": "e5377a402c5404c0ebcc17251a028955fbe70ff5ae3eb2e60e1194e7914372e3",
+    "config/targets/us-unversioned.json": "6480c4dda6320dc69e3cac08985242001964310b2c792430c718941c0d57d21b",
+    "config/variants/us-v1.1.json": "869a9bb4cb75cd8d48ba5a61614fdcd1b33af73d7dd109a020ee3a37569f5700",
+    "include/nes.inc": "a022e2af0dd87eb1f32cdb778856a78ca7c2a4c644873c8d5d26150e936285fc",
+    "src/us-v1.5/rom.s": "c48ef02cd8f877c7671d92cbcb36c3f9a2472d72f1d5cd6589d40e39b1ce4ef9",
+    "src/variants/audio-us-unversioned.inc": "e925a84a1deee08039f26a0834cff9e45d085cd0a71431ccc590df2a4584ffe0",
+    "src/variants/bank-selection-us-v1.2.inc": "14ef6f8e9b6e6908188b6a27cf4bcd2bf5453bae65da4db08967a844fbaf2fbc",
+    "src/variants/bank0-slots-us-unversioned.inc": "2ecbc7ef384620ee3ea63474f053a072e9319f7f90bb1103f2085fc18ef59033",
+    "src/variants/controller2-us-v1.3.inc": "080d258188fa49f2332d229c2c1d2de10b561550611266c4f73333d563e0f2a7",
+    "src/variants/data-us-v1.1.json": "e8642ce66fe0030f3018272a30706551073212ceb7d3921f146543c38eb31af7",
+    "src/variants/descriptors-us-unversioned.json": "e81145127b8033c309b1b1511b1b6d98c8754284e92fccb834b10df69a9bab89",
+    "src/variants/main-scripts-us-unversioned.inc": "d8abe630304dd7814f5b4f51117815985dcc80fac1acd602acca6da21637cce6",
+    "src/variants/maps-us-unversioned.inc": "e1ff40b655c0aa5f4e2cefa45615d8a81695982e3e4c0b8186e54b78793b9f64",
+    "src/variants/native-inlines-us-v1.2.inc": "385bb59ea45f2f42ba07e26447c39d00874ff7bd30964bfb00871e8eed4c20cf",
+    "src/variants/native-inlines-us-v1.3.inc": "a35024124dcce3fd54500f30b23cbfad565cd1b14435d1875ced88bcc7a01491",
+    "src/variants/native-us-unversioned.inc": "b8b8d23cffb023f1474e8527fa38280c0822bf2017850abb70e9f7f22530864b",
+    "src/variants/opening-scripts-us-unversioned.inc": "f139f4a13dc242319a2613959c53933baf1f28972af92c13f3b89ccb62de7df6",
+    "src/variants/palettes-us-v1.1.inc": "d84d928f0048bb2654c8875ec238d2c8e653e70869a7cb8056ce2f444d7a5e25",
+    "src/variants/positions-us-unversioned.inc": "926ea377a608e08f32b546e4c54b97cb884132f75935a3da827a82fb39556907",
+    "src/variants/reset-us-v1.2.inc": "786c682b69edafe24119aa1287c76bc703cd14e862d70bcaf67001fe01c866e4",
+    "src/variants/retained-resource-us-unversioned.inc": "7c7d60a49147f74a8e84344731c9192f8201ee272801050a3b3d92f43bc32e0b",
+    "src/variants/scripts-us-v1.1.inc": "d4c0ea9e65a12c2556636ba3eb8b4801f36a9025b1dcc7ccd4f1c18e4ed80863",
+    "src/variants/sprites-us-unversioned.inc": "cc8be56ab7cdc688d1263a1397104b0acb809402036685a3505ba82e1951bbfd",
+    "src/variants/state-tables-us-unversioned.inc": "f131df153edc528e0ba644b8ec425fbbed6edb7155e7902355f1b136e6f4f7a0",
+    "src/variants/text-us-unversioned.inc": "ddecd371372b9b50d2d46da77d4f9fd8e6a4f7081d21e64b4217ad10049a6541",
+    "tools/asset_paths.py": "a54397bdce0db94dbf5b5407252ec54f4a1b6b2688f403b08f2f30b151e3dbed",
+    "tools/build_rom.py": "c534f75fad8f2d1e97c6aa75541b8f1826bdf0a45ae125ecb7194c8e6044ca4c",
+    "tools/build_unversioned.py": "aa916610c90137eef495767e5007afaffab852d393049ed4b3543e87a5ced8d6",
+    "tools/build_unversioned_bank0.py": "7b883abd12cce5eeb70b2b3d8ad2bdad654e8df130d8923cf7f906f5866ee670",
+    "tools/build_variant_source.py": "80a38650771c85d81e55f16d077b37d141eaf5c8ed60bd77721c43546ebc9217",
+    "tools/chr_assets.py": "35ae7f99cd026dffb2e216db7d5317274f74499313206b4fcd792e055a23b16b",
+    "tools/earlier_source.py": "ad21062548ecc8e1e3cef988a50b67b3fb87bd13252698c62ef9498bc8c1b897",
+    "tools/identify_rom.py": "ce7cf989f391c6e3401c51b2ea5265ee16b94d896f8a2dfb386d819b1ba47d54",
+    "tools/legacy_source.py": "e830a7b7a8fe72f95c37fa5f4c11752e5bf314bfac9adb577bc59dfe09d2bdd4",
+    "tools/map_assets.py": "dda36f9fd9c77187d25c3c719768c286cbc0af24f871de8b0217d56c18122f5d",
+    "tools/map_data.py": "696ddf1dc81d586016588102c0c44d95ac8d791e6b087bff6ecdc889b59f98dd",
+    "tools/map_layout_assets.py": "d7655db215269033191f1784b4ef72f0f90d0d2e7189f0108e69f1f28c781baa",
+    "tools/menu_assets.py": "eaf6eafe70ff69a9e20c5c7718e0e4726e00b9c3c2128b3b55469abbd75d504e",
+    "tools/native_control_flow.py": "e7656e17a3f91182b6a7ee5b748beddbdd1cc00b3886f0aa962c6b4f3fb26b5c",
+    "tools/nes6502.py": "13cf9f639b839e06175dc3070cbd9c665baa443e6ee63d725a58b5af51441d8a",
+    "tools/palette_assets.py": "b121cabea4c9efe4fc6ecdc2fdfd257bdbd57107f79bbf5eb54f130b7190a170",
+    "tools/ppu_assets.py": "d569c84056463849ee6bb601ac872bda068b88e44c170a1a9c1ad1a2594c7fad",
+    "tools/ppu_streams.py": "78bdce90832ae1008f153b281baf4863ba3a8db02e9644c156777d08be15143b",
+    "tools/project.py": "0ac595eff80d08d4130072277b244e7613178619afba641ccb96eea83cf5e29b",
+    "tools/setup.py": "4c8221c8ce4a3c80227e4d593fa74e33e96a520fa2a3f9b0528f7f241deb76a0",
+    "tools/source_variants.py": "34c5bd45dd783ce0d60f6dccbc9a6a2e5223d5eb37a37fbd1a80ead27ba1f71f",
+    "tools/sprite_assets.py": "98fd56fb4abdf9c1a9d3fb2db0da08413e156e7322a9db6e40ed7b4b2f063a32",
+    "tools/sprite_metadata.py": "ac6be1acfec45f8192ad677edd3379a62fe9de1f30c4c77ed0669877c9ebd3e8",
+    "tools/unversioned_assets.py": "0c923161c37270417e6ff5d5cdfa677daad815a3ca68b126c58e089e4dc0783e",
+    "tools/unversioned_inventory.py": "824ecbeafbe33a807f089c3375859752bc8eeab80b342c6da69902c44f398400",
+    "tools/unversioned_source.py": "5d82d9fe384e9dc35773b52411e4a4e134fc2e467e032f8ebad3f19e8521a07c",
+    "tools/v11_source.py": "23ae691fee6a97bcf5554b6b4c086890dc2f2b8d9d8d519c337e6658e619eb11",
+    "tools/verify_unversioned.py": "314246cb9618c014df19198d18df0793244cd78a8eddd5d66874c7c8d9128a48",
+    "tools/inventory_review.py": "a7a8329a8271f42e3adaf38dd96448b38198f9ca6d0cbaa880e341834270cb53",
+    "tools/record_views.py": "6a8d70478c75469016b417a2a80f74592a825e8f51b11d8d4d4fd483853d16f3",
+    "tools/script_entries.py": "46617bbb7c8147c3ec974ddcaa617d0352678c6df5a2b9376fb1f31d6870605a",
+    "tools/script_flow.py": "efb7d6e5c9ffb6fda65b929f49b51e958b35fe3e9962855b596e239f1832db35",
+    "tools/audio_flow.py": "a50201f6c9c74f6625cd99b18284478b9107e4cc810c3a69cc74f220116d6e50",
+    "tools/audio_commands.py": "c3f348c5d70e9575a66a6be30e1e8f37dd3299df1120628fa5289e8ea3fa7d88",
+    "tools/prg_inventory.py": "d40cc9dca05ea5a95806cbf03d8f7a09bac9812cf45f46f5b3d4a43340635546",
+    "tools/source_audit.py": "01f118ef2ec9313fc8cd8f12272d86a53da9b10de925b82470671fa24079dff8"
+  },
+  "decisions": [
+    {
+      "id": "native-entry-and-transfers",
+      "kind": "mechanism",
+      "state": "closed",
+      "location": "Both own PRG code banks, vectors, helper tails and191 nominal command handlers.",
+      "unknown": "Original routine names and ordinary reachability of unused entries are not established. Conditional non-nominal byte-index targets do not by themselves identify another missing body.",
+      "completion_effect": "Closed: no concrete missing source, supported transfer or format gap remains in this mechanism.",
+      "close_when": "Review own supported entries and relationships against complete exact source, meaningful changed-input controls and a complete physical partition.",
+      "decision": "Accept9863 source-associated official instructions covering all21381 native bytes. Every nominal handler and all six vectors identify reconstructed instruction starts; no same-bank interior-instruction target remains. The two bank1 non-code destinations are the source-reviewed mapper transitions to bank0. Native instruction ownership is separate from data and local assets.",
+      "evidence": [
+        {
+          "path": "analysis/us-unversioned/review-evidence/acceptance-inventory.json",
+          "sha256": "4607d061eb61d23ff19877e8030eff4fc9351d632ce2600ce316719dd940321a",
+          "scope": "Current complete physical partition and finite own native/dispatch/script/record/audio review, bound to the exact full build."
+        },
+        {
+          "path": "analysis/us-unversioned/review-evidence/proof.json",
+          "sha256": "f79cba2e3879541b20c239632236dfcd472e4271258ba51d749a4091d2513a60",
+          "scope": "Own whole-ROM/component equality, all26 source edits and nine editable-input controls, with current source/config/tool identities."
+        },
+        {
+          "path": "docs/UNVERSIONED_ACCEPTANCE.md",
+          "sha256": "5ed5830273a1a930fe66783f01ea8a1f528ca61246e942b75c2d77aece0dad54",
+          "scope": "Finite completion decisions and explicit uncertainty, overlapping views, source/asset boundaries and remaining historical questions."
+        },
+        {
+          "path": "src/variants/native-us-unversioned.inc",
+          "sha256": "b8b8d23cffb023f1474e8527fa38280c0822bf2017850abb70e9f7f22530864b",
+          "scope": "Own word handlers, direct9B RTS word, split NMI sequence, 9D/B4 bodies and PPU operations preserve actual native instructions."
+        }
+      ]
+    },
+    {
+      "id": "bank-transitions",
+      "kind": "mechanism",
+      "state": "closed",
+      "location": "FE5F-FFFF common helpers/tails in both banks; bank0 split NMI835F-83CF and encoded record fetches.",
+      "unknown": "Hardware profile and ordinary values of every bank-state RAM field remain distinct from the exact software reconstruction. No later-revision runtime receipt is claimed for this release.",
+      "completion_effect": "Closed: no concrete missing source, supported transfer or format gap remains in this mechanism.",
+      "close_when": "Review own supported entries and relationships against complete exact source, meaningful changed-input controls and a complete physical partition.",
+      "decision": "Accept the repeated same-PC mapper tail, actual0C/0D conflict table, boot default-bank write and NMI restoration sequence. Bank1 FFDE->80B8 and FFF6->8000 enter the reconstructed bank0 after the source mapper writes. Record fetching preserves the encoded-bank namespace and restoration. The own9B handler pushes a full RTS word without a bank write or high-bit OR. Bank0 map pointer contracts are asserted against actual bank1 grid labels.",
+      "evidence": [
+        {
+          "path": "analysis/us-unversioned/review-evidence/acceptance-inventory.json",
+          "sha256": "4607d061eb61d23ff19877e8030eff4fc9351d632ce2600ce316719dd940321a",
+          "scope": "Current complete physical partition and finite own native/dispatch/script/record/audio review, bound to the exact full build."
+        },
+        {
+          "path": "analysis/us-unversioned/review-evidence/proof.json",
+          "sha256": "f79cba2e3879541b20c239632236dfcd472e4271258ba51d749a4091d2513a60",
+          "scope": "Own whole-ROM/component equality, all26 source edits and nine editable-input controls, with current source/config/tool identities."
+        },
+        {
+          "path": "docs/UNVERSIONED_ACCEPTANCE.md",
+          "sha256": "5ed5830273a1a930fe66783f01ea8a1f528ca61246e942b75c2d77aece0dad54",
+          "scope": "Finite completion decisions and explicit uncertainty, overlapping views, source/asset boundaries and remaining historical questions."
+        },
+        {
+          "path": "tools/unversioned_source.py",
+          "sha256": "5d82d9fe384e9dc35773b52411e4a4e134fc2e467e032f8ebad3f19e8521a07c",
+          "scope": "Complete composition, own physical bounds and forward map contracts checked against emitted labels."
+        },
+        {
+          "path": "src/us-v1.5/rom.s",
+          "sha256": "c48ef02cd8f877c7671d92cbcb36c3f9a2472d72f1d5cd6589d40e39b1ce4ef9",
+          "scope": "Shared readable fetch, bank-write, interrupt, reset and helper mechanisms; own native variants are applied in source."
+        }
+      ]
+    },
+    {
+      "id": "bogus-successors",
+      "kind": "mechanism",
+      "state": "closed",
+      "location": "Own bank0 A1E5-A302 and bank1 audio-adjacent/opening/main/menu scripts;191-entry dispatch.",
+      "unknown": "Saved pointers, loader replacement, yield/retry, stack-page writes and arbitrary injected state remain conditional mechanisms. They are not an exhaustive RAM-state completion requirement.",
+      "completion_effect": "Closed: no concrete missing source, supported transfer or format gap remains in this mechanism.",
+      "close_when": "Review own supported entries and relationships against complete exact source, meaningful changed-input controls and a complete physical partition.",
+      "decision": "Accept3129 declared/conditional command views and880 literal transfers with represented destinations. All14 stored lookup/remap tables terminate. The B2D7 path has six cases after clamp20/divide4; E71B has eight after mask0007. A20A and F209/F20B/F20D preserve concrete overlapping views. No declared9B call is imported from later revisions; the direct native-call mechanism itself is reconstructed. Conditional successors within other represented storage retain the same known native interpreter.",
+      "evidence": [
+        {
+          "path": "analysis/us-unversioned/review-evidence/acceptance-inventory.json",
+          "sha256": "4607d061eb61d23ff19877e8030eff4fc9351d632ce2600ce316719dd940321a",
+          "scope": "Current complete physical partition and finite own native/dispatch/script/record/audio review, bound to the exact full build."
+        },
+        {
+          "path": "analysis/us-unversioned/review-evidence/proof.json",
+          "sha256": "f79cba2e3879541b20c239632236dfcd472e4271258ba51d749a4091d2513a60",
+          "scope": "Own whole-ROM/component equality, all26 source edits and nine editable-input controls, with current source/config/tool identities."
+        },
+        {
+          "path": "docs/UNVERSIONED_ACCEPTANCE.md",
+          "sha256": "5ed5830273a1a930fe66783f01ea8a1f528ca61246e942b75c2d77aece0dad54",
+          "scope": "Finite completion decisions and explicit uncertainty, overlapping views, source/asset boundaries and remaining historical questions."
+        },
+        {
+          "path": "src/variants/bank0-slots-us-unversioned.inc",
+          "sha256": "2ecbc7ef384620ee3ea63474f053a072e9319f7f90bb1103f2085fc18ef59033",
+          "scope": "Actual descriptor-list iteration and A20A operand/command overlap."
+        },
+        {
+          "path": "src/variants/opening-scripts-us-unversioned.inc",
+          "sha256": "f139f4a13dc242319a2613959c53933baf1f28972af92c13f3b89ccb62de7df6",
+          "scope": "Connected own records, compact resources, typed scripts, inline cases and six-case indexed table."
+        },
+        {
+          "path": "src/variants/main-scripts-us-unversioned.inc",
+          "sha256": "d8abe630304dd7814f5b4f51117815985dcc80fac1acd602acca6da21637cce6",
+          "scope": "Connected own state machines, eight-case table, retained alternatives and menu commands."
+        }
+      ]
+    },
+    {
+      "id": "slot-resources",
+      "kind": "mechanism",
+      "state": "closed",
+      "location": "Own123-entry descriptor table,408 bank1 normal/compact/contact views, bank0 records and resource tables.",
+      "unknown": "Nine FFFF descriptor references conditionally read a vector byte plus RAM; ordinary selection and RAM values are not asserted. Literal CPU7C37 has no inferred conversion to ROM FC37. Names and original object roles remain provisional.",
+      "completion_effect": "Closed: no concrete missing source, supported transfer or format gap remains in this mechanism.",
+      "close_when": "Review own supported entries and relationships against complete exact source, meaningful changed-input controls and a complete physical partition.",
+      "decision": "Accept82 distinct descriptor references, including the explicit FFFF crossing context, and232 maintained normal-record/script relationships. All non-crossing descriptor records and literal installed script words have source views. Sprite, palette, map and position relationships are represented through own formats. Preserve the one nonmonotonic position stream and resource7C37 literally; the retained FC39 frame-format identity establishes stored data structure without establishing rendering or repairing addresses.",
+      "evidence": [
+        {
+          "path": "analysis/us-unversioned/review-evidence/acceptance-inventory.json",
+          "sha256": "4607d061eb61d23ff19877e8030eff4fc9351d632ce2600ce316719dd940321a",
+          "scope": "Current complete physical partition and finite own native/dispatch/script/record/audio review, bound to the exact full build."
+        },
+        {
+          "path": "analysis/us-unversioned/review-evidence/proof.json",
+          "sha256": "f79cba2e3879541b20c239632236dfcd472e4271258ba51d749a4091d2513a60",
+          "scope": "Own whole-ROM/component equality, all26 source edits and nine editable-input controls, with current source/config/tool identities."
+        },
+        {
+          "path": "docs/UNVERSIONED_ACCEPTANCE.md",
+          "sha256": "5ed5830273a1a930fe66783f01ea8a1f528ca61246e942b75c2d77aece0dad54",
+          "scope": "Finite completion decisions and explicit uncertainty, overlapping views, source/asset boundaries and remaining historical questions."
+        },
+        {
+          "path": "src/variants/descriptors-us-unversioned.json",
+          "sha256": "e81145127b8033c309b1b1511b1b6d98c8754284e92fccb834b10df69a9bab89",
+          "scope": "Own record words,29 field overrides and nine extra descriptors are explicit, with shared unchanged fields."
+        },
+        {
+          "path": "src/variants/positions-us-unversioned.inc",
+          "sha256": "926ea377a608e08f32b546e4c54b97cb884132f75935a3da827a82fb39556907",
+          "scope": "Thirty streams/420 records and the retained stored-order exception."
+        },
+        {
+          "path": "analysis/us-unversioned/review-evidence/retained-resource-frame.json",
+          "sha256": "7657b40f2cc3e1f64d768fdfb5eab980208373972ad29aeb03c14c0ab263a43b",
+          "scope": "Complete five-byte frame identity with BA8D, encoded word7C39, zero attribute overlap and unresolved CPU-address use."
+        }
+      ]
+    },
+    {
+      "id": "audio",
+      "kind": "mechanism",
+      "state": "closed",
+      "location": "Own A640-AA44 indexed tables/effects/music, B3F6-B407 effects and bank0 opcode18 audio.",
+      "unknown": "Literal starts and format closure do not establish ordinary playback of every entry or historical track names.",
+      "completion_effect": "Closed: no concrete missing source, supported transfer or format gap remains in this mechanism.",
+      "close_when": "Review own supported entries and relationships against complete exact source, meaningful changed-input controls and a complete physical partition.",
+      "decision": "Accept the actual42 literal seeds,502 declared source commands and496 bounded audio contexts, with no crossing fetch. Own loop pointers land on stored command views. The source shares the reviewed interpreter protocol and preserves F9 four-value/stale-fifth behavior. No newer-revision runtime observation is transferred.",
+      "evidence": [
+        {
+          "path": "analysis/us-unversioned/review-evidence/acceptance-inventory.json",
+          "sha256": "4607d061eb61d23ff19877e8030eff4fc9351d632ce2600ce316719dd940321a",
+          "scope": "Current complete physical partition and finite own native/dispatch/script/record/audio review, bound to the exact full build."
+        },
+        {
+          "path": "analysis/us-unversioned/review-evidence/proof.json",
+          "sha256": "f79cba2e3879541b20c239632236dfcd472e4271258ba51d749a4091d2513a60",
+          "scope": "Own whole-ROM/component equality, all26 source edits and nine editable-input controls, with current source/config/tool identities."
+        },
+        {
+          "path": "docs/UNVERSIONED_ACCEPTANCE.md",
+          "sha256": "5ed5830273a1a930fe66783f01ea8a1f528ca61246e942b75c2d77aece0dad54",
+          "scope": "Finite completion decisions and explicit uncertainty, overlapping views, source/asset boundaries and remaining historical questions."
+        },
+        {
+          "path": "src/variants/audio-us-unversioned.inc",
+          "sha256": "e925a84a1deee08039f26a0834cff9e45d085cd0a71431ccc590df2a4584ffe0",
+          "scope": "Own ten voice4 pointers, two four-voice records and490 structured audio commands."
+        },
+        {
+          "path": "tools/audio_commands.py",
+          "sha256": "c3f348c5d70e9575a66a6be30e1e8f37dd3299df1120628fa5289e8ea3fa7d88",
+          "scope": "Shared exact native protocol including consumed extents and F9 behavior."
+        }
+      ]
+    },
+    {
+      "id": "asset-formats",
+      "kind": "mechanism",
+      "state": "closed",
+      "location": "All decoded PRG asset inputs and65536 physical CHR bytes.",
+      "unknown": "Asset use, palettes and intended graphics can remain conditional; this does not make their reversible encoding source code.",
+      "completion_effect": "Closed: no concrete missing source, supported transfer or format gap remains in this mechanism.",
+      "close_when": "Review own supported entries and relationships against complete exact source, meaningful changed-input controls and a complete physical partition.",
+      "decision": "Accept nine supported editable input groups producing656 explicit input files. Fresh decoding reproduces every current payload; full source leaf spans consume complete named encodings, with no opaque binary gap. Source code/data/fill and20161 PRG asset bytes remain separate; CHR is excluded from PRG source credit. All nine asset controls change exactly their scoped bytes in fresh whole-ROM builds.",
+      "evidence": [
+        {
+          "path": "analysis/us-unversioned/review-evidence/acceptance-inventory.json",
+          "sha256": "4607d061eb61d23ff19877e8030eff4fc9351d632ce2600ce316719dd940321a",
+          "scope": "Current complete physical partition and finite own native/dispatch/script/record/audio review, bound to the exact full build."
+        },
+        {
+          "path": "analysis/us-unversioned/review-evidence/proof.json",
+          "sha256": "f79cba2e3879541b20c239632236dfcd472e4271258ba51d749a4091d2513a60",
+          "scope": "Own whole-ROM/component equality, all26 source edits and nine editable-input controls, with current source/config/tool identities."
+        },
+        {
+          "path": "docs/UNVERSIONED_ACCEPTANCE.md",
+          "sha256": "5ed5830273a1a930fe66783f01ea8a1f528ca61246e942b75c2d77aece0dad54",
+          "scope": "Finite completion decisions and explicit uncertainty, overlapping views, source/asset boundaries and remaining historical questions."
+        },
+        {
+          "path": "analysis/us-unversioned/review-evidence/asset-roundtrip.json",
+          "sha256": "9fc96930a2b8004bc17b9161ac1bba73eee3d998e44afcb7c6cf197421754bc7",
+          "scope": "Fresh nine-format decode and every encoded payload identity agree with the maintained local inputs."
+        },
+        {
+          "path": "tools/unversioned_assets.py",
+          "sha256": "0c923161c37270417e6ff5d5cdfa677daad815a3ca68b126c58e089e4dc0783e",
+          "scope": "Known codecs and complete retained tile/attribute pair; missing inputs are decoded locally without overwriting edits."
+        }
+      ]
+    },
+    {
+      "id": "storage-d640",
+      "kind": "storage",
+      "state": "closed",
+      "bank": 1,
+      "cpu": 54848,
+      "size": 1,
+      "location": "Bank1 $D640-$D640",
+      "unknown": "Original intended use of the retained01 is unknown.",
+      "completion_effect": "Closed: explicit bounded retained representation; no opaque executable inclusion or missing supported implementation identified.",
+      "close_when": "Use own consumers, surrounding structures and revision evidence to preserve a supported bounded representation, including competing views where present.",
+      "decision": "Accept retained script-adjacent storage after00/1E and before the independently targeted D641 command. The predecessor selects A1E5/A1F7 in its normal loader path; comparison preserves the corresponding later D75D boundary. Do not invent a one-byte routine or padding.",
+      "evidence": [
+        {
+          "path": "analysis/us-unversioned/review-evidence/acceptance-inventory.json",
+          "sha256": "4607d061eb61d23ff19877e8030eff4fc9351d632ce2600ce316719dd940321a",
+          "scope": "Current complete physical partition and finite own native/dispatch/script/record/audio review, bound to the exact full build."
+        },
+        {
+          "path": "analysis/us-unversioned/review-evidence/proof.json",
+          "sha256": "f79cba2e3879541b20c239632236dfcd472e4271258ba51d749a4091d2513a60",
+          "scope": "Own whole-ROM/component equality, all26 source edits and nine editable-input controls, with current source/config/tool identities."
+        },
+        {
+          "path": "docs/UNVERSIONED_ACCEPTANCE.md",
+          "sha256": "5ed5830273a1a930fe66783f01ea8a1f528ca61246e942b75c2d77aece0dad54",
+          "scope": "Finite completion decisions and explicit uncertainty, overlapping views, source/asset boundaries and remaining historical questions."
+        },
+        {
+          "path": "src/variants/main-scripts-us-unversioned.inc",
+          "sha256": "d8abe630304dd7814f5b4f51117815985dcc80fac1acd602acca6da21637cce6",
+          "scope": "Own stored field/command boundaries and explicit uncertainty, preserving exact emitted bytes."
+        }
+      ]
+    },
+    {
+      "id": "storage-d5ab",
+      "kind": "storage",
+      "state": "closed",
+      "bank": 1,
+      "cpu": 54699,
+      "size": 1,
+      "location": "Bank1 $D5AB-$D5AB",
+      "unknown": "Original reason for retaining this unused copied byte is unknown.",
+      "completion_effect": "Closed: explicit bounded retained representation; no opaque executable inclusion or missing supported implementation identified.",
+      "close_when": "Use own consumers, surrounding structures and revision evidence to preserve a supported bounded representation, including competing views where present.",
+      "decision": "Accept separate tenth-byte fetch lookahead after the nine-byte D5A2 record and before targeted D5AC. It is not a tenth selected field.",
+      "evidence": [
+        {
+          "path": "analysis/us-unversioned/review-evidence/acceptance-inventory.json",
+          "sha256": "4607d061eb61d23ff19877e8030eff4fc9351d632ce2600ce316719dd940321a",
+          "scope": "Current complete physical partition and finite own native/dispatch/script/record/audio review, bound to the exact full build."
+        },
+        {
+          "path": "analysis/us-unversioned/review-evidence/proof.json",
+          "sha256": "f79cba2e3879541b20c239632236dfcd472e4271258ba51d749a4091d2513a60",
+          "scope": "Own whole-ROM/component equality, all26 source edits and nine editable-input controls, with current source/config/tool identities."
+        },
+        {
+          "path": "docs/UNVERSIONED_ACCEPTANCE.md",
+          "sha256": "5ed5830273a1a930fe66783f01ea8a1f528ca61246e942b75c2d77aece0dad54",
+          "scope": "Finite completion decisions and explicit uncertainty, overlapping views, source/asset boundaries and remaining historical questions."
+        },
+        {
+          "path": "src/variants/main-scripts-us-unversioned.inc",
+          "sha256": "d8abe630304dd7814f5b4f51117815985dcc80fac1acd602acca6da21637cce6",
+          "scope": "Own stored field/command boundaries and explicit uncertainty, preserving exact emitted bytes."
+        }
+      ]
+    },
+    {
+      "id": "storage-eef1",
+      "kind": "storage",
+      "state": "closed",
+      "bank": 1,
+      "cpu": 61169,
+      "size": 1,
+      "location": "Bank1 $EEF1-$EEF1",
+      "unknown": "Original reason for the unused copied zero is unknown.",
+      "completion_effect": "Closed: explicit bounded retained representation; no opaque executable inclusion or missing supported implementation identified.",
+      "close_when": "Use own consumers, surrounding structures and revision evidence to preserve a supported bounded representation, including competing views where present.",
+      "decision": "Accept separate lookahead after the EEE8 nine-byte record; its explicit installed script starts at EEF2. Do not shift the script entry to create a speculative decode.",
+      "evidence": [
+        {
+          "path": "analysis/us-unversioned/review-evidence/acceptance-inventory.json",
+          "sha256": "4607d061eb61d23ff19877e8030eff4fc9351d632ce2600ce316719dd940321a",
+          "scope": "Current complete physical partition and finite own native/dispatch/script/record/audio review, bound to the exact full build."
+        },
+        {
+          "path": "analysis/us-unversioned/review-evidence/proof.json",
+          "sha256": "f79cba2e3879541b20c239632236dfcd472e4271258ba51d749a4091d2513a60",
+          "scope": "Own whole-ROM/component equality, all26 source edits and nine editable-input controls, with current source/config/tool identities."
+        },
+        {
+          "path": "docs/UNVERSIONED_ACCEPTANCE.md",
+          "sha256": "5ed5830273a1a930fe66783f01ea8a1f528ca61246e942b75c2d77aece0dad54",
+          "scope": "Finite completion decisions and explicit uncertainty, overlapping views, source/asset boundaries and remaining historical questions."
+        },
+        {
+          "path": "src/variants/main-scripts-us-unversioned.inc",
+          "sha256": "d8abe630304dd7814f5b4f51117815985dcc80fac1acd602acca6da21637cce6",
+          "scope": "Own stored field/command boundaries and explicit uncertainty, preserving exact emitted bytes."
+        }
+      ]
+    },
+    {
+      "id": "storage-eaa9",
+      "kind": "storage",
+      "state": "closed",
+      "bank": 1,
+      "cpu": 60073,
+      "size": 2,
+      "location": "Bank1 $EAA9-$EAAA",
+      "unknown": "Original purpose of the two-byte tail remains unknown.",
+      "completion_effect": "Closed: explicit bounded retained representation; no opaque executable inclusion or missing supported implementation identified.",
+      "close_when": "Use own consumers, surrounding structures and revision evidence to preserve a supported bounded representation, including competing views where present.",
+      "decision": "Accept separate retained record-tail storage. The normal EAA0 record selects nine bytes; only the first tail byte is copied as ignored lookahead. Three compact records begin EAAB. This preserves the later EB08 relationship without adding fields or declaring padding.",
+      "evidence": [
+        {
+          "path": "analysis/us-unversioned/review-evidence/acceptance-inventory.json",
+          "sha256": "4607d061eb61d23ff19877e8030eff4fc9351d632ce2600ce316719dd940321a",
+          "scope": "Current complete physical partition and finite own native/dispatch/script/record/audio review, bound to the exact full build."
+        },
+        {
+          "path": "analysis/us-unversioned/review-evidence/proof.json",
+          "sha256": "f79cba2e3879541b20c239632236dfcd472e4271258ba51d749a4091d2513a60",
+          "scope": "Own whole-ROM/component equality, all26 source edits and nine editable-input controls, with current source/config/tool identities."
+        },
+        {
+          "path": "docs/UNVERSIONED_ACCEPTANCE.md",
+          "sha256": "5ed5830273a1a930fe66783f01ea8a1f528ca61246e942b75c2d77aece0dad54",
+          "scope": "Finite completion decisions and explicit uncertainty, overlapping views, source/asset boundaries and remaining historical questions."
+        },
+        {
+          "path": "src/variants/main-scripts-us-unversioned.inc",
+          "sha256": "d8abe630304dd7814f5b4f51117815985dcc80fac1acd602acca6da21637cce6",
+          "scope": "Own stored field/command boundaries and explicit uncertainty, preserving exact emitted bytes."
+        }
+      ]
+    },
+    {
+      "id": "storage-eb29",
+      "kind": "storage",
+      "state": "closed",
+      "bank": 1,
+      "cpu": 60201,
+      "size": 2,
+      "location": "Bank1 $EB29-$EB2A",
+      "unknown": "Original purpose of the two-byte tail remains unknown.",
+      "completion_effect": "Closed: explicit bounded retained representation; no opaque executable inclusion or missing supported implementation identified.",
+      "close_when": "Use own consumers, surrounding structures and revision evidence to preserve a supported bounded representation, including competing views where present.",
+      "decision": "Accept separate retained record-tail storage after EB20 and before the compact entries at EB2B, matching the later EB8F relationship. Only the first byte is ignored fetch lookahead; neither is another selected record field.",
+      "evidence": [
+        {
+          "path": "analysis/us-unversioned/review-evidence/acceptance-inventory.json",
+          "sha256": "4607d061eb61d23ff19877e8030eff4fc9351d632ce2600ce316719dd940321a",
+          "scope": "Current complete physical partition and finite own native/dispatch/script/record/audio review, bound to the exact full build."
+        },
+        {
+          "path": "analysis/us-unversioned/review-evidence/proof.json",
+          "sha256": "f79cba2e3879541b20c239632236dfcd472e4271258ba51d749a4091d2513a60",
+          "scope": "Own whole-ROM/component equality, all26 source edits and nine editable-input controls, with current source/config/tool identities."
+        },
+        {
+          "path": "docs/UNVERSIONED_ACCEPTANCE.md",
+          "sha256": "5ed5830273a1a930fe66783f01ea8a1f528ca61246e942b75c2d77aece0dad54",
+          "scope": "Finite completion decisions and explicit uncertainty, overlapping views, source/asset boundaries and remaining historical questions."
+        },
+        {
+          "path": "src/variants/main-scripts-us-unversioned.inc",
+          "sha256": "d8abe630304dd7814f5b4f51117815985dcc80fac1acd602acca6da21637cce6",
+          "scope": "Own stored field/command boundaries and explicit uncertainty, preserving exact emitted bytes."
+        }
+      ]
+    },
+    {
+      "id": "storage-f209",
+      "kind": "storage",
+      "state": "closed",
+      "bank": 1,
+      "cpu": 61961,
+      "size": 1,
+      "location": "Bank1 $F209-$F209",
+      "unknown": "Ordinary execution and intended meaning of the conditional overlapping continuation remain unproved.",
+      "completion_effect": "Closed: explicit bounded retained representation; no opaque executable inclusion or missing supported implementation identified.",
+      "close_when": "Use own consumers, surrounding structures and revision evidence to preserve a supported bounded representation, including competing views where present.",
+      "decision": "Accept the explicit stored zero and preserve the normal9F return alternative00/2C,85/2D,00/00 across F20A/F20C before F20F. The F1FF branch independently selects F20A. Both mechanisms are reconstructed; no extra physical bytes or unrelated native routine are needed.",
+      "evidence": [
+        {
+          "path": "analysis/us-unversioned/review-evidence/acceptance-inventory.json",
+          "sha256": "4607d061eb61d23ff19877e8030eff4fc9351d632ce2600ce316719dd940321a",
+          "scope": "Current complete physical partition and finite own native/dispatch/script/record/audio review, bound to the exact full build."
+        },
+        {
+          "path": "analysis/us-unversioned/review-evidence/proof.json",
+          "sha256": "f79cba2e3879541b20c239632236dfcd472e4271258ba51d749a4091d2513a60",
+          "scope": "Own whole-ROM/component equality, all26 source edits and nine editable-input controls, with current source/config/tool identities."
+        },
+        {
+          "path": "docs/UNVERSIONED_ACCEPTANCE.md",
+          "sha256": "5ed5830273a1a930fe66783f01ea8a1f528ca61246e942b75c2d77aece0dad54",
+          "scope": "Finite completion decisions and explicit uncertainty, overlapping views, source/asset boundaries and remaining historical questions."
+        },
+        {
+          "path": "src/variants/main-scripts-us-unversioned.inc",
+          "sha256": "d8abe630304dd7814f5b4f51117815985dcc80fac1acd602acca6da21637cce6",
+          "scope": "Own stored field/command boundaries and explicit uncertainty, preserving exact emitted bytes."
+        }
+      ]
+    },
+    {
+      "id": "storage-f37e",
+      "kind": "storage",
+      "state": "closed",
+      "bank": 1,
+      "cpu": 62334,
+      "size": 3,
+      "location": "Bank1 $F37E-$F380",
+      "unknown": "Original purpose of the retained prefix remains unknown.",
+      "completion_effect": "Closed: explicit bounded retained representation; no opaque executable inclusion or missing supported implementation identified.",
+      "close_when": "Use own consumers, surrounding structures and revision evidence to preserve a supported bounded representation, including competing views where present.",
+      "decision": "Accept retained menu-prefix storage outside all14 command-selected payloads. The predecessor branches to F422. The boundary relationship is preserved across revisions as the later F354 group; no artwork or extra PPU command is inferred.",
+      "evidence": [
+        {
+          "path": "analysis/us-unversioned/review-evidence/acceptance-inventory.json",
+          "sha256": "4607d061eb61d23ff19877e8030eff4fc9351d632ce2600ce316719dd940321a",
+          "scope": "Current complete physical partition and finite own native/dispatch/script/record/audio review, bound to the exact full build."
+        },
+        {
+          "path": "analysis/us-unversioned/review-evidence/proof.json",
+          "sha256": "f79cba2e3879541b20c239632236dfcd472e4271258ba51d749a4091d2513a60",
+          "scope": "Own whole-ROM/component equality, all26 source edits and nine editable-input controls, with current source/config/tool identities."
+        },
+        {
+          "path": "docs/UNVERSIONED_ACCEPTANCE.md",
+          "sha256": "5ed5830273a1a930fe66783f01ea8a1f528ca61246e942b75c2d77aece0dad54",
+          "scope": "Finite completion decisions and explicit uncertainty, overlapping views, source/asset boundaries and remaining historical questions."
+        },
+        {
+          "path": "src/variants/main-scripts-us-unversioned.inc",
+          "sha256": "d8abe630304dd7814f5b4f51117815985dcc80fac1acd602acca6da21637cce6",
+          "scope": "Own stored field/command boundaries and explicit uncertainty, preserving exact emitted bytes."
+        }
+      ]
+    },
+    {
+      "id": "storage-f602",
+      "kind": "storage",
+      "state": "closed",
+      "bank": 1,
+      "cpu": 62978,
+      "size": 2,
+      "location": "Bank1 $F602-$F603",
+      "unknown": "Original purpose of the map suffix is unknown.",
+      "completion_effect": "Closed: explicit bounded retained representation; no opaque executable inclusion or missing supported implementation identified.",
+      "close_when": "Use own consumers, surrounding structures and revision evidence to preserve a supported bounded representation, including competing views where present.",
+      "decision": "Accept retained suffix after the nominal52x9 grid and before F604. The first byte is discarded high-byte lookup lookahead; the clamp supports no extra cell. All six preserve the neighboring relationship of the later F623 group.",
+      "evidence": [
+        {
+          "path": "analysis/us-unversioned/review-evidence/acceptance-inventory.json",
+          "sha256": "4607d061eb61d23ff19877e8030eff4fc9351d632ce2600ce316719dd940321a",
+          "scope": "Current complete physical partition and finite own native/dispatch/script/record/audio review, bound to the exact full build."
+        },
+        {
+          "path": "analysis/us-unversioned/review-evidence/proof.json",
+          "sha256": "f79cba2e3879541b20c239632236dfcd472e4271258ba51d749a4091d2513a60",
+          "scope": "Own whole-ROM/component equality, all26 source edits and nine editable-input controls, with current source/config/tool identities."
+        },
+        {
+          "path": "docs/UNVERSIONED_ACCEPTANCE.md",
+          "sha256": "5ed5830273a1a930fe66783f01ea8a1f528ca61246e942b75c2d77aece0dad54",
+          "scope": "Finite completion decisions and explicit uncertainty, overlapping views, source/asset boundaries and remaining historical questions."
+        },
+        {
+          "path": "src/variants/maps-us-unversioned.inc",
+          "sha256": "e1ff40b655c0aa5f4e2cefa45615d8a81695982e3e4c0b8186e54b78793b9f64",
+          "scope": "Own stored field/command boundaries and explicit uncertainty, preserving exact emitted bytes."
+        }
+      ]
+    },
+    {
+      "id": "storage-fc37",
+      "kind": "storage",
+      "state": "closed",
+      "bank": 1,
+      "cpu": 64567,
+      "size": 7,
+      "location": "Bank1 $FC37-$FC3D",
+      "unknown": "The stored resource-shaped format is supported; original purpose and conversion from literal CPU7C37 to ROM FC37 are not proved.",
+      "completion_effect": "Closed: explicit bounded retained representation; no opaque executable inclusion or missing supported implementation identified.",
+      "close_when": "Use own consumers, surrounding structures and revision evidence to preserve a supported bounded representation, including competing views where present.",
+      "decision": "Accept retained resource data: encoded word7C39 followed by a complete five-byte separate-dimension frame identical to known BA8D. Its zero attribute at FC3D also begins the historical zero-storage run. The local editable tile/attribute pair is kept complete. No supported native/script entry requires another implementation here, and no valid CPU7C37 mapping or ordinary rendering is invented.",
+      "evidence": [
+        {
+          "path": "analysis/us-unversioned/review-evidence/acceptance-inventory.json",
+          "sha256": "4607d061eb61d23ff19877e8030eff4fc9351d632ce2600ce316719dd940321a",
+          "scope": "Current complete physical partition and finite own native/dispatch/script/record/audio review, bound to the exact full build."
+        },
+        {
+          "path": "analysis/us-unversioned/review-evidence/proof.json",
+          "sha256": "f79cba2e3879541b20c239632236dfcd472e4271258ba51d749a4091d2513a60",
+          "scope": "Own whole-ROM/component equality, all26 source edits and nine editable-input controls, with current source/config/tool identities."
+        },
+        {
+          "path": "docs/UNVERSIONED_ACCEPTANCE.md",
+          "sha256": "5ed5830273a1a930fe66783f01ea8a1f528ca61246e942b75c2d77aece0dad54",
+          "scope": "Finite completion decisions and explicit uncertainty, overlapping views, source/asset boundaries and remaining historical questions."
+        },
+        {
+          "path": "src/variants/retained-resource-us-unversioned.inc",
+          "sha256": "7c7d60a49147f74a8e84344731c9192f8201ee272801050a3b3d92f43bc32e0b",
+          "scope": "Own stored field/command boundaries and explicit uncertainty, preserving exact emitted bytes."
+        }
+      ]
+    }
+  ],
+  "reuse_note": "Own complete source/format review and full-build controls. Exact earlier-revision runtime observations are not reused as unversioned runtime proof. Historical naming, unused roles and arbitrary RAM states remain outside the finite completion requirements."
+}

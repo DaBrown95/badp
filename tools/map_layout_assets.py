@@ -22,8 +22,12 @@ ASSET_PATH = Path('extracted/us-v1.5/map-layouts.json')
 def _inventory(prg: bytes, geometry: dict | None = None) -> list[dict]:
     if len(prg) != 2 * BANK_SIZE:
         raise ValueError('expected two complete PRG banks')
-    inventory = map_data.inventory(prg[:BANK_SIZE], prg[BANK_SIZE:], **(geometry or {}))
-    if (len(inventory['layouts']) != 14 or inventory['overlapping_layout_bytes']
+    settings = dict(geometry or {})
+    layout_count = settings.pop('layout_count', 14)
+    if type(layout_count) is not int or not 1 <= layout_count <= 256:
+        raise ValueError('invalid reviewed map layout count')
+    inventory = map_data.inventory(prg[:BANK_SIZE], prg[BANK_SIZE:], **settings)
+    if (len(inventory['layouts']) != layout_count or inventory['overlapping_layout_bytes']
             or inventory['layout_chunk_overlap_bytes']):
         raise ValueError('map layouts do not match the reviewed distinct non-overlapping inventory')
     return sorted(inventory['layouts'], key=lambda x: (x['location']['bank'], x['location']['bank_offset']))
@@ -159,13 +163,16 @@ def changed_asset(asset: dict) -> dict:
     return changed
 
 
-def verify_control(reference: bytes, candidate: bytes, prg_offset: int, asset: dict) -> list[int]:
+def verify_control(reference: bytes, candidate: bytes, prg_offset: int, asset: dict, *,
+                   geometry: dict | None = None) -> list[int]:
     if len(candidate) != len(reference):
         raise ValueError('map layout control changed ROM size')
     expected = sorted(prg_offset + layout['bank'] * BANK_SIZE + int(layout['cpu'], 0) - 0x8000 + 2
                       for layout in asset['layouts'])
     changed = [i for i, (a, b) in enumerate(zip(reference, candidate)) if a != b]
-    if (len(expected) != 14 or len(set(expected)) != len(expected) or changed != expected
+    layout_count = (geometry or {}).get('layout_count', 14)
+    if (type(layout_count) is not int or not 1 <= layout_count <= 256
+            or len(expected) != layout_count or len(set(expected)) != len(expected) or changed != expected
             or any(candidate[offset] != (reference[offset] ^ 1) for offset in expected)):
         raise ValueError('map layout control did not change exactly one selected cell per layout')
     return changed

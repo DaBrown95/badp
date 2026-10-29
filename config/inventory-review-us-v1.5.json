@@ -202,13 +202,13 @@
       "evidence": [
         {
           "path": "tools/source_audit.py",
-          "sha256": "c6e273f6dc095677c221879967104f212283f5db59b22b9da48ebf3bd04b9450",
-          "scope": "Physical partition and asset-span ownership."
+          "sha256": "01f118ef2ec9313fc8cd8f12272d86a53da9b10de925b82470671fa24079dff8",
+          "scope": "Physical partition and asset-span ownership. Current actual defaults and unchanged producer/partition core are compared in unversioned-map-compatibility.json."
         },
         {
           "path": "tools/map_layout_assets.py",
-          "sha256": "c1cd68c0c60df20e09dd52a4644668f7220062788f9ef8a91ff53df7a4fe0eb9",
-          "scope": "Map grid dimensions and deterministic encoding."
+          "sha256": "d7655db215269033191f1784b4ef72f0f90d0d2e7189f0108e69f1f28c781baa",
+          "scope": "Map grid dimensions and deterministic encoding. Current actual defaults and unchanged producer/partition core are compared in unversioned-map-compatibility.json."
         },
         {
           "path": "tools/sprite_assets.py",
@@ -227,13 +227,18 @@
         },
         {
           "path": "tools/build_rom.py",
-          "sha256": "102fe521dff08ae913ff4797e7a8c486385159b2ee33bfe18ef0951d2b1ba580",
-          "scope": "Whole-ROM equality and source/asset edit controls."
+          "sha256": "c534f75fad8f2d1e97c6aa75541b8f1826bdf0a45ae125ecb7194c8e6044ca4c",
+          "scope": "Whole-ROM equality and source/asset edit controls. Current actual defaults and unchanged producer/partition core are compared in unversioned-map-compatibility.json."
         },
         {
           "path": "analysis/us-v1.5/review-evidence/unversioned-format-compatibility.json",
           "sha256": "16f4b73e45f72976c17386c2e8b7f40a51c72806219daec363e090fb20d693de",
           "scope": "Accepted primary frame headers/assets, complete physical evidence partition and existing conditional contexts agree under the new opt-in separate-byte format."
+        },
+        {
+          "path": "analysis/us-v1.5/review-evidence/unversioned-map-compatibility.json",
+          "sha256": "07c1eaa7d73472ca9b57b6049dffa59728b87aa6c38fa384aac6e960afa74759",
+          "scope": "Actual accepted map inventories, editable chunks/grids and changed encodings agree with prior implementations; primary position decoding agrees. CLI additions preserve producer and partition core."
         }
       ]
     },
@@ -398,10 +403,10 @@
       "size": 2
     }
   ],
-  "reuse_note": "Adding the opt-in unversioned sprite format leaves this target's actual packed headers, editable assets/encodings and all physical evidence uses unchanged, compared against the previous implementations on current inputs. The own full build and existing controls were refreshed.",
+  "reuse_note": "The unversioned opt-in map geometry and unordered position support leave this target's actual map inventories, editable encodings, changed inputs and position decode unchanged versus the prior implementations. Build/audit/progress changes only dispatch the new target or print its counts; producer and partition core ASTs are unchanged. The substantial checkpoint refreshes the complete primary build and controls.",
   "review_input_sha256": {
     "tools/prg_inventory.py": "d40cc9dca05ea5a95806cbf03d8f7a09bac9812cf45f46f5b3d4a43340635546",
-    "tools/map_data.py": "0eb2d3e3fc46751f46234d11c5271c5672fa1929fea53f99d31858addca6efd2",
+    "tools/map_data.py": "696ddf1dc81d586016588102c0c44d95ac8d791e6b087bff6ecdc889b59f98dd",
     "tools/packed_text.py": "f563711b9057685d81b62546068c27a35dfcb40b280c1938e43ab85b88c1667b",
     "tools/script_entries.py": "46617bbb7c8147c3ec974ddcaa617d0352678c6df5a2b9376fb1f31d6870605a",
     "tools/script_flow.py": "efb7d6e5c9ffb6fda65b929f49b51e958b35fe3e9962855b596e239f1832db35",
@@ -417,9 +422,9 @@
     "tools/native_control_flow.py": "e7656e17a3f91182b6a7ee5b748beddbdd1cc00b3886f0aa962c6b4f3fb26b5c",
     "tools/nes6502.py": "13cf9f639b839e06175dc3070cbd9c665baa443e6ee63d725a58b5af51441d8a",
     "tools/verify_native_opcodes.py": "804720e4445a8266b7420cb1538de3f98c18606a2d3c4b2cb76451a7df90a240",
-    "tools/source_audit.py": "c6e273f6dc095677c221879967104f212283f5db59b22b9da48ebf3bd04b9450",
-    "tools/map_assets.py": "ca23cdeeeae29bb4b4ee4ad1f0a008f70bac9fb07d0d91f4790e9aa1702c0068",
-    "tools/map_layout_assets.py": "c1cd68c0c60df20e09dd52a4644668f7220062788f9ef8a91ff53df7a4fe0eb9",
+    "tools/source_audit.py": "01f118ef2ec9313fc8cd8f12272d86a53da9b10de925b82470671fa24079dff8",
+    "tools/map_assets.py": "dda36f9fd9c77187d25c3c719768c286cbc0af24f871de8b0217d56c18122f5d",
+    "tools/map_layout_assets.py": "d7655db215269033191f1784b4ef72f0f90d0d2e7189f0108e69f1f28c781baa",
     "tools/asset_paths.py": "a54397bdce0db94dbf5b5407252ec54f4a1b6b2688f403b08f2f30b151e3dbed",
     "tools/inventory_review.py": "a7a8329a8271f42e3adaf38dd96448b38198f9ca6d0cbaa880e341834270cb53",
     "tools/menu_assets.py": "eaf6eafe70ff69a9e20c5c7718e0e4726e00b9c3c2128b3b55469abbd75d504e",

@@ -7,7 +7,7 @@
   "review_input_sha256": {
     "tools/variant_inventory.py": "e440d2fad54c37f6c0bb60837237babd1f20194e64b80ccf0708d1b549decf92",
     "tools/inventory_review.py": "a7a8329a8271f42e3adaf38dd96448b38198f9ca6d0cbaa880e341834270cb53",
-    "tools/source_audit.py": "c6e273f6dc095677c221879967104f212283f5db59b22b9da48ebf3bd04b9450",
+    "tools/source_audit.py": "01f118ef2ec9313fc8cd8f12272d86a53da9b10de925b82470671fa24079dff8",
     "tools/prg_inventory.py": "d40cc9dca05ea5a95806cbf03d8f7a09bac9812cf45f46f5b3d4a43340635546",
     "tools/direct_record_flow.py": "82d87c19801e45c45986a1da79ee12d35dbb6cac474a385af282bb6e5a7dcb32",
     "tools/native_script_calls.py": "28daa83579d7ba99e7baace71f1b2e0d3474b92605ecb79e669b17bd5e932db1",
@@ -33,12 +33,12 @@
       "evidence": [
         {
           "path": "analysis/us-v1.4/review-evidence/proof.json",
-          "sha256": "e7474b8a94eb8bb409e316bbe9e05a7d4fcf96e7933958937874a70479619328",
+          "sha256": "a7cf834c4d0e3f94b97da5a6ebc35cccd609325b85684ebfb55a68999f515461",
           "scope": "Own complete decoded-asset build, all source/symbol controls and eight asset edits."
         },
         {
           "path": "analysis/us-v1.4/review-evidence/inventory-development.json",
-          "sha256": "b38df2a011b31b97b8e87f74cb6fe45ea50f3f95056bf4bec94190c4cdb9c1bb",
+          "sha256": "0697ee2f3d914086e59ec31a53a6311e58253d87655421347a565d195d84cf12",
           "scope": "Own complete physical partition with source, local assets and competing script/record/audio uses."
         },
         {
@@ -70,12 +70,12 @@
       "evidence": [
         {
           "path": "analysis/us-v1.4/review-evidence/proof.json",
-          "sha256": "e7474b8a94eb8bb409e316bbe9e05a7d4fcf96e7933958937874a70479619328",
+          "sha256": "a7cf834c4d0e3f94b97da5a6ebc35cccd609325b85684ebfb55a68999f515461",
           "scope": "Own complete decoded-asset build, all source/symbol controls and eight asset edits."
         },
         {
           "path": "analysis/us-v1.4/review-evidence/inventory-development.json",
-          "sha256": "b38df2a011b31b97b8e87f74cb6fe45ea50f3f95056bf4bec94190c4cdb9c1bb",
+          "sha256": "0697ee2f3d914086e59ec31a53a6311e58253d87655421347a565d195d84cf12",
           "scope": "Own complete physical partition with source, local assets and competing script/record/audio uses."
         },
         {
@@ -112,12 +112,12 @@
       "evidence": [
         {
           "path": "analysis/us-v1.4/review-evidence/proof.json",
-          "sha256": "e7474b8a94eb8bb409e316bbe9e05a7d4fcf96e7933958937874a70479619328",
+          "sha256": "a7cf834c4d0e3f94b97da5a6ebc35cccd609325b85684ebfb55a68999f515461",
           "scope": "Own complete decoded-asset build, all source/symbol controls and eight asset edits."
         },
         {
           "path": "analysis/us-v1.4/review-evidence/inventory-development.json",
-          "sha256": "b38df2a011b31b97b8e87f74cb6fe45ea50f3f95056bf4bec94190c4cdb9c1bb",
+          "sha256": "0697ee2f3d914086e59ec31a53a6311e58253d87655421347a565d195d84cf12",
           "scope": "Own complete physical partition with source, local assets and competing script/record/audio uses."
         },
         {
@@ -159,12 +159,12 @@
       "evidence": [
         {
           "path": "analysis/us-v1.4/review-evidence/proof.json",
-          "sha256": "e7474b8a94eb8bb409e316bbe9e05a7d4fcf96e7933958937874a70479619328",
+          "sha256": "a7cf834c4d0e3f94b97da5a6ebc35cccd609325b85684ebfb55a68999f515461",
           "scope": "Own complete decoded-asset build, all source/symbol controls and eight asset edits."
         },
         {
           "path": "analysis/us-v1.4/review-evidence/inventory-development.json",
-          "sha256": "b38df2a011b31b97b8e87f74cb6fe45ea50f3f95056bf4bec94190c4cdb9c1bb",
+          "sha256": "0697ee2f3d914086e59ec31a53a6311e58253d87655421347a565d195d84cf12",
           "scope": "Own complete physical partition with source, local assets and competing script/record/audio uses."
         },
         {
@@ -201,12 +201,12 @@
       "evidence": [
         {
           "path": "analysis/us-v1.4/review-evidence/proof.json",
-          "sha256": "e7474b8a94eb8bb409e316bbe9e05a7d4fcf96e7933958937874a70479619328",
+          "sha256": "a7cf834c4d0e3f94b97da5a6ebc35cccd609325b85684ebfb55a68999f515461",
           "scope": "Own complete decoded-asset build, all source/symbol controls and eight asset edits."
         },
         {
           "path": "analysis/us-v1.4/review-evidence/inventory-development.json",
-          "sha256": "b38df2a011b31b97b8e87f74cb6fe45ea50f3f95056bf4bec94190c4cdb9c1bb",
+          "sha256": "0697ee2f3d914086e59ec31a53a6311e58253d87655421347a565d195d84cf12",
           "scope": "Own complete physical partition with source, local assets and competing script/record/audio uses."
         },
         {
@@ -238,12 +238,12 @@
       "evidence": [
         {
           "path": "analysis/us-v1.4/review-evidence/proof.json",
-          "sha256": "e7474b8a94eb8bb409e316bbe9e05a7d4fcf96e7933958937874a70479619328",
+          "sha256": "a7cf834c4d0e3f94b97da5a6ebc35cccd609325b85684ebfb55a68999f515461",
           "scope": "Own complete decoded-asset build, all source/symbol controls and eight asset edits."
         },
         {
           "path": "analysis/us-v1.4/review-evidence/inventory-development.json",
-          "sha256": "b38df2a011b31b97b8e87f74cb6fe45ea50f3f95056bf4bec94190c4cdb9c1bb",
+          "sha256": "0697ee2f3d914086e59ec31a53a6311e58253d87655421347a565d195d84cf12",
           "scope": "Own complete physical partition with source, local assets and competing script/record/audio uses."
         },
         {
@@ -260,6 +260,11 @@
           "path": "config/variants/us-v1.4.json",
           "sha256": "22dbccd325d3de74a0be088ce783317e6cda6ea96e07476d6a0c912ce02bf810",
           "scope": "Explicit physical geometry and menu extent differences; local inputs have their own target identity."
+        },
+        {
+          "path": "analysis/us-v1.4/review-evidence/unversioned-map-compatibility.json",
+          "sha256": "2f032f86486b9482ac47d895ecf522254fdd7c0246399dbe9fdd4e4b76765056",
+          "scope": "Actual map inventories, decoded chunk/grid inputs, encodings and changed assets agree with prior implementations. Build entry-point changes preserve compiler/verification core; retained source controls have identical compiler inputs."
         }
       ]
     },
@@ -275,12 +280,12 @@
       "evidence": [
         {
           "path": "analysis/us-v1.4/review-evidence/proof.json",
-          "sha256": "e7474b8a94eb8bb409e316bbe9e05a7d4fcf96e7933958937874a70479619328",
+          "sha256": "a7cf834c4d0e3f94b97da5a6ebc35cccd609325b85684ebfb55a68999f515461",
           "scope": "Own complete decoded-asset build, all source/symbol controls and eight asset edits."
         },
         {
           "path": "analysis/us-v1.4/review-evidence/inventory-development.json",
-          "sha256": "b38df2a011b31b97b8e87f74cb6fe45ea50f3f95056bf4bec94190c4cdb9c1bb",
+          "sha256": "0697ee2f3d914086e59ec31a53a6311e58253d87655421347a565d195d84cf12",
           "scope": "Own complete physical partition with source, local assets and competing script/record/audio uses."
         },
         {
@@ -315,12 +320,12 @@
       "evidence": [
         {
           "path": "analysis/us-v1.4/review-evidence/proof.json",
-          "sha256": "e7474b8a94eb8bb409e316bbe9e05a7d4fcf96e7933958937874a70479619328",
+          "sha256": "a7cf834c4d0e3f94b97da5a6ebc35cccd609325b85684ebfb55a68999f515461",
           "scope": "Own complete decoded-asset build, all source/symbol controls and eight asset edits."
         },
         {
           "path": "analysis/us-v1.4/review-evidence/inventory-development.json",
-          "sha256": "b38df2a011b31b97b8e87f74cb6fe45ea50f3f95056bf4bec94190c4cdb9c1bb",
+          "sha256": "0697ee2f3d914086e59ec31a53a6311e58253d87655421347a565d195d84cf12",
           "scope": "Own complete physical partition with source, local assets and competing script/record/audio uses."
         },
         {
@@ -355,12 +360,12 @@
       "evidence": [
         {
           "path": "analysis/us-v1.4/review-evidence/proof.json",
-          "sha256": "e7474b8a94eb8bb409e316bbe9e05a7d4fcf96e7933958937874a70479619328",
+          "sha256": "a7cf834c4d0e3f94b97da5a6ebc35cccd609325b85684ebfb55a68999f515461",
           "scope": "Own complete decoded-asset build, all source/symbol controls and eight asset edits."
         },
         {
           "path": "analysis/us-v1.4/review-evidence/inventory-development.json",
-          "sha256": "b38df2a011b31b97b8e87f74cb6fe45ea50f3f95056bf4bec94190c4cdb9c1bb",
+          "sha256": "0697ee2f3d914086e59ec31a53a6311e58253d87655421347a565d195d84cf12",
           "scope": "Own complete physical partition with source, local assets and competing script/record/audio uses."
         },
         {
@@ -395,12 +400,12 @@
       "evidence": [
         {
           "path": "analysis/us-v1.4/review-evidence/proof.json",
-          "sha256": "e7474b8a94eb8bb409e316bbe9e05a7d4fcf96e7933958937874a70479619328",
+          "sha256": "a7cf834c4d0e3f94b97da5a6ebc35cccd609325b85684ebfb55a68999f515461",
           "scope": "Own complete decoded-asset build, all source/symbol controls and eight asset edits."
         },
         {
           "path": "analysis/us-v1.4/review-evidence/inventory-development.json",
-          "sha256": "b38df2a011b31b97b8e87f74cb6fe45ea50f3f95056bf4bec94190c4cdb9c1bb",
+          "sha256": "0697ee2f3d914086e59ec31a53a6311e58253d87655421347a565d195d84cf12",
           "scope": "Own complete physical partition with source, local assets and competing script/record/audio uses."
         },
         {
@@ -435,12 +440,12 @@
       "evidence": [
         {
           "path": "analysis/us-v1.4/review-evidence/proof.json",
-          "sha256": "e7474b8a94eb8bb409e316bbe9e05a7d4fcf96e7933958937874a70479619328",
+          "sha256": "a7cf834c4d0e3f94b97da5a6ebc35cccd609325b85684ebfb55a68999f515461",
           "scope": "Own complete decoded-asset build, all source/symbol controls and eight asset edits."
         },
         {
           "path": "analysis/us-v1.4/review-evidence/inventory-development.json",
-          "sha256": "b38df2a011b31b97b8e87f74cb6fe45ea50f3f95056bf4bec94190c4cdb9c1bb",
+          "sha256": "0697ee2f3d914086e59ec31a53a6311e58253d87655421347a565d195d84cf12",
           "scope": "Own complete physical partition with source, local assets and competing script/record/audio uses."
         },
         {
@@ -464,6 +469,6 @@
       "size": 2
     }
   ],
-  "reuse_note": "Source, geometry, entry/transfer tables, script/record/audio candidates and decoded assets are checked against this target. Shared native consumer rules are reused only for the twenty exact unchanged instruction regions in acceptance-context.json; reset/NMI differences have own source and boundaries. No primary gameplay trace verifies v1.4. Unknown names, intent and arbitrary-state reachability are not reconstruction blockers. Shared tooling was refreshed for v1.1: own rebuilt counts, native inventory, decoded assets/eight edits and all reviewed mechanism summaries are unchanged. Identical compiler inputs reuse their retained control builds. The older packed-text receipt used canonical geometry defaults; the current receipt records those same checked defaults explicitly. Sprite tooling now also supports the unversioned separate-byte header. This target retains the same packed format: rebuilt counts, native inventory, decoded assets/eight edits and all reviewed mechanism summaries are unchanged. Identical compiler inputs reuse retained control builds.",
+  "reuse_note": "The unversioned opt-in map geometry preserves this target's actual formats and encodings versus the prior implementations. Current full build, eight fresh asset controls, every retained source/symbol control and all reviewed mechanism summaries agree. Prior source controls retain identical source/include/asset/tool inputs; producer/verification core ASTs are unchanged.",
   "compatibility_review": "The v1.2 integration adds target-specific native forms and explicit reset data regions. This target keeps the same generated source, source map, asset geometry and control catalogue. Its compiler inputs are unchanged and its source/decoded-build proof is refreshed. Scoped earlier evidence remains limited to its unchanged source/reference; no newer-version or other-version gameplay evidence is imported."
 }

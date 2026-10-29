@@ -12,6 +12,31 @@ from tools import map_layout_assets as layouts
 
 
 class MapLayoutAssetTests(unittest.TestCase):
+    def test_explicit_release_counts_and_layout_controls(self):
+        prg = bytearray(2 * layouts.BANK_SIZE)
+        for i in range(12):
+            offset = 0x1000 + i * 11
+            prg[offset:offset + 11] = bytes([3, 3] + [(i + j) % 144 for j in range(9)])
+        for state in range(21):
+            pointer = 0x9000 + (state % 12) * 11
+            prg[0x100 + state * 2:0x102 + state * 2] = pointer.to_bytes(2, 'little')
+        geometry = {'state_table_offset': 0x100, 'chunk_table_offset': 0x200,
+                    'state_count': 21, 'chunk_index_count': 144, 'layout_count': 12}
+        prg = bytes(prg)
+        asset = layouts.capture(prg, self.reference, geometry=geometry)
+        self.assertEqual(len(asset['layouts']), 12)
+        changed = layouts.changed_asset(asset)
+        reference = b'R' * 16 + prg
+        candidate = bytearray(reference)
+        for bank, offset, grid in layouts.encode(changed, prg, self.reference, geometry=geometry):
+            candidate[16 + bank * layouts.BANK_SIZE + offset:16 + bank * layouts.BANK_SIZE + offset + len(grid)] = grid
+        offsets = layouts.verify_control(reference, bytes(candidate), 16, asset, geometry=geometry)
+        self.assertEqual(len(offsets), 12)
+        with self.assertRaises(ValueError):
+            layouts.verify_control(reference, bytes(candidate), 16, asset)
+        with self.assertRaises(ValueError):
+            layouts.capture(prg, self.reference, geometry=dict(geometry, layout_count=14))
+
     def setUp(self):
         self.prg = synthetic_prg()
         self.reference = 'a' * 64

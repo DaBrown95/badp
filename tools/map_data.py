@@ -78,14 +78,17 @@ def encode_layout(layout: dict) -> bytes:
 
 
 def inventory(bank0: bytes, bank1: bytes, *, state_table_offset: int = STATE_TABLE_OFFSET,
-              chunk_table_offset: int = CHUNK_TABLE_OFFSET) -> dict:
+              chunk_table_offset: int = CHUNK_TABLE_OFFSET, state_count: int = STATE_COUNT,
+              chunk_index_count: int = CHUNK_INDEX_COUNT) -> dict:
     if len(bank0) != BANK_SIZE or len(bank1) != BANK_SIZE:
         raise ValueError('expected two full PRG banks')
+    if any(type(count) is not int or not 1 <= count <= 256 for count in (state_count, chunk_index_count)):
+        raise ValueError('invalid state or chunk-index table count')
     if any(type(offset) is not int or not 0 <= offset <= BANK_SIZE - 2 * count
-           for offset, count in ((state_table_offset, STATE_COUNT), (chunk_table_offset, CHUNK_INDEX_COUNT))):
+           for offset, count in ((state_table_offset, state_count), (chunk_table_offset, chunk_index_count))):
         raise ValueError('map pointer table leaves its physical bank')
     offsets = [int.from_bytes(bank0[chunk_table_offset + 2*i:chunk_table_offset + 2*i + 2], 'little')
-               for i in range(CHUNK_INDEX_COUNT)]
+               for i in range(chunk_index_count)]
     chunks = {}
     for index, offset in enumerate(offsets):
         if offset >= 0x8000 or offset + CHUNK_SIZE > BANK_SIZE:
@@ -114,14 +117,14 @@ def inventory(bank0: bytes, bank1: bytes, *, state_table_offset: int = STATE_TAB
                                            'size': CHUNK_SIZE})
     layouts = {}
     states = []
-    for index in range(STATE_COUNT):
+    for index in range(state_count):
         pos = state_table_offset + 2 * index
         pointer = int.from_bytes(bank0[pos:pos + 2], 'little')
         bank, offset = _locate(pointer)
         key = (bank, offset)
         if key not in layouts:
             data = (bank0, bank1)[bank]
-            decoded = decode_layout(data, offset, CHUNK_INDEX_COUNT)
+            decoded = decode_layout(data, offset, chunk_index_count)
             raw = data[offset:offset + decoded['size']]
             if encode_layout(decoded) != raw:
                 raise ValueError('layout did not round-trip')

@@ -2312,6 +2312,9 @@ def retire_control_intermediates(directory: Path) -> None:
 
 def build() -> dict:
     selected = os.environ.get("BADP_TARGET") or TARGET
+    if selected == 'us-unversioned':
+        from .build_unversioned import build as build_own
+        return build_own(ROOT)
     if selected != TARGET:
         from .build_variant_source import build as build_source
         from .build_variant import build as build_variant
@@ -2725,7 +2728,9 @@ def main() -> int:
                       "output": f"build/{selected}/bible-adventures.nes",
                       "proof": f"build/{selected}/proof.json",
                       "counts": proof["counts"],
-                      "controls_passed": len(proof['controls']) if selected == TARGET else proof['source_controls']}, indent=2))
+                      "controls_passed": (len(proof['controls']) if selected == TARGET else
+                                          len(proof['source_controls']) if selected == 'us-unversioned' else
+                                          proof['source_controls'])}, indent=2))
     return 0
 
 

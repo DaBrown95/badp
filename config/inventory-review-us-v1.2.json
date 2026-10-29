@@ -7,7 +7,7 @@
   "review_input_sha256": {
     "tools/variant_inventory.py": "e440d2fad54c37f6c0bb60837237babd1f20194e64b80ccf0708d1b549decf92",
     "tools/inventory_review.py": "a7a8329a8271f42e3adaf38dd96448b38198f9ca6d0cbaa880e341834270cb53",
-    "tools/source_audit.py": "c6e273f6dc095677c221879967104f212283f5db59b22b9da48ebf3bd04b9450",
+    "tools/source_audit.py": "01f118ef2ec9313fc8cd8f12272d86a53da9b10de925b82470671fa24079dff8",
     "tools/prg_inventory.py": "d40cc9dca05ea5a95806cbf03d8f7a09bac9812cf45f46f5b3d4a43340635546",
     "tools/direct_record_flow.py": "82d87c19801e45c45986a1da79ee12d35dbb6cac474a385af282bb6e5a7dcb32",
     "tools/native_script_calls.py": "28daa83579d7ba99e7baace71f1b2e0d3474b92605ecb79e669b17bd5e932db1",
@@ -33,12 +33,12 @@
       "evidence": [
         {
           "path": "analysis/us-v1.2/review-evidence/proof.json",
-          "sha256": "ac8688c63d90414c18dd2f399f36ec9652fa16ab727be0a5edad84dbf2dc4491",
+          "sha256": "3c3473d93979a38960c0ee6f24056ab029dbc10e7db0630512a3aa23bf79334d",
           "scope": "Own fresh full decoded-input build, complete applicable source/symbol controls and eight asset edits."
         },
         {
           "path": "analysis/us-v1.2/review-evidence/inventory-development.json",
-          "sha256": "f0e8341204002e09f73c2328c31174b9cc6f47ba4e720060d6e0519e273b1f46",
+          "sha256": "2644b506b97bfdbe20d30bb0f85d34f3176a7ef4702320033a9e5363129f1987",
           "scope": "Own physical partition, supported entry/transfer mechanisms and actual script/record/audio/resource relationships; overlapping interpretations retained."
         },
         {
@@ -80,12 +80,12 @@
       "evidence": [
         {
           "path": "analysis/us-v1.2/review-evidence/proof.json",
-          "sha256": "ac8688c63d90414c18dd2f399f36ec9652fa16ab727be0a5edad84dbf2dc4491",
+          "sha256": "3c3473d93979a38960c0ee6f24056ab029dbc10e7db0630512a3aa23bf79334d",
           "scope": "Own fresh full decoded-input build, complete applicable source/symbol controls and eight asset edits."
         },
         {
           "path": "analysis/us-v1.2/review-evidence/inventory-development.json",
-          "sha256": "f0e8341204002e09f73c2328c31174b9cc6f47ba4e720060d6e0519e273b1f46",
+          "sha256": "2644b506b97bfdbe20d30bb0f85d34f3176a7ef4702320033a9e5363129f1987",
           "scope": "Own physical partition, supported entry/transfer mechanisms and actual script/record/audio/resource relationships; overlapping interpretations retained."
         },
         {
@@ -137,12 +137,12 @@
       "evidence": [
         {
           "path": "analysis/us-v1.2/review-evidence/proof.json",
-          "sha256": "ac8688c63d90414c18dd2f399f36ec9652fa16ab727be0a5edad84dbf2dc4491",
+          "sha256": "3c3473d93979a38960c0ee6f24056ab029dbc10e7db0630512a3aa23bf79334d",
           "scope": "Own fresh full decoded-input build, complete applicable source/symbol controls and eight asset edits."
         },
         {
           "path": "analysis/us-v1.2/review-evidence/inventory-development.json",
-          "sha256": "f0e8341204002e09f73c2328c31174b9cc6f47ba4e720060d6e0519e273b1f46",
+          "sha256": "2644b506b97bfdbe20d30bb0f85d34f3176a7ef4702320033a9e5363129f1987",
           "scope": "Own physical partition, supported entry/transfer mechanisms and actual script/record/audio/resource relationships; overlapping interpretations retained."
         },
         {
@@ -184,12 +184,12 @@
       "evidence": [
         {
           "path": "analysis/us-v1.2/review-evidence/proof.json",
-          "sha256": "ac8688c63d90414c18dd2f399f36ec9652fa16ab727be0a5edad84dbf2dc4491",
+          "sha256": "3c3473d93979a38960c0ee6f24056ab029dbc10e7db0630512a3aa23bf79334d",
           "scope": "Own fresh full decoded-input build, complete applicable source/symbol controls and eight asset edits."
         },
         {
           "path": "analysis/us-v1.2/review-evidence/inventory-development.json",
-          "sha256": "f0e8341204002e09f73c2328c31174b9cc6f47ba4e720060d6e0519e273b1f46",
+          "sha256": "2644b506b97bfdbe20d30bb0f85d34f3176a7ef4702320033a9e5363129f1987",
           "scope": "Own physical partition, supported entry/transfer mechanisms and actual script/record/audio/resource relationships; overlapping interpretations retained."
         },
         {
@@ -231,12 +231,12 @@
       "evidence": [
         {
           "path": "analysis/us-v1.2/review-evidence/proof.json",
-          "sha256": "ac8688c63d90414c18dd2f399f36ec9652fa16ab727be0a5edad84dbf2dc4491",
+          "sha256": "3c3473d93979a38960c0ee6f24056ab029dbc10e7db0630512a3aa23bf79334d",
           "scope": "Own fresh full decoded-input build, complete applicable source/symbol controls and eight asset edits."
         },
         {
           "path": "analysis/us-v1.2/review-evidence/inventory-development.json",
-          "sha256": "f0e8341204002e09f73c2328c31174b9cc6f47ba4e720060d6e0519e273b1f46",
+          "sha256": "2644b506b97bfdbe20d30bb0f85d34f3176a7ef4702320033a9e5363129f1987",
           "scope": "Own physical partition, supported entry/transfer mechanisms and actual script/record/audio/resource relationships; overlapping interpretations retained."
         },
         {
@@ -273,12 +273,12 @@
       "evidence": [
         {
           "path": "analysis/us-v1.2/review-evidence/proof.json",
-          "sha256": "ac8688c63d90414c18dd2f399f36ec9652fa16ab727be0a5edad84dbf2dc4491",
+          "sha256": "3c3473d93979a38960c0ee6f24056ab029dbc10e7db0630512a3aa23bf79334d",
           "scope": "Own fresh full decoded-input build, complete applicable source/symbol controls and eight asset edits."
         },
         {
           "path": "analysis/us-v1.2/review-evidence/inventory-development.json",
-          "sha256": "f0e8341204002e09f73c2328c31174b9cc6f47ba4e720060d6e0519e273b1f46",
+          "sha256": "2644b506b97bfdbe20d30bb0f85d34f3176a7ef4702320033a9e5363129f1987",
           "scope": "Own physical partition, supported entry/transfer mechanisms and actual script/record/audio/resource relationships; overlapping interpretations retained."
         },
         {
@@ -295,6 +295,11 @@
           "path": "tools/verify_variant.py",
           "sha256": "904e3e77f0a6705491d42e03ff15ae496394a6d8d678a8df6727cb3e83e2f421",
           "scope": "Current positive build and complete source/symbol/asset controls required for this target."
+        },
+        {
+          "path": "analysis/us-v1.2/review-evidence/unversioned-map-compatibility.json",
+          "sha256": "ff1e670d06c3d4dfb3e00a9ef3ee4437f8b9bb812884b65bb8db46fb40fc5bdf",
+          "scope": "Actual map inventories, decoded chunk/grid inputs, encodings and changed assets agree with prior implementations. Build entry-point changes preserve compiler/verification core; retained source controls have identical compiler inputs."
         }
       ]
     },
@@ -310,12 +315,12 @@
       "evidence": [
         {
           "path": "analysis/us-v1.2/review-evidence/proof.json",
-          "sha256": "ac8688c63d90414c18dd2f399f36ec9652fa16ab727be0a5edad84dbf2dc4491",
+          "sha256": "3c3473d93979a38960c0ee6f24056ab029dbc10e7db0630512a3aa23bf79334d",
           "scope": "Own fresh full decoded-input build, complete applicable source/symbol controls and eight asset edits."
         },
         {
           "path": "analysis/us-v1.2/review-evidence/inventory-development.json",
-          "sha256": "f0e8341204002e09f73c2328c31174b9cc6f47ba4e720060d6e0519e273b1f46",
+          "sha256": "2644b506b97bfdbe20d30bb0f85d34f3176a7ef4702320033a9e5363129f1987",
           "scope": "Own physical partition, supported entry/transfer mechanisms and actual script/record/audio/resource relationships; overlapping interpretations retained."
         },
         {
@@ -350,12 +355,12 @@
       "evidence": [
         {
           "path": "analysis/us-v1.2/review-evidence/proof.json",
-          "sha256": "ac8688c63d90414c18dd2f399f36ec9652fa16ab727be0a5edad84dbf2dc4491",
+          "sha256": "3c3473d93979a38960c0ee6f24056ab029dbc10e7db0630512a3aa23bf79334d",
           "scope": "Own fresh full decoded-input build, complete applicable source/symbol controls and eight asset edits."
         },
         {
           "path": "analysis/us-v1.2/review-evidence/inventory-development.json",
-          "sha256": "f0e8341204002e09f73c2328c31174b9cc6f47ba4e720060d6e0519e273b1f46",
+          "sha256": "2644b506b97bfdbe20d30bb0f85d34f3176a7ef4702320033a9e5363129f1987",
           "scope": "Own physical partition, supported entry/transfer mechanisms and actual script/record/audio/resource relationships; overlapping interpretations retained."
         },
         {
@@ -390,12 +395,12 @@
       "evidence": [
         {
           "path": "analysis/us-v1.2/review-evidence/proof.json",
-          "sha256": "ac8688c63d90414c18dd2f399f36ec9652fa16ab727be0a5edad84dbf2dc4491",
+          "sha256": "3c3473d93979a38960c0ee6f24056ab029dbc10e7db0630512a3aa23bf79334d",
           "scope": "Own fresh full decoded-input build, complete applicable source/symbol controls and eight asset edits."
         },
         {
           "path": "analysis/us-v1.2/review-evidence/inventory-development.json",
-          "sha256": "f0e8341204002e09f73c2328c31174b9cc6f47ba4e720060d6e0519e273b1f46",
+          "sha256": "2644b506b97bfdbe20d30bb0f85d34f3176a7ef4702320033a9e5363129f1987",
           "scope": "Own physical partition, supported entry/transfer mechanisms and actual script/record/audio/resource relationships; overlapping interpretations retained."
         },
         {
@@ -430,12 +435,12 @@
       "evidence": [
         {
           "path": "analysis/us-v1.2/review-evidence/proof.json",
-          "sha256": "ac8688c63d90414c18dd2f399f36ec9652fa16ab727be0a5edad84dbf2dc4491",
+          "sha256": "3c3473d93979a38960c0ee6f24056ab029dbc10e7db0630512a3aa23bf79334d",
           "scope": "Own fresh full decoded-input build, complete applicable source/symbol controls and eight asset edits."
         },
         {
           "path": "analysis/us-v1.2/review-evidence/inventory-development.json",
-          "sha256": "f0e8341204002e09f73c2328c31174b9cc6f47ba4e720060d6e0519e273b1f46",
+          "sha256": "2644b506b97bfdbe20d30bb0f85d34f3176a7ef4702320033a9e5363129f1987",
           "scope": "Own physical partition, supported entry/transfer mechanisms and actual script/record/audio/resource relationships; overlapping interpretations retained."
         },
         {
@@ -470,12 +475,12 @@
       "evidence": [
         {
           "path": "analysis/us-v1.2/review-evidence/proof.json",
-          "sha256": "ac8688c63d90414c18dd2f399f36ec9652fa16ab727be0a5edad84dbf2dc4491",
+          "sha256": "3c3473d93979a38960c0ee6f24056ab029dbc10e7db0630512a3aa23bf79334d",
           "scope": "Own fresh full decoded-input build, complete applicable source/symbol controls and eight asset edits."
         },
         {
           "path": "analysis/us-v1.2/review-evidence/inventory-development.json",
-          "sha256": "f0e8341204002e09f73c2328c31174b9cc6f47ba4e720060d6e0519e273b1f46",
+          "sha256": "2644b506b97bfdbe20d30bb0f85d34f3176a7ef4702320033a9e5363129f1987",
           "scope": "Own physical partition, supported entry/transfer mechanisms and actual script/record/audio/resource relationships; overlapping interpretations retained."
         },
         {
@@ -499,5 +504,5 @@
       "size": 2
     }
   ],
-  "reuse_note": "Own reference, maintained source, physical map, decoded inputs and finite supported inventories. Native differences and justified constants have own source/control evidence. Prior record-format rules are reused only for explicitly compared instruction regions. Original names, dead/conditional entry and arbitrary-state reachability remain uncertain without creating invented reconstruction gates. No other-version runtime trace verifies v1.2. Shared tooling was refreshed for v1.1: own rebuilt counts, native inventory, decoded assets/eight edits and all reviewed mechanism summaries are unchanged. Identical compiler inputs reuse their retained control builds. Sprite tooling now also supports the unversioned separate-byte header. This target retains the same packed format: rebuilt counts, native inventory, decoded assets/eight edits and all reviewed mechanism summaries are unchanged. Identical compiler inputs reuse retained control builds."
+  "reuse_note": "The unversioned opt-in map geometry preserves this target's actual formats and encodings versus the prior implementations. Current full build, eight fresh asset controls, every retained source/symbol control and all reviewed mechanism summaries agree. Prior source controls retain identical source/include/asset/tool inputs; producer/verification core ASTs are unchanged."
 }

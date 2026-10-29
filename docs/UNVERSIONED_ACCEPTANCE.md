@@ -1,54 +1,52 @@
-# Unversioned acceptance work
+# Unversioned acceptance review
 
-v1.5 through v1.1 have separate accepted matching builds and reviewed
-inventories. This release remains unaccepted. No isolated component contributes
-to the full-build progress table. Original names, intended uses, unused entries
-and arbitrary injected RAM states are not separate completion requirements.
+This release now has a complete maintained source composition, its own exact
+whole-ROM build and an evidence-bound inventory ledger. `make build
+TARGET=us-unversioned` and `make source-audit TARGET=us-unversioned` reproduce
+its checks. The ledger derives acceptance from the remaining concrete work;
+matching bytes alone do not close a review decision.
 
-## Decisions supported by recovered source
+| Completion item | Reviewed evidence and decision |
+| --- | --- |
+| Native banks and entries | All 21,381 native bytes have source-associated official instruction boundaries. All six vectors and all 191 nominal dispatch entries identify those boundaries. The two bank-1 transfers into bank 0 follow the common reset/NMI mapper writes. No missing native body remains. |
+| Script successors | Own typed command declarations, literal branches, terminated lookup/remap tables, and indexed cases are integrated. The two indexed paths have six cases after clamp/divide and eight after the 0007 mask. A20A overlaps a record-load operand; the F209 alternative overlaps F20A/F20C before rejoining F20F. These views are preserved without counting their physical bytes twice. Saved pointers, retry paths and dynamic record inputs retain their native mechanisms. |
+| Records and resources | The 123 descriptors, normal/compact/contact views and script words are reviewed against the own build. Nine descriptor indices retain FFFF: selection conditionally fetches one vector byte and nine RAM bytes. This is preserved behavior, not an invented ROM record or a requirement to enumerate RAM. Literal resource7C37 remains a CPU address below ROM; no FC37 conversion is inferred. |
+| Data formats | Own 21-state tables, 12 map grids, 144 chunk slots, 30 position streams/420 records, 119 animations, 24 palettes and 298 bank-0 frames rebuild exactly. One position stream decreases at a stored key; its order is preserved. The 51 messages use ordinary PPU streams rather than the later packed decoder. |
+| Audio | Own indexed voice tables, effects and music use the shared reviewed protocol. Literal starts, loop words and restoration contexts are accounted for. The F9 command retains its four source values and stale fifth register value. Later-revision runtime observations are not assigned to this release. |
+| Editable inputs and complete build | Nine input groups decode and encode deterministically. A fresh decode reproduces every input payload, including all CHR tiles. The full ROM and components match; 26 isolated changed-source builds and all nine asset-group controls fail comparison as required. Inputs, binaries and local evidence remain ignored. |
 
-- The actual dispatch loads establish 191 nominal entries: low table `$D0B1`,
-  high table `$D170`, and length table `$FDA0`, followed by native code at
-  `$FE5F`. BF–C3 are absent nominal entries; conditional byte indices remain
-  separate views.
-- `$9B` at `$E3E4` pushes the complete supplied RTS word directly. The later
-  banked wrapper and high-bit OR are absent. Supported callers and physical
-  mappings belong to the target's eventual script inventory.
-- Separate word operations at 37/38/39, 57 and 8D/8E, the 5C mask operation,
-  and separate PPU operations at 6D/70/74/75/7C have matching native source.
-  Shared flag, initialization, controller and queue differences are explicit.
-- Sprite consumers read flags/width/height in three separate bytes. The region
-  `$B2F1–$C581` contains 119 animation records, 24 palette streams and 298
-  frames. Animation pointers close on frame starts; the frames end at the
-  native `InitializeMainState` entry. This does not establish exclusive uses.
-- The own 21-entry vertical-seed, bank-selector and palette-pointer tables
-  match their consumers at `$A487–$A504`. The bank-selector table is also the
-  negative-fourth-operand fallback of 6D; all 42 palette pointers identify the
-  recovered palette boundaries.
-- The message caller, 51 encoded pointers and ordinary AB PPU streams occupy
-  bank 1 `$B77B–$CF06`. The later packed decoder and 52-message format do not
-  apply. Source retains destinations, pointer relationships and terminators;
-  editable tile payloads remain local.
+The final native integration also recovered the split NMI sequence at
+835F–83CF, the distinct 9D and B4 bodies, the absent later opcode35 rescan tail,
+and the own 03 selected-field mask. These are readable native operations;
+there are no output patches or raw instruction-byte replacements.
 
-[The component verifier](../tools/verify_unversioned_components.py) checks these
-whole components and meaningful changed-source/asset controls against this
-release's pinned reference. Run `python3 -m tools.verify_unversioned_components`.
-Its receipt is local at `analysis/us-unversioned/components/proof.json`; it
-explicitly grants no full-ROM match or acceptance. The manifests and source are
-maintained, while local asset inputs remain under ignored `extracted/`.
+Retained storage decisions remain bounded:
 
-## Remaining acceptance blockers
+- D640 is the single byte between the pointer-replacing 00/1E command and the
+  independently targeted D641 entry, corresponding to the later D75D group.
+- D5AB and EEF1 are fetched lookahead after nine selected record fields. EAA9–EAAA
+  and EB29–EB2A are separate two-byte record tails; only their first byte is
+  lookahead. Their neighboring normal/compact boundaries support the same
+  retained-tail classification as the later EB08/EB8F groups.
+- F209 preserves the conditional overlapping script view described above.
+- F37E–F380 lie outside all fourteen menu payloads, matching the later F354
+  boundary relationship. F602–F603 are separate from the nominal map grid;
+  its first byte is discarded lookup lookahead, as in the later F623 group.
+- FC37 stores the bank-relative word7C39. The five-byte frame-shaped view at
+  FC39 is identical to the known bank-0 frame at BA8D. Its zero attribute at
+  FC3D also begins the following zero-storage run. Source preserves that
+  overlap and the complete editable tile/attribute pair. This supports a
+  retained resource-data format; ordinary rendering and the intended meaning
+  of literal CPU7C37 remain unproved.
 
-| Blocker | Location or mechanism and actual unknown | Why it prevents completion | Evidence that closes it |
-| --- | --- | --- | --- |
-| Shared source layout | Bank 0 native windows before `$9EFB`, `$C582–$F9C5`, and both fixed tails from `$FE5F`; source correspondence is not a linked target build. | Own addresses, all references and complete emitted extents are not yet integrated. | Maintained target profile assembling all native source, own dispatch/vector entries and actual bank transitions exactly; meaningful source controls cover the resulting regions. |
-| Common data and incoming relationships | Bank 0 `$9EFB–$B2F0`: audio prefix, descriptors, map/state tables and resource pointers. | The 21-state palette/seed relationships are recovered; descriptor, map, audio and other field relationships still need source integration. | Readable target differences sharing the existing formats where supported; exact full extents and actual descriptor/map/palette/sprite relationships. |
-| Remaining bank-1 source | `$8000–$B77A` and `$CF07–$FC3C`: scripts, records, audio and other structured data. | Own command lengths, word operations and successors must replace later assumptions; retained storage must be classified from its own context. | Connected shared-source adaptation and reviewed script/record/audio relationships. Account for the storage groups through consumers and revision evidence, including absence or changed extents. Preserve justified uncertainty and overlapping uses. |
-| Remaining local asset formats | Map chunks/layouts, menu and other PPU payloads, CHR, and the connection of the recovered message/sprite assets to the full source. | No complete editable-input build exists for this target yet. | Decode and re-encode its own inventoried assets with exact gap coverage and meaningful edits; no reference-byte fallback for a missing extent. Reuse existing codecs within their demonstrated format. |
-| Full acceptance and publication | Whole container, physical PRG inventory, mechanism review and own build receipts. | Components do not establish complete ownership, whole-ROM equality or current controls. | Current exact complete build, source/symbol/asset controls, finite evidence-backed inventory decisions with zero concrete blockers, all six input audits, tooling checks, refreshed progress, privacy/outgoing review, commit and verified private push. |
+Original names, historical toolchain, intended uses, dead-code reachability and
+hypothetical execution from arbitrary injected state remain uncertain. None
+exposes an unrepresented byte range, missing native implementation or unresolved
+supported literal successor in this reviewed inventory. A future reinterpretation
+can coexist with the current representation. It must not change the reference,
+repair the literal addresses, or erase an existing supported view.
 
-Use focused component checks while integrating. Re-run complete gates at the
-next substantial integration checkpoint. Preserve valid earlier evidence within
-its own scope. Add runtime investigation only when a concrete source, format or
-mapping decision remains unresolved after static evidence; do not search every
-possible state or require level completion.
+The final integration checkpoint runs all six identity audits, tooling tests,
+current exact builds and reviewed inventories, then refreshes progress and checks
+staged content/outgoing history before the authorised private push. The earlier
+native-call batch remains bounded to its established verification scope.

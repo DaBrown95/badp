@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "metric": "verified reconstructed PRG bytes / total physical PRG bytes",
-  "complete_code_inventory": false,
+  "complete_code_inventory": true,
   "chr_included": false,
   "targets": [
     {
@@ -107,15 +107,22 @@
     {
       "target": "us-unversioned",
       "version": "USA, unversioned",
-      "status": "Not started",
+      "status": "Accepted",
       "prg_bytes": 65536,
-      "reconstructed_bytes": 0,
-      "percentage": "0.00%",
-      "code_bytes": 0,
-      "structured_data_bytes": 0,
-      "fill_bytes": 0,
+      "reconstructed_bytes": 44033,
+      "percentage": "67.19%",
+      "code_bytes": 21381,
+      "structured_data_bytes": 22652,
+      "fill_bytes": 1342,
       "reference_sha256": "4864e086786bd617d4f587d9e979b6df0574b140067f20b910ca3aa69ffab857",
-      "evidence": null
+      "evidence": {
+        "code_bytes": 21381,
+        "data_bytes": 22652,
+        "fill_bytes": 1342,
+        "source_sha256": "ac93430f769ece69bab4665ffee98bafec90441ae55cda6a2e9935ae4946e905",
+        "source_map_sha256": "96535c9eb3130a5266aed8708110350fb5b362ac671ee39377ed62c1f1aa52df",
+        "toolchain_revision": "555282497c3ecf8b313d87d5973093af19c35bd5"
+      }
     }
   ]
 }

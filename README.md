@@ -24,8 +24,8 @@ palette streams, split-screen setup, scroll updates, bank switching, sprite
 setup and animation, audio voice and command handling, map initialization and
 redraw, frame motion and slot updates, arithmetic, packed-text decoding, and
 shared banked record and data-copy routines. The script command dispatcher, its record-length and
-handler tables are also reconstructed, with 197 entries in v1.2 through v1.5
-and 196 entries in v1.1.
+handler tables are also reconstructed, with 197 entries in v1.2 through v1.5,
+196 entries in v1.1 and 191 entries in the unversioned release.
 Slot descriptors, position-record streams, audio lookup tables and several
 script regions are represented as structured data. Some audio command paths
 are static candidates under bank-1 selection; their reachability is unverified.
@@ -41,13 +41,12 @@ work from the [evidence-backed decisions](config/inventory-review-us-v1.5.json),
 preserving overlapping uses. Acceptance requires that review and a current
 matching full build; the table below reports the verified decision.
 
-v1.5 through v1.1 are accepted by separate matching builds and reviewed
+All six versions are accepted by separate matching builds and reviewed
 inventories. Shared source expresses their differing native forms, scripts and
 data layouts; changed incidental interpretations remain explicit. The
-unversioned release is being adapted through its distinct native handlers,
-separate-dimension sprite format and ordinary PPU message streams. Its isolated
-components have exact comparisons and changed-source controls; the table gives
-it no full-build credit until its own complete source and inventory are integrated.
+unversioned release retains its distinct native handlers, separate-dimension
+sprite format and ordinary PPU message streams. Its source, editable inputs,
+complete build and review decisions are maintained separately.
 Byte equality
 establishes identical executable behaviour under the same conditions; it does
 not establish the correctness of inferred source names or data formats.
@@ -70,7 +69,7 @@ are not measures of gameplay completion.
 | USA v1.3 | **69.04%** (45,248 / 65,536 bytes) | Accepted |
 | USA v1.2 | **69.08%** (45,270 / 65,536 bytes) | Accepted |
 | USA v1.1 | **68.76%** (45,060 / 65,536 bytes) | Accepted |
-| USA, unversioned | **0.00%** (0 / 65,536 bytes) | Not started |
+| USA, unversioned | **67.19%** (44,033 / 65,536 bytes) | Accepted |
 <!-- END GENERATED PROGRESS -->
 
 Run `make progress` to rebuild the selected target and refresh this table and the
@@ -169,6 +168,14 @@ logical inventory PPU streams. Address commands, terminators and payload lengths
 stay fixed; tile edits cannot introduce command bytes. Both local formats retain
 their possible overlapping uses and do not establish that every stream executes.
 
+`make build TARGET=us-unversioned` uses the shared engine with its own source
+composition and format manifests. It creates missing editable inputs locally
+from the audited ROM and preserves existing edits. Its nine input groups cover
+maps, sprites, palettes, ordinary PPU messages and inventory streams, menu tiles,
+CHR and retained resource data. `make source-audit TARGET=us-unversioned` checks
+its separate evidence-backed acceptance decisions. Conditional RAM-record and
+non-ROM resource addresses remain explicit rather than being repaired.
+
 On macOS with Apple silicon and Homebrew's SDL2 installed, an optional emulator
 check exercises the opening of each adventure:
 
@@ -209,7 +216,7 @@ or establish that those inputs occur during gameplay.
 | `make identify` | Inspect the primary ROM, or a selected target/file. |
 | `make audit` | Verify the primary input; `TARGET=<id>` selects another. |
 | `make audit-all` | Verify all six input identities. |
-| `make build` | Build and compare supported versions v1.5 through v1.1 selected by `TARGET`; retain controls. |
+| `make build` | Build and compare any of the six versions selected by `TARGET`; retain controls. |
 | `make verify-gameplay` | Compare v1.5 opening scenarios and inventory in MesenCE. |
 | `make verify-controller` | Compare controller bit order and simultaneous transitions. |
 | `make verify-audio-bank` | Check audio selector and mapper behavior with controlled inputs. |

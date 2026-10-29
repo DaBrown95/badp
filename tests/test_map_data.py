@@ -64,6 +64,20 @@ class LayoutTests(unittest.TestCase):
 
 
 class MapInventoryTests(unittest.TestCase):
+    def test_explicit_table_counts_bound_reads_without_repairing_grid_indices(self):
+        bank0, bank1 = bytearray(BANK_SIZE), bytearray(BANK_SIZE)
+        bank0[0x100:0x104] = bytes([0, 0xA5, 0, 0xA5])
+        bank0[0x200:0x206] = bytes([0, 0, 68, 0, 0, 0])
+        bank0[0x2500:0x2504] = bytes([2, 1, 0, 3])
+        result = inventory(bytes(bank0), bytes(bank1), state_table_offset=0x100,
+                           chunk_table_offset=0x200, state_count=2, chunk_index_count=3)
+        self.assertEqual(len(result['states']), 2)
+        self.assertEqual(result['chunk_table_offsets'], [0, 68, 0])
+        self.assertEqual(result['layouts'][0]['decoded']['out_of_table_indices'], [3])
+        for count in (0, True, 257):
+            with self.subTest(count=count), self.assertRaises(ValueError):
+                inventory(bytes(bank0), bytes(bank1), state_count=count)
+
     def test_aliases_and_component_round_trips(self):
         bank0, bank1 = bytearray(BANK_SIZE), bytearray(BANK_SIZE)
         for i in range(22):
