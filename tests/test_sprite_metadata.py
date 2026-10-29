@@ -4,6 +4,28 @@ from tools.sprite_metadata import (decode_frame_header, decode_resource_header, 
 
 
 class SpriteMetadataTests(unittest.TestCase):
+    def test_separate_dimensions_keep_full_bytes_and_payload_offset(self):
+        frame = decode_frame_header(bytes([0x82, 17, 3]), header_format='separate-bytes')
+        self.assertEqual((frame['oam_base_index'], frame['large_sprites']), (2, True))
+        self.assertEqual((frame['columns'], frame['rows'], frame['tile_pairs']), (17, 3, 51))
+        self.assertEqual(frame['tile_read_offsets'], list(range(3, 105)))
+        self.assertFalse(frame['index_wraps'])
+        with self.assertRaises(ValueError):
+            decode_frame_header(bytes([0, 1]), header_format='separate-bytes')
+        with self.assertRaises(ValueError):
+            decode_frame_header(bytes([0, 1, 1]), header_format='guessed')
+
+    def test_separate_header_changes_the_last_nonwrapping_payload(self):
+        last = decode_frame_header(bytes([0, 126, 1]), header_format='separate-bytes')
+        wrapped = decode_frame_header(bytes([0, 127, 1]), header_format='separate-bytes')
+        self.assertFalse(last['index_wraps'])
+        self.assertTrue(wrapped['index_wraps'])
+        self.assertEqual(last['tile_read_offsets'], list(range(3, 255)))
+        self.assertIn(0, wrapped['tile_read_offsets'])
+        zero = decode_frame_header(bytes([0, 1, 0]), header_format='separate-bytes')
+        self.assertEqual(zero['effective_rows'], 256)
+        self.assertTrue(zero['index_wraps'])
+
     def test_direct_frame_and_offset_order(self):
         result = decode_resource_header(bytes([0x82, 0x23]))
         self.assertEqual(result['kind'], 'direct')

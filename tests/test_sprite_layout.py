@@ -4,6 +4,30 @@ from tools.sprite_layout import compare_layout, decode_layout
 
 
 class SpriteLayoutTests(unittest.TestCase):
+    def test_separate_dimension_layout_and_pointer_closure(self):
+        bank = bytearray(0x8000)
+        bank[:5] = bytes([0x53, 1, 4, 5, 0x80])
+        bank[5:8] = bytes([0x80, 2, 3])
+        bank[8:20] = bytes(range(12))
+        result = decode_layout(bytes(bank), 0, 5, 20, header_format='separate-bytes')
+        self.assertEqual(result['frame_bytes'], 15)
+        self.assertEqual(result['frames_without_animation_pointer'], [])
+        self.assertEqual(result['frames'][0]['header']['tile_read_offsets'], list(range(3, 15)))
+        bank[3] += 1
+        with self.assertRaises(ValueError):
+            decode_layout(bytes(bank), 0, 5, 20, header_format='separate-bytes')
+
+    def test_palette_region_between_directory_and_frames_is_not_an_animation(self):
+        bank = bytearray(0x8000)
+        bank[:5] = bytes([0x53, 1, 4, 24, 0x80])
+        bank[5:24] = bytes([0, 0, 0] + [15] * 16)
+        bank[24:29] = bytes([0x80, 1, 1, 3, 4])
+        result = decode_layout(bytes(bank), 0, 24, 29, header_format='separate-bytes', animation_end=5)
+        self.assertEqual((result['animation_bytes'], result['intervening_bytes'], result['frame_bytes']),
+                         (5, 19, 5))
+        with self.assertRaises(ValueError):
+            decode_layout(bytes(bank), 0, 24, 29, header_format='separate-bytes')
+
     def bank(self):
         bank = bytearray(0x8000)
         # Two frames, with the first repeated in the animation table.

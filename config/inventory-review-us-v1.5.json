@@ -153,8 +153,13 @@
         },
         {
           "path": "tools/sprite_layout.py",
-          "sha256": "6bb3c01958e95512cfb0e5192427dfdd6892f3f28bbc65198a6e6767a0192c8a",
+          "sha256": "72137c7c1513c98b008b932cdc8df7cf56631eb17aaf5df508773bf65fcea91a",
           "scope": "Animation and frame relationship inventory."
+        },
+        {
+          "path": "analysis/us-v1.5/review-evidence/unversioned-format-compatibility.json",
+          "sha256": "16f4b73e45f72976c17386c2e8b7f40a51c72806219daec363e090fb20d693de",
+          "scope": "The accepted124-animation/326-frame directory partition and all actual headers agree with the prior decoder under the default packed format."
         }
       ]
     },
@@ -207,7 +212,7 @@
         },
         {
           "path": "tools/sprite_assets.py",
-          "sha256": "8baa246fd55ba64e8233999d068896331b2af6bfbcbe316779fdeeb945703987",
+          "sha256": "98fd56fb4abdf9c1a9d3fb2db0da08413e156e7322a9db6e40ed7b4b2f063a32",
           "scope": "Local frame encoding."
         },
         {
@@ -224,6 +229,11 @@
           "path": "tools/build_rom.py",
           "sha256": "102fe521dff08ae913ff4797e7a8c486385159b2ee33bfe18ef0951d2b1ba580",
           "scope": "Whole-ROM equality and source/asset edit controls."
+        },
+        {
+          "path": "analysis/us-v1.5/review-evidence/unversioned-format-compatibility.json",
+          "sha256": "16f4b73e45f72976c17386c2e8b7f40a51c72806219daec363e090fb20d693de",
+          "scope": "Accepted primary frame headers/assets, complete physical evidence partition and existing conditional contexts agree under the new opt-in separate-byte format."
         }
       ]
     },
@@ -388,38 +398,38 @@
       "size": 2
     }
   ],
-  "reuse_note": "Existing native, loader and runtime evidence is reused only for unchanged instruction bytes, tables, field-selection rules and record views. The source diff adds explicit retained-data declarations and matching controls; final whole-ROM verification must establish their exact placement. Generated evidence snapshots are retained separately from command outputs so regenerating an equivalent inventory does not erase the reviewed scope or require another runtime matrix. The shared asset codecs now accept explicit target identities and relocated table geometry. The primary defaults, field formats and source remain unchanged; target-isolation tests and the fresh primary full build check this scope. No old runtime observation is promoted to another revision.",
+  "reuse_note": "Adding the opt-in unversioned sprite format leaves this target's actual packed headers, editable assets/encodings and all physical evidence uses unchanged, compared against the previous implementations on current inputs. The own full build and existing controls were refreshed.",
   "review_input_sha256": {
-    "config/mesence-toolchain.json": "b43cd410e541aa687939ba057b0584ed38e3fca1acae8d0d7a8151e4f4eb44a8",
-    "config/palettes-us-v1.5.json": "faad8efbd6ae06caf3700a0de193ca73e7f6e15739be8f7c3cda2bb34b3e929c",
-    "config/ppu-streams-us-v1.5.json": "0a79b6535bb784882e6268f8ee93e8574dd67c6ab2326ad8958f04802f981a28",
-    "config/sprite-frames-us-v1.5.json": "d6e65fd011bd8693eb15a8eff4d7abaa3f0afea206f1fee667aeda4a8a74ec8f",
-    "tools/asset_paths.py": "a54397bdce0db94dbf5b5407252ec54f4a1b6b2688f403b08f2f30b151e3dbed",
-    "tools/audio_commands.py": "c3f348c5d70e9575a66a6be30e1e8f37dd3299df1120628fa5289e8ea3fa7d88",
-    "tools/audio_flow.py": "a50201f6c9c74f6625cd99b18284478b9107e4cc810c3a69cc74f220116d6e50",
-    "tools/direct_record_flow.py": "82d87c19801e45c45986a1da79ee12d35dbb6cac474a385af282bb6e5a7dcb32",
-    "tools/inventory_review.py": "a7a8329a8271f42e3adaf38dd96448b38198f9ca6d0cbaa880e341834270cb53",
-    "tools/map_assets.py": "ca23cdeeeae29bb4b4ee4ad1f0a008f70bac9fb07d0d91f4790e9aa1702c0068",
-    "tools/map_data.py": "0eb2d3e3fc46751f46234d11c5271c5672fa1929fea53f99d31858addca6efd2",
-    "tools/map_layout_assets.py": "c1cd68c0c60df20e09dd52a4644668f7220062788f9ef8a91ff53df7a4fe0eb9",
-    "tools/menu_assets.py": "eaf6eafe70ff69a9e20c5c7718e0e4726e00b9c3c2128b3b55469abbd75d504e",
-    "tools/native_control_flow.py": "e7656e17a3f91182b6a7ee5b748beddbdd1cc00b3886f0aa962c6b4f3fb26b5c",
-    "tools/native_event_flow.py": "62c3877dc5f4b4d72069f136b90752a51a75ec7e61d096c486d07706c34d2254",
-    "tools/nes6502.py": "13cf9f639b839e06175dc3070cbd9c665baa443e6ee63d725a58b5af51441d8a",
-    "tools/packed_text.py": "f563711b9057685d81b62546068c27a35dfcb40b280c1938e43ab85b88c1667b",
-    "tools/palette_assets.py": "b121cabea4c9efe4fc6ecdc2fdfd257bdbd57107f79bbf5eb54f130b7190a170",
-    "tools/ppu_assets.py": "d569c84056463849ee6bb601ac872bda068b88e44c170a1a9c1ad1a2594c7fad",
-    "tools/ppu_streams.py": "78bdce90832ae1008f153b281baf4863ba3a8db02e9644c156777d08be15143b",
     "tools/prg_inventory.py": "d40cc9dca05ea5a95806cbf03d8f7a09bac9812cf45f46f5b3d4a43340635546",
+    "tools/map_data.py": "0eb2d3e3fc46751f46234d11c5271c5672fa1929fea53f99d31858addca6efd2",
+    "tools/packed_text.py": "f563711b9057685d81b62546068c27a35dfcb40b280c1938e43ab85b88c1667b",
     "tools/script_entries.py": "46617bbb7c8147c3ec974ddcaa617d0352678c6df5a2b9376fb1f31d6870605a",
     "tools/script_flow.py": "efb7d6e5c9ffb6fda65b929f49b51e958b35fe3e9962855b596e239f1832db35",
-    "tools/setup_mesen.py": "252f8a9cb4caedaa498024d20cc12e9787b11d17f6cf1309615e2137995200d7",
     "tools/slot_record_flow.py": "224fe323e97fdd25e57a34dc8b9be9e130ef25da8fc9d2490982bde4495e3f7e",
+    "tools/direct_record_flow.py": "82d87c19801e45c45986a1da79ee12d35dbb6cac474a385af282bb6e5a7dcb32",
+    "tools/native_event_flow.py": "62c3877dc5f4b4d72069f136b90752a51a75ec7e61d096c486d07706c34d2254",
+    "tools/audio_commands.py": "c3f348c5d70e9575a66a6be30e1e8f37dd3299df1120628fa5289e8ea3fa7d88",
+    "tools/audio_flow.py": "a50201f6c9c74f6625cd99b18284478b9107e4cc810c3a69cc74f220116d6e50",
+    "tools/ppu_streams.py": "78bdce90832ae1008f153b281baf4863ba3a8db02e9644c156777d08be15143b",
+    "tools/sprite_metadata.py": "ac6be1acfec45f8192ad677edd3379a62fe9de1f30c4c77ed0669877c9ebd3e8",
+    "tools/setup_mesen.py": "252f8a9cb4caedaa498024d20cc12e9787b11d17f6cf1309615e2137995200d7",
+    "config/mesence-toolchain.json": "b43cd410e541aa687939ba057b0584ed38e3fca1acae8d0d7a8151e4f4eb44a8",
+    "tools/native_control_flow.py": "e7656e17a3f91182b6a7ee5b748beddbdd1cc00b3886f0aa962c6b4f3fb26b5c",
+    "tools/nes6502.py": "13cf9f639b839e06175dc3070cbd9c665baa443e6ee63d725a58b5af51441d8a",
+    "tools/verify_native_opcodes.py": "804720e4445a8266b7420cb1538de3f98c18606a2d3c4b2cb76451a7df90a240",
     "tools/source_audit.py": "c6e273f6dc095677c221879967104f212283f5db59b22b9da48ebf3bd04b9450",
-    "tools/sprite_assets.py": "8baa246fd55ba64e8233999d068896331b2af6bfbcbe316779fdeeb945703987",
-    "tools/sprite_metadata.py": "b03c10e1e3577713a9123df59a2b5c9899d6dea2f372a20c7c15d7d13b35f491",
+    "tools/map_assets.py": "ca23cdeeeae29bb4b4ee4ad1f0a008f70bac9fb07d0d91f4790e9aa1702c0068",
+    "tools/map_layout_assets.py": "c1cd68c0c60df20e09dd52a4644668f7220062788f9ef8a91ff53df7a4fe0eb9",
+    "tools/asset_paths.py": "a54397bdce0db94dbf5b5407252ec54f4a1b6b2688f403b08f2f30b151e3dbed",
+    "tools/inventory_review.py": "a7a8329a8271f42e3adaf38dd96448b38198f9ca6d0cbaa880e341834270cb53",
+    "tools/menu_assets.py": "eaf6eafe70ff69a9e20c5c7718e0e4726e00b9c3c2128b3b55469abbd75d504e",
+    "tools/palette_assets.py": "b121cabea4c9efe4fc6ecdc2fdfd257bdbd57107f79bbf5eb54f130b7190a170",
+    "tools/ppu_assets.py": "d569c84056463849ee6bb601ac872bda068b88e44c170a1a9c1ad1a2594c7fad",
+    "config/ppu-streams-us-v1.5.json": "0a79b6535bb784882e6268f8ee93e8574dd67c6ab2326ad8958f04802f981a28",
+    "config/palettes-us-v1.5.json": "faad8efbd6ae06caf3700a0de193ca73e7f6e15739be8f7c3cda2bb34b3e929c",
+    "tools/sprite_assets.py": "98fd56fb4abdf9c1a9d3fb2db0da08413e156e7322a9db6e40ed7b4b2f063a32",
     "tools/text_assets.py": "8173e63b2ab113d344417686b03eabfba0cae93bef370833b59ec201e657b3ee",
-    "tools/verify_native_opcodes.py": "804720e4445a8266b7420cb1538de3f98c18606a2d3c4b2cb76451a7df90a240"
+    "config/sprite-frames-us-v1.5.json": "d6e65fd011bd8693eb15a8eff4d7abaa3f0afea206f1fee667aeda4a8a74ec8f"
   },
   "compatibility_review": "Shared variant integration adds optional text geometry while preserving the primary defaults, and optional target control ownership while keeping the primary strict catalogue. Canonical v1.5 source, map, assets and consumer interpretations are unchanged. Focused synthetic geometry/failure cases pass; the integration checkpoint refreshes the complete primary build and controls. Earlier frozen runtime/storage evidence remains scoped to its unchanged source and reference."
 }

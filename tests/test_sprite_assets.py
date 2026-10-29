@@ -9,6 +9,27 @@ from tools import map_layout_assets, sprite_assets
 
 
 class SpriteAssetTests(unittest.TestCase):
+    def test_separate_dimensions_round_trip_edit_and_control_offset(self):
+        manifest = dict(self.listing, header_format='separate-bytes',
+                        cpu_addresses=['0x9000'])
+        prg = bytearray(self.prg)
+        prg[0x1000:0x1007] = bytes([0x84, 2, 1, 0x35, 0x14, 0x36, 0x28])
+        prg = bytes(prg)
+        asset = sprite_assets.capture(self.root, prg, self.sha, manifest=manifest)
+        self.assertEqual(asset['header_format'], 'separate-bytes')
+        self.assertEqual(asset['frames'][0]['tile_rows'], [[[0x35, 0x14], [0x36, 0x28]]])
+        spans = sprite_assets.encode(self.root, asset, prg, self.sha, manifest=manifest)
+        self.assertEqual(spans, [(0, 0x1000, prg[0x1000:0x1007])])
+        changed = sprite_assets.changed_asset(asset)
+        reference = b'R' * 16 + prg
+        candidate = bytearray(reference)
+        for bank, start, data in sprite_assets.encode(self.root, changed, prg, self.sha, manifest=manifest):
+            candidate[16 + start:16 + start + len(data)] = data
+        self.assertEqual(sprite_assets.verify_control(reference, bytes(candidate), 16, asset), [0x1013])
+        del asset['header_format']
+        with self.assertRaisesRegex(ValueError, 'header format'):
+            sprite_assets.encode(self.root, asset, prg, self.sha, manifest=manifest)
+
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()
         self.addCleanup(self.temp.cleanup)

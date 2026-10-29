@@ -44,7 +44,10 @@ matching full build; the table below reports the verified decision.
 v1.5 through v1.1 are accepted by separate matching builds and reviewed
 inventories. Shared source expresses their differing native forms, scripts and
 data layouts; changed incidental interpretations remain explicit. The
-unversioned release is next, with its own reconstruction and matching evidence.
+unversioned release is being adapted through its distinct native handlers,
+separate-dimension sprite format and ordinary PPU message streams. Its isolated
+components have exact comparisons and changed-source controls; the table gives
+it no full-build credit until its own complete source and inventory are integrated.
 Byte equality
 establishes identical executable behaviour under the same conditions; it does
 not establish the correctness of inferred source names or data formats.

@@ -1,0 +1,33 @@
+{
+  "schema_version": 1,
+  "target": "us-unversioned",
+  "source": "Own24-stream palette region between animation directory and separate-dimension frames; consumed header geometry tiles the region exactly.",
+  "bank": 0,
+  "cpu_addresses": [
+    "0xb70e",
+    "0xb721",
+    "0xb734",
+    "0xb747",
+    "0xb75a",
+    "0xb76d",
+    "0xb780",
+    "0xb793",
+    "0xb7a6",
+    "0xb7b9",
+    "0xb7cc",
+    "0xb7df",
+    "0xb7f2",
+    "0xb805",
+    "0xb818",
+    "0xb82b",
+    "0xb846",
+    "0xb861",
+    "0xb87c",
+    "0xb897",
+    "0xb8b2",
+    "0xb8cd",
+    "0xb8e0",
+    "0xb8f3"
+  ],
+  "end_cpu": "0xb906"
+}

@@ -17,25 +17,28 @@ from .project import IDENTITY_PARTS, load_project, load_target
 from .script_entries import BANK_SIZE, ROOT, load_audited_banks
 from .setup_mesen import spec
 from .sprite_assets import frame_addresses
-from .sprite_metadata import decode_frame_header, inventory_observed
+from .sprite_metadata import decode_frame_header, frame_header_size, inventory_observed
 
 # The reconstructed native fade routine ends at $B5D3. The reviewed palette
 # header begins at $C7DF. The animation records fill the prefix through $BA23.
 ANIMATIONS, FRAMES, END = 0x35D3, 0x3A23, 0x47DF
 
 
-def decode_layout(bank: bytes, animation_start: int, frame_start: int, end: int) -> dict:
+def decode_layout(bank: bytes, animation_start: int, frame_start: int, end: int, *,
+                  header_format: str = 'packed-nibbles', animation_end: int | None = None) -> dict:
+    directory_end = frame_start if animation_end is None else animation_end
     if (len(bank) != BANK_SIZE
-            or any(type(x) is not int for x in (animation_start, frame_start, end))
-            or not 0 <= animation_start < frame_start < end <= BANK_SIZE):
+            or any(type(x) is not int for x in (animation_start, directory_end, frame_start, end))
+            or not 0 <= animation_start < directory_end <= frame_start < end <= BANK_SIZE):
         raise ValueError('invalid sprite layout range')
+    header_size = frame_header_size(header_format)
     frames = []
     cursor = frame_start
     while cursor < end:
-        if cursor + 2 > end:
+        if cursor + header_size > end:
             raise ValueError('truncated sequential sprite frame')
-        header = decode_frame_header(bank[cursor:cursor + 2])
-        size = 2 + 2 * header['tile_pairs']
+        header = decode_frame_header(bank[cursor:cursor + header_size], header_format=header_format)
+        size = header_size + 2 * header['tile_pairs']
         if header['index_wraps'] or cursor + size > end:
             raise ValueError('sequential sprite frame wraps its index or exceeds the region')
         frames.append({'bank_offset': cursor, 'cpu_address': 0x8000 + cursor,
@@ -44,12 +47,12 @@ def decode_layout(bank: bytes, animation_start: int, frame_start: int, end: int)
     frame_starts = {row['cpu_address'] for row in frames}
     animations, targeted = [], set()
     cursor = animation_start
-    while cursor < frame_start:
-        if cursor + 3 > frame_start or bank[cursor] != 0x53:
+    while cursor < directory_end:
+        if cursor + 3 > directory_end or bank[cursor] != 0x53:
             raise ValueError('invalid sequential animation header')
         count = bank[cursor + 1] or 256
         size = 3 + 2 * count
-        if cursor + size > frame_start:
+        if cursor + size > directory_end:
             raise ValueError('sequential animation table exceeds the region')
         pointers = [int.from_bytes(bank[p:p + 2], 'little')
                     for p in range(cursor + 3, cursor + size, 2)]
@@ -60,11 +63,14 @@ def decode_layout(bank: bytes, animation_start: int, frame_start: int, end: int)
                            'size': size, 'frame_count': count, 'delay': bank[cursor + 2],
                            'frame_pointers': pointers})
         cursor += size
-    return {'animations': animations, 'frames': frames,
+    result = {'animations': animations, 'frames': frames,
             'frames_without_animation_pointer': sorted(frame_starts - targeted),
             'region_bytes': end - animation_start,
-            'animation_bytes': frame_start - animation_start,
+            'animation_bytes': directory_end - animation_start,
             'frame_bytes': end - frame_start}
+    if animation_end is not None:
+        result['intervening_bytes'] = frame_start - directory_end
+    return result
 
 
 def compare_layout(bank: bytes, layout: dict, other_prg: bytes) -> dict:

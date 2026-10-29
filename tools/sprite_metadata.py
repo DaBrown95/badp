@@ -6,22 +6,32 @@ that index. Payload bytes are game assets and must remain local.
 from __future__ import annotations
 
 
-def decode_frame_header(data: bytes) -> dict:
-    if len(data) < 2:
+def frame_header_size(header_format: str = 'packed-nibbles') -> int:
+    if header_format not in ('packed-nibbles', 'separate-bytes'):
+        raise ValueError('unknown sprite frame header format')
+    return 2 if header_format == 'packed-nibbles' else 3
+
+
+def decode_frame_header(data: bytes, *, header_format: str = 'packed-nibbles') -> dict:
+    size = frame_header_size(header_format)
+    if len(data) < size:
         raise ValueError('truncated sprite frame header')
-    first, dimensions = data[:2]
-    columns, rows = dimensions >> 4, dimensions & 0x0F
+    first = data[0]
+    if header_format == 'packed-nibbles':
+        columns, rows = data[1] >> 4, data[1] & 0x0F
+    else:
+        columns, rows = data[1:3]
     # Both loops decrement an eight-bit counter before testing for zero.
     effective_columns, effective_rows = columns or 256, rows or 256
     cells = effective_columns * effective_rows
-    # Y begins at 2 and wraps after every 256 indirect-indexed reads.
-    offsets = sorted({(2 + 2 * i + part) & 0xFF
+    # Y begins immediately after the header and remains an eight-bit index.
+    offsets = sorted({(size + 2 * i + part) & 0xFF
                       for i in range(min(cells, 128)) for part in (0, 1)})
     return {'oam_base_index': first & 0x7F, 'large_sprites': bool(first & 0x80),
             'columns': columns, 'rows': rows,
             'effective_columns': effective_columns, 'effective_rows': effective_rows,
             'tile_pairs': cells, 'tile_read_offsets': offsets,
-            'index_wraps': cells >= 128}
+            'index_wraps': size + 2 * cells > 256}
 
 
 def decode_resource_header(data: bytes) -> dict:

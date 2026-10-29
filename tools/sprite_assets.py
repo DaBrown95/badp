@@ -13,7 +13,7 @@ from .asset_paths import asset_path
 import sys
 
 from .script_entries import BANK_SIZE, ROOT, load_audited_banks
-from .sprite_metadata import decode_frame_header
+from .sprite_metadata import decode_frame_header, frame_header_size
 
 TARGET = 'us-v1.5'
 MANIFEST = Path('config/sprite-frames-us-v1.5.json')
@@ -22,11 +22,13 @@ ASSET_PATH = Path('extracted/us-v1.5/sprite-frames.json')
 
 def frame_addresses(root: Path, *, target: str = TARGET, manifest: dict | None = None) -> list[int]:
     data = json.loads((root / MANIFEST).read_text()) if manifest is None else manifest
-    if (not isinstance(data, dict) or set(data) != {'schema_version', 'target', 'source', 'bank', 'cpu_addresses'}
+    required = {'schema_version', 'target', 'source', 'bank', 'cpu_addresses'}
+    if (not isinstance(data, dict) or set(data) not in (required, required | {'header_format'})
             or type(data['schema_version']) is not int or data['schema_version'] != 1 or data['target'] != target
             or type(data['bank']) is not int or data['bank'] != 0
             or not isinstance(data['source'], str) or not isinstance(data['cpu_addresses'], list)):
         raise ValueError('invalid inventoried sprite frame inventory')
+    frame_header_size(data.get('header_format', 'packed-nibbles'))
     addresses = []
     for item in data['cpu_addresses']:
         if not isinstance(item, str) or len(item) != 6 or not item.startswith('0x'):
@@ -46,18 +48,22 @@ def frame_addresses(root: Path, *, target: str = TARGET, manifest: dict | None =
 def inventory(root: Path, prg: bytes, *, target: str = TARGET, manifest: dict | None = None) -> list[dict]:
     if len(prg) != 2 * BANK_SIZE:
         raise ValueError('expected two complete PRG banks')
+    manifest = json.loads((root / MANIFEST).read_text()) if manifest is None else manifest
+    addresses = frame_addresses(root, target=target, manifest=manifest)
+    header_format = manifest.get('header_format', 'packed-nibbles')
+    header_size = frame_header_size(header_format)
     frames = []
     end = 0
-    for address in frame_addresses(root, target=target, manifest=manifest):
+    for address in addresses:
         offset = address - 0x8000
-        header = decode_frame_header(prg[offset:offset + 2])
-        if header['index_wraps'] or offset + 2 + 2 * header['tile_pairs'] > BANK_SIZE:
+        header = decode_frame_header(prg[offset:offset + header_size], header_format=header_format)
+        if header['index_wraps'] or offset + header_size + 2 * header['tile_pairs'] > BANK_SIZE:
             raise ValueError('inventoried frame index wraps or crosses its PRG bank')
-        size = 2 + 2 * header['tile_pairs']
+        size = header_size + 2 * header['tile_pairs']
         if offset < end:
             raise ValueError('inventoried sprite frames overlap')
         end = offset + size
-        frames.append({'offset': offset, 'size': size, 'header': header})
+        frames.append({'offset': offset, 'size': size, 'header': header, 'header_size': header_size})
     return frames
 
 
@@ -65,6 +71,7 @@ def capture(root: Path, prg: bytes, reference_sha256: str, *, target: str = TARG
             manifest: dict | None = None) -> dict:
     if not isinstance(reference_sha256, str) or len(reference_sha256) != 64:
         raise ValueError('invalid reference identity')
+    manifest = json.loads((root / MANIFEST).read_text()) if manifest is None else manifest
     frames = []
     for frame in inventory(root, prg, target=target, manifest=manifest):
         start, h = frame['offset'], frame['header']
@@ -72,24 +79,31 @@ def capture(root: Path, prg: bytes, reference_sha256: str, *, target: str = TARG
         for row in range(h['rows']):
             pairs = []
             for col in range(h['columns']):
-                pos = start + 2 + 2 * (row * h['columns'] + col)
+                pos = start + frame['header_size'] + 2 * (row * h['columns'] + col)
                 pairs.append([prg[pos], prg[pos + 1]])
             rows.append(pairs)
         frames.append({'cpu': f'0x{start + 0x8000:04x}', 'oam_base_index': h['oam_base_index'],
                        'large_sprites': h['large_sprites'], 'columns': h['columns'], 'rows': h['rows'],
                        'tile_rows': rows})
-    return {'schema_version': 1, 'target': target, 'reference_sha256': reference_sha256, 'bank': 0,
-            'frames': frames}
+    result = {'schema_version': 1, 'target': target, 'reference_sha256': reference_sha256, 'bank': 0,
+              'frames': frames}
+    if manifest and manifest.get('header_format', 'packed-nibbles') != 'packed-nibbles':
+        result['header_format'] = manifest['header_format']
+    return result
 
 
 def encode(root: Path, asset: dict, prg: bytes, reference_sha256: str, *, target: str = TARGET,
            manifest: dict | None = None) -> list[tuple[int, int, bytes]]:
     """Return frame spans with stable headers and locally editable tile pairs."""
-    if (not isinstance(asset, dict) or set(asset) != {'schema_version', 'target', 'reference_sha256', 'bank', 'frames'}
+    required = {'schema_version', 'target', 'reference_sha256', 'bank', 'frames'}
+    if (not isinstance(asset, dict) or set(asset) not in (required, required | {'header_format'})
             or asset['schema_version'] != 1 or asset['target'] != target or asset['reference_sha256'] != reference_sha256
             or type(asset['bank']) is not int or asset['bank'] != 0 or not isinstance(asset['frames'], list)):
         raise ValueError('sprite asset identity differs from the reference')
     originals = inventory(root, prg, target=target, manifest=manifest)
+    if any(frame_header_size(asset.get('header_format', 'packed-nibbles')) != row['header_size']
+           for row in originals):
+        raise ValueError('sprite asset header format differs from the declared inventory')
     if len(asset['frames']) != len(originals):
         raise ValueError('sprite frame count differs from the declared inventory')
     spans = []
@@ -103,7 +117,7 @@ def encode(root: Path, asset: dict, prg: bytes, reference_sha256: str, *, target
                 or type(item['rows']) is not int or item['rows'] != header['rows']
                 or not isinstance(item['tile_rows'], list) or len(item['tile_rows']) != header['rows']):
             raise ValueError('sprite frame identity, order or header differs')
-        payload = bytearray(prg[start:start + 2])
+        payload = bytearray(prg[start:start + original['header_size']])
         for row in item['tile_rows']:
             if not isinstance(row, list) or len(row) != header['columns']:
                 raise ValueError('sprite tile row has wrong width')
@@ -150,7 +164,8 @@ def changed_asset(asset: dict) -> dict:
 def verify_control(reference: bytes, candidate: bytes, prg_offset: int, asset: dict) -> list[int]:
     if len(reference) != len(candidate):
         raise ValueError('sprite control changed ROM size')
-    expected = sorted(prg_offset + int(frame['cpu'], 16) - 0x8000 + 2 for frame in asset['frames'])
+    header_size = frame_header_size(asset.get('header_format', 'packed-nibbles'))
+    expected = sorted(prg_offset + int(frame['cpu'], 16) - 0x8000 + header_size for frame in asset['frames'])
     changed = [index for index, (a, b) in enumerate(zip(reference, candidate)) if a != b]
     if (len(expected) != len(set(expected)) or changed != expected
             or any(candidate[index] != (reference[index] ^ 1) for index in expected)):
